@@ -227,7 +227,7 @@ Ceads is organized into distinct layers, each with clear responsibilities:
 ┌──────────────────────────────┼───────────────────────────────────┐
 │                        File Layer                                │
 │                        Format specification                      │
-│   .ceads/ │ JSON schemas (Zod) │ entity collections             │
+│   .ceads/config.yml │ .ceads-sync/ │ JSON schemas (Zod)         │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -276,11 +276,36 @@ Key properties:
 
 ### 2.2 Directory Structure
 
-All Ceads data lives under `.ceads/`:
+Ceads uses two directories with a clear separation of concerns:
+
+- **`.ceads/`** on the main branch (and all working branches): Configuration and local
+  files
+- **`.ceads-sync/`** on the `ceads-sync` branch: Synced data (entities, attic, metadata)
+
+#### On Main Branch (all working branches)
 
 ```
 .ceads/
-├── nodes/                     # Shared graph entities (synced)
+├── config.yml              # Project configuration (tracked)
+├── .gitignore              # Ignores everything except config (tracked)
+│
+│   # Everything below is gitignored (local/transient):
+├── local/                  # Private workspace (never synced)
+│   └── lo-l1m2.json
+├── cache/                  # Bridge cache
+│   ├── outbound/           # Queue: bridge messages to send
+│   ├── inbound/            # Buffer: recent bridge messages
+│   └── state.json          # Connection state
+├── daemon.sock             # Daemon Unix socket
+├── daemon.pid              # Daemon PID file
+└── daemon.log              # Daemon log file
+```
+
+#### On `ceads-sync` Branch
+
+```
+.ceads-sync/
+├── nodes/                     # Shared graph entities
 │   ├── issues/                # Issue nodes
 │   │   ├── is-a1b2.json
 │   │   └── is-f14c.json
@@ -290,21 +315,20 @@ All Ceads data lives under `.ceads/`:
 │   └── messages/              # Message nodes
 │       ├── ms-p1q2.json       # Comment on issue is-a1b2
 │       └── ms-r3s4.json
-├── attic/                     # Archive (synced)
+├── attic/                     # Archive
 │   ├── conflicts/             # Merge conflict losers
 │   │   └── is-a1b2/
 │   │       └── 2025-01-07T10-30-00Z_description.json
 │   └── orphans/               # Integrity violations
-├── local/                     # Private workspace (never synced)
-│   └── lo-l1m2.json
-├── cache/                     # Bridge cache (never synced)
-│   ├── outbound/              # Queue: bridge messages to send
-│   ├── inbound/               # Buffer: recent bridge messages
-│   └── state.json             # Connection state
-└── meta.json                  # Branch metadata (synced)
+└── meta.json                  # Runtime metadata (last_sync, schema_versions)
 ```
 
-> **Note on “nodes”**: The `nodes/` directory contains entities that form the shared
+> **Note on directory split**: The `.ceads/` directory on main contains configuration
+> (which versions with your code) and local-only files (which are gitignored). The
+> `.ceads-sync/` directory on the sync branch contains all shared data. This separation
+> ensures synced data never causes merge conflicts on your working branches.
+
+> **Note on "nodes"**: The `nodes/` directory contains entities that form the shared
 > coordination graph—issues, agents, messages, and future entity types.
 > These are interconnected (dependencies, `in_reply_to`, `working_on`) and synced across
 > machines. The `local/` directory is explicitly outside this graph—a private workspace
@@ -315,7 +339,7 @@ All Ceads data lives under `.ceads/`:
 Ceads uses a uniform pattern for all node types.
 Each collection is:
 
-1. **A directory** under `.ceads/nodes/`
+1. **A directory** under `.ceads-sync/nodes/` (on the sync branch)
 
 2. **A Zod schema** defining the entity structure
 
@@ -325,7 +349,7 @@ Each collection is:
 
 To add a new node type (e.g., `workflows`):
 
-1. Create directory: `.ceads/nodes/workflows/`
+1. Create directory: `.ceads-sync/nodes/workflows/` (on sync branch)
 
 2. Define schema: `WorkflowSchema` in Zod
 
@@ -338,31 +362,31 @@ To add a new node type (e.g., `workflows`):
 **No changes to Git sync algorithm required.** Sync operates on files, not schemas.
 Only the merge rules (in Git Layer) need updating for new node types.
 
-#### Built-in Node Collections
+#### Built-in Node Collections (on sync branch)
 
 | Collection | Directory | Internal Prefix | Purpose |
 | --- | --- | --- | --- |
-| Issues | `nodes/issues/` | `is-` | Task tracking |
-| Agents | `nodes/agents/` | `ag-` | Agent registry |
-| Messages | `nodes/messages/` | `ms-` | Comments on issues (and future messaging) |
+| Issues | `.ceads-sync/nodes/issues/` | `is-` | Task tracking |
+| Agents | `.ceads-sync/nodes/agents/` | `ag-` | Agent registry |
+| Messages | `.ceads-sync/nodes/messages/` | `ms-` | Comments on issues (and future messaging) |
 
-#### Non-Node Collections
+#### Non-Node Collections (on main branch, gitignored)
 
 | Collection | Directory | Internal Prefix | Purpose |
 | --- | --- | --- | --- |
-| Local | `local/` | `lo-` | Private workspace (never synced) |
+| Local | `.ceads/local/` | `lo-` | Private workspace (never synced) |
 
-> **Note**: Local items use the same entity pattern but are not “nodes” because they are
-> not part of the shared coordination graph.
-> They are never synced.
+> **Note**: Local items use the same entity pattern but are not "nodes" because they are
+> not part of the shared coordination graph. They live in `.ceads/local/` on the main
+> branch and are gitignored—never synced.
 
 #### Future Node Collections (Examples)
 
 | Collection | Directory | Internal Prefix | Purpose |
 | --- | --- | --- | --- |
-| Templates | `nodes/templates/` | `tp-` | Issue templates |
-| Workflows | `nodes/workflows/` | `wf-` | Multi-step procedures |
-| Artifacts | `nodes/artifacts/` | `ar-` | File attachments |
+| Templates | `.ceads-sync/nodes/templates/` | `tp-` | Issue templates |
+| Workflows | `.ceads-sync/nodes/workflows/` | `wf-` | Multi-step procedures |
+| Artifacts | `.ceads-sync/nodes/artifacts/` | `ar-` | File attachments |
 
 > **Note**: Messages support comments on issues and replies to other messages via
 > `in_reply_to`. Messages are time-sorted by `created_at`. Future extensions (threading
@@ -601,9 +625,66 @@ function getThread(parentId: string): Message[] {
 
 See [Decision 10](#decision-10-messages-as-unified-commentmessage-model) for rationale.
 
-#### 2.5.7 MetaSchema
+#### 2.5.7 ConfigSchema
 
-Branch-level metadata:
+Project configuration stored in `.ceads/config.yml` on the main branch. This is the
+human-editable configuration file that versions with your code.
+
+```yaml
+# .ceads/config.yml
+# See: https://github.com/[org]/ceads
+
+ceads_version: "0.1.0"
+
+sync:
+  branch: ceads-sync       # Branch name for synced data
+  # repo: origin           # Remote repository (default: origin)
+
+# Display aliases for entity IDs (internal → external)
+prefixes:
+  is: cd                   # issues display as cd-xxxx
+  ag: agent                # agents display as agent-xxxx
+  ms: msg                  # messages display as msg-xxxx
+  lo: local                # local items display as local-xxxx
+
+# Runtime settings
+settings:
+  heartbeat_ttl_seconds: 300   # Agent heartbeat timeout
+  message_ttl_days: 7          # Message cache retention
+```
+
+```typescript
+// TypeScript schema for config.yml validation
+const SyncConfig = z.object({
+  branch: z.string().default('ceads-sync'),
+  repo: z.string().default('origin'),
+});
+
+const ConfigSchema = z.object({
+  ceads_version: z.string(),
+  sync: SyncConfig.default({}),
+  prefixes: z.record(z.string(), z.string()).default({
+    is: 'cd',
+    ag: 'agent',
+    ms: 'msg',
+    lo: 'local',
+  }),
+  settings: z.object({
+    heartbeat_ttl_seconds: z.number().default(300),
+    message_ttl_days: z.number().default(7),
+  }).default({}),
+});
+
+type Config = z.infer<typeof ConfigSchema>;
+```
+
+> **Note**: Configuration is stored in YAML format for human editability (comments,
+> cleaner syntax). The CLI validates config.yml against ConfigSchema on startup.
+
+#### 2.5.8 MetaSchema
+
+Runtime metadata stored in `.ceads-sync/meta.json` on the sync branch. This file tracks
+sync state and schema versions—it is managed by the system, not edited by users.
 
 ```typescript
 const SchemaVersion = z.object({
@@ -611,35 +692,19 @@ const SchemaVersion = z.object({
   version: z.number().int(),
 });
 
-// Maps internal prefixes to external display prefixes
-const PrefixAlias = z.object({
-  internal: z.string(),   // e.g., "is-" (immutable, matches directory)
-  external: z.string(),   // e.g., "cd-" (configurable display prefix)
-});
-
 const MetaSchema = z.object({
-  ceads_version: z.string(),         // e.g., "0.1.0"
   schema_versions: z.array(SchemaVersion),
   created_at: Timestamp,
   last_sync: Timestamp.optional(),
-
-  config: z.object({
-    // External prefix aliases for CLI/UI display
-    prefix_aliases: z.array(PrefixAlias).default([
-      { internal: 'is-', external: 'cd-' },
-      { internal: 'ag-', external: 'agent-' },
-      { internal: 'ms-', external: 'msg-' },
-      { internal: 'lo-', external: 'local-' },
-    ]),
-    heartbeat_ttl_seconds: z.number().default(300),
-    message_ttl_days: z.number().default(7),
-  }).default({}),
 });
 
 type Meta = z.infer<typeof MetaSchema>;
 ```
 
-#### 2.5.8 AtticEntrySchema
+> **Note**: User-editable configuration (prefixes, TTLs, sync settings) is now in
+> `.ceads/config.yml` on the main branch. See [ConfigSchema](#257-configschema).
+
+#### 2.5.9 AtticEntrySchema
 
 Preserved conflict losers:
 
@@ -684,64 +749,65 @@ Key properties:
 
 ### 3.2 Sync Branch Architecture
 
-Ceads data lives on a dedicated branch, separate from the main codebase:
+Ceads uses a split architecture with configuration on main and data on a sync branch:
 
 ```
-main branch:              ceads-sync branch:
-├── src/                  └── .ceads/
-├── tests/                    ├── nodes/
-├── README.md                 │   ├── issues/
-└── .gitignore               │   ├── agents/
-    (includes .ceads/)        │   └── messages/
-                              ├── attic/
-                              └── meta.json
+main branch:                    ceads-sync branch:
+├── src/                        └── .ceads-sync/
+├── tests/                          ├── nodes/
+├── README.md                       │   ├── issues/
+├── .ceads/                         │   ├── agents/
+│   ├── config.yml (tracked)        │   └── messages/
+│   └── .gitignore (tracked)        ├── attic/
+│   └── local/     (gitignored)     └── meta.json
+│   └── cache/     (gitignored)
+│   └── daemon.*   (gitignored)
+└── ...
 ```
 
-#### Why a Separate Branch?
+#### Why This Architecture?
 
-1. **No skip-worktree hacks**: `.ceads/` is gitignored on main, avoiding tracked-file
-   conflicts
+1. **Discoverable**: Clone repo, see `.ceads/config.yml`, know ceads is configured
 
-2. **No daemon-vs-user conflicts**: Background processes don’t fight manual git
-   operations
+2. **Config versions with code**: Configuration changes can be part of PRs
 
-3. **No git worktrees needed**: Sync uses
+3. **No sync conflicts on main**: All synced data is on a separate branch
+
+4. **No skip-worktree hacks**: Local files are gitignored within `.ceads/`
+
+5. **No git worktrees needed**: Sync uses
    [git plumbing commands](https://git-scm.com/book/en/v2/Git-Internals-Plumbing-and-Porcelain),
    not checkout
 
-4. **Issues shared across code branches**: All feature branches see the same issues
+6. **Issues shared across code branches**: All feature branches see the same issues
 
-#### Branch Setup
-
-```bash
-# Create sync branch (orphan - no shared history with main)
-git checkout --orphan ceads-sync
-git reset --hard
-mkdir -p .ceads/nodes/issues .ceads/nodes/agents .ceads/nodes/messages
-mkdir -p .ceads/attic/conflicts .ceads/attic/orphans
-echo '{}' > .ceads/meta.json
-git add .ceads/
-git commit -m "Initialize ceads"
-git push -u origin ceads-sync
-git checkout main
-```
-
-#### Gitignore on Main
+#### Files Tracked on Main Branch
 
 ```
-# .gitignore (on main branch)
-.ceads/
+.ceads/config.yml       # Project configuration (YAML)
+.ceads/.gitignore       # Ignores local/cache/daemon files
+```
+
+#### .ceads/.gitignore Contents
+
+```gitignore
+# Ignore everything in .ceads/ except config files
+*
+!.gitignore
+!config.yml
 ```
 
 #### Files Tracked on ceads-sync Branch
 
 ```
-.ceads/nodes/              # All node types
-.ceads/attic/              # Conflict and orphan archive
-.ceads/meta.json           # Branch metadata
+.ceads-sync/nodes/      # All node types (issues, agents, messages)
+.ceads-sync/attic/      # Conflict and orphan archive
+.ceads-sync/meta.json   # Runtime metadata
 ```
 
 #### Files Never Tracked (Local Only)
+
+These live in `.ceads/` on main but are gitignored:
 
 ```
 .ceads/local/           # Private workspace
@@ -772,10 +838,10 @@ function parseVersion(content: string): number {
 
 ```bash
 # Read a file from sync branch without checkout
-git show ceads-sync:.ceads/nodes/issues/is-a1b2.json
+git show ceads-sync:.ceads-sync/nodes/issues/is-a1b2.json
 
 # List files in a directory on sync branch
-git ls-tree ceads-sync .ceads/nodes/issues/
+git ls-tree ceads-sync .ceads-sync/nodes/issues/
 ```
 
 #### 3.3.3 File-Level Sync Algorithm
@@ -783,16 +849,16 @@ git ls-tree ceads-sync .ceads/nodes/issues/
 For each file, compare local and remote versions:
 
 ```
-SYNC_FILE(local_path, remote_path):
-  local = read_file(local_path)         # May be null
-  remote = git show ceads-sync:{path}   # May be null
+SYNC_FILE(local_path, sync_path):
+  local = read_file(local_path)                    # May be null (in .ceads/local/)
+  remote = git show ceads-sync:{sync_path}         # May be null (in .ceads-sync/)
 
   if local is null and remote is null:
     return  # Nothing to do
 
   if local is null:
-    # New from remote - copy to local
-    git show ceads-sync:{path} > local_path
+    # New from remote - copy to local cache
+    git show ceads-sync:{sync_path} > local_path
     return
 
   if remote is null:
@@ -819,16 +885,16 @@ SYNC_FILE(local_path, remote_path):
 
 #### 3.3.4 Pull Operation
 
-Fetch remote changes and apply to local files:
+Fetch remote changes and apply to local cache:
 
 ```bash
 # 1. Fetch latest sync branch
 git fetch origin ceads-sync
 
-# 2. For each collection, sync files
+# 2. For each collection, sync files from .ceads-sync/ to local cache
 #    (implementation iterates and applies SYNC_FILE)
 
-# 3. Update meta.json with last_sync timestamp
+# 3. Update .ceads-sync/meta.json with last_sync timestamp
 ```
 
 Expressed as git commands:
@@ -838,13 +904,14 @@ Expressed as git commands:
 git fetch origin ceads-sync
 
 # Get list of remote files
-git ls-tree -r --name-only origin/ceads-sync .ceads/
+git ls-tree -r --name-only origin/ceads-sync .ceads-sync/
 
 # Read specific remote file
-git show origin/ceads-sync:.ceads/nodes/issues/is-a1b2.json
+git show origin/ceads-sync:.ceads-sync/nodes/issues/is-a1b2.json
 
-# Copy remote file to local (if remote is newer)
-git show origin/ceads-sync:.ceads/nodes/issues/is-a1b2.json > .ceads/nodes/issues/is-a1b2.json
+# Copy remote file to local cache (if remote is newer)
+# Note: local cache is in .ceads/cache/ or memory, not .ceads-sync/
+git show origin/ceads-sync:.ceads-sync/nodes/issues/is-a1b2.json
 ```
 
 #### 3.3.5 Push Operation
@@ -859,7 +926,7 @@ git fetch origin ceads-sync
 
 # 3. Create a tree with updated files
 git read-tree ceads-sync
-git add .ceads/nodes/ .ceads/attic/ .ceads/meta.json
+git add .ceads-sync/nodes/ .ceads-sync/attic/ .ceads-sync/meta.json
 git write-tree
 
 # 4. Create commit on sync branch
@@ -1074,11 +1141,12 @@ function mergeArraysById<T>(
 ### 3.7 Attic Structure
 
 The attic preserves data that would otherwise be lost, enabling recovery and auditing.
+It lives on the sync branch in `.ceads-sync/attic/`.
 
 #### Directory Layout
 
 ```
-.ceads/attic/
+.ceads-sync/attic/
 ├── conflicts/                 # Merge conflict losers
 │   ├── is-a1b2/
 │   │   ├── 2025-01-07T10-30-00Z_description.json
@@ -1136,7 +1204,7 @@ Each attic file contains the `AtticEntrySchema` (defined in File Layer 2.5.7):
 
 - `cead attic prune --days 30` removes old entries
 
-- Configurable TTL in `meta.json`
+- Configurable TTL in `.ceads/config.yml` (see [ConfigSchema](#257-configschema))
 
 * * *
 
@@ -1173,17 +1241,48 @@ cead <command> [subcommand] [args] [options]
 cead init
 
 # What it does:
-# 1. Creates .ceads/ directory structure
-# 2. Creates meta.json with default config
-# 3. Adds .ceads/ to .gitignore (on main branch)
-# 4. Creates ceads-sync branch (if remote exists, fetches it)
-# 5. Outputs confirmation
+# 1. Creates .ceads/ directory with config.yml and .gitignore
+# 2. Creates local subdirectories (.ceads/local/, .ceads/cache/)
+# 3. Creates ceads-sync branch with .ceads-sync/ structure
+# 4. Pushes sync branch to origin (if remote exists)
+# 5. Returns to original branch
+# 6. Outputs instructions for user to commit config files
+#
+# Note: Does NOT auto-commit to main branch. User commits manually.
 ```
 
 **Output:**
 ```
-Initialized ceads in .ceads/
+Created .ceads/config.yml
+Created .ceads/.gitignore
 Created sync branch: ceads-sync
+Pushed sync branch to origin
+
+To complete setup, commit the config files:
+  git add .ceads/config.yml .ceads/.gitignore
+  git commit -m "Initialize ceads"
+```
+
+**What gets created on main branch:**
+```
+.ceads/
+├── config.yml      # Default configuration
+├── .gitignore      # Ignores local/cache/daemon files
+├── local/          # Empty, for private workspace
+└── cache/          # Empty, for bridge cache
+```
+
+**What gets created on ceads-sync branch:**
+```
+.ceads-sync/
+├── nodes/
+│   ├── issues/     # Empty
+│   ├── agents/     # Empty
+│   └── messages/   # Empty
+├── attic/
+│   ├── conflicts/  # Empty
+│   └── orphans/    # Empty
+└── meta.json       # Initial metadata
 ```
 
 ### 4.4 Issue Commands
@@ -1760,7 +1859,7 @@ Key properties:
 ┌─────────────────────────────────────────────────────────────────┐
 │                      Ceads Core (Git)                            │
 │                      Source of truth                             │
-│   .ceads/nodes/issues/is-a1b2.json                              │
+│   .ceads-sync/nodes/issues/is-a1b2.json                         │
 │     {                                                            │
 │       "id": "is-a1b2",                                          │
 │       "title": "Fix auth bug",                                  │
@@ -1933,7 +2032,7 @@ Agent A                    Slack                     Agent B
    │                         │                          │
    │                   (optional)                       │
    │                         │                          │
-   │               Archive to .ceads/nodes/messages/    │
+   │            Archive to .ceads-sync/nodes/messages/  │
 ```
 
 #### Configuration
@@ -2068,12 +2167,17 @@ The Local UI Bridge validates our architecture by showing that:
                             │ fs.watch()
                             ▼
               ┌─────────────────────────────┐
-              │         .ceads/             │
-              │                             │
-              │  nodes/                     │
-              │    issues/ agents/ messages/│
-              │                             │
-              │    (JSON files on disk)     │
+              │     .ceads/ (local)         │
+              │       cache/, local/        │
+              │    (local working files)    │
+              └─────────────────────────────┘
+                            ↑
+                            │ sync
+                            ▼
+              ┌─────────────────────────────┐
+              │   .ceads-sync/ (git)        │
+              │     nodes/, attic/          │
+              │    (synced via git)         │
               └─────────────────────────────┘
                             ↑
                             │ git pull/push
@@ -2091,7 +2195,7 @@ The Local UI Bridge validates our architecture by showing that:
 
 **Workflow**:
 
-1. UI watches `.ceads/` directory for changes
+1. UI watches `.ceads/` and cached entity data for changes
 
 2. Agent commits and pushes → git pull brings changes → fs.watch triggers UI refresh
 
@@ -2223,16 +2327,21 @@ The cache layer provides offline-first semantics with automatic sync on reconnec
 #### Cache Directory Structure
 
 ```
-.ceads/
-├── cache/                         # Local cache (never synced to git)
-│   ├── outbound/                  # Queue: items waiting to send to bridge
-│   │   ├── ms-a1b2.json          # Queued message
+.ceads/                              # On main branch (gitignored except config)
+├── cache/                           # Local cache (never synced to git)
+│   ├── outbound/                    # Queue: items waiting to send to bridge
+│   │   ├── ms-a1b2.json            # Queued message
 │   │   └── ms-c3d4.json
-│   ├── inbound/                   # Buffer: recent items from bridge
-│   │   └── ms-f14c.json          # Received message (TTL-based cleanup)
-│   └── state.json                 # Connection state, retry counts
-├── issues/                        # Synced to git
-├── agents/                        # Synced to git
+│   ├── inbound/                     # Buffer: recent items from bridge
+│   │   └── ms-f14c.json            # Received message (TTL-based cleanup)
+│   └── state.json                   # Connection state, retry counts
+├── local/                           # Private workspace (gitignored)
+└── config.yml                       # Project config (tracked)
+
+.ceads-sync/                         # On ceads-sync branch (all tracked)
+├── nodes/issues/                    # Synced entities
+├── nodes/agents/
+├── nodes/messages/
 └── ...
 ```
 
@@ -2652,8 +2761,17 @@ cead local promote lo-a1b2  # Promote to real issue when ready
 ```bash
 # Initialize
 $ cead init
-Initialized ceads in .ceads/
+Created .ceads/config.yml
+Created .ceads/.gitignore
 Created sync branch: ceads-sync
+Pushed sync branch to origin
+
+To complete setup, commit the config files:
+  git add .ceads/config.yml .ceads/.gitignore
+  git commit -m "Initialize ceads"
+
+$ git add .ceads/config.yml .ceads/.gitignore
+$ git commit -m "Initialize ceads"
 
 # Create issues
 $ cead create "Set up database schema" -p 1 -k task
@@ -2801,11 +2919,16 @@ File system watching for UIs and IDEs:
 
 ### 7.1 Design Decisions
 
-#### Decision 1: Sync Branch Only (Not Main)
+#### Decision 1: Split Architecture (Config on Main, Data on Sync Branch)
 
-**Choice**: Entities live exclusively on `ceads-sync` branch, never committed to main.
+**Choice**: Configuration (`.ceads/config.yml`) lives on main branch; synced entities live
+exclusively on `ceads-sync` branch in `.ceads-sync/` directory.
 
 **Rationale**:
+
+- **Discoverable**: Clone repo, see `.ceads/config.yml`, know ceads is configured
+
+- **Config versions with code**: Configuration changes can be part of PRs
 
 - Eliminates skip-worktree hacks that caused beads v0.42 issues
 
@@ -2815,8 +2938,9 @@ File system watching for UIs and IDEs:
 
 - Issues shared across all code branches (correct for multi-agent use case)
 
-**Tradeoff**: Issues don’t appear in main branch.
-Mitigated by `cead init` auto-fetching sync branch and CLI providing access.
+**Tradeoff**: Two locations to understand (config on main, data on sync branch).
+Mitigated by clear naming (`.ceads/` for config/local, `.ceads-sync/` for synced data)
+and `cead init` setting up both locations.
 
 #### Decision 2: File-Per-Entity
 
@@ -3082,10 +3206,10 @@ cead import beads-export.jsonl --format beads
 
 #### ID Mapping
 
-A mapping file is created during import:
+A mapping file is created during import (stored on sync branch for audit trail):
 
 ```json
-// .ceads/migrations/beads-import-2025-01-07.json
+// .ceads-sync/migrations/beads-import-2025-01-07.json
 {
   "bd-a1b2": "is-x1y2",
   "bd-f14c": "is-a3b4"
@@ -3098,9 +3222,9 @@ This allows references in commit messages to be traced to new IDs.
 
 | Aspect | Beads | Ceads |
 | --- | --- | --- |
-| Data locations | 4 (SQLite, local JSONL, sync branch, main) | 2 (files, sync branch) |
+| Data locations | 4 (SQLite, local JSONL, sync branch, main) | 3 (config on main, data on sync branch, local cache) |
 | File system compatibility | SQLite WAL fails on NFS/cloud | Works on any file system |
-| Main branch | JSONL committed | Nothing committed |
+| Main branch | JSONL committed | Config only (config.yml) |
 | Storage format | Single JSONL file | File per entity |
 | Skip-worktree | Required hack | Not needed |
 | Git worktrees | Required for sync branch | Not needed |
@@ -3115,9 +3239,30 @@ This allows references in commit messages to be traced to new IDs.
 
 #### Complete Directory Layout
 
+**On main branch (and all working branches):**
+
 ```
 .ceads/
-├── nodes/                     # Shared graph entities (synced)
+├── config.yml              # Project configuration (tracked)
+├── .gitignore              # Ignores everything except config (tracked)
+│
+│   # Everything below is gitignored (local/transient):
+├── local/                  # Private workspace (never synced)
+│   └── lo-l1m2.json
+├── cache/                  # Bridge cache (never synced)
+│   ├── outbound/           # Queue: messages to send
+│   ├── inbound/            # Buffer: recent messages
+│   └── state.json          # Connection state
+├── daemon.sock             # Daemon socket (local only)
+├── daemon.pid              # Daemon PID file (local only)
+└── daemon.log              # Daemon log (local only)
+```
+
+**On ceads-sync branch:**
+
+```
+.ceads-sync/
+├── nodes/                     # Shared graph entities
 │   ├── issues/                # Issue nodes
 │   │   ├── is-a1b2.json
 │   │   ├── is-f14c.json
@@ -3128,50 +3273,76 @@ This allows references in commit messages to be traced to new IDs.
 │   └── messages/              # Message nodes
 │       ├── ms-p1q2.json       # Comment on issue is-a1b2
 │       └── ms-r3s4.json
-├── attic/                     # Archive (synced)
+├── attic/                     # Archive
 │   ├── conflicts/             # Merge conflict losers
 │   │   └── is-a1b2/
 │   │       └── 2025-01-07T10-30-00Z_description.json
 │   └── orphans/               # Integrity violations
-├── local/                     # Private workspace (never synced)
-│   └── lo-l1m2.json
-├── cache/                     # Bridge cache (never synced)
-│   ├── outbound/              # Queue: messages to send
-│   ├── inbound/               # Buffer: recent messages
-│   └── state.json             # Connection state
-├── daemon.sock                # Daemon socket (local only)
-├── daemon.pid                 # Daemon PID file (local only)
-├── daemon.log                 # Daemon log (local only)
-└── meta.json                  # Branch metadata (synced)
+└── meta.json                  # Runtime metadata
 ```
 
-#### Gitignore (on main branch)
+#### Files Tracked on Main Branch
 
 ```
-.ceads/
+.ceads/config.yml           # Project configuration (YAML)
+.ceads/.gitignore           # Ignores local/cache/daemon files
+```
+
+#### .ceads/.gitignore Contents
+
+```gitignore
+# Ignore everything in .ceads/ except config files
+*
+!.gitignore
+!config.yml
 ```
 
 #### Files Tracked on ceads-sync Branch
 
 ```
-.ceads/nodes/              # All node types
-.ceads/attic/              # Conflict and orphan archive
-.ceads/meta.json           # Branch metadata
+.ceads-sync/nodes/          # All node types (issues, agents, messages)
+.ceads-sync/attic/          # Conflict and orphan archive
+.ceads-sync/meta.json       # Runtime metadata
 ```
 
-#### Files Never Tracked
+#### Files Never Tracked (Local Only)
 
 ```
-.ceads/local/
-.ceads/cache/
-.ceads/daemon.sock
-.ceads/daemon.pid
-.ceads/daemon.log
+.ceads/local/               # Private workspace
+.ceads/cache/               # Bridge cache
+.ceads/daemon.sock          # Daemon socket
+.ceads/daemon.pid           # Daemon PID
+.ceads/daemon.log           # Daemon log
+```
+
+#### Example Config File
+
+**Config** (`.ceads/config.yml` on main branch):
+
+```yaml
+# Ceads configuration
+# See: https://github.com/[org]/ceads
+
+ceads_version: "0.1.0"
+
+sync:
+  branch: ceads-sync
+  # repo: origin
+
+prefixes:
+  is: cd
+  ag: agent
+  ms: msg
+  lo: local
+
+settings:
+  heartbeat_ttl_seconds: 300
+  message_ttl_days: 7
 ```
 
 #### Example Node Files
 
-**Issue** (`.ceads/nodes/issues/is-a1b2.json`):
+**Issue** (`.ceads-sync/nodes/issues/is-a1b2.json`):
 
 ```json
 {
@@ -3193,7 +3364,7 @@ This allows references in commit messages to be traced to new IDs.
 }
 ```
 
-**Issue with children** (`.ceads/nodes/issues/is-e5f6.json`):
+**Issue with children** (`.ceads-sync/nodes/issues/is-e5f6.json`):
 
 ```json
 {
@@ -3213,7 +3384,7 @@ This allows references in commit messages to be traced to new IDs.
 }
 ```
 
-**Child issue** (`.ceads/nodes/issues/is-c3d4.json`):
+**Child issue** (`.ceads-sync/nodes/issues/is-c3d4.json`):
 
 ```json
 {
@@ -3232,7 +3403,7 @@ This allows references in commit messages to be traced to new IDs.
 }
 ```
 
-**Message (comment on issue)** (`.ceads/nodes/messages/ms-p1q2.json`):
+**Message (comment on issue)** (`.ceads-sync/nodes/messages/ms-p1q2.json`):
 
 ```json
 {
@@ -3248,7 +3419,7 @@ This allows references in commit messages to be traced to new IDs.
 }
 ```
 
-**Agent** (`.ceads/nodes/agents/ag-x1y2.json`):
+**Agent** (`.ceads-sync/nodes/agents/ag-x1y2.json`):
 
 ```json
 {
@@ -3291,31 +3462,22 @@ This allows references in commit messages to be traced to new IDs.
 }
 ```
 
-**Meta** (`.ceads/meta.json`):
+**Meta** (`.ceads-sync/meta.json` on sync branch):
 
 ```json
 {
-  "ceads_version": "0.1.0",
   "schema_versions": [
     { "collection": "issues", "version": 1 },
     { "collection": "agents", "version": 1 },
-    { "collection": "messages", "version": 1 },
-    { "collection": "local", "version": 1 }
+    { "collection": "messages", "version": 1 }
   ],
   "created_at": "2025-01-07T08:00:00Z",
-  "last_sync": "2025-01-07T14:30:00Z",
-  "config": {
-    "prefix_aliases": [
-      { "internal": "is-", "external": "cd-" },
-      { "internal": "ag-", "external": "agent-" },
-      { "internal": "ms-", "external": "msg-" },
-      { "internal": "lo-", "external": "local-" }
-    ],
-    "heartbeat_ttl_seconds": 300,
-    "message_ttl_days": 7
-  }
+  "last_sync": "2025-01-07T14:30:00Z"
 }
 ```
+
+> **Note**: User-editable configuration (prefixes, TTLs, sync settings) is in
+> `.ceads/config.yml` on the main branch. See [Example Config File](#example-config-file).
 
 ### 7.6 Key References
 
