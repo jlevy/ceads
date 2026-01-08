@@ -6,7 +6,7 @@
 
 **Document Reviewed:** [ceads-design.md](ceads-design.md)
 
-**Last Updated:** January 2025 (all Critical and Important recommendations implemented)
+**Last Updated:** January 2025 (recommendations reviewed; complex items deferred to Optional Enhancements appendix)
 
 * * *
 
@@ -510,48 +510,50 @@ reconcile if needed.
 
 ## 9. Summary of Recommendations
 
-### Critical (Should Address Before v1)
+### v1 Design Decision: Simplicity First
 
-These issues will cause data loss or incorrect behavior in production:
+After review, these recommendations are **deferred to Optional Enhancements** (see
+[Appendix 7.7](ceads-design.md#77-optional-enhancements) in the design doc). The v1
+design prioritizes simplicity, with these enhancements available if specific problems
+arise in practice.
 
-- [x] **Replace LWW timestamps with HLC** — Clock skew will cause silent data loss when
-  machines have unsynchronized clocks.
-  See [Section 2](#2-clock-synchronization-and-lww-a-critical-flaw).
-  **IMPLEMENTED:** HybridTimestamp added to BaseEntity, hlcCompare used in merge algorithm.
+**Rationale:**
+- Simple `version + updated_at` LWW works for most use cases (NTP keeps clocks synced)
+- The attic preserves all conflict losers, so no data is ever lost
+- Advisory claims are sufficient when racing is rare
+- Bridge Layer details can be designed when Bridge Layer is built
 
-- [x] **Define Bridge consistency guarantees explicitly** — Users and implementers need
-  to know what consistency properties the system provides.
-  See [Section 4](#4-bridge-layer-consistency-guarantees).
-  **IMPLEMENTED:** Section 5.2.1 added with consistency model and latency expectations.
+### Deferred to Optional Enhancements
 
-- [x] **Add idempotency keys to outbound queue** — Without idempotency, network retries
-  will cause duplicate message delivery.
-  See [Section 7](#7-offline-first-cache-missing-guarantees).
-  **IMPLEMENTED:** OutboundQueueItem schema with idempotency_key added to Section 5.8.
+- [ ] **HLC for conflict resolution** — Add if clock skew causes frequent wrong-winner
+  conflicts. See [Section 2](#2-clock-synchronization-and-lww-a-critical-flaw).
+  **DEFERRED:** Documented in Appendix 7.7.1.
 
-### Important (Strong Recommendation)
-
-These issues may cause problems in multi-agent scenarios:
-
-- [x] **Lease-based claims with Bridge coordination** — Current design has race
-  conditions where multiple agents may claim the same issue.
+- [ ] **Lease-based claims** — Add if duplicate work becomes a problem.
   See [Section 3](#3-claim-coordination-race-conditions).
-  **IMPLEMENTED:** Claim field with lease_expires and lease_sequence added to IssueSchema.
+  **DEFERRED:** Documented in Appendix 7.7.2.
 
-- [x] **Define GitHub field-level sync direction** — Bidirectional sync with GitHub
-  needs clear conflict resolution rules per field.
-  See [Section 5](#5-github-issues-bridge-specific-concerns).
-  **IMPLEMENTED:** GitHubSyncDirection enum and GitHubBridgeConfig added to Section 5.3.
-
-- [x] **Add retry policy and dead letter queue** — Offline-first messaging needs defined
-  failure handling behavior.
+- [ ] **Idempotency keys and dead letter queue** — Add when Bridge Layer is built.
   See [Section 7](#7-offline-first-cache-missing-guarantees).
-  **IMPLEMENTED:** RetryPolicy schema, dead_letter directory, and CLI commands added.
+  **DEFERRED:** Documented in Appendix 7.7.3.
 
-- [x] **Add explicit bridge sync conflict resolution rules** — Document what happens
-  when Git and Bridge both have changes.
+- [ ] **Bridge conflict resolution details** — Design when Bridge Layer is built.
   See [Section 1](#1-source-of-truth-git-vs-bridge).
-  **IMPLEMENTED:** resolveBridgeConflict function added to Section 5.2.1.
+  **DEFERRED:** Documented in Appendix 7.7.4.
+
+- [ ] **Webhook security** — Implement when Bridge Layer is built.
+  **DEFERRED:** Documented in Appendix 7.7.5.
+
+### Implemented in v1
+
+- [x] **Basic consistency model** — Eventual consistency, Git as truth, attic for
+  conflicts. Documented in Bridge Architecture section.
+
+- [x] **Schema migration strategy** — Forward/backward compatibility, version tracking.
+  Added as Section 2.6.
+
+- [x] **ID generation specification** — Crypto-random, collision handling. Expanded in
+  Section 2.4.
 
 ### Nice to Have (v2 Considerations)
 

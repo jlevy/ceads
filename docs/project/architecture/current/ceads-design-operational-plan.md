@@ -4,7 +4,12 @@
 
 **Target:** [ceads-design.md](ceads-design.md)
 
-**Status:** Completed - All edits implemented in ceads-design.md
+**Status:** Revised - Complex items moved to Optional Enhancements appendix (Section 7.7)
+
+> **Note:** After review, we decided to keep v1 simple. HLC, lease-based claims, and
+> detailed Bridge specs are documented in Appendix 7.7 as optional enhancements to add
+> if specific problems arise. The core design uses simple `updated_at` LWW with the
+> attic preserving all conflict losers.
 
 ---
 
