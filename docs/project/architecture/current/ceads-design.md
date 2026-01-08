@@ -17,11 +17,13 @@
 
    - [Motivation](#11-motivation)
 
-   - [Design Principles](#12-design-principles)
+   - [Design Goals](#12-design-goals)
 
-   - [Design Constraints](#13-design-constraints)
+   - [Design Principles](#13-design-principles)
 
-   - [Layer Overview](#14-layer-overview)
+   - [Design Assumptions](#14-design-assumptions)
+
+   - [Layer Overview](#15-layer-overview)
 
 2. [File Layer](#2-file-layer)
 
@@ -155,57 +157,86 @@ coding agents. While useful, its architecture has accumulated complexity:
    With schema-agnostic sync, these are just more entity types (`agents/`, `messages/`)
    using the same pattern—no separate message queue or coordination service needed.
 
-### 1.2 Design Principles
+### 1.2 Design Goals
 
-1. **File system as truth**: Each entity is a JSON file.
-   The file system is the canonical state.
+These are the outcomes we want to achieve:
 
-2. **Schema-agnostic sync**: Sync layer moves files, doesn’t interpret them.
+1. **No data loss**: Conflicts preserve both versions via attic mechanism. No silent
+   overwrites.
 
-3. **Layered architecture**: File Layer (format) → Git Layer (sync) → CLI Layer
-   (interface) → Bridge Layer (real-time).
+2. **Works on any filesystem**: Must work reliably on network file systems (NFS, SMB),
+   cloud-mounted volumes, and containerized environments like Claude Code Cloud—not just
+   local SSDs. This rules out SQLite WAL mode and POSIX advisory locking.
 
-4. **Progressive complexity**: Single-agent workflows need no daemon or bridges.
+3. **Cross-platform portability**: Runs on macOS, Linux, and Windows without
+   platform-specific code paths. Works in local development, cloud-hosted IDEs (Claude
+   Code Cloud, GitHub Codespaces), and CI environments.
+
+4. **Cross-language compatibility**: All file formats readable from TypeScript, Python,
+   and Rust using standard libraries. No proprietary or language-specific formats.
+
+5. **Scales to typical projects**: Target 5,000-10,000 issues with <50ms query
+   performance for common operations.
+
+6. **Progressive complexity**: Single-agent workflows need no daemon or bridges.
    Multi-agent work adds them as needed.
 
-5. **No data loss**: Conflicts preserve both versions via attic mechanism.
+7. **Extensible by convention**: New entity types follow the same pattern—no core
+   changes required.
 
-6. **Extensible by convention**: New entity types follow the same pattern.
+### 1.3 Design Principles
 
-### 1.3 Design Constraints
+These principles guide how we achieve the goals:
 
-These constraints guide architectural decisions throughout the system:
+1. **File system as truth**: Each entity is a JSON file. The file system is the
+   canonical state. Any index or cache is derived and can be rebuilt from entity files.
 
-1. **Works with plain filesystems**: [SQLite WAL](https://sqlite.org/wal.html)
-   (Write-Ahead Logging) mode requires shared memory via `mmap()` and POSIX advisory
-   locking, which fail or behave incorrectly on network file systems (NFS, SMB),
-   cloud-mounted volumes, and containerized environments like Claude Code Cloud.
-   This causes “database is locked” errors, corruption, and stale reads.
-   The system must work reliably on any file system without special locking
-   requirements.
+2. **Schema-agnostic sync**: Sync layer moves files and resolves conflicts without
+   interpreting content. Adding new entity types requires only a new directory and
+   schema—no sync code changes.
 
-2. **Query performance: <50ms for common operations** Listing open issues, finding ready
-   work, and similar queries must complete in under 50 milliseconds for projects with up
-   to 5,000 issues.
+3. **Layered architecture**: File Layer (format) → Git Layer (sync) → CLI Layer
+   (interface) → Bridge Layer (real-time). Each layer has clear responsibilities.
 
-3. **Cross-language file format compatibility** All file formats must be readable from
-   TypeScript, Python, and Rust using standard libraries.
-   No proprietary or language-specific formats.
+4. **Git as distribution**: Standard git commands handle all synchronization. No custom
+   network protocols or sync services.
 
-4. **Scale target: 5,000-10,000 issues** The system is designed for typical software
-   projects. Performance beyond this range is not a design goal for v1.
+### 1.4 Design Assumptions
 
-5. **File system as source of truth** JSON entity files are canonical.
-   Any index or cache is derived and can be rebuilt from entity files at any time.
+These assumptions must hold for the system to work correctly. If violated, the noted
+mitigations apply:
 
-6. **Cross-platform portability** The system must run on macOS, Linux, and Windows
-   without platform-specific code paths.
-   Implementations should be written in platform-agnostic languages (TypeScript, Python,
-   Rust, Go) using standard libraries.
-   Must work in local development, cloud-hosted IDEs (Claude Code Cloud, GitHub
-   Codespaces), and CI environments.
+1. **Clock sync within seconds**: We assume NTP keeps local clocks accurate to within a
+   few seconds. Last-Write-Wins (LWW) using `updated_at` timestamps works reliably under
+   this assumption.
+   *If violated*: Conflicts may resolve to the "wrong" winner. The attic preserves the
+   loser, enabling manual recovery. See Appendix 7.7.1 for HLC enhancement if clock skew
+   becomes problematic.
 
-### 1.4 Layer Overview
+2. **Git available everywhere**: All environments have git installed and can push/pull
+   to the remote.
+   *If violated*: System cannot sync. Local operations still work.
+
+3. **Cooperative agents**: Agents follow conventions (check claims, respect status).
+   The system is not designed to prevent malicious actors.
+   *If violated*: Agents may duplicate work or create conflicts. Human oversight can
+   resolve.
+
+4. **Low conflict rate**: Multiple agents editing the same entity simultaneously is
+   rare. The design optimizes for this common case.
+   *If violated*: More conflicts go to attic. LWW still resolves deterministically.
+   Consider lease-based claims (Appendix 7.7.2) if racing becomes frequent.
+
+5. **Temporary partitions**: Offline periods are bounded (hours to days, not weeks).
+   Eventually all nodes can sync.
+   *If violated*: Larger merge conflicts when reconnecting. Attic preserves all
+   versions.
+
+6. **Human oversight available**: Edge cases and ambiguous conflicts can be escalated
+   to human review via attic inspection.
+   *If violated*: Some conflicts may resolve suboptimally, but no data is lost.
+
+### 1.5 Layer Overview
 
 Ceads is organized into distinct layers, each with clear responsibilities:
 
