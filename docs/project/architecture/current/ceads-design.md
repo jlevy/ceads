@@ -122,8 +122,7 @@
 ### 1.1 Motivation
 
 [Beads](https://github.com/steveyegge/beads) provides git-backed issue tracking for AI
-coding agents. While it is incredibly useful, its architecture has rapidly accumulated
-complexity:
+coding agents. While useful, its architecture has accumulated complexity:
 
 - **4-location data sync**: SQLite → Local JSONL → Sync Branch → Main Branch
 
@@ -137,7 +136,7 @@ complexity:
 
 - **Tight coupling**: Adding new entity types requires changes throughout the sync layer
 
-**Ceads** (pronounced “seeds”) aims to try a simpler approach:
+**Ceads** (pronounced “seeds”) takes a simpler approach:
 
 1. **The file system is the database, git is the sync protocol.** Each entity is a file.
    Directories are collections.
@@ -162,8 +161,8 @@ complexity:
 3. **Layered architecture**: File Layer (format) → Git Layer (sync) → CLI Layer
    (interface) → Bridge Layer (real-time).
 
-4. **Optional complexity**: Single-agent workflows need no daemon or bridges.
-   Multi-agent enables them progressively.
+4. **Progressive complexity**: Single-agent workflows need no daemon or bridges.
+   Multi-agent work adds them as needed.
 
 5. **No data loss**: Conflicts preserve both versions via attic mechanism.
 
@@ -277,7 +276,7 @@ Key properties:
 
 ### 2.2 Directory Structure
 
-All Ceads data lives under `.ceads/` in the repository root:
+All Ceads data lives under `.ceads/`:
 
 ```
 .ceads/
@@ -2030,8 +2029,7 @@ dependencies.
 
 A local desktop application that connects to Ceads and provides visual interfaces like
 Kanban boards, dashboards, or agent activity monitors.
-This demonstrates how the layered architecture supports diverse clients beyond CLI and
-remote bridges.
+The layered architecture supports diverse clients beyond CLI and remote bridges.
 
 #### Design Rationale
 
@@ -2180,9 +2178,9 @@ The Local UI Bridge validates our architecture by showing that:
 
 - **Both**: Can read/write JSON directly, no special API needed
 
-This is explicitly a “future” feature, but the architecture supports it today—any
-application that can read JSON files and (optionally) connect to the daemon can provide
-rich UI experiences.
+This is a “future” feature, but the architecture supports it today—any application that
+can read JSON files and (optionally) connect to the daemon can provide rich UI
+experiences.
 
 ### 5.7 Bridge CLI Commands
 
@@ -2314,8 +2312,8 @@ Not everything needs to be in git:
 
 | Data Type | Storage | Rationale |
 | --- | --- | --- |
-| Issues | Git | Durable, needs history, shared |
-| Agents | Git | Durable, needs history, shared |
+| Issues | Git | Durable, historical, shared |
+| Agents | Git | Durable, historical, shared |
 | Messages (archived) | Git (optional) | Audit trail if needed |
 | Messages (recent) | Cache only | Ephemeral, high volume |
 | Outbound queue | Cache only | Temporary until delivered |
@@ -2336,9 +2334,8 @@ The daemon is an **optional component** that serves two purposes:
 
 2. **Bridge Layer runtime** for real-time coordination with external services
 
-**Key insight**: The File, Git, and CLI layers work perfectly without a daemon.
-The daemon becomes necessary primarily when you need the Bridge Layer or sub-second
-local coordination.
+**Key insight**: File, Git, and CLI layers work without a daemon.
+You need the daemon only for the Bridge Layer or sub-second local coordination.
 
 #### Layer Requirements
 
@@ -3024,7 +3021,7 @@ How to update sync branch without checking it out?
 
    - Con: Separate clone to manage
 
-**Leaning toward**: Option 2 for simplicity.
+**Likely**: Option 2 for simplicity.
 Performance acceptable for typical sync frequency.
 
 #### Question 2: Message Retention
@@ -3039,7 +3036,7 @@ How long to keep messages (if stored in git)?
 
 3. **Manual only** (`cead message prune`)
 
-**Leaning toward**: Hybrid—TTL by default, messages linked to open issues preserved.
+**Likely**: Hybrid—TTL by default, messages linked to open issues preserved.
 
 #### Question 3: Sequence Array Merge Strategy
 
@@ -3055,8 +3052,7 @@ When two agents reorder the same parent’s `sequence` array concurrently?
 
 4. **Conflict marker**
 
-**Leaning toward**: Option 1. Sequence conflicts should be rare, and attic provides
-recovery.
+**Likely**: Option 1. Sequence conflicts should be rare, and attic provides recovery.
 
 ### 7.3 Migration from Beads
 
