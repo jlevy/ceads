@@ -6,24 +6,25 @@
 
 **Date**: January 2025
 
-> *The name “Ceads” (pronounced “seeds”) follows Steve Yegge’s “Beads” in the spirit of
-> C following (and learning from) B.*
-
 * * *
 
 ## Table of Contents
 
 1. [Introduction](#1-introduction)
 
-   - [Motivation](#11-motivation)
+   - [What is Ceads?](#11-what-is-ceads)
 
-   - [Design Goals](#12-design-goals)
+   - [Motivation](#12-motivation)
 
-   - [Design Principles](#13-design-principles)
+   - [Design Goals](#13-design-goals)
 
-   - [Design Assumptions](#14-design-assumptions)
+   - [Design Principles](#14-design-principles)
 
-   - [Layer Overview](#15-layer-overview)
+   - [Comparison with Beads](#15-comparison-with-beads)
+
+   - [Design Assumptions](#16-design-assumptions)
+
+   - [Layer Overview](#17-layer-overview)
 
 2. [File Layer](#2-file-layer)
 
@@ -125,24 +126,68 @@
 
 ## 1. Introduction
 
-### 1.1 Motivation
+### 1.1 What is Ceads?
 
-[Beads](https://github.com/steveyegge/beads) provides git-backed issue tracking for AI
-coding agents. While useful, its architecture has accumulated complexity:
+> *The name “Ceads” follows “Beads” in the spirit of C following (and learning from) B.*
 
-- **4-location data sync**: SQLite → Local JSONL → Sync Branch → Main Branch
+**Ceads** (pronounced “seeds”) is a git-native coordination layer for AI coding agents.
+It provides issue tracking, agent registry, claims, and messaging—all stored as JSON
+files in a git repository and synced using standard git commands.
 
-- **Skip-worktree hacks**: Hide tracked files from `git status` while daemon modifies
-  them
+Ceads draws on several sources:
 
-- **Worktree complexity**: Separate git worktrees to commit to sync branch without
-  checkout; depending on configuration, you can’t manually check out “main”
+- **[Beads](https://github.com/steveyegge/beads)**: Steve Yegge’s git-backed issue
+  tracker for AI agents, which proved the concept valuable but accumulated architectural
+  complexity (see [Section 1.5](#15-comparison-with-beads))
 
-- **Daemon-user conflicts**: Background process fights manual git operations
+- **Git-native issue trackers**: Projects like
+  [git-bug](https://github.com/git-bug/git-bug) and
+  [git-issue](https://github.com/dspinellis/git-issue) demonstrated that issue tracking
+  can live entirely within a git repository
 
-- **Tight coupling**: Adding new entity types requires changes throughout the sync layer
+- **Emerging agent workflows**: Multi-agent coordination patterns like
+  [Agent Mail](https://github.com/Dicklesworthstone/mcp_agent_mail), kanban-style agent
+  dashboards, and inter-agent messaging systems that are becoming common as AI coding
+  agents take on more complex work
 
-**Ceads** (pronounced “seeds”) takes a simpler approach:
+The goal is a simple, extensible foundation that makes these workflows easy to build on.
+
+### 1.2 Motivation
+
+AI coding agents are becoming integral to software development workflows.
+As these agents take on more complex tasks—bug fixes, feature implementations, code
+reviews—they need ways to coordinate their work.
+This coordination challenge has several dimensions:
+
+**Issue tracking for agents**: Just as human developers benefit from issue trackers to
+organize and prioritize work, AI agents need structured task queues.
+An agent should be able to see what work is available, claim tasks, track progress, and
+mark completion.
+
+**Multi-agent coordination**: When multiple agents work on the same codebase—whether
+simultaneously or across different sessions—they need to avoid duplicate work, respect
+each other’s claims, and communicate discoveries.
+This requires an agent registry, claiming mechanisms, and messaging.
+
+**Human-agent collaboration**: Humans and agents often work together.
+A human might create issues for agents to work on, review agent output, or take over
+when agents get stuck.
+The coordination system should be transparent to humans, not a black box.
+
+**Why embed this in Git?** Git repositories already contain the code agents work on.
+Embedding coordination data in the same repository provides:
+
+- **No external dependencies**: Works offline, in CI, in any environment with git
+
+- **Built-in distribution**: Git push/pull handles sync across machines
+
+- **Audit trail**: All changes tracked, reversible, inspectable
+
+- **Familiar tooling**: Standard git commands, no new infrastructure
+
+- **Code-adjacent context**: Issues live next to the code they describe
+
+Ceads is designed around three core ideas:
 
 1. **The file system is the database, git is the sync protocol.** Each entity is a file.
    Directories are collections.
@@ -157,23 +202,25 @@ coding agents. While useful, its architecture has accumulated complexity:
    With schema-agnostic sync, these are just more entity types (`agents/`, `messages/`)
    using the same pattern—no separate message queue or coordination service needed.
 
-### 1.2 Design Goals
+### 1.3 Design Goals
 
 These are the outcomes we want to achieve:
 
-1. **No data loss**: Conflicts preserve both versions via attic mechanism. No silent
-   overwrites.
+1. **No data loss**: Conflicts preserve both versions via attic mechanism.
+   No silent overwrites.
 
 2. **Works on any filesystem**: Must work reliably on network file systems (NFS, SMB),
    cloud-mounted volumes, and containerized environments like Claude Code Cloud—not just
    local SSDs. This rules out SQLite WAL mode and POSIX advisory locking.
 
 3. **Cross-platform portability**: Runs on macOS, Linux, and Windows without
-   platform-specific code paths. Works in local development, cloud-hosted IDEs (Claude
-   Code Cloud, GitHub Codespaces), and CI environments.
+   platform-specific code paths.
+   Works in local development, cloud-hosted IDEs (Claude Code Cloud, GitHub Codespaces),
+   and CI environments.
 
 4. **Cross-language compatibility**: All file formats readable from TypeScript, Python,
-   and Rust using standard libraries. No proprietary or language-specific formats.
+   and Rust using standard libraries.
+   No proprietary or language-specific formats.
 
 5. **Scales to typical projects**: Target 5,000-10,000 issues with <50ms query
    performance for common operations.
@@ -184,59 +231,84 @@ These are the outcomes we want to achieve:
 7. **Extensible by convention**: New entity types follow the same pattern—no core
    changes required.
 
-### 1.3 Design Principles
+### 1.4 Design Principles
 
 These principles guide how we achieve the goals:
 
-1. **File system as truth**: Each entity is a JSON file. The file system is the
-   canonical state. Any index or cache is derived and can be rebuilt from entity files.
+1. **File system as truth**: Each entity is a JSON file.
+   The file system is the canonical state.
+   Any index or cache is derived and can be rebuilt from entity files.
 
 2. **Schema-agnostic sync**: Sync layer moves files and resolves conflicts without
-   interpreting content. Adding new entity types requires only a new directory and
-   schema—no sync code changes.
+   interpreting content.
+   Adding new entity types requires only a new directory and schema—no sync code
+   changes.
 
 3. **Layered architecture**: File Layer (format) → Git Layer (sync) → CLI Layer
-   (interface) → Bridge Layer (real-time). Each layer has clear responsibilities.
+   (interface) → Bridge Layer (real-time).
+   Each layer has clear responsibilities.
 
-4. **Git as distribution**: Standard git commands handle all synchronization. No custom
-   network protocols or sync services.
+4. **Git as distribution**: Standard git commands handle all synchronization.
+   No custom network protocols or sync services.
 
-### 1.4 Design Assumptions
+### 1.5 Comparison with Beads
 
-These assumptions must hold for the system to work correctly. If violated, the noted
-mitigations apply:
+Ceads builds on lessons learned from [Beads](https://github.com/steveyegge/beads), an
+earlier git-backed issue tracker for AI agents.
+While Beads proved the concept valuable, its architecture accumulated complexity:
+
+- **4-location data sync**: SQLite → Local JSONL → Sync Branch → Main Branch
+
+- **Skip-worktree hacks**: Hide tracked files from `git status` while daemon modifies
+  them
+
+- **Worktree complexity**: Separate git worktrees to commit to sync branch without
+  checkout; depending on configuration, you can’t manually check out “main”
+
+- **Daemon-user conflicts**: Background process fights manual git operations
+
+- **Tight coupling**: Adding new entity types requires changes throughout the sync layer
+
+Ceads addresses these by simplifying the architecture: fewer data locations, no
+skip-worktree hacks, no git worktrees required, an optional daemon, and schema-agnostic
+sync. See [Appendix 7.4](#74-comparison-with-beads) for a detailed comparison table.
+
+### 1.6 Design Assumptions
+
+These assumptions must hold for the system to work correctly.
+If violated, the noted mitigations apply:
 
 1. **Clock sync within seconds**: We assume NTP keeps local clocks accurate to within a
    few seconds. Last-Write-Wins (LWW) using `updated_at` timestamps works reliably under
-   this assumption.
-   *If violated*: Conflicts may resolve to the "wrong" winner. The attic preserves the
-   loser, enabling manual recovery. See Appendix 7.7.1 for HLC enhancement if clock skew
-   becomes problematic.
+   this assumption. *If violated*: Conflicts may resolve to the “wrong” winner.
+   The attic preserves the loser, enabling manual recovery.
+   See Appendix 7.7.1 for HLC enhancement if clock skew becomes problematic.
 
 2. **Git available everywhere**: All environments have git installed and can push/pull
-   to the remote.
-   *If violated*: System cannot sync. Local operations still work.
+   to the remote. *If violated*: System cannot sync.
+   Local operations still work.
 
 3. **Cooperative agents**: Agents follow conventions (check claims, respect status).
    The system is not designed to prevent malicious actors.
-   *If violated*: Agents may duplicate work or create conflicts. Human oversight can
-   resolve.
+   *If violated*: Agents may duplicate work or create conflicts.
+   Human oversight can resolve.
 
 4. **Low conflict rate**: Multiple agents editing the same entity simultaneously is
    rare. The design optimizes for this common case.
-   *If violated*: More conflicts go to attic. LWW still resolves deterministically.
+   *If violated*: More conflicts go to attic.
+   LWW still resolves deterministically.
    Consider lease-based claims (Appendix 7.7.2) if racing becomes frequent.
 
 5. **Temporary partitions**: Offline periods are bounded (hours to days, not weeks).
    Eventually all nodes can sync.
-   *If violated*: Larger merge conflicts when reconnecting. Attic preserves all
-   versions.
+   *If violated*: Larger merge conflicts when reconnecting.
+   Attic preserves all versions.
 
-6. **Human oversight available**: Edge cases and ambiguous conflicts can be escalated
-   to human review via attic inspection.
+6. **Human oversight available**: Edge cases and ambiguous conflicts can be escalated to
+   human review via attic inspection.
    *If violated*: Some conflicts may resolve suboptimally, but no data is lost.
 
-### 1.5 Layer Overview
+### 1.7 Layer Overview
 
 Ceads is organized into distinct layers, each with clear responsibilities:
 
@@ -460,8 +532,11 @@ function generateId(prefix: string): string {
 ```
 
 **Properties:**
+
 - **Cryptographically random**: No timestamp or content dependency
+
 - **Collision probability**: ~1 in 2 billion per prefix at 50,000 entities
+
 - **On collision**: Regenerate ID (detected by file-exists check on write)
 
 **ID validation regex:**
@@ -808,26 +883,34 @@ Schema versions are tracked in `.ceads-sync/meta.json` (on the sync branch):
 }
 ```
 
-> **Note:** User-editable configuration (prefixes, TTLs) lives in `.ceads/config.yml`
-> on the main branch. Schema versions live in `meta.json` on the sync branch because
-> they describe the synced data and must propagate with it.
+> **Note:** User-editable configuration (prefixes, TTLs) lives in `.ceads/config.yml` on
+> the main branch. Schema versions live in `meta.json` on the sync branch because they
+> describe the synced data and must propagate with it.
 
 #### Compatibility Requirements
 
 **Forward compatibility (required):**
+
 - Newer CLI versions MUST read older entity versions
+
 - Unknown fields MUST be preserved on read/write (pass-through)
+
 - Missing fields MUST use schema defaults
 
 **Backward compatibility (best effort):**
+
 - Older CLI versions reading newer entities: unknown fields ignored
+
 - Core fields (`id`, `version`, `type`) never change shape
+
 - Breaking changes require explicit migration
 
 #### Migration Execution
 
 **Automatic (non-breaking):**
+
 - New optional fields: added with defaults on write
+
 - Field renames: handled in code, both names accepted on read
 
 **Manual (breaking):**
@@ -849,14 +932,18 @@ cead migrate --to 2
 
 When Agent A (schema v2) syncs with Agent B (schema v1):
 
-1. A's entities written in v2 format
+1. A’s entities written in v2 format
+
 2. B reads v2 entities, unknown fields preserved
+
 3. B writes entities (preserving unknown v2 fields)
-4. A reads B's changes, sees preserved v2 fields
+
+4. A reads B’s changes, sees preserved v2 fields
+
 5. No data loss; both continue operating
 
 **Warning:** If v2 has breaking changes, B may fail to parse.
-CLI should warn: "Remote entities require CLI version >= X.Y.Z"
+CLI should warn: “Remote entities require CLI version >= X.Y.Z”
 
 * * *
 
@@ -1714,15 +1801,20 @@ Warning: cd-a1b2 already claimed by agent-a3b4 (since 2025-01-07 10:25)
 Proceeding anyway (advisory claim)
 ```
 
-> **Note**: Claims are advisory. The `assignee` field indicates who is working on an
-> issue, but the system does not enforce exclusivity. Agents should check `assignee`
-> before starting work and coordinate via messages if conflicts arise. This simple
-> approach works well in practice because:
+> **Note**: Claims are advisory.
+> The `assignee` field indicates who is working on an issue, but the system does not
+> enforce exclusivity.
+> Agents should check `assignee` before starting work and coordinate via messages if
+> conflicts arise. This simple approach works well in practice because:
+> 
 > - Race conditions are rare (two agents claiming the exact same issue)
-> - Git sync propagates claims within seconds to minutes
-> - If conflicts occur, the attic preserves all work
-> - Explicit coordination is clearer than implicit locking
 >
+> - Git sync propagates claims within seconds to minutes
+>
+> - If conflicts occur, the attic preserves all work
+>
+> - Explicit coordination is clearer than implicit locking
+> 
 > See [Appendix 7.7](#77-optional-enhancements) for lease-based claims if stronger
 > coordination is needed.
 
@@ -2049,20 +2141,23 @@ const bridge = z.record(z.string(), BridgeLink).optional();
 Bridges provide eventually consistent views of Git state:
 
 | Guarantee | Description |
-|-----------|-------------|
+| --- | --- |
 | **Eventual Consistency** | All agents eventually see the same state |
 | **Conflict Preservation** | No data ever lost; conflicts preserved in attic |
 | **Git is Truth** | On conflict, Git wins; Bridge changes go to attic |
 
 **Ceads does NOT provide:**
+
 - Linearizability (global ordering)
+
 - Serializable transactions
+
 - Strong consistency
 
 #### Latency Expectations
 
 | Mode | Operation | Expected Latency |
-|------|-----------|------------------|
+| --- | --- | --- |
 | File-only | Read/Write | <10ms |
 | Git sync | Pull/Push | 1-30 seconds |
 | Bridge (GitHub) | Propagation | 1-5 seconds (webhook) |
@@ -2092,7 +2187,9 @@ Bridges provide eventually consistent views of Git state:
 #### Security
 
 - Store secrets in environment variables, never in config files
+
 - Support secret rotation without downtime
+
 - Log validation failures (without exposing secrets)
 
 ```bash
@@ -2104,7 +2201,9 @@ export CEADS_SLACK_SIGNING_SECRET="..."
 #### Rate Limiting for Webhooks
 
 - Limit webhook endpoints: 100 requests/minute per source IP
+
 - Return 429 when exceeded
+
 - Log rate limit violations for security monitoring
 
 ### 5.3 GitHub Issues Bridge
@@ -2154,8 +2253,11 @@ cead github promote <issue-id> --labels "ceads-sync,priority:high"
 #### Conflict Resolution
 
 On bidirectional sync conflicts:
+
 - **Ceads wins** for most fields (agent is authority)
+
 - **Labels union** (both sources contribute)
+
 - **Comments always merged** (never overwrite)
 
 GitHub API rate limits (5,000 requests/hour) handled via exponential backoff.
@@ -2541,8 +2643,11 @@ Agent reconnects:
 ```
 
 **Key properties:**
+
 - Non-blocking sends (always succeeds locally)
+
 - Exponential backoff on failures
+
 - No message loss (queue persists until delivered)
 
 #### Git vs Cache
@@ -3817,7 +3922,7 @@ settings:
 
 - **git-appraise** — https://github.com/google/git-appraise
 
-  - Google's distributed code review; structured schemas; uses separate git refs
+  - Google’s distributed code review; structured schemas; uses separate git refs
 
 ### 7.7 Optional Enhancements
 
@@ -3826,13 +3931,16 @@ practice. These are not required for v1 but are preserved here for future refere
 
 #### 7.7.1 Hybrid Logical Clocks (HLC)
 
-**Problem:** Wall-clock timestamps can drift between machines. If Machine A's clock is
-5 minutes ahead, its writes always "win" in LWW conflicts even if Machine B's write
-was actually later.
+**Problem:** Wall-clock timestamps can drift between machines.
+If Machine A’s clock is 5 minutes ahead, its writes always “win” in LWW conflicts even
+if Machine B’s write was actually later.
 
 **When to add:** If you observe:
-- Frequent "wrong winner" conflicts in the attic
+
+- Frequent “wrong winner” conflicts in the attic
+
 - Clock skew issues in your deployment (e.g., cloud VMs without NTP)
+
 - Need for deterministic conflict resolution across untrusted machines
 
 **Implementation:**
@@ -3859,19 +3967,23 @@ function hlcCompare(a: HybridTimestamp, b: HybridTimestamp): number {
 }
 ```
 
-**Migration:** Entities without `hlc` field get one synthesized:
-`{ wall: updated_at, logical: version, node: "migrated" }`
+**Migration:** Entities without `hlc` field get one synthesized: `{ wall: updated_at,
+logical: version, node: "migrated" }`
 
-**Reference:** [Hybrid Logical Clocks (Kulkarni et al.)](https://cse.buffalo.edu/tech-reports/2014-04.pdf)
+**Reference:** [Hybrid Logical Clocks (Kulkarni et
+al.)](https://cse.buffalo.edu/tech-reports/2014-04.pdf)
 
 #### 7.7.2 Lease-Based Claims
 
-**Problem:** Advisory claims (setting `assignee`) don't prevent race conditions.
+**Problem:** Advisory claims (setting `assignee`) don’t prevent race conditions.
 Two agents might claim the same issue before sync propagates.
 
 **When to add:** If you observe:
+
 - Frequent duplicate work (two agents completing the same task)
+
 - Need for stronger coordination guarantees
+
 - Bridge Layer is implemented and can provide atomic operations
 
 **Implementation:**
@@ -3893,18 +4005,24 @@ cead agent renew <issue-id>               # Extend lease
 ```
 
 **Behavior:**
+
 - Expired leases can be claimed without `--force`
+
 - `lease_sequence` prevents ABA problem (stale writes rejected)
+
 - Bridge Layer can provide atomic compare-and-swap for claims
 
 #### 7.7.3 Idempotency Keys and Dead Letter Queue
 
-**Problem:** Network failures during Bridge sync can cause duplicate message delivery
-or silent message loss.
+**Problem:** Network failures during Bridge sync can cause duplicate message delivery or
+silent message loss.
 
 **When to add:** If you observe:
+
 - Duplicate messages in production
+
 - Lost messages during network outages
+
 - Need for guaranteed delivery to Bridge endpoints
 
 **Implementation:**
@@ -3928,14 +4046,17 @@ const RetryPolicy = z.object({
 ```
 
 **Dead letter handling:**
+
 - After `max_attempts`, move to `cache/dead_letter/`
+
 - Preserve indefinitely for manual recovery
+
 - CLI: `cead cache dead-letter list/retry/discard`
 
 #### 7.7.4 Bridge Conflict Resolution Details
 
-**Problem:** When Git and Bridge both have changes to the same entity, detailed
-conflict resolution rules are needed.
+**Problem:** When Git and Bridge both have changes to the same entity, detailed conflict
+resolution rules are needed.
 
 **When to add:** When implementing Bridge Layer, specifically bidirectional sync.
 
@@ -3959,7 +4080,8 @@ function resolveBridgeConflict(gitEntity, bridgeEntity) {
 
 #### 7.7.5 Webhook Security
 
-**Problem:** Bridge webhooks can be spoofed. Attackers could inject fake events.
+**Problem:** Bridge webhooks can be spoofed.
+Attackers could inject fake events.
 
 **When to add:** When implementing Bridge Layer with external webhooks.
 
@@ -3980,11 +4102,17 @@ function validateGitHubWebhook(payload, signature, secret) {
 ```
 
 **Best practices:**
+
 - Store secrets in environment variables
+
 - Validate every incoming webhook
+
 - Rate limit endpoints (100 req/min per source IP)
+
 - Log validation failures
 
 **References:**
+
 - [GitHub Webhook Security](https://docs.github.com/en/webhooks/using-webhooks/validating-webhook-deliveries)
+
 - [Slack Request Verification](https://api.slack.com/authentication/verifying-requests-from-slack)
