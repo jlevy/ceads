@@ -56,6 +56,8 @@
 
    - [Attic Structure](#37-attic-structure)
 
+   - [Deletion Semantics](#38-deletion-semantics)
+
 4. [CLI Layer](#4-cli-layer)
 
    - [Overview](#41-overview)
@@ -193,9 +195,10 @@ Ceads is designed around three core ideas:
    Directories are collections.
    Git handles distribution.
 
-2. **Sync should be schema-agnostic.** The sync layer operates on directories of JSON
-   files. Adding new entity types (agents, messages, workflows) requires only a new
-   directory and schema—no sync code changes.
+2. **Sync is schema-agnostic, merge is schema-aware.** The sync layer detects changes
+   using file hashes—it doesn't interpret JSON content. However, when merging conflicting
+   entities, the merge algorithm uses per-entity-type rules. Adding new entity types
+   requires only a new directory, schema, and merge rules—no sync logic changes.
 
 3. **Coordination is just more entities.** Multi-agent work requires messaging, agent
    registry, and work claims.
@@ -239,10 +242,10 @@ These principles guide how we achieve the goals:
    The file system is the canonical state.
    Any index or cache is derived and can be rebuilt from entity files.
 
-2. **Schema-agnostic sync**: Sync layer moves files and resolves conflicts without
-   interpreting content.
-   Adding new entity types requires only a new directory and schema—no sync code
-   changes.
+2. **Schema-agnostic sync, schema-aware merge**: The sync layer detects and transfers
+   file changes using content hashes—it doesn't parse JSON. The merge layer, invoked
+   when content differs, applies per-entity-type field rules.
+   Adding new entity types requires only a new directory, schema, and merge rules.
 
 3. **Layered architecture**: File Layer (format) → Git Layer (sync) → CLI Layer
    (interface) → Bridge Layer (real-time).
@@ -376,10 +379,53 @@ Key properties:
 - **[Zod](https://zod.dev/) schemas are normative**: TypeScript Zod definitions are the
   specification. Implementations in other languages should produce equivalent JSON.
 
+- **Canonical JSON format**: All JSON files MUST use canonical serialization to ensure
+  content hashes are consistent across implementations:
+  - Keys sorted alphabetically (recursive)
+  - 2-space indentation
+  - No trailing whitespace
+  - Single newline at end of file
+  - No trailing commas
+  - UTF-8 encoding
+
 - **Storage-agnostic**: Could work with local filesystem, S3, or any key-value store.
 
 - **Self-documenting files**: Each JSON file contains a `type` field identifying its
   entity type, making files meaningful in isolation.
+
+> **Why canonical JSON?** Content hashes are used for conflict detection. If different
+> implementations serialize the same object with different key ordering or whitespace,
+> identical logical content produces different hashes, causing spurious "conflicts."
+> Canonical serialization ensures `hash(serialize(obj))` is consistent everywhere.
+
+#### Atomic File Writes
+
+All file writes MUST be atomic to prevent corruption from crashes or concurrent access:
+
+```typescript
+async function atomicWrite(path: string, content: string): Promise<void> {
+  const tmpPath = `${path}.tmp.${process.pid}.${Date.now()}`;
+
+  // Write to temporary file
+  await fs.writeFile(tmpPath, content, 'utf8');
+
+  // Ensure data is on disk (important for durability)
+  const fd = await fs.open(tmpPath, 'r');
+  await fd.sync();
+  await fd.close();
+
+  // Atomic rename (POSIX guarantees this is atomic)
+  await fs.rename(tmpPath, path);
+}
+```
+
+**Why atomic writes?**
+- Prevents half-written files if process crashes mid-write
+- Prevents readers from seeing incomplete content
+- Works on most filesystems (POSIX rename is atomic)
+- Important on network filesystems and Windows
+
+**Cleanup:** On startup, remove any orphaned `.tmp.*` files in ceads directories.
 
 ### 2.2 Directory Structure
 
@@ -398,6 +444,7 @@ Ceads uses two directories with a clear separation of concerns:
 ├── .gitignore              # Ignores local/ directory (tracked)
 │
 └── local/                  # Everything below is gitignored
+    ├── state.json          # Per-node sync state (last_sync, node_id)
     ├── nodes/              # Private workspace (never synced)
     │   └── lo-l1m2.json
     ├── cache/              # Bridge cache
@@ -429,7 +476,7 @@ Ceads uses two directories with a clear separation of concerns:
 │   │   └── is-a1b2/
 │   │       └── 2025-01-07T10-30-00Z_description.json
 │   └── orphans/               # Integrity violations
-└── meta.json                  # Runtime metadata (last_sync, schema_versions)
+└── meta.json                  # Shared metadata (schema_versions, created_at)
 ```
 
 > **Note on directory split**: The `.ceads/` directory on main contains configuration
@@ -514,35 +561,53 @@ Entity IDs follow a consistent pattern:
 
 - **Prefix**: 2 lowercase letters matching directory name (`is-`, `ag-`, `lo-`, `ms-`)
 
-- **Hash**: 6 lowercase alphanumeric characters (base36)
+- **Hash**: 10 lowercase alphanumeric characters (base36)
 
-Example: `is-a1b2c3`, `ag-x1y2z3`, `lo-p3q4r5`
+Example: `is-a1b2c3d4e5`, `ag-x1y2z3a4b5`, `lo-p3q4r5s6t7`
 
 #### ID Generation Algorithm
 
 ```typescript
 import { randomBytes } from 'crypto';
 
+const BASE36_ALPHABET = '0123456789abcdefghijklmnopqrstuvwxyz';
+
 function generateId(prefix: string): string {
-  // 6 bytes = 48 bits of entropy ≈ 281 trillion possibilities
-  const bytes = randomBytes(6);
-  const hash = bytes.toString('base36').toLowerCase().slice(0, 6);
+  // 8 bytes = 64 bits of entropy
+  // Converted to 10 base36 chars (~51.7 bits effective)
+  const bytes = randomBytes(8);
+  const num = bytes.readBigUInt64BE();
+  let hash = '';
+  let remaining = num;
+  for (let i = 0; i < 10; i++) {
+    hash = BASE36_ALPHABET[Number(remaining % 36n)] + hash;
+    remaining = remaining / 36n;
+  }
   return `${prefix}${hash}`;
 }
 ```
 
 **Properties:**
 
-- **Cryptographically random**: No timestamp or content dependency
+- **Cryptographically random**: Uses `crypto.randomBytes()`, no timestamp dependency
 
-- **Collision probability**: ~1 in 2 billion per prefix at 50,000 entities
+- **Entropy**: 64 bits of randomness, encoded as 10 base36 characters
+
+- **Collision probability**: At 50,000 entities, probability of any collision is
+  approximately `n²/(2×2⁶⁴) ≈ 6.8×10⁻¹¹` (negligible)
 
 - **On collision**: Regenerate ID (detected by file-exists check on write)
 
+- **Cross-language**: Algorithm is straightforward to implement in any language
+
 **ID validation regex:**
 ```typescript
-const EntityId = z.string().regex(/^[a-z]{2}-[a-z0-9]{6}$/);
+const EntityId = z.string().regex(/^[a-z]{2}-[a-z0-9]{10}$/);
 ```
+
+> **Note**: Earlier drafts used 6-character hashes with incorrect entropy calculations.
+> The current 10-character format provides ample collision resistance for any
+> realistic scale while remaining readable.
 
 #### Internal vs External Prefixes
 
@@ -595,6 +660,9 @@ const BaseEntity = z.object({
   version: Version,
   created_at: Timestamp,
   updated_at: Timestamp,
+
+  // Extensibility namespace for third-party data
+  extensions: z.record(z.string(), z.unknown()).optional(),
 });
 ```
 
@@ -602,6 +670,21 @@ const BaseEntity = z.object({
 > directory prefix (e.g., `"is"` for issues in `issues/`). This makes JSON files
 > self-documenting—you can identify what kind of entity a file contains without knowing
 > its path.
+
+> **Note on `extensions`**: The `extensions` field provides a namespace for third-party
+> tools, bridges, and custom integrations to store metadata without modifying core
+> schemas. Keys should be namespaced (e.g., `"github"`, `"slack"`, `"my-tool"`).
+> Unknown extensions are preserved during sync and merge (pass-through).
+>
+> Example:
+> ```json
+> {
+>   "extensions": {
+>     "github": { "issue_number": 123, "synced_at": "2025-01-07T10:00:00Z" },
+>     "my-tool": { "custom_field": "value" }
+>   }
+> }
+> ```
 
 #### 2.5.3 IssueSchema
 
@@ -633,7 +716,7 @@ const IssueSchema = BaseEntity.extend({
 
   // Parent-child relationship for hierarchical issues
   parent_id: EntityId.optional(),               // If this is a child issue
-  sequence: z.array(EntityId).optional(),       // Ordered list of child IDs
+  sequence: z.array(EntityId).optional(),       // Ordered list of child IDs (on parent)
 
   created_by: z.string().optional(),
   closed_at: Timestamp.optional(),
@@ -650,6 +733,23 @@ type Issue = z.infer<typeof IssueSchema>;
 > **Note on comments**: Comments are stored as separate Message entities (see
 > [MessageSchema](#256-messageschema)) with `in_reply_to` pointing to the issue ID. To
 > retrieve comments: query all messages where `in_reply_to == issue_id`.
+
+> **Note on parent-child relationships**: Issues can form hierarchies using `parent_id`
+> (on child) and `sequence` (on parent). These are **redundant by design** for query
+> efficiency, but can become inconsistent during conflicts.
+>
+> **Authoritative source**: `parent_id` is authoritative. A child "belongs to" whoever
+> it claims as parent. The `sequence` array is a convenience for ordering.
+>
+> **Invariants:**
+> - If child.parent_id = P, then child.id SHOULD appear in P.sequence
+> - If P.sequence contains C, then C.parent_id SHOULD equal P
+>
+> **When inconsistent** (detected by `cead doctor`):
+> - If child has parent_id but isn't in parent's sequence: add to sequence
+> - If parent's sequence contains ID but that issue has different parent_id: remove from
+>   sequence
+> - If parent's sequence contains non-existent ID: remove from sequence
 
 #### 2.5.4 AgentSchema
 
@@ -679,6 +779,22 @@ const AgentSchema = BaseEntity.extend({
 
 type Agent = z.infer<typeof AgentSchema>;
 ```
+
+> **Heartbeat churn warning**: Frequent updates to `last_heartbeat` create Git sync
+> contention. If N agents each update heartbeats every minute, the sync branch sees
+> N×60 commits/hour, causing push rejections and retry storms.
+>
+> **Mitigation strategies:**
+> 1. **Throttle heartbeats**: Update every 5-15 minutes, not every minute
+> 2. **Separate presence from durable state**: Use Bridge Layer for real-time presence;
+>    Git stores only durable changes (status, working_on, file_reservations)
+> 3. **Batch updates**: Coalesce multiple field changes into single commits
+> 4. **Infer liveness**: Determine agent activity from recent entity updates rather
+>    than explicit heartbeats
+>
+> **Recommendation for v1**: Update `last_heartbeat` only on meaningful state changes
+> (starting work, finishing work, status change), not on a timer. Real-time presence
+> should use Bridge Layer when available.
 
 #### 2.5.5 LocalSchema
 
@@ -819,9 +935,9 @@ type Config = z.infer<typeof ConfigSchema>;
 
 #### 2.5.8 MetaSchema
 
-Runtime metadata stored in `.ceads-sync/meta.json` on the sync branch.
-This file tracks sync state and schema versions—it is managed by the system, not edited
-by users.
+Shared metadata stored in `.ceads-sync/meta.json` on the sync branch.
+This file tracks schema versions and repository-wide metadata—it is managed by the
+system, not edited by users.
 
 ```typescript
 const SchemaVersion = z.object({
@@ -832,17 +948,39 @@ const SchemaVersion = z.object({
 const MetaSchema = z.object({
   schema_versions: z.array(SchemaVersion),
   created_at: Timestamp,
-  last_sync: Timestamp.optional(),
 });
 
 type Meta = z.infer<typeof MetaSchema>;
 ```
 
-> **Note**: User-editable configuration (prefixes, TTLs, sync settings) is now in
-> `.ceads/config.yml` on the main branch.
-> See [ConfigSchema](#257-configschema).
+> **Note**: `last_sync` is intentionally NOT stored in `meta.json`. Syncing this file
+> would create a conflict hotspot—every node updates it on every sync, causing constant
+> merge conflicts. Instead, sync timestamps are tracked locally (see LocalStateSchema).
 
-#### 2.5.9 AtticEntrySchema
+> **Note**: User-editable configuration (prefixes, TTLs, sync settings) is in
+> `.ceads/config.yml` on the main branch. See [ConfigSchema](#257-configschema).
+
+#### 2.5.9 LocalStateSchema
+
+Per-node state stored in `.ceads/local/state.json` (gitignored, never synced).
+Each machine maintains its own local state.
+
+```typescript
+const LocalStateSchema = z.object({
+  node_id: z.string(),                  // Unique identifier for this node
+  last_sync: Timestamp.optional(),      // When this node last synced successfully
+  last_push: Timestamp.optional(),      // When this node last pushed
+  last_pull: Timestamp.optional(),      // When this node last pulled
+});
+
+type LocalState = z.infer<typeof LocalStateSchema>;
+```
+
+> **Why local?** The `last_sync` timestamp is inherently per-node. Storing it in
+> synced state would cause every sync to modify the same file, creating a guaranteed
+> conflict generator. Keeping it local eliminates this hotspot.
+
+#### 2.5.10 AtticEntrySchema
 
 Preserved conflict losers:
 
@@ -878,8 +1016,7 @@ Schema versions are tracked in `.ceads-sync/meta.json` (on the sync branch):
     { "collection": "agents", "version": 1 },
     { "collection": "messages", "version": 1 }
   ],
-  "created_at": "2025-01-07T08:00:00Z",
-  "last_sync": "2025-01-07T14:30:00Z"
+  "created_at": "2025-01-07T08:00:00Z"
 }
 ```
 
@@ -957,13 +1094,15 @@ commands. It operates on the File Layer without interpreting entity content beyo
 
 Key properties:
 
-- **Schema-agnostic**: Sync moves files, doesn’t interpret schemas
+- **Schema-agnostic sync**: File transfer uses content hashes, doesn't parse JSON
+
+- **Schema-aware merge**: When content differs, merge rules are per-entity-type
 
 - **Standard git CLI**: All operations expressible as git commands
 
 - **ceads-sync branch**: Dedicated branch for Ceads data, never pollutes main
 
-- **Version-based conflict detection**: Only `version` field needed for sync decisions
+- **Hash-based conflict detection**: Content hash comparison triggers merge
 
 ### 3.2 Sync Branch Architecture
 
@@ -1018,7 +1157,7 @@ local/
 ```
 .ceads-sync/nodes/      # All node types (issues, agents, messages)
 .ceads-sync/attic/      # Conflict and orphan archive
-.ceads-sync/meta.json   # Runtime metadata
+.ceads-sync/meta.json   # Shared metadata (schema versions)
 ```
 
 #### Files Never Tracked (Local Only)
@@ -1026,6 +1165,7 @@ local/
 These live in `.ceads/local/` on main and are gitignored:
 
 ```
+.ceads/local/state.json     # Per-node sync state (last_sync, node_id)
 .ceads/local/nodes/         # Private workspace
 .ceads/local/cache/         # Bridge cache (outbound, inbound, dead_letter, state)
 .ceads/local/daemon.sock    # Daemon socket
@@ -1062,7 +1202,7 @@ git ls-tree ceads-sync .ceads-sync/nodes/issues/
 
 #### 3.3.3 File-Level Sync Algorithm
 
-For each file, compare local and remote versions:
+For each file, compare local and remote by **content hash first** (not version):
 
 ```
 SYNC_FILE(local_path, sync_path):
@@ -1073,7 +1213,7 @@ SYNC_FILE(local_path, sync_path):
     return  # Nothing to do
 
   if local is null:
-    # New from remote - copy to local cache
+    # New from remote - copy to local
     git show ceads-sync:{sync_path} > local_path
     return
 
@@ -1082,22 +1222,30 @@ SYNC_FILE(local_path, sync_path):
     stage_for_push(local_path)
     return
 
-  # Both exist - compare versions
-  local_ver = parse_version(local)
-  remote_ver = parse_version(remote)
+  # Both exist - compare content hashes
+  if hash(local) == hash(remote):
+    return  # Identical, no action needed
 
-  if local_ver > remote_ver:
-    stage_for_push(local_path)      # Local is newer
-  else if remote_ver > local_ver:
-    write_local(remote)             # Remote is newer
-  else:
-    # Same version - check content hash
-    if hash(local) != hash(remote):
-      merged = merge_entities(local, remote)
-      write_local(merged)
-      stage_for_push(merged)
-    # else: identical, no action
+  # Content differs - ALWAYS merge, regardless of version
+  # Version is used within merge for LWW ordering, not for conflict detection
+  merged, attic_entries = merge_entities(local, remote)
+  write_local(merged)
+  stage_for_push(merged)
+  write_attic_entries(attic_entries)
 ```
+
+> **Critical**: The sync algorithm uses **content hash** as the conflict detector, not
+> version comparison. In a distributed system, a higher version number does NOT mean
+> "contains the other writer's changes"—it only means "edited more times locally."
+>
+> **Example of why version-only is unsafe:**
+> - Base entity: version 3
+> - Agent A edits once → version 4
+> - Agent B (without seeing A) edits twice → version 5
+> - If A took remote because `5 > 4`, A's edit would be silently lost.
+>
+> By merging whenever content differs, we ensure both writers' changes are considered
+> and the loser is preserved in the attic.
 
 #### 3.3.4 Pull Operation
 
@@ -1110,7 +1258,7 @@ git fetch origin ceads-sync
 # 2. For each collection, sync files from .ceads-sync/ to local cache
 #    (implementation iterates and applies SYNC_FILE)
 
-# 3. Update .ceads-sync/meta.json with last_sync timestamp
+# 3. Update .ceads/local/state.json with last_sync timestamp (local only)
 ```
 
 Expressed as git commands:
@@ -1155,10 +1303,43 @@ git update-ref refs/heads/ceads-sync <commit>
 git push origin ceads-sync
 
 # If push rejected (non-fast-forward):
-#   Pull, merge, retry (max 3 attempts)
+#   Pull, merge, retry with backoff
 ```
 
-#### 3.3.6 Sync Triggers
+#### 3.3.6 Retry with Jitter and Backoff
+
+When push fails (non-fast-forward rejection), retry with exponential backoff and jitter:
+
+```typescript
+async function pushWithRetry(maxAttempts = 5): Promise<void> {
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    const result = await gitPush();
+    if (result.success) return;
+
+    if (attempt === maxAttempts) {
+      throw new Error(`Push failed after ${maxAttempts} attempts`);
+    }
+
+    // Exponential backoff: 1s, 2s, 4s, 8s...
+    const baseDelay = Math.min(1000 * Math.pow(2, attempt - 1), 30000);
+
+    // Add jitter: ±25% randomization to prevent thundering herd
+    const jitter = baseDelay * 0.25 * (Math.random() * 2 - 1);
+    const delay = baseDelay + jitter;
+
+    await sleep(delay);
+
+    // Pull and merge before retrying
+    await gitFetch();
+    await mergeRemoteChanges();
+  }
+}
+```
+
+**Why jitter?** Without randomization, N agents syncing on a fixed interval create
+"thundering herd" collisions. Jitter spreads retries across time, reducing contention.
+
+#### 3.3.7 Sync Triggers
 
 | Trigger | Action |
 | --- | --- |
@@ -1170,7 +1351,8 @@ git push origin ceads-sync
 
 #### When Conflicts Occur
 
-Conflicts happen when the same file is modified in two places before sync:
+Conflicts (requiring a merge) happen when the same file is modified in two places
+before sync:
 
 - Two agents update the same issue simultaneously
 
@@ -1179,22 +1361,29 @@ Conflicts happen when the same file is modified in two places before sync:
 #### Detection
 
 ```
-Same version + different content hash = conflict
+Different content hash = requires merge
 ```
 
-If `local.version == remote.version` but file contents differ, a merge is needed.
+If `hash(local) != hash(remote)`, a merge is needed—**regardless of version numbers**.
+The `version` field is used within the merge algorithm for LWW ordering, not for
+conflict detection.
 
 #### Resolution Flow
 
 ```
-1. Detect: same version, different hash
+1. Detect: content hash differs
 2. Parse both versions as JSON
 3. Apply merge rules (from section 3.5)
 4. Increment version: max(local.version, remote.version) + 1
 5. Write merged result locally
 6. Stage merged result for push
-7. Save loser values to attic (if lww_with_attic)
+7. Save loser values to attic (any field with lww or lww_with_attic where
+   values differed)
 ```
+
+> **Note**: Every merge produces attic entries for fields where values differed.
+> This ensures "no silent overwrites"—even if one version's timestamp was older,
+> its values are preserved for recovery.
 
 ### 3.5 Merge Rules
 
@@ -1206,12 +1395,26 @@ outcome. Merge rules are defined per entity type and applied during conflict res
 | Strategy | Behavior | Used For |
 | --- | --- | --- |
 | `immutable` | Error if different | `type` field |
-| `lww` | Last-write-wins by `updated_at` | Scalars (title, status, priority) |
+| `lww` | Last-write-wins by `updated_at` + ID tiebreaker | Scalars (title, status, priority) |
 | `lww_with_attic` | LWW, but preserve loser in attic | Long text (description), ordered arrays (sequence) |
 | `union` | Combine both arrays, dedupe | Arrays of primitives (labels) |
 | `merge_by_id` | Merge arrays by item ID | Arrays of objects (comments, dependencies) |
 | `max_plus_one` | `max(local, remote) + 1` | `version` field |
 | `recalculate` | Fresh timestamp | `updated_at` field |
+
+> **Limitation of `union` strategy**: Union merging is **add-only**. If Agent A removes
+> a label while Agent B keeps it, the merged result will contain the label (B's version
+> contributes it). Removals do not propagate—the label reappears after merge.
+>
+> This is acceptable for labels (typically additive), but means:
+> - To truly remove a label, all copies must remove it before any sync
+> - Or, use LWW for the entire labels array (loses additions, but removals work)
+> - For true convergent set removal, you'd need OR-Set CRDTs or tombstones (not in v1)
+>
+> **Design choice**: We accept union's add-only behavior for labels because:
+> 1. Labels are typically additive (adding context is common, removal is rare)
+> 2. False additions are less harmful than false removals
+> 3. Full CRDT implementation adds significant complexity
 
 #### Issue Merge Rules
 
@@ -1265,12 +1468,32 @@ const messageMergeRules: MergeRules<Message> = {
 The merge algorithm applies the rules defined above:
 
 ```typescript
+/**
+ * Deterministic comparison for LWW (Last-Write-Wins).
+ * Returns true if entity A should win over entity B.
+ *
+ * Order of precedence:
+ * 1. Later updated_at timestamp wins
+ * 2. If timestamps equal, higher entity ID wins (deterministic tiebreaker)
+ *
+ * This ensures that all nodes converge to the same result regardless of
+ * which order they see the entities.
+ */
+function lwwCompare(a: BaseEntity, b: BaseEntity): boolean {
+  if (a.updated_at !== b.updated_at) {
+    return a.updated_at > b.updated_at;
+  }
+  // Deterministic tiebreaker: lexicographically larger ID wins
+  return a.id > b.id;
+}
+
 function mergeEntities<T extends BaseEntity>(
   local: T,
   remote: T,
   rules: MergeRules<T>
 ): { merged: T; atticEntries: AtticEntry[] } {
   const atticEntries: AtticEntry[] = [];
+  const localWins = lwwCompare(local, remote);
 
   const merged = {
     ...local,
@@ -1290,14 +1513,11 @@ function mergeEntities<T extends BaseEntity>(
         break;
 
       case 'lww':
-        merged[field] = local.updated_at >= remote.updated_at
-          ? localVal
-          : remoteVal;
+        merged[field] = localWins ? localVal : remoteVal;
         break;
 
       case 'lww_with_attic':
         if (localVal !== remoteVal) {
-          const localWins = local.updated_at >= remote.updated_at;
           merged[field] = localWins ? localVal : remoteVal;
           atticEntries.push({
             entity_id: local.id,
@@ -1421,6 +1641,60 @@ Each attic file contains the `AtticEntrySchema` (defined in File Layer 2.5.7):
 - `cead attic prune --days 30` removes old entries
 
 - Configurable TTL in `.ceads/config.yml` (see [ConfigSchema](#257-configschema))
+
+### 3.8 Deletion Semantics
+
+Entity deletion requires careful handling to avoid orphans and data loss.
+
+#### Soft Deletion (Recommended)
+
+Issues are **soft-deleted** by setting status and close_reason:
+
+```json
+{
+  "status": "closed",
+  "close_reason": "deleted",
+  "closed_at": "2025-01-07T10:00:00Z"
+}
+```
+
+**Why soft-delete?**
+- Entity file remains, preserving all references
+- Messages/dependencies pointing to it remain valid
+- Can be "undeleted" by changing status
+- Full history preserved in git
+
+#### Hard Deletion (Discouraged)
+
+Physically removing an entity file (deleting `is-a1b2.json`) is **discouraged** because:
+
+1. **Orphans**: Messages with `in_reply_to: "is-a1b2"` become orphaned
+2. **Broken dependencies**: Other issues depending on it have dangling references
+3. **Sync conflicts**: If another node modified it before seeing the delete, the
+   modification recreates the entity
+
+**If hard deletion is necessary:**
+```bash
+cead issue delete <id> --hard
+
+# What it does:
+# 1. Moves all referencing messages to attic/orphans/
+# 2. Removes entity from dependencies arrays
+# 3. Deletes the entity file
+# 4. Syncs the deletion
+```
+
+#### Deletion During Sync
+
+When sync encounters a deleted file:
+- If remote has file, local doesn't: Remote is copied to local (file "reappears")
+- If local has file, remote doesn't: Local is pushed (file "reappears" on remote)
+
+This means **deletions don't propagate reliably** without tombstones. Soft deletion
+(status change) propagates correctly because it's a modification, not a removal.
+
+> **Design choice**: Ceads uses soft-delete as the primary deletion mechanism.
+> Hard deletion is available but creates consistency challenges in distributed systems.
 
 * * *
 
@@ -3464,7 +3738,7 @@ This allows references in commit messages to be traced to new IDs.
 | Skip-worktree | Required hack | Not needed |
 | Git worktrees | Required for sync branch | Not needed |
 | Daemon | Always recommended | Optional |
-| Sync layer | Schema-aware | Schema-agnostic |
+| Sync layer | Schema-aware | Schema-agnostic (sync) / schema-aware (merge) |
 | Merge conflicts | JSONL line-based (cross-entity) | Per-file (per-entity) |
 | Entity types | Issues + molecules | Extensible (issues, agents, ...) |
 | Agent coordination | External (Agent Mail) | Built-in |
@@ -3479,18 +3753,20 @@ This allows references in commit messages to be traced to new IDs.
 ```
 .ceads/
 ├── config.yml              # Project configuration (tracked)
-├── .gitignore              # Ignores everything except config (tracked)
+├── .gitignore              # Ignores local/ directory (tracked)
 │
-│   # Everything below is gitignored (local/transient):
-├── local/                  # Private workspace (never synced)
-│   └── lo-l1m2.json
-├── cache/                  # Bridge cache (never synced)
-│   ├── outbound/           # Queue: messages to send
-│   ├── inbound/            # Buffer: recent messages
-│   └── state.json          # Connection state
-├── daemon.sock             # Daemon socket (local only)
-├── daemon.pid              # Daemon PID file (local only)
-└── daemon.log              # Daemon log (local only)
+└── local/                  # Everything below is gitignored
+    ├── state.json          # Per-node sync state (last_sync, node_id)
+    ├── nodes/              # Private workspace (never synced)
+    │   └── lo-l1m2.json
+    ├── cache/              # Bridge cache (never synced)
+    │   ├── outbound/       # Queue: messages to send
+    │   ├── inbound/        # Buffer: recent messages
+    │   ├── dead_letter/    # Failed after max retries
+    │   └── state.json      # Connection state
+    ├── daemon.sock         # Daemon socket (local only)
+    ├── daemon.pid          # Daemon PID file (local only)
+    └── daemon.log          # Daemon log (local only)
 ```
 
 **On ceads-sync branch:**
@@ -3513,7 +3789,7 @@ This allows references in commit messages to be traced to new IDs.
 │   │   └── is-a1b2/
 │   │       └── 2025-01-07T10-30-00Z_description.json
 │   └── orphans/               # Integrity violations
-└── meta.json                  # Runtime metadata
+└── meta.json                  # Shared metadata (schema versions)
 ```
 
 #### Files Tracked on Main Branch
@@ -3543,6 +3819,7 @@ local/
 These live in `.ceads/local/` on main and are gitignored:
 
 ```
+.ceads/local/state.json     # Per-node sync state (last_sync, node_id)
 .ceads/local/nodes/         # Private workspace
 .ceads/local/cache/         # Bridge cache (outbound, inbound, dead_letter, state)
 .ceads/local/daemon.sock    # Daemon socket
@@ -3706,8 +3983,7 @@ settings:
     { "collection": "agents", "version": 1 },
     { "collection": "messages", "version": 1 }
   ],
-  "created_at": "2025-01-07T08:00:00Z",
-  "last_sync": "2025-01-07T14:30:00Z"
+  "created_at": "2025-01-07T08:00:00Z"
 }
 ```
 
