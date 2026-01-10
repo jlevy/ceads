@@ -33,6 +33,10 @@
 
     - [2.1 Overview](#21-overview)
 
+      - [Canonical JSON Format](#canonical-json-format)
+
+      - [Atomic File Writes](#atomic-file-writes)
+
     - [2.2 Directory Structure](#22-directory-structure)
 
       - [On Main Branch (all working branches)](#on-main-branch-all-working-branches)
@@ -61,7 +65,9 @@
 
       - [2.5.5 MetaSchema](#255-metaschema)
 
-      - [2.5.6 AtticEntrySchema](#256-atticentryschema)
+      - [2.5.6 LocalStateSchema](#256-localstateschema)
+
+      - [2.5.7 AtticEntrySchema](#257-atticentryschema)
 
   - [3. Git Layer](#3-git-layer)
 
@@ -122,6 +128,8 @@
       - [Ready](#ready)
 
       - [Blocked](#blocked)
+
+      - [Stale](#stale)
 
     - [4.5 Label Commands](#45-label-commands)
 
@@ -194,6 +202,9 @@
         YAML](#decision-6-json-storage-vs-markdown--yaml)
 
     - [7.2 Future Enhancements (Phase 2+)](#72-future-enhancements-phase-2)
+
+      - [Additional Dependency Types (High
+        Priority)](#additional-dependency-types-high-priority)
 
       - [Agent Registry](#agent-registry)
 
@@ -403,7 +414,65 @@ It is storage-agnostic and could theoretically work with any key-value backend.
 
 - **Self-documenting**: Each JSON file contains a `type` field
 
-- **Atomic writes**: Write to temp file, then atomic rename
+- **Canonical JSON format**: All JSON files use canonical serialization for consistent
+  content hashing (see below)
+
+- **Atomic writes**: Write to temp file, then atomic rename (see below)
+
+#### Canonical JSON Format
+
+All JSON files MUST use canonical serialization to ensure content hashes are consistent
+across implementations:
+
+- Keys sorted alphabetically (recursive)
+
+- 2-space indentation
+
+- No trailing whitespace
+
+- Single newline at end of file
+
+- No trailing commas
+
+- UTF-8 encoding
+
+> **Why canonical JSON?** Content hashes are used for conflict detection.
+> If different implementations serialize the same object with different key ordering or
+> whitespace, identical logical content produces different hashes, causing spurious
+> “conflicts.”
+
+#### Atomic File Writes
+
+All file writes MUST be atomic to prevent corruption from crashes or concurrent access:
+
+```typescript
+async function atomicWrite(path: string, content: string): Promise<void> {
+  const tmpPath = `${path}.tmp.${process.pid}.${Date.now()}`;
+
+  // Write to temporary file
+  await fs.writeFile(tmpPath, content, 'utf8');
+
+  // Ensure data is on disk
+  const fd = await fs.open(tmpPath, 'r');
+  await fd.sync();
+  await fd.close();
+
+  // Atomic rename (POSIX guarantees atomicity)
+  await fs.rename(tmpPath, path);
+}
+```
+
+**Why atomic writes?**
+
+- Prevents half-written files if process crashes mid-write
+
+- Prevents readers from seeing incomplete content
+
+- Works on most filesystems (POSIX rename is atomic)
+
+- Important on network filesystems
+
+**Cleanup:** On startup, remove any orphaned `.tmp.*` files in ceads directories.
 
 ### 2.2 Directory Structure
 
@@ -421,6 +490,7 @@ Ceads uses two directories:
 ├── .gitignore              # Ignores cache/ directory (tracked)
 │
 └── cache/                  # Everything below is gitignored
+    ├── state.json          # Per-node sync state (last_sync, node_id)
     ├── index.json          # Optional query index (rebuildable)
     └── sync.lock           # Optional sync coordination file
 ```
@@ -551,14 +621,32 @@ const BaseEntity = z.object({
   version: Version,
   created_at: Timestamp,
   updated_at: Timestamp,
+
+  // Extensibility namespace for third-party data
+  extensions: z.record(z.string(), z.unknown()).optional(),
 });
 ```
+
+> **Note on `extensions`**: The `extensions` field provides a namespace for third-party
+> tools, bridges, and custom integrations to store metadata without modifying core
+> schemas. Keys should be namespaced (e.g., `"github"`, `"slack"`, `"my-tool"`). Unknown
+> extensions are preserved during sync and merge (pass-through).
+> 
+> Example:
+> ```json
+> {
+>   "extensions": {
+>     "github": { "issue_number": 123, "synced_at": "2025-01-07T10:00:00Z" },
+>     "my-tool": { "custom_field": "value" }
+>   }
+> }
+> ```
 
 #### 2.5.3 IssueSchema
 
 ```typescript
 const IssueStatus = z.enum(['open', 'in_progress', 'blocked', 'deferred', 'closed']);
-const IssueKind = z.enum(['bug', 'feature', 'task', 'epic']);
+const IssueKind = z.enum(['bug', 'feature', 'task', 'epic', 'chore']);
 const Priority = z.number().int().min(0).max(4);
 
 const Dependency = z.object({
@@ -571,6 +659,7 @@ const IssueSchema = BaseEntity.extend({
 
   title: z.string().min(1).max(500),
   description: z.string().max(50000).optional(),
+  notes: z.string().max(50000).optional(),      // Working notes (Beads parity)
 
   kind: IssueKind.default('task'),
   status: IssueStatus.default('open'),
@@ -599,9 +688,11 @@ type Issue = z.infer<typeof IssueSchema>;
 
 - `status`: Matches Beads statuses (open, in_progress, blocked, deferred, closed)
 
-- `kind`: Matches Beads types (bug, feature, task, epic)
+- `kind`: Matches Beads types (bug, feature, task, epic, chore)
 
 - `priority`: 0 (highest/critical) to 4 (lowest), matching Beads
+
+- `notes`: Working notes field for agents to track progress (Beads parity)
 
 - `dependencies`: Only “blocks” type for now (affects `ready` command)
 
@@ -661,17 +752,40 @@ const ConfigSchema = z.object({
 
 #### 2.5.5 MetaSchema
 
-Runtime metadata stored in `.ceads-sync/meta.json`:
+Shared metadata stored in `.ceads-sync/meta.json` on the sync branch:
 
 ```typescript
 const MetaSchema = z.object({
   schema_version: z.number().int(),
   created_at: Timestamp,
-  last_sync: Timestamp.optional(),
 });
 ```
 
-#### 2.5.6 AtticEntrySchema
+> **Note**: `last_sync` is intentionally NOT stored in `meta.json`. Syncing this file
+> would create a conflict hotspot—every node updates it on every sync, causing constant
+> merge conflicts. Instead, sync timestamps are tracked locally in
+> `.ceads/cache/state.json` (gitignored).
+
+#### 2.5.6 LocalStateSchema
+
+Per-node state stored in `.ceads/cache/state.json` (gitignored, never synced).
+Each machine maintains its own local state:
+
+```typescript
+const LocalStateSchema = z.object({
+  node_id: z.string().optional(),         // Unique identifier for this node
+  last_sync: Timestamp.optional(),        // When this node last synced successfully
+  last_push: Timestamp.optional(),        // When this node last pushed
+  last_pull: Timestamp.optional(),        // When this node last pulled
+});
+```
+
+> **Why local?** The `last_sync` timestamp is inherently per-node.
+> Storing it in synced state would cause every sync to modify the same file, creating a
+> guaranteed conflict generator.
+> Keeping it local eliminates this hotspot.
+
+#### 2.5.7 AtticEntrySchema
 
 Preserved conflict losers:
 
@@ -699,17 +813,20 @@ const AtticEntrySchema = z.object({
 ### 3.1 Overview
 
 The Git Layer defines synchronization using standard git commands.
-It operates on files without interpreting entity schemas (beyond the `version` field).
+It operates on files without interpreting entity schemas beyond what’s needed for
+merging.
 
 **Key properties:**
 
-- **Schema-agnostic**: Sync moves files, doesn’t parse full schemas
+- **Schema-agnostic sync**: File transfer uses content hashes, doesn’t parse JSON
+
+- **Schema-aware merge**: When content differs, merge rules are per-entity-type
 
 - **Standard git**: All operations use git CLI
 
 - **Dedicated sync branch**: `ceads-sync` branch never pollutes main
 
-- **Version-based**: Only needs `version` field for conflict detection
+- **Hash-based conflict detection**: Content hash comparison triggers merge
 
 ### 3.2 Sync Branch Architecture
 
@@ -818,7 +935,8 @@ SYNC():
 
 #### When Conflicts Occur
 
-Conflicts happen when:
+Conflicts (requiring a merge) happen when the same file is modified in two places before
+sync:
 
 - Two environments modify the same issue before syncing
 
@@ -827,22 +945,46 @@ Conflicts happen when:
 #### Detection
 
 ```
-Same version + different content = conflict
+Different content hash = requires merge
 ```
 
-If `local.version == remote.version` but file hashes differ, merge is needed.
+If `hash(local) != hash(remote)`, a merge is needed—**regardless of version numbers**.
+The `version` field is used within the merge algorithm for LWW ordering, not for
+conflict detection.
+
+> **Why content hash, not version?** In a distributed system, a higher version number
+> does NOT mean “contains the other writer’s changes”—it only means “edited more times
+> locally.”
+> 
+> **Example of why version-only is unsafe:**
+>
+> - Base entity: version 3
+>
+> - Agent A edits once → version 4
+>
+> - Agent B (without seeing A) edits twice → version 5
+>
+> - If A took remote because `5 > 4`, A’s edit would be silently lost.
+> 
+> By merging whenever content differs, we ensure both writers’ changes are considered
+> and the loser is preserved in the attic.
 
 #### Resolution Flow
 
 ```
-1. Detect: same version, different content
-2. Parse both as JSON
-3. Apply merge rules (field-level)
+1. Detect: content hash differs
+2. Parse both versions as JSON
+3. Apply merge rules (field-level, from section 3.5)
 4. Increment version: max(local, remote) + 1
 5. Update timestamps
-6. Write merged result
-7. Save loser values to attic
+6. Write merged result locally
+7. Stage merged result for push
+8. Save loser values to attic (any field where values differed)
 ```
+
+> **Note**: Every merge produces attic entries for fields where values differed.
+> This ensures “no silent overwrites”—even if one version’s timestamp was older, its
+> values are preserved for recovery.
 
 ### 3.5 Merge Rules
 
@@ -867,6 +1009,7 @@ const issueMergeRules: MergeRules<Issue> = {
   kind: { strategy: 'lww' },
   title: { strategy: 'lww' },
   description: { strategy: 'lww_with_attic' },
+  notes: { strategy: 'lww_with_attic' },
   status: { strategy: 'lww' },
   priority: { strategy: 'lww' },
   assignee: { strategy: 'lww' },
@@ -876,6 +1019,7 @@ const issueMergeRules: MergeRules<Issue> = {
   due_date: { strategy: 'lww' },
   deferred_until: { strategy: 'lww' },
   close_reason: { strategy: 'lww' },
+  extensions: { strategy: 'lww' },  // Preserve third-party data
 };
 ```
 
@@ -1169,6 +1313,34 @@ Options:
 ISSUE       TITLE                    BLOCKED BY
 bd-c3d4     Write tests              bd-f14c (Add OAuth)
 bd-e5f6     Deploy to prod           bd-a1b2, bd-c3d4
+```
+
+#### Stale
+
+List issues not updated recently:
+
+```bash
+cead stale [options]
+
+Options:
+  --days <n>                Days since last update (default: 7)
+  --status <status>         Filter by status (default: open, in_progress)
+  --limit <n>               Limit results
+  --json                    Output as JSON
+```
+
+**Examples:**
+```bash
+cead stale                    # Issues not updated in 7 days
+cead stale --days 14          # Issues not updated in 14 days
+cead stale --status blocked   # Blocked issues that are stale
+```
+
+**Output:**
+```
+ISSUE       DAYS  STATUS       TITLE
+bd-a1b2     12    in_progress  Fix authentication bug
+bd-f14c     9     open         Add OAuth support
 ```
 
 ### 4.5 Label Commands
@@ -1814,6 +1986,28 @@ Ceads chooses JSON for multi-environment sync robustness, but we may add Markdow
 export/import in Phase 2 for best of both worlds.
 
 ### 7.2 Future Enhancements (Phase 2+)
+
+#### Additional Dependency Types (High Priority)
+
+Phase 1 only supports `blocks` dependencies.
+Phase 2 should add:
+
+**`related`**: Link related issues without blocking semantics
+
+- Use case: “See also” references, grouping related work
+
+- No effect on `ready` command
+
+**`discovered-from`**: Track issue provenance
+
+- Use case: When working on issue A, agent discovers issue B
+
+- Pattern: `cead create "Found bug" --deps discovered-from:<parent-id>`
+
+- Common in Beads workflows for linking discovered work to parent issues
+
+**Implementation**: Extend `Dependency.type` enum, update CLI `--deps` parsing.
+No changes to sync algorithm needed.
 
 #### Agent Registry
 
