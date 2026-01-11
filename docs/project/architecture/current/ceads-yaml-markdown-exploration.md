@@ -17,16 +17,23 @@ Astro) and is increasingly common for content management.
 **Key benefits:**
 
 - Human-readable and directly editable in any text editor
+
 - Description and notes naturally render as Markdown
+
 - Enables new workflows: issues in main repo, batch editing, file-based review
+
 - Familiar format for developers
+
 - Comments can be inline in the document
 
 **This document covers:**
 
 1. **Part 0**: Prior Art Survey (ticket, TrackDown, git-issue, etc.)
+
 2. **Part 1**: Concrete spec changes if we adopt this format (drop-in replacement)
+
 3. **Part 2**: New workflows this format enables (exploratory)
+
 4. **Part 3**: Trade-offs and implementation considerations
 
 * * *
@@ -34,39 +41,66 @@ Astro) and is increasingly common for content management.
 ## Table of Contents
 
 - [Part 0: Prior Art Survey](#part-0-prior-art-survey)
+
   - [0.1 ticket (wedow/ticket)](#01-ticket-wedowticket)
+
   - [0.2 TrackDown](#02-trackdown)
+
   - [0.3 git-issue](#03-git-issue)
+
   - [0.4 git-bug](#04-git-bug)
+
   - [0.5 Static Site Generators](#05-static-site-generators)
+
   - [0.6 Key Learnings](#06-key-learnings)
+
 - [Part 1: Core Format Changes](#part-1-core-format-changes)
+
   - [1.1 File Format Specification](#11-file-format-specification)
+
   - [1.2 Schema Changes](#12-schema-changes)
+
   - [1.3 Canonical Serialization](#13-canonical-serialization)
+
   - [1.4 Conflict Detection and Merging](#14-conflict-detection-and-merging)
+
   - [1.5 Directory Structure Changes](#15-directory-structure-changes)
+
   - [1.6 CLI Changes](#16-cli-changes)
+
   - [1.7 Config File Format](#17-config-file-format)
+
   - [1.8 Migration from JSON](#18-migration-from-json)
+
 - [Part 2: New Workflows](#part-2-new-workflows)
+
   - [2.1 Main Repo Issue Storage](#21-main-repo-issue-storage)
+
   - [2.2 Edit Directory Workflow](#22-edit-directory-workflow)
+
   - [2.3 Batch File Operations](#23-batch-file-operations)
+
   - [2.4 Inline Comments](#24-inline-comments)
+
   - [2.5 Issue Templates](#25-issue-templates)
+
 - [Part 3: Trade-offs and Considerations](#part-3-trade-offs-and-considerations)
+
   - [3.1 Advantages](#31-advantages)
+
   - [3.2 Disadvantages](#32-disadvantages)
+
   - [3.3 Implementation Complexity](#33-implementation-complexity)
+
   - [3.4 Performance Implications](#34-performance-implications)
+
 - [Appendix: Complete Example Files](#appendix-complete-example-files)
 
 * * *
 
 ## Part 0: Prior Art Survey
 
-Before designing our format, let's examine existing tools that use plaintext/Markdown
+Before designing our format, let’s examine existing tools that use plaintext/Markdown
 for issue tracking.
 
 ### 0.1 ticket (wedow/ticket)
@@ -76,30 +110,47 @@ for issue tracking.
 A fast, simple Beads replacement implemented as ~900 lines of bash.
 
 **Storage format:**
+
 - Markdown files with YAML front matter
+
 - File per ticket in `.tickets/` directory
+
 - ID as filename
 
 **Key design choices:**
+
 - Prioritizes AI agent searchability - avoids dense JSON that consumes context windows
+
 - IDE-friendly: direct file linking via ticket IDs
+
 - Zero infrastructure: no SQLite, no daemons, just bash + coreutils
-- Quote: "You don't need to index everything with SQLite when you have awk"
+
+- Quote: “You don’t need to index everything with SQLite when you have awk”
 
 **Workflow:**
+
 - Standard CRUD: `create`, `show`, `list`, `close`, `reopen`
+
 - Dependency tracking with `dep`, `undep`, tree visualization
+
 - `ready` and `blocked` commands (same semantics as Beads/Ceads)
+
 - `query` outputs JSON for jq integration
 
 **Conflict handling:**
-- Relies on Git's native merge for Markdown files
+
+- Relies on Git’s native merge for Markdown files
+
 - No explicit conflict resolution strategy documented
+
 - Assumes coordinated team workflows
 
 **Learnings for Ceads:**
+
 - Markdown+YAML works well in production (~1,900 tickets)
+
 - Simplicity wins for single-user/small team
+
 - AI agents benefit from readable formats
 
 ### 0.2 TrackDown
@@ -109,29 +160,45 @@ A fast, simple Beads replacement implemented as ~900 lines of bash.
 Issue tracking with plain Markdown, designed for distributed/disconnected teams.
 
 **Storage format:**
+
 - **Single Markdown file** containing all issues
+
 - Issue format: `## ID Title (status)` headers
+
 - Sections for version, severity, priority, description, comments
 
 **Key design choices:**
+
 - One file = simpler distribution but more conflict-prone
+
 - Post-commit hooks parse commit messages (`fixes #ID`, `refs #ID`)
+
 - Auto-generates roadmap grouped by version labels
+
 - Can live on dedicated branch or in wiki
 
 **Workflow:**
+
 - Git hooks do the heavy lifting
+
 - `roadmap` generates version summaries
+
 - `ls`, `mine` for queries
+
 - Commits automatically append to issue comments
 
 **Conflict handling:**
-- Leverages Git's native text merge
+
+- Leverages Git’s native text merge
+
 - Single file means more manual conflict resolution
 
 **Learnings for Ceads:**
+
 - Git hooks for commit integration is powerful
-- Single file doesn't scale; file-per-entity is better
+
+- Single file doesn’t scale; file-per-entity is better
+
 - Roadmap auto-generation is nice feature
 
 ### 0.3 git-issue
@@ -141,32 +208,51 @@ Issue tracking with plain Markdown, designed for distributed/disconnected teams.
 Decentralized issue management stored in Git.
 
 **Storage format:**
+
 - Issues in `.issues/` directory
+
 - Each issue in `issues/xx/xxxxxxx...` (SHA-based path)
+
 - Separate files for: `description`, `tags`, `milestone`, `assignee`, etc.
+
 - Comments as subdirectories with own SHAs
+
 - Attachments supported
 
 **Key design choices:**
+
 - Git objects as native storage (not just Git-tracked files)
+
 - SHA-based IDs (like Git commits)
+
 - Bidirectional sync with GitHub/GitLab APIs
+
 - Import/export preserves external issue numbers
 
 **Workflow:**
+
 - Full CRUD: `new`, `show`, `comment`, `edit`, `close`
+
 - Metadata commands: `tag`, `assign`, `milestone`, `duedate`
+
 - Sync: `push`, `pull`, `import`, `export`
+
 - Batch: `filter-apply` for scripted changes
 
 **Conflict handling:**
+
 - Offline-first: work locally, sync when online
+
 - Push/pull through standard Git
+
 - Import tracking for incremental GitHub sync
 
 **Learnings for Ceads:**
+
 - Multiple files per issue (metadata + content) is interesting but complex
+
 - GitHub/GitLab sync is valuable (Phase 2 for us)
+
 - SHA-based IDs are robust but not human-friendly
 
 ### 0.4 git-bug
@@ -176,24 +262,37 @@ Decentralized issue management stored in Git.
 Distributed, offline-first bug tracker embedded in Git.
 
 **Storage format:**
+
 - Issues stored as Git objects (not files in working tree)
+
 - Custom refs namespace (`refs/bugs/`)
+
 - Operation-based (like a CRDT)
 
 **Key design choices:**
-- Git objects mean issues don't clutter working directory
+
+- Git objects mean issues don’t clutter working directory
+
 - Operation log rather than snapshot (mergeable by design)
+
 - Web UI included
+
 - GitHub bridge for sync
 
 **Workflow:**
+
 - `add`, `select`, `comment`, `label`, `status`
+
 - TUI and Web interfaces
+
 - `bridge` for GitHub integration
 
 **Learnings for Ceads:**
+
 - Git object storage is clever but non-inspectable
+
 - Operation-based model is interesting for conflict resolution
+
 - We prefer file-based for debuggability
 
 ### 0.5 Static Site Generators
@@ -213,26 +312,37 @@ Content goes here...
 ```
 
 **Key conventions:**
+
 - `---` delimiters for YAML front matter
+
 - Metadata in YAML, content in Markdown
+
 - File-per-content-item
+
 - Directory structure = taxonomy
 
 **Tools ecosystem:**
+
 - [gray-matter](https://github.com/jonschlinkert/gray-matter) - Node.js parser
+
 - [Front Matter CMS](https://frontmatter.codes/) - VS Code extension
+
 - [Nuxt Content](https://content.nuxt.com/) - Git-based CMS
+
 - Numerous YAML front matter parsers in every language
 
 **Learnings for Ceads:**
+
 - Format is battle-tested at scale
+
 - Excellent tooling exists
+
 - Developers already know this pattern
 
 ### 0.6 Key Learnings
 
 | Tool | Storage | Pros | Cons |
-|------|---------|------|------|
+| --- | --- | --- | --- |
 | ticket | MD+YAML, file-per-issue | Simple, AI-friendly, production-proven | No conflict strategy |
 | TrackDown | Single MD file | Simple distribution | Merge conflicts at scale |
 | git-issue | SHA dirs + metadata files | GitHub sync, robust | Complex structure, ugly IDs |
@@ -242,25 +352,37 @@ Content goes here...
 **Synthesis for Ceads:**
 
 1. **File-per-entity with Markdown+YAML is the right choice**
-   - Proven by ticket's production use
+
+   - Proven by ticket’s production use
+
    - Matches developer mental model from static sites
+
    - Better than single file (TrackDown) or git objects (git-bug)
 
 2. **Keep human-readable IDs**
+
    - SHA-based (git-issue) is robust but unfriendly
+
    - Short hex IDs (ticket, Beads) are better UX
 
 3. **Need explicit conflict strategy**
+
    - ticket relies on Git merge (works for small teams)
+
    - We should keep our LWW + attic approach for robustness
 
 4. **Git hooks are useful but optional**
-   - TrackDown's commit parsing is nice
+
+   - TrackDown’s commit parsing is nice
+
    - Keep as optional enhancement, not requirement
 
 5. **Leverage existing tooling**
+
    - gray-matter for parsing
+
    - VS Code Markdown preview works out of box
+
    - Standard tools (grep, sed) work on files
 
 * * *
@@ -348,11 +470,13 @@ Found the issue in session.ts line 42. Working on fix.
 #### File Extension
 
 - **Option A**: `.md` (standard Markdown, most editor support)
+
 - **Option B**: `.issue.md` (explicit, filters in glob patterns)
+
 - **Option C**: `.ceads` (custom extension, clear ownership)
 
-**Recommendation**: `.md` for maximum compatibility. The YAML front matter and directory
-location already identify these as Ceads issues.
+**Recommendation**: `.md` for maximum compatibility.
+The YAML front matter and directory location already identify these as Ceads issues.
 
 #### File Naming
 
@@ -371,7 +495,7 @@ The schema remains largely the same, but the storage format changes.
 #### Field Mapping
 
 | Field | Location | Notes |
-|-------|----------|-------|
+| --- | --- | --- |
 | `type` | YAML front matter | Entity discriminator |
 | `id` | YAML front matter | Issue ID |
 | `version` | YAML front matter | Edit counter |
@@ -410,8 +534,8 @@ The Markdown body has a defined structure:
 (notes - everything after ## Notes heading)
 ```
 
-If there's no `## Notes` section, the entire body is the description.
-If there's no body, both description and notes are empty strings.
+If there’s no `## Notes` section, the entire body is the description.
+If there’s no body, both description and notes are empty strings.
 
 #### TypeScript Parsing
 
@@ -538,7 +662,7 @@ function hasConflict(local: Issue, remote: Issue): boolean {
 Merge rules from the main spec apply unchanged:
 
 | Field | Strategy |
-|-------|----------|
+| --- | --- |
 | `type`, `id` | immutable |
 | `version` | max_plus_one |
 | `title`, `status`, `priority`, `assignee`, `kind` | lww |
@@ -554,8 +678,10 @@ Merge rules from the main spec apply unchanged:
 For `description` and `notes` (lww_with_attic):
 
 1. Compare timestamps (`updated_at`)
-2. Winner's text replaces loser's
-3. Loser's text goes to attic
+
+2. Winner’s text replaces loser’s
+
+3. Loser’s text goes to attic
 
 No line-level merge - treat as atomic text blocks.
 
@@ -591,7 +717,7 @@ For consistency, all Ceads files use YAML:
     └── index.yaml            # Was index.json (or keep JSON for performance)
 ```
 
-**Note**: Cache files (state, index) could remain JSON for faster parsing since they're
+**Note**: Cache files (state, index) could remain JSON for faster parsing since they’re
 not user-edited. This is an implementation choice.
 
 ### 1.6 CLI Changes
@@ -717,18 +843,21 @@ function convertJsonToMarkdown(jsonPath: string): void {
 
 ## Part 2: New Workflows
 
-The Markdown format enables workflows that weren't practical with JSON.
+The Markdown format enables workflows that weren’t practical with JSON.
 
 ### 2.1 Main Repo Issue Storage
 
-**Concept**: Allow issues to live in the main repo (working branches) instead of only
-on the sync branch.
+**Concept**: Allow issues to live in the main repo (working branches) instead of only on
+the sync branch.
 
 #### Use Cases
 
 1. **Active work tracking**: Keep current sprint issues visible in repo
+
 2. **Code-adjacent docs**: Issues live near the code they describe
+
 3. **PR-linked issues**: Issue changes can be part of PRs
+
 4. **Offline-first**: Work on issues without sync branch access
 
 #### Directory Structure Option A: Dedicated Directory
@@ -816,7 +945,9 @@ cead sync
 #### Use Case
 
 - Review and update multiple issues at once
+
 - Make bulk changes via text editor or scripts
+
 - Preview changes before sync
 
 #### Workflow
@@ -937,9 +1068,13 @@ cead show bd-a1b2 --with-comments
 #### Merge Strategy for Comments
 
 Comments section uses **append-only** merge:
+
 - Parse comments by timestamp header
+
 - Union all comments from both sides
+
 - Sort by timestamp
+
 - No data loss
 
 ### 2.5 Issue Templates
@@ -987,8 +1122,6 @@ labels:
 
 
 ## Screenshots/Logs
-
-
 ```
 
 #### Usage
@@ -1010,31 +1143,41 @@ cead create --template bug "Button doesn't work" --no-edit
 #### Human Readability
 
 - Issues are readable in any text editor, GitHub web UI, IDE
+
 - No need for `cead show` to understand an issue
+
 - Markdown renders nicely in many contexts
 
 #### Direct Editing
 
 - Edit issues with vim, VS Code, any text editor
+
 - No CLI required for simple changes
-- Enables "edit and commit" workflow
+
+- Enables “edit and commit” workflow
 
 #### Tool Integration
 
 - Standard Unix tools work (grep, sed, awk)
+
 - IDE Markdown preview and editing
+
 - GitHub/GitLab render Markdown files
 
 #### Familiar Format
 
 - Developers know YAML and Markdown
+
 - Same format as Jekyll, Hugo, Astro content
+
 - Low learning curve
 
 #### Future Flexibility
 
 - Easy to add new sections (Comments, History, etc.)
+
 - Can embed code blocks, images, links naturally
+
 - Supports rich formatting for descriptions
 
 ### 3.2 Disadvantages
@@ -1042,31 +1185,41 @@ cead create --template bug "Button doesn't work" --no-edit
 #### Parsing Complexity
 
 - Need YAML parser + Markdown structure parser
+
 - More edge cases than JSON
+
 - Gray-matter library or equivalent required
 
 #### Canonical Serialization
 
 - YAML has multiple ways to represent same data
+
 - Must enforce strict serialization rules
+
 - More normalization code than JSON
 
 #### Multi-line String Handling
 
 - YAML multi-line strings have tricky semantics
+
 - Body content can interfere with YAML parsing if not careful
+
 - Need robust front matter delimiter handling
 
 #### Schema Validation
 
-- YAML doesn't have as strong tooling as JSON Schema
+- YAML doesn’t have as strong tooling as JSON Schema
+
 - Zod works but less common for YAML validation
+
 - Editor support (autocomplete) is weaker
 
 #### Performance
 
 - YAML parsing slightly slower than JSON
+
 - Probably negligible for typical issue counts
+
 - Index cache can mitigate
 
 ### 3.3 Implementation Complexity
@@ -1128,7 +1281,7 @@ assert.deepEqual(issue1, issue2);
 #### Parsing Benchmarks (Estimated)
 
 | Operation | JSON | YAML+MD | Difference |
-|-----------|------|---------|------------|
+| --- | --- | --- | --- |
 | Parse 1 issue | 0.1ms | 0.3ms | 3x slower |
 | Parse 1000 issues | 100ms | 300ms | 3x slower |
 | Serialize 1 issue | 0.05ms | 0.2ms | 4x slower |
@@ -1137,12 +1290,15 @@ assert.deepEqual(issue1, issue2);
 #### Mitigation
 
 - Index caching (already planned) makes cold parse rare
+
 - Most operations hit index, not raw files
+
 - 300ms for 1000 issues is still acceptable
 
 #### Memory
 
 - Slightly higher per-issue (YAML AST vs JSON AST)
+
 - Not significant for typical scale (<10k issues)
 
 * * *
@@ -1154,10 +1310,15 @@ assert.deepEqual(issue1, issue2);
 If adopting Markdown format with minimal spec changes:
 
 1. Replace `.json` with `.md` for issue files
+
 2. Use YAML front matter for structured fields
+
 3. Description in body, notes after `## Notes`
+
 4. Keep everything else the same (sync branch, merge rules, CLI)
+
 5. Add `cead edit <id>` command
+
 6. Add `cead raw <id>` command
 
 ### With New Workflows (Progressive)
@@ -1165,21 +1326,29 @@ If adopting Markdown format with minimal spec changes:
 Phase 1.5 or Phase 2 additions:
 
 1. Local issue checkout (`cead checkout`)
+
 2. Edit directory workflow (`cead export/import`)
+
 3. Issue templates
+
 4. Inline comments (append-only section)
 
 ### Migration Path
 
 1. Ship JSON format in Phase 1 (as specified)
+
 2. Add Markdown format support as alternative
+
 3. Provide conversion tool
+
 4. Eventually default to Markdown for new repos
 
 Or:
 
 1. Ship Markdown format from start in Phase 1
+
 2. Accept slightly more implementation complexity
+
 3. Benefit from human readability immediately
 
 * * *
@@ -1188,7 +1357,7 @@ Or:
 
 ### Issue File: Bug
 
-```markdown
+````markdown
 ---
 type: is
 id: is-a1b2c3
@@ -1246,15 +1415,17 @@ Found hardcoded `300000` (5 minutes) in `src/auth/session.ts:42`.
 ```typescript
 // BUG: This overrides the config value
 const TIMEOUT = 300000; // Should be config.sessionTimeout
-```
+````
 
 ## Notes
 
-2025-01-08: Confirmed the root cause. The hardcoded value was added in commit abc123
-as a "temporary" fix during the security audit.
+2025-01-08: Confirmed the root cause.
+The hardcoded value was added in commit abc123 as a “temporary” fix during the security
+audit.
 
-2025-01-09: PR #789 ready for review. Uses config value and adds tests.
-```
+2025-01-09: PR #789 ready for review.
+Uses config value and adds tests.
+````
 
 ### Issue File: Feature
 
@@ -1301,7 +1472,7 @@ See Figma: [Dark Mode Designs](https://figma.com/...)
 ## Notes
 
 Low priority but frequently requested by users.
-```
+````
 
 ### Issue File: Epic
 
@@ -1413,54 +1584,81 @@ Users are being logged out after exactly 5 minutes...
 ### Format Decisions
 
 1. **File extension**: `.md` vs `.issue.md` vs `.ceads`?
+
    - `.md` has best editor support
+
    - `.issue.md` is explicit and filterable
+
    - Recommendation: `.md` (simplicity)
 
 2. **Cache format**: Keep index.json for performance or convert to YAML for consistency?
+
    - Cache files are not user-edited
+
    - JSON parsing is faster
+
    - Recommendation: Keep cache as JSON
 
 3. **Config format**: `config.yaml` or `config.yml`?
+
    - `.yaml` is more explicit (YAML spec prefers it)
+
    - `.yml` is common (Rails, Docker)
+
    - Recommendation: `.yaml` for new, accept both
 
 ### Content Decisions
 
 4. **Comments**: Inline in document or separate entity type?
+
    - Inline: simpler, visible in file
+
    - Separate: better conflict handling, cleaner diffs
+
    - Recommendation: Phase 1 inline (optional section), Phase 2 separate entities
 
 5. **Notes section marker**: `## Notes` vs `---` separator vs other?
+
    - `## Notes` is explicit and Markdown-native
+
    - `---` could conflict with front matter delimiter
+
    - Recommendation: `## Notes` heading
 
 ### Workflow Decisions
 
 6. **Main repo issues**: Enable in Phase 1 or defer to Phase 2?
+
    - Adds complexity but high value
+
    - ticket proves single-location works fine
+
    - Recommendation: Defer to Phase 1.5, design for it now
 
 7. **Template location**: `.ceads/templates/` or user-configurable?
+
    - Fixed location is simpler
+
    - Configurable allows shared templates
+
    - Recommendation: Fixed `.ceads/templates/`, consider shared later
 
 ### Migration Decisions
 
 8. **Backward compatibility**: Support both JSON and Markdown, or Markdown only?
+
    - Both: more code, testing surface
+
    - Markdown only: cleaner, format is clearly better
+
    - Recommendation: Markdown only, provide one-time migration tool
 
 9. **When to adopt**: Phase 1 launch or Phase 1.5 enhancement?
+
    - ticket proves format works in production
+
    - JSON spec is already written
+
    - Recommendation: Consider shipping with Markdown from start
 
 * * *
@@ -1474,23 +1672,31 @@ Based on prior art analysis and trade-off evaluation:
 **Rationale:**
 
 1. **Proven in production** - ticket manages ~1,900 issues successfully
+
 2. **Developer-friendly** - familiar from static site generators
+
 3. **AI-friendly** - readable context, not dense JSON
+
 4. **Tool-rich ecosystem** - gray-matter, VS Code, standard Unix tools
+
 5. **Enables future workflows** - main repo storage, batch editing, templates
 
 **Implementation path:**
 
 1. Update Phase 1 spec to use Markdown format (Part 1 of this doc)
+
 2. Keep conflict resolution strategy (LWW + attic) unchanged
+
 3. Add `cead edit <id>` and `cead raw <id>` commands
+
 4. Defer advanced workflows (Part 2) to Phase 1.5 or Phase 2
+
 5. Provide `cead migrate --format markdown` for any existing JSON repos
 
 **Key spec changes summary:**
 
 | Section | Change |
-|---------|--------|
+| --- | --- |
 | 2.1 File Format | JSON → Markdown + YAML front matter |
 | 2.2 Directory Structure | `.json` → `.md` extensions |
 | 2.5 Schemas | Parse from YAML, body for description/notes |
@@ -1502,13 +1708,21 @@ Based on prior art analysis and trade-off evaluation:
 
 ## References
 
-- [ticket (wedow/ticket)](https://github.com/wedow/ticket) - Production Markdown issue tracker
+- [ticket (wedow/ticket)](https://github.com/wedow/ticket) - Production Markdown issue
+  tracker
+
 - [TrackDown](https://github.com/mgoellnitz/trackdown) - Single-file Markdown tracking
+
 - [git-issue](https://github.com/dspinellis/git-issue) - Decentralized Git-based issues
+
 - [git-bug](https://github.com/git-bug/git-bug) - Distributed bug tracker in Git objects
+
 - [gray-matter](https://github.com/jonschlinkert/gray-matter) - YAML front matter parser
+
 - [Front Matter CMS](https://frontmatter.codes/) - VS Code CMS extension
-- [Hugo Front Matter](https://gohugo.io/content-management/front-matter/) - SSG documentation
+
+- [Hugo Front Matter](https://gohugo.io/content-management/front-matter/) - SSG
+  documentation
 
 * * *
 

@@ -196,9 +196,10 @@ Ceads is designed around three core ideas:
    Git handles distribution.
 
 2. **Sync is schema-agnostic, merge is schema-aware.** The sync layer detects changes
-   using file hashes—it doesn't interpret JSON content. However, when merging conflicting
-   entities, the merge algorithm uses per-entity-type rules. Adding new entity types
-   requires only a new directory, schema, and merge rules—no sync logic changes.
+   using file hashes—it doesn’t interpret JSON content.
+   However, when merging conflicting entities, the merge algorithm uses per-entity-type
+   rules. Adding new entity types requires only a new directory, schema, and merge
+   rules—no sync logic changes.
 
 3. **Coordination is just more entities.** Multi-agent work requires messaging, agent
    registry, and work claims.
@@ -243,7 +244,7 @@ These principles guide how we achieve the goals:
    Any index or cache is derived and can be rebuilt from entity files.
 
 2. **Schema-agnostic sync, schema-aware merge**: The sync layer detects and transfers
-   file changes using content hashes—it doesn't parse JSON. The merge layer, invoked
+   file changes using content hashes—it doesn’t parse JSON. The merge layer, invoked
    when content differs, applies per-entity-type field rules.
    Adding new entity types requires only a new directory, schema, and merge rules.
 
@@ -381,11 +382,17 @@ Key properties:
 
 - **Canonical JSON format**: All JSON files MUST use canonical serialization to ensure
   content hashes are consistent across implementations:
+
   - Keys sorted alphabetically (recursive)
+
   - 2-space indentation
+
   - No trailing whitespace
+
   - Single newline at end of file
+
   - No trailing commas
+
   - UTF-8 encoding
 
 - **Storage-agnostic**: Could work with local filesystem, S3, or any key-value store.
@@ -393,10 +400,11 @@ Key properties:
 - **Self-documenting files**: Each JSON file contains a `type` field identifying its
   entity type, making files meaningful in isolation.
 
-> **Why canonical JSON?** Content hashes are used for conflict detection. If different
-> implementations serialize the same object with different key ordering or whitespace,
-> identical logical content produces different hashes, causing spurious "conflicts."
-> Canonical serialization ensures `hash(serialize(obj))` is consistent everywhere.
+> **Why canonical JSON?** Content hashes are used for conflict detection.
+> If different implementations serialize the same object with different key ordering or
+> whitespace, identical logical content produces different hashes, causing spurious
+> “conflicts.” Canonical serialization ensures `hash(serialize(obj))` is consistent
+> everywhere.
 
 #### Atomic File Writes
 
@@ -420,9 +428,13 @@ async function atomicWrite(path: string, content: string): Promise<void> {
 ```
 
 **Why atomic writes?**
+
 - Prevents half-written files if process crashes mid-write
+
 - Prevents readers from seeing incomplete content
+
 - Works on most filesystems (POSIX rename is atomic)
+
 - Important on network filesystems and Windows
 
 **Cleanup:** On startup, remove any orphaned `.tmp.*` files in ceads directories.
@@ -594,8 +606,8 @@ function generateId(prefix: string): string {
 
 **Recommended Alternative: nanoid**
 
-The [nanoid](https://github.com/ai/nanoid) library provides a battle-tested implementation
-with the same properties:
+The [nanoid](https://github.com/ai/nanoid) library provides a battle-tested
+implementation with the same properties:
 
 ```typescript
 import { customAlphabet } from 'nanoid';
@@ -609,8 +621,11 @@ function generateId(prefix: string): string {
 ```
 
 Benefits of nanoid:
+
 - Well-tested and widely used
+
 - Handles secure random generation correctly across environments
+
 - Available for multiple languages (JS, Python, Go, Rust, etc.)
 
 Either implementation is acceptable; nanoid is recommended for production use.
@@ -634,14 +649,14 @@ const EntityId = z.string().regex(/^[a-z]{2}-[a-z0-9]{10}$/);
 ```
 
 > **Note**: Earlier drafts used 6-character hashes with incorrect entropy calculations.
-> The current 10-character format provides ample collision resistance for any
-> realistic scale while remaining readable.
+> The current 10-character format provides ample collision resistance for any realistic
+> scale while remaining readable.
 
 #### External Short IDs
 
 Users interact with **external short IDs** that are more readable than internal IDs.
-Internal IDs are always 10-character hashes for collision resistance; external IDs
-use adaptive-length random hashes that grow as the issue count increases.
+Internal IDs are always 10-character hashes for collision resistance; external IDs use
+adaptive-length random hashes that grow as the issue count increases.
 
 **Example:**
 ```
@@ -658,13 +673,14 @@ ceads:
   project_prefix: proj    # User-configurable, e.g., "myapp", "backend"
 ```
 
-The prefix is **not stored** in `.ceads-sync/`—it's purely a display concern.
+The prefix is **not stored** in `.ceads-sync/`—it’s purely a display concern.
 Users can rename the prefix at any time without breaking references.
 
 ##### Short ID Generation
 
-External short IDs are **randomly generated** at the appropriate length based on
-the current issue count. They are **not** derived from or prefixes of internal IDs.
+External short IDs are **randomly generated** at the appropriate length based on the
+current issue count.
+They are **not** derived from or prefixes of internal IDs.
 
 **Algorithm:**
 
@@ -708,14 +724,14 @@ Where `n` = number of issues, `N` = 36^length (total possible IDs).
 **Collision probability table:**
 
 | Issue Count | 3-char | 4-char | 5-char | 6-char |
-|-------------|--------|--------|--------|--------|
-| 50          | 2.6%   | 0.07%  | 0.00%  | 0.00%  |
-| 100         | 10.2%  | 0.30%  | 0.01%  | 0.00%  |
-| 200         | 34.6%  | 1.18%  | 0.03%  | 0.00%  |
-| 500         | 95.8%  | 7.17%  | 0.21%  | 0.01%  |
-| 1,000       | 100%   | 25.75% | 0.82%  | 0.02%  |
-| 2,000       | 100%   | 69.60% | 3.25%  | 0.09%  |
-| 5,000       | 100%   | 99.94% | 18.68% | 0.57%  |
+| --- | --- | --- | --- | --- |
+| 50 | 2.6% | 0.07% | 0.00% | 0.00% |
+| 100 | 10.2% | 0.30% | 0.01% | 0.00% |
+| 200 | 34.6% | 1.18% | 0.03% | 0.00% |
+| 500 | 95.8% | 7.17% | 0.21% | 0.01% |
+| 1,000 | 100% | 25.75% | 0.82% | 0.02% |
+| 2,000 | 100% | 69.60% | 3.25% | 0.09% |
+| 5,000 | 100% | 99.94% | 18.68% | 0.57% |
 
 **Adaptive length algorithm:**
 
@@ -743,17 +759,17 @@ function collisionProbability(n: number, length: number): number {
 **Default thresholds (10% max collision):**
 
 | Issue Count | Short ID Length |
-|-------------|-----------------|
-| 0-100       | 3 chars         |
-| 101-600     | 4 chars         |
-| 601-3,500   | 5 chars         |
-| 3,501-21,000| 6 chars         |
-| 21,001+     | continues scaling |
+| --- | --- |
+| 0-100 | 3 chars |
+| 101-600 | 4 chars |
+| 601-3,500 | 5 chars |
+| 3,501-21,000 | 6 chars |
+| 21,001+ | continues scaling |
 
 ##### Short ID Mapping Storage
 
-Short ID mappings are stored as **one file per short ID**, following the same pattern
-as entity storage:
+Short ID mappings are stored as **one file per short ID**, following the same pattern as
+entity storage:
 
 ```
 .ceads-sync/short-ids/
@@ -770,10 +786,15 @@ const ShortIdMapping = z.object({
 ```
 
 **Properties:**
+
 - **One file per short ID**: Filename is the short ID (e.g., `a1b.json`)
+
 - **No merge conflicts**: Different short IDs = different files
+
 - **Last-write-wins**: Natural Git behavior on file conflicts
+
 - **Self-describing**: Filename IS the short ID
+
 - **Consistent**: Same storage pattern as entities
 
 ##### Resolution Flow
@@ -838,31 +859,36 @@ function ensureShortId(internalId: string, shortIdsDir: string): string {
 When two clients simultaneously generate the same random short ID:
 
 1. Client A creates `a1b.json` → `{"internal_id": "is-xxx"}`
+
 2. Client B creates `a1b.json` → `{"internal_id": "is-yyy"}`
+
 3. Git merge: **last-write-wins** on the file (one internal ID wins)
+
 4. Losing client syncs, runs `ensureShortId("is-xxx")`, finds no mapping
+
 5. Losing client generates new short ID (e.g., `b2c.json`)
 
 **No attic needed** for short IDs—the current state is always authoritative.
 If an internal ID loses its short ID mapping, it simply regenerates one.
 
-**Orphan cleanup** (optional): Short ID files pointing to non-existent entities
-can be deleted during garbage collection. Not critical since they're tiny.
+**Orphan cleanup** (optional): Short ID files pointing to non-existent entities can be
+deleted during garbage collection.
+Not critical since they’re tiny.
 
 ##### Internal Prefixes
 
 Internal prefixes are fixed and match directory names:
 
 | Internal Prefix | Entity Type | Directory |
-|-----------------|-------------|-----------|
-| `is-`           | Issues      | `issues/` |
-| `ag-`           | Agents      | `agents/` |
-| `ms-`           | Messages    | `messages/` |
-| `lo-`           | Local       | `local/` (not synced) |
+| --- | --- | --- |
+| `is-` | Issues | `issues/` |
+| `ag-` | Agents | `agents/` |
+| `ms-` | Messages | `messages/` |
+| `lo-` | Local | `local/` (not synced) |
 
 Internal prefixes are used in file references, cross-entity links, and storage.
-The CLI accepts both internal IDs (`is-a1b2c3d4e5`) and external IDs (`proj-a1b`)
-and translates automatically.
+The CLI accepts both internal IDs (`is-a1b2c3d4e5`) and external IDs (`proj-a1b`) and
+translates automatically.
 
 ### 2.5 Schemas
 
@@ -894,8 +920,8 @@ const EntityType = z.string().regex(/^[a-z]{2}$/);
 
 > **Note on extensibility**: `EntityType` uses a regex pattern (`/^[a-z]{2}$/`) rather
 > than a closed enum. This allows adding new entity types by convention—create a new
-> directory and schema without modifying core type definitions. The type must match
-> the ID prefix and directory name.
+> directory and schema without modifying core type definitions.
+> The type must match the ID prefix and directory name.
 
 #### 2.5.2 BaseEntity
 
@@ -921,9 +947,9 @@ const BaseEntity = z.object({
 
 > **Note on `extensions`**: The `extensions` field provides a namespace for third-party
 > tools, bridges, and custom integrations to store metadata without modifying core
-> schemas. Keys should be namespaced (e.g., `"github"`, `"slack"`, `"my-tool"`).
-> Unknown extensions are preserved during sync and merge (pass-through).
->
+> schemas. Keys should be namespaced (e.g., `"github"`, `"slack"`, `"my-tool"`). Unknown
+> extensions are preserved during sync and merge (pass-through).
+> 
 > Example:
 > ```json
 > {
@@ -983,21 +1009,28 @@ type Issue = z.infer<typeof IssueSchema>;
 > retrieve comments: query all messages where `in_reply_to == issue_id`.
 
 > **Note on parent-child relationships**: Issues can form hierarchies using `parent_id`
-> (on child) and `sequence` (on parent). These are **redundant by design** for query
-> efficiency, but can become inconsistent during conflicts.
->
-> **Authoritative source**: `parent_id` is authoritative. A child "belongs to" whoever
-> it claims as parent. The `sequence` array is a convenience for ordering.
->
+> (on child) and `sequence` (on parent).
+> These are **redundant by design** for query efficiency, but can become inconsistent
+> during conflicts.
+> 
+> **Authoritative source**: `parent_id` is authoritative.
+> A child “belongs to” whoever it claims as parent.
+> The `sequence` array is a convenience for ordering.
+> 
 > **Invariants:**
-> - If child.parent_id = P, then child.id SHOULD appear in P.sequence
-> - If P.sequence contains C, then C.parent_id SHOULD equal P
 >
+> - If child.parent_id = P, then child.id SHOULD appear in P.sequence
+>
+> - If P.sequence contains C, then C.parent_id SHOULD equal P
+> 
 > **When inconsistent** (detected by `cead doctor`):
-> - If child has parent_id but isn't in parent's sequence: add to sequence
-> - If parent's sequence contains ID but that issue has different parent_id: remove from
+>
+> - If child has parent_id but isn’t in parent’s sequence: add to sequence
+>
+> - If parent’s sequence contains ID but that issue has different parent_id: remove from
 >   sequence
-> - If parent's sequence contains non-existent ID: remove from sequence
+>
+> - If parent’s sequence contains non-existent ID: remove from sequence
 
 #### 2.5.4 AgentSchema
 
@@ -1029,20 +1062,24 @@ type Agent = z.infer<typeof AgentSchema>;
 ```
 
 > **Heartbeat churn warning**: Frequent updates to `last_heartbeat` create Git sync
-> contention. If N agents each update heartbeats every minute, the sync branch sees
-> N×60 commits/hour, causing push rejections and retry storms.
->
+> contention. If N agents each update heartbeats every minute, the sync branch sees N×60
+> commits/hour, causing push rejections and retry storms.
+> 
 > **Mitigation strategies:**
+>
 > 1. **Throttle heartbeats**: Update every 5-15 minutes, not every minute
+>
 > 2. **Separate presence from durable state**: Use Bridge Layer for real-time presence;
 >    Git stores only durable changes (status, working_on, file_reservations)
-> 3. **Batch updates**: Coalesce multiple field changes into single commits
-> 4. **Infer liveness**: Determine agent activity from recent entity updates rather
->    than explicit heartbeats
 >
+> 3. **Batch updates**: Coalesce multiple field changes into single commits
+>
+> 4. **Infer liveness**: Determine agent activity from recent entity updates rather than
+>    explicit heartbeats
+> 
 > **Recommendation for v1**: Update `last_heartbeat` only on meaningful state changes
-> (starting work, finishing work, status change), not on a timer. Real-time presence
-> should use Bridge Layer when available.
+> (starting work, finishing work, status change), not on a timer.
+> Real-time presence should use Bridge Layer when available.
 
 #### 2.5.5 LocalSchema
 
@@ -1080,8 +1117,8 @@ messages. Each message has a subject and body (both required), similar to email.
 Messages reference their parent via `in_reply_to`.
 
 **Messages are immutable after creation.** This eliminates merge conflicts for message
-content entirely—no merge logic needed. "Edits" are represented as new messages with
-`supersedes` pointing to the original.
+content entirely—no merge logic needed.
+“Edits” are represented as new messages with `supersedes` pointing to the original.
 
 ```typescript
 const MessageSchema = BaseEntity.extend({
@@ -1105,7 +1142,7 @@ type Message = z.infer<typeof MessageSchema>;
 - **Immutable content**: Once created, `subject`, `body`, `author`, and `in_reply_to`
   never change. This means messages never conflict during merge—huge simplification.
 
-- **Edit pattern**: To "edit" a message, create a new message with `supersedes` pointing
+- **Edit pattern**: To “edit” a message, create a new message with `supersedes` pointing
   to the original. UIs show the latest version; history preserved via chain.
 
 - **Subject required**: Encourages descriptive headers, improves UI/list views
@@ -1118,7 +1155,7 @@ type Message = z.infer<typeof MessageSchema>;
 
 - **Time-ordered**: Messages sort by `created_at`—no explicit sequence needed
 
-- **No status/priority**: Messages don't have workflow states like issues
+- **No status/priority**: Messages don’t have workflow states like issues
 
 - **No explicit threading features**: Threading emerges from `in_reply_to` chains, but
   v1 displays comments as a flat time-sorted list
@@ -1219,7 +1256,8 @@ type Meta = z.infer<typeof MetaSchema>;
 > merge conflicts. Instead, sync timestamps are tracked locally (see LocalStateSchema).
 
 > **Note**: User-editable configuration (prefixes, TTLs, sync settings) is in
-> `.ceads/config.yml` on the main branch. See [ConfigSchema](#257-configschema).
+> `.ceads/config.yml` on the main branch.
+> See [ConfigSchema](#257-configschema).
 
 #### 2.5.9 LocalStateSchema
 
@@ -1237,9 +1275,10 @@ const LocalStateSchema = z.object({
 type LocalState = z.infer<typeof LocalStateSchema>;
 ```
 
-> **Why local?** The `last_sync` timestamp is inherently per-node. Storing it in
-> synced state would cause every sync to modify the same file, creating a guaranteed
-> conflict generator. Keeping it local eliminates this hotspot.
+> **Why local?** The `last_sync` timestamp is inherently per-node.
+> Storing it in synced state would cause every sync to modify the same file, creating a
+> guaranteed conflict generator.
+> Keeping it local eliminates this hotspot.
 
 #### 2.5.10 AtticEntrySchema
 
@@ -1282,9 +1321,13 @@ type AtticEntry = z.infer<typeof AtticEntrySchema>;
 ```
 
 > **Why base/ours/theirs?** Storing all three values enables:
+>
 > - Understanding what actually happened (was base modified by both?)
+>
 > - Manual recovery (user can see all versions and pick the right one)
+>
 > - Debugging merge algorithm issues
+>
 > - Future upgrade to 3-way merge if needed
 
 ### 2.6 Schema Versioning and Migration
@@ -1378,7 +1421,7 @@ commands. It operates on the File Layer without interpreting entity content beyo
 
 Key properties:
 
-- **Schema-agnostic sync**: File transfer uses content hashes, doesn't parse JSON
+- **Schema-agnostic sync**: File transfer uses content hashes, doesn’t parse JSON
 
 - **Schema-aware merge**: When content differs, merge rules are per-entity-type
 
@@ -1521,15 +1564,19 @@ SYNC_FILE(local_path, sync_path):
 
 > **Critical**: The sync algorithm uses **content hash** as the conflict detector, not
 > version comparison. In a distributed system, a higher version number does NOT mean
-> "contains the other writer's changes"—it only means "edited more times locally."
->
+> “contains the other writer’s changes”—it only means “edited more times locally.”
+> 
 > **Example of why version-only is unsafe:**
-> - Base entity: version 3
-> - Agent A edits once → version 4
-> - Agent B (without seeing A) edits twice → version 5
-> - If A took remote because `5 > 4`, A's edit would be silently lost.
 >
-> By merging whenever content differs, we ensure both writers' changes are considered
+> - Base entity: version 3
+>
+> - Agent A edits once → version 4
+>
+> - Agent B (without seeing A) edits twice → version 5
+>
+> - If A took remote because `5 > 4`, A’s edit would be silently lost.
+> 
+> By merging whenever content differs, we ensure both writers’ changes are considered
 > and the loser is preserved in the attic.
 
 #### 3.3.4 Pull Operation
@@ -1622,7 +1669,8 @@ async function pushWithRetry(maxAttempts = 5): Promise<void> {
 ```
 
 **Why jitter?** Without randomization, N agents syncing on a fixed interval create
-"thundering herd" collisions. Jitter spreads retries across time, reducing contention.
+“thundering herd” collisions.
+Jitter spreads retries across time, reducing contention.
 
 #### 3.3.7 Sync Triggers
 
@@ -1636,8 +1684,8 @@ async function pushWithRetry(maxAttempts = 5): Promise<void> {
 
 #### When Conflicts Occur
 
-Conflicts (requiring a merge) happen when the same file is modified in two places
-before sync:
+Conflicts (requiring a merge) happen when the same file is modified in two places before
+sync:
 
 - Two agents update the same issue simultaneously
 
@@ -1667,8 +1715,8 @@ conflict detection.
 ```
 
 > **Note**: Every merge produces attic entries for fields where values differed.
-> This ensures "no silent overwrites"—even if one version's timestamp was older,
-> its values are preserved for recovery.
+> This ensures “no silent overwrites”—even if one version’s timestamp was older, its
+> values are preserved for recovery.
 
 ### 3.5 Merge Rules
 
@@ -1689,21 +1737,28 @@ outcome. Merge rules are defined per entity type and applied during conflict res
 | `recalculate` | Fresh timestamp | `updated_at` field |
 
 > **Limitation of `union` strategy**: Union merging is **add-only**. If Agent A removes
-> a label while Agent B keeps it, the merged result will contain the label (B's version
+> a label while Agent B keeps it, the merged result will contain the label (B’s version
 > contributes it). Removals do not propagate—the label reappears after merge.
->
+> 
 > This is acceptable for labels (typically additive), but means:
+>
 > - To truly remove a label, all copies must remove it before any sync
+>
 > - Or, use `set_3way` when base is available (see `mergeSet3Way` in Section 3.6)
+>
 > - Or, use LWW for the entire labels array (loses additions, but removals work)
->
+> 
 > **Design choice**: We use `union` (add-only) for labels in v1 because:
-> 1. Labels are typically additive (adding context is common, removal is rare)
-> 2. False additions are less harmful than false removals
-> 3. Simple to implement and reason about
 >
+> 1. Labels are typically additive (adding context is common, removal is rare)
+>
+> 2. False additions are less harmful than false removals
+>
+> 3. Simple to implement and reason about
+> 
 > **Future enhancement**: When using a Git merge driver (which provides base), upgrade
-> to `set_3way` for correct removal handling. The algorithm is already documented.
+> to `set_3way` for correct removal handling.
+> The algorithm is already documented.
 
 #### Issue Merge Rules
 
@@ -1757,8 +1812,8 @@ const messageMergeRules: MergeRules<Message> = {
 ```
 
 > **Why immutable messages?** If two copies of the same message somehow diverge
-> (extremely rare—would require corrupted file or manual edit), the merge will fail
-> with an invariant error. This is intentional: messages should never conflict.
+> (extremely rare—would require corrupted file or manual edit), the merge will fail with
+> an invariant error. This is intentional: messages should never conflict.
 > The only valid operation is creating new messages.
 
 ### 3.6 Merge Algorithm
@@ -1920,9 +1975,11 @@ function mergeSet3Way(
 ```
 
 > **When to use 3-way set merge**: The `mergeSet3Way` function requires base (common
-> ancestor) information. This is available when using a Git merge driver, or can be
-> obtained by tracking the last-synced version. For v1 without a merge driver, the
-> simpler `union` strategy is used (add-only). Upgrade to 3-way when base is available.
+> ancestor) information.
+> This is available when using a Git merge driver, or can be obtained by tracking the
+> last-synced version.
+> For v1 without a merge driver, the simpler `union` strategy is used (add-only).
+> Upgrade to 3-way when base is available.
 
 ### 3.7 Attic Structure
 
@@ -2027,9 +2084,13 @@ Issues are **soft-deleted** by setting status and close_reason:
 ```
 
 **Why soft-delete?**
+
 - Entity file remains, preserving all references
+
 - Messages/dependencies pointing to it remain valid
-- Can be "undeleted" by changing status
+
+- Can be “undeleted” by changing status
+
 - Full history preserved in git
 
 #### Hard Deletion (Discouraged)
@@ -2037,7 +2098,9 @@ Issues are **soft-deleted** by setting status and close_reason:
 Physically removing an entity file (deleting `is-a1b2.json`) is **discouraged** because:
 
 1. **Orphans**: Messages with `in_reply_to: "is-a1b2"` become orphaned
+
 2. **Broken dependencies**: Other issues depending on it have dangling references
+
 3. **Sync conflicts**: If another node modified it before seeing the delete, the
    modification recreates the entity
 
@@ -2055,11 +2118,14 @@ cead issue delete <id> --hard
 #### Deletion During Sync
 
 When sync encounters a deleted file:
-- If remote has file, local doesn't: Remote is copied to local (file "reappears")
-- If local has file, remote doesn't: Local is pushed (file "reappears" on remote)
 
-This means **deletions don't propagate reliably** without tombstones. Soft deletion
-(status change) propagates correctly because it's a modification, not a removal.
+- If remote has file, local doesn’t: Remote is copied to local (file “reappears”)
+
+- If local has file, remote doesn’t: Local is pushed (file “reappears” on remote)
+
+This means **deletions don’t propagate reliably** without tombstones.
+Soft deletion (status change) propagates correctly because it’s a modification, not a
+removal.
 
 > **Design choice**: Ceads uses soft-delete as the primary deletion mechanism.
 > Hard deletion is available but creates consistency challenges in distributed systems.
@@ -4050,9 +4116,13 @@ git push origin ceads-sync
 ```
 
 **Benefits:**
+
 - Uses standard git porcelain (easier to understand and debug)
-- Enables Git's native 3-way merge (can use custom merge driver)
-- Worktree is gitignored, never pollutes user's workspace
+
+- Enables Git’s native 3-way merge (can use custom merge driver)
+
+- Worktree is gitignored, never pollutes user’s workspace
+
 - If worktree is missing/corrupted, can be recreated from remote
 
 #### Question 2: Message Retention

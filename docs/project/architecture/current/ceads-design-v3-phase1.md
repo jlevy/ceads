@@ -6,13 +6,6 @@
 
 **Date**: January 2025
 
-**Previous Version**: ceads-design-v2-phase1.md
-
-**Key Changes in V3:**
-- Markdown + YAML front matter format (replacing JSON)
-- Hidden worktree for sync branch access
-- Integrated search via ripgrep/grep
-
 * * *
 
 ## Table of Contents
@@ -51,6 +44,16 @@
       - [On Main Branch (all working branches)](#on-main-branch-all-working-branches)
 
       - [On `ceads-sync` Branch](#on-ceads-sync-branch)
+
+    - [2.6 Hidden Worktree Model](#26-hidden-worktree-model)
+
+      - [Worktree Setup](#worktree-setup)
+
+      - [Worktree Gitignore](#worktree-gitignore)
+
+      - [Accessing Issues via Worktree](#accessing-issues-via-worktree)
+
+      - [Worktree Lifecycle](#worktree-lifecycle)
 
     - [2.3 Entity Collection Pattern](#23-entity-collection-pattern)
 
@@ -108,6 +111,8 @@
 
     - [3.5 Merge Rules](#35-merge-rules)
 
+      - [BaseEntity Merge Rules](#baseentity-merge-rules)
+
       - [Issue Merge Rules](#issue-merge-rules)
 
     - [3.6 Attic Structure](#36-attic-structure)
@@ -148,6 +153,8 @@
 
     - [4.8 Search Commands](#48-search-commands)
 
+      - [Implementation Notes](#implementation-notes)
+
     - [4.9 Maintenance Commands](#49-maintenance-commands)
 
       - [Stats](#stats)
@@ -166,7 +173,29 @@
 
   - [5. Beads Compatibility](#5-beads-compatibility)
 
-    - [5.1 Migration Strategy](#51-migration-strategy)
+    - [5.1 Import Strategy](#51-import-strategy)
+
+      - [5.1.1 Import Command](#511-import-command)
+
+      - [5.1.2 Multi-Source Import
+        (--from-beads)](#512-multi-source-import---from-beads)
+
+      - [5.1.3 Multi-Source Merge Algorithm](#513-multi-source-merge-algorithm)
+
+      - [5.1.4 ID Mapping](#514-id-mapping)
+
+      - [5.1.5 Import Algorithm](#515-import-algorithm)
+
+      - [5.1.6 Merge Behavior on Re-Import](#516-merge-behavior-on-re-import)
+
+      - [5.1.7 Handling Deletions and
+        Tombstones](#517-handling-deletions-and-tombstones)
+
+      - [5.1.8 Dependency ID Translation](#518-dependency-id-translation)
+
+      - [5.1.9 Import Output](#519-import-output)
+
+      - [5.1.10 Migration Workflow](#5110-migration-workflow)
 
     - [5.2 Command Mapping](#52-command-mapping)
 
@@ -179,6 +208,8 @@
       - [What Works Identically](#what-works-identically)
 
       - [Key Differences](#key-differences)
+
+    - [5.6 Compatibility Contract](#56-compatibility-contract)
 
       - [Migration Gotchas](#migration-gotchas)
 
@@ -208,12 +239,13 @@
       - [Decision 4: Display ID prefix for Beads
         compat](#decision-4-display-id-prefix-for-beads-compat)
 
-      - [Decision 5: Only "blocks" dependencies in Phase
+      - [Decision 5: Only “blocks” dependencies in Phase
         1](#decision-5-only-blocks-dependencies-in-phase-1)
 
       - [Decision 6: Markdown + YAML storage](#decision-6-markdown--yaml-storage)
 
-      - [Decision 7: Hidden worktree for sync branch](#decision-7-hidden-worktree-for-sync-branch)
+      - [Decision 7: Hidden worktree for sync
+        branch](#decision-7-hidden-worktree-for-sync-branch)
 
     - [7.2 Future Enhancements (Phase 2+)](#72-future-enhancements-phase-2)
 
@@ -233,7 +265,70 @@
       - [Time Tracking](#time-tracking)
 
     - [7.3 File Structure Reference](#73-file-structure-reference)
-  - [Appendix A: Beads to Ceads Feature Mapping](#appendix-a-beads-to-ceads-feature-mapping)
+
+  - [Appendix A: Beads to Ceads Feature
+    Mapping](#appendix-a-beads-to-ceads-feature-mapping)
+
+    - [A.1 Executive Summary](#a1-executive-summary)
+
+    - [A.2 CLI Command Mapping](#a2-cli-command-mapping)
+
+      - [A.2.1 Issue Commands (Full Parity)](#a21-issue-commands-full-parity)
+
+      - [A.2.2 Label Commands (Full Parity)](#a22-label-commands-full-parity)
+
+      - [A.2.3 Dependency Commands (Partial - blocks
+        only)](#a23-dependency-commands-partial---blocks-only)
+
+      - [A.2.4 Sync Commands (Full Parity)](#a24-sync-commands-full-parity)
+
+      - [A.2.5 Maintenance Commands (Full
+        Parity)](#a25-maintenance-commands-full-parity)
+
+      - [A.2.6 Global Options (Full Parity)](#a26-global-options-full-parity)
+
+    - [A.3 Data Model Mapping](#a3-data-model-mapping)
+
+      - [A.3.1 Issue Schema](#a31-issue-schema)
+
+      - [A.3.2 Status Values](#a32-status-values)
+
+      - [A.3.3 Issue Types/Kinds](#a33-issue-typeskinds)
+
+      - [A.3.4 Dependency Types](#a34-dependency-types)
+
+    - [A.4 Architecture Comparison](#a4-architecture-comparison)
+
+      - [A.4.1 Storage](#a41-storage)
+
+      - [A.4.2 Sync](#a42-sync)
+
+    - [A.5 LLM Agent Workflow Comparison](#a5-llm-agent-workflow-comparison)
+
+      - [A.5.1 Basic Agent Loop (Full Parity)](#a51-basic-agent-loop-full-parity)
+
+      - [A.5.2 Creating Linked Work (Partial
+        Parity)](#a52-creating-linked-work-partial-parity)
+
+      - [A.5.3 Migration Workflow](#a53-migration-workflow)
+
+    - [A.6 Phase 1 Parity Summary](#a6-phase-1-parity-summary)
+
+    - [A.7 Deferred to Phase 2+](#a7-deferred-to-phase-2)
+
+    - [A.8 Migration Compatibility](#a8-migration-compatibility)
+
+  - [8. Open Questions](#8-open-questions)
+
+    - [8.1 Git Operations](#81-git-operations)
+
+    - [8.2 Timestamp and Ordering](#82-timestamp-and-ordering)
+
+    - [8.3 Mapping File Structure](#83-mapping-file-structure)
+
+    - [8.4 ID Length](#84-id-length)
+
+    - [8.5 Future Extension Points](#85-future-extension-points)
 
 * * *
 
@@ -249,8 +344,8 @@ Ceads is pronounced “seeds” and follows Beads in the spirit of C following B
 
 **Key characteristics:**
 
-- **Drop-in replacement**: Compatible with Beads CLI commands and workflows at the CLI
-  level (have agents use `cead` instead of `bd`)
+- **Drop-in replacement**: Compatible with core Beads CLI commands and workflows at the
+  CLI level (have agents use `cead` instead of `bd`)
 
 - **Simpler architecture**: No daemon changing your `.beads` directory, no SQLite and
   associated file locking
@@ -488,8 +583,11 @@ Found the issue in session.ts line 42. Working on fix.
 **File structure:**
 
 - `---` delimiters enclose YAML front matter
+
 - Metadata fields in YAML (structured data)
+
 - Body is the description (Markdown)
+
 - `## Notes` section separates working notes from description
 
 #### Canonical Serialization
@@ -499,19 +597,29 @@ For content hashing and conflict detection, we need deterministic serialization:
 **YAML front matter rules:**
 
 - Keys sorted alphabetically at each level
+
 - Block style for arrays/objects (no flow style)
+
 - Arrays sorted by defined rules (labels: lexicographic, dependencies: by target)
+
 - Timestamps in ISO8601 with Z suffix (UTC)
+
 - Null values explicit (not omitted)
+
 - Empty objects/arrays explicit (`extensions: {}`, `labels: []`)
+
 - No trailing whitespace
+
 - LF line endings (not CRLF)
 
 **Body rules:**
 
 - Trim leading/trailing whitespace from description and notes
+
 - Normalize multiple blank lines to single blank line
+
 - Single newline at end of file
+
 - LF line endings
 
 **Recommended `.gitattributes`:**
@@ -520,8 +628,8 @@ For content hashing and conflict detection, we need deterministic serialization:
 ```
 
 > **Why canonical format?** Content hashes are used for conflict detection.
-> If different implementations serialize the same content differently,
-> identical logical content produces different hashes, causing spurious "conflicts."
+> If different implementations serialize the same content differently, identical logical
+> content produces different hashes, causing spurious “conflicts.”
 
 #### Atomic File Writes
 
@@ -557,23 +665,29 @@ async function atomicWrite(path: string, content: string): Promise<void> {
 **Cross-platform notes:**
 
 - POSIX local filesystems: `rename()` is atomic and durable after `fsync()`
+
 - Windows: `rename()` is atomic but may fail if target exists (use `MoveFileEx` with
   `MOVEFILE_REPLACE_EXISTING`)
+
 - Network filesystems (NFS, SMB): Best-effort atomicity; may not be fully atomic but
   still prevents partial writes
+
 - Implementations should use a well-tested atomic-write library when available
 
 **Cleanup:** On startup, remove orphaned `.tmp.*` files in ceads directories that are
-**older than 1 hour**. This threshold prevents race conditions where one process
-creates a temp file while another is cleaning up. Alternatively, include `node_id` in
-temp file names and only cleanup files matching the current node's prefix.
+**older than 1 hour**. This threshold prevents race conditions where one process creates
+a temp file while another is cleaning up.
+Alternatively, include `node_id` in temp file names and only cleanup files matching the
+current node’s prefix.
 
 ### 2.2 Directory Structure
 
 Ceads uses three directory locations:
 
 - **`.ceads/`** on main branch: Configuration (tracked) + local cache (gitignored)
+
 - **`.ceads/.worktree/`** hidden worktree: Checkout of `ceads-sync` branch for search
+
 - **`.ceads-sync/`** on `ceads-sync` branch: Synced entities and attic
 
 #### On Main Branch (all working branches)
@@ -616,19 +730,27 @@ Ceads uses three directory locations:
 **Why this structure?**
 
 - Config on main versions with your code
+
 - Synced data on separate branch avoids merge conflicts on working branches
+
 - Local cache is gitignored, never synced
+
 - File-per-entity enables parallel operations without conflicts
+
 - **Hidden worktree enables fast search** via ripgrep/grep
 
 ### 2.6 Hidden Worktree Model
 
 Ceads maintains a **hidden git worktree** at `.ceads/.worktree/` that checks out the
-`ceads-sync` branch. This provides:
+`ceads-sync` branch.
+This provides:
 
 1. **Fast search**: ripgrep can search all issues without git plumbing commands
+
 2. **Direct file access**: Read issues without `git show` overhead
-3. **Isolated from main**: Doesn't pollute working directory or affect main branch
+
+3. **Isolated from main**: Doesn’t pollute working directory or affect main branch
+
 4. **Automatic updates**: Updated on `cead sync` operations
 
 #### Worktree Setup
@@ -646,7 +768,9 @@ git worktree add .ceads/.worktree --orphan ceads-sync
 **Key properties:**
 
 - **Detached HEAD**: Worktree tracks commits, not branch name, to avoid branch lock
+
 - **Hidden location**: Inside `.ceads/` which is partially gitignored
+
 - **Safe updates**: `cead sync` does `git -C .ceads/.worktree pull` after push
 
 #### Worktree Gitignore
@@ -674,7 +798,7 @@ ls .ceads/.worktree/.ceads-sync/issues/
 #### Worktree Lifecycle
 
 | Operation | Worktree Action |
-|-----------|-----------------|
+| --- | --- |
 | `cead init` | Create worktree if ceads-sync exists |
 | `cead sync --pull` | `git -C .worktree pull origin ceads-sync` |
 | `cead sync --push` | Update worktree after successful push |
@@ -748,9 +872,9 @@ function generateId(prefix: string): string {
 
 - **Entropy**: 24 bits = 16.7 million possibilities
 
-- **Collision probability**: With birthday paradox, ~1% collision chance at ~13,000
-  issues; ~50% at ~5,000 simultaneous concurrent creations. Acceptable for Phase 1
-  with collision retry.
+- **Collision probability**: With birthday paradox, ~~1% collision chance at ~~13,000
+  issues; ~~50% at ~~5,000 simultaneous concurrent creations.
+  Acceptable for Phase 1 with collision retry.
 
 - **On collision**: Regenerate ID (detected by file-exists check before write)
 
@@ -763,10 +887,11 @@ const IssueId = z.string().regex(/^is-[a-f0-9]{6}$/);
 const IssueIdInput = z.string().regex(/^(is-|bd-)?[a-f0-9]{4,6}$/);
 ```
 
-**Display prefix note:** Internal IDs use `is-` prefix. The `display.id_prefix` config
-(default: `bd`) controls how IDs are shown to users for Beads compatibility. When a
-user types `bd-a1b2c3`, it is resolved to internal `is-a1b2c3`. When displaying, the
-internal ID is shown with the configured prefix.
+**Display prefix note:** Internal IDs use `is-` prefix.
+The `display.id_prefix` config (default: `bd`) controls how IDs are shown to users for
+Beads compatibility.
+When a user types `bd-a1b2c3`, it is resolved to internal `is-a1b2c3`. When displaying,
+the internal ID is shown with the configured prefix.
 
 ### 2.5 Schemas
 
@@ -813,7 +938,7 @@ const BaseEntity = z.object({
 > tools, bridges, and custom integrations to store metadata without modifying core
 > schemas. Keys should be namespaced (e.g., `github`, `slack`, `my-tool`). Unknown
 > extensions are preserved during sync and merge (pass-through).
->
+> 
 > Example (in YAML front matter):
 > ```yaml
 > extensions:
@@ -870,8 +995,9 @@ type Issue = z.infer<typeof IssueSchema>;
 
 - `status`: Matches Beads statuses (open, in_progress, blocked, deferred, closed)
 
-- `kind`: Matches Beads types (bug, feature, task, epic, chore). Note: CLI uses `--type`
-  flag for Beads compatibility, which maps to the `kind` field internally.
+- `kind`: Matches Beads types (bug, feature, task, epic, chore).
+  Note: CLI uses `--type` flag for Beads compatibility, which maps to the `kind` field
+  internally.
 
 - `priority`: 0 (highest/critical) to 4 (lowest), matching Beads
 
@@ -881,10 +1007,14 @@ type Issue = z.infer<typeof IssueSchema>;
 
 - `labels`: Arbitrary string tags
 
-- `due_date` / `deferred_until`: Beads compatibility fields. Stored as full ISO8601
-  datetime. CLI accepts flexible input:
+- `due_date` / `deferred_until`: Beads compatibility fields.
+  Stored as full ISO8601 datetime.
+  CLI accepts flexible input:
+
   - Full datetime: `2025-02-15T10:00:00Z`
+
   - Date only: `2025-02-15` (normalized to `2025-02-15T00:00:00Z` UTC)
+
   - Relative: `+7d` (7 days from now), `+2w` (2 weeks)
 
 **Notes on tombstone status:**
@@ -974,12 +1104,15 @@ const LocalStateSchema = z.object({
 > Keeping it local eliminates this hotspot.
 
 **Sync Baseline:** The `last_synced_commit` field stores the git commit hash on
-`ceads-sync` that was last successfully synced. This enables:
+`ceads-sync` that was last successfully synced.
+This enables:
 
-- `cead sync --status` to compute pending changes via
-  `git diff --name-status <baseline>..origin/ceads-sync`
+- `cead sync --status` to compute pending changes via `git diff --name-status
+  <baseline>..origin/ceads-sync`
+
 - Incremental sync operations without full scans
-- Clear definition of "local changes" (modified since baseline) and "remote changes"
+
+- Clear definition of “local changes” (modified since baseline) and “remote changes”
   (commits after baseline on remote)
 
 #### 2.5.7 AtticEntrySchema
@@ -1010,12 +1143,12 @@ const AtticEntrySchema = z.object({
 ### 3.1 Overview
 
 The Git Layer defines synchronization using standard git commands.
-It operates on files without interpreting entity schemas beyond what's needed for
+It operates on files without interpreting entity schemas beyond what’s needed for
 merging.
 
 **Key properties:**
 
-- **Schema-agnostic sync**: File transfer uses content hashes, doesn't parse JSON
+- **Schema-agnostic sync**: File transfer uses content hashes, doesn’t parse JSON
 
 - **Schema-aware merge**: When content differs, merge rules are per-entity-type
 
@@ -1025,10 +1158,10 @@ merging.
 
 - **Hash-based conflict detection**: Content hash comparison triggers merge
 
-**Critical Invariant:** Ceads MUST NEVER modify the user's git index or staging area.
-All git plumbing operations that write to the sync branch MUST use an isolated
-index file via `GIT_INDEX_FILE` environment variable. This ensures that a developer's
-staged changes are never corrupted by ceads operations.
+**Critical Invariant:** Ceads MUST NEVER modify the user’s git index or staging area.
+All git plumbing operations that write to the sync branch MUST use an isolated index
+file via `GIT_INDEX_FILE` environment variable.
+This ensures that a developer’s staged changes are never corrupted by ceads operations.
 
 ```bash
 # Example: all sync branch writes use isolated index
@@ -1098,7 +1231,7 @@ git ls-tree ceads-sync .ceads-sync/issues/
 
 #### 3.3.2 Writing to Sync Branch
 
-All write operations use an isolated index to protect user's staged changes:
+All write operations use an isolated index to protect user’s staged changes:
 
 ```bash
 # Setup isolated index
@@ -1197,7 +1330,7 @@ conflict detection.
 > locally.”
 > 
 > **Example of why version-only is unsafe:**
->
+> 
 > - Base entity: version 3
 >
 > - Agent A edits once → version 4
@@ -1225,8 +1358,8 @@ conflict detection.
 > **Note on Attic Entries**: Attic entries are created only when a merge strategy
 > **discards** data (e.g., LWW picks one scalar over another, or one text block over
 > another). Union-style merges that retain both values (e.g., labels, dependencies) do
-> not create attic entries since no data is lost. This ensures the attic remains focused
-> on actual data loss, not routine merges.
+> not create attic entries since no data is lost.
+> This ensures the attic remains focused on actual data loss, not routine merges.
 
 ### 3.5 Merge Rules
 
@@ -1248,8 +1381,10 @@ Field-level merge strategies:
 
 When `updated_at` timestamps are equal, use this deterministic tie-breaker:
 
-1. Prefer remote over local (convention: remote is "more shared")
+1. Prefer remote over local (convention: remote is “more shared”)
+
 2. If still ambiguous (e.g., same node), prefer lexically greater content hash
+
 3. Always preserve losing value in attic
 
 > **Rationale:** Equal timestamps are common with coarse clocks, imports, or identical
@@ -1300,7 +1435,9 @@ const issueMergeRules: MergeRules<Issue> = {
 **Status and closed_at Interaction:**
 
 - If merged `status` becomes `closed` and `closed_at` is not set, set it to merge time
+
 - If merged `status` changes from `closed` to another status (reopen), clear `closed_at`
+
 - `close_reason` follows LWW independently
 
 **Extensions Deep Merge:**
@@ -1527,8 +1664,8 @@ Dependencies:
 ```
 
 > **Note:** The `notes` field is displayed separately from `description`. Notes are
-> intended for agent/developer working notes, while description is the issue's
-> canonical description.
+> intended for agent/developer working notes, while description is the issue’s canonical
+> description.
 
 #### Update
 
@@ -1603,11 +1740,11 @@ Options:
 
 - No `assignee` set
 
-- No blocking dependencies (where dependency.status != 'closed')
+- No blocking dependencies (where dependency.status != ‘closed’)
 
 > **Performance note:** The `ready` command uses the query index when enabled to avoid
-> loading all issues. Dependency target status is checked via index lookup. Without
-> index, dependency targets are loaded on-demand.
+> loading all issues. Dependency target status is checked via index lookup.
+> Without index, dependency targets are loaded on-demand.
 
 #### Blocked
 
@@ -1813,8 +1950,10 @@ worktree directory:
 **Tool selection:**
 
 1. If `rg` (ripgrep) is available, use it (recommended for speed)
+
 2. Fall back to `grep -r` if ripgrep unavailable
-3. Emit warning on first fallback: "ripgrep not found, using grep (slower)"
+
+3. Emit warning on first fallback: “ripgrep not found, using grep (slower)”
 
 **Search algorithm:**
 
@@ -1844,9 +1983,10 @@ SEARCH(pattern, options):
 
 **Worktree staleness:**
 
-The search command checks worktree freshness. If the worktree is stale (last fetch
-was more than 5 minutes ago), search will automatically pull before searching to
-ensure results are current. This can be disabled with `--no-refresh`.
+The search command checks worktree freshness.
+If the worktree is stale (last fetch was more than 5 minutes ago), search will
+automatically pull before searching to ensure results are current.
+This can be disabled with `--no-refresh`.
 
 ```bash
 # Search without refreshing (faster but potentially stale)
@@ -1949,22 +2089,26 @@ Available on all commands:
 
 **Actor Resolution Order:**
 
-The actor name (used for `created_by` and recorded in sync commits) is resolved in
-this order:
+The actor name (used for `created_by` and recorded in sync commits) is resolved in this
+order:
 
 1. `--actor <name>` CLI flag (highest priority)
+
 2. `CEAD_ACTOR` environment variable
+
 3. Git user.email from git config
+
 4. System username + hostname (fallback)
 
 Example: `CEAD_ACTOR=claude-agent-1 cead create "Fix bug"`
 
-> **Note:** `--db` is retained for Beads compatibility. Prefer `--dir` for new usage.
+> **Note:** `--db` is retained for Beads compatibility.
+> Prefer `--dir` for new usage.
 
 ### 4.11 Attic Commands
 
-The attic preserves data lost in merge conflicts. These commands enable inspection and
-recovery.
+The attic preserves data lost in merge conflicts.
+These commands enable inspection and recovery.
 
 ```bash
 # List attic entries
@@ -2032,8 +2176,9 @@ cead attic restore 2025-01-07T10-30-00Z_description
 ```
 
 > **Note:** Restore creates a new version of the issue with the attic value applied to
-> the specified field. The original winning value is preserved in a new attic entry,
-> maintaining the "no data loss" invariant.
+> the specified field.
+> The original winning value is preserved in a new attic entry, maintaining the “no data
+> loss” invariant.
 
 ### 4.12 Output Formats
 
@@ -2063,7 +2208,9 @@ The import command is designed to be **idempotent and safe to re-run**. This ena
 workflows where:
 
 - Initial migration from Beads to Ceads
+
 - Ongoing sync if some agents still use Beads temporarily
+
 - Recovery if work was accidentally done in Beads
 
 #### 5.1.1 Import Command
@@ -2115,8 +2262,9 @@ cead import --from-beads --branch beads-sync
 #### 5.1.2 Multi-Source Import (--from-beads)
 
 When using `--from-beads`, Ceads reads directly from the Beads repository structure
-instead of an exported file. This is useful when you want to import without running
-`bd export` first, or when you need to capture changes from both main and sync branches.
+instead of an exported file.
+This is useful when you want to import without running `bd export` first, or when you
+need to capture changes from both main and sync branches.
 
 **Beads Repository Structure:**
 
@@ -2135,11 +2283,15 @@ Beads stores issues in two potential locations that may contain different data:
 **Why both branches matter:**
 
 1. **Sync branch** (`beads-sync`): Where daemon commits changes automatically
+
 2. **Main branch**: Where sync branch is periodically merged
 
 These can diverge when:
+
 - Daemon has committed to sync branch but not yet pushed/merged to main
+
 - Agent work happened on sync branch after last merge to main
+
 - Different machines have committed to different branches
 
 **Auto-Detection Algorithm:**
@@ -2190,9 +2342,9 @@ git cat-file -e beads-sync:.beads/issues.jsonl 2>/dev/null && echo "exists"
 
 #### 5.1.3 Multi-Source Merge Algorithm
 
-When importing from multiple sources (e.g., main + sync branch), issues are merged
-using **Last-Write-Wins (LWW)** based on `updated_at` timestamp, matching Beads' own
-merge behavior.
+When importing from multiple sources (e.g., main + sync branch), issues are merged using
+**Last-Write-Wins (LWW)** based on `updated_at` timestamp, matching Beads’ own merge
+behavior.
 
 ```
 MERGE_JSONL_SOURCES(sources):
@@ -2224,13 +2376,16 @@ MERGE_JSONL_SOURCES(sources):
 ```
 
 **Priority Order (when timestamps are equal):**
+
 1. Sync branch (most authoritative for Beads data)
+
 2. Working copy (uncommitted changes)
+
 3. Main branch (last merged state)
 
 **Attic preservation during import:** When multiple sources have conflicting values for
 the same Beads issue, the losing version is preserved in the attic with source
-information. This maintains the "no data loss" invariant even during import merges.
+information. This maintains the “no data loss” invariant even during import merges.
 
 **Example Scenario:**
 
@@ -2316,13 +2471,16 @@ To enable O(1) lookups on large issue sets, import also maintains a mapping file
 ```
 
 This file:
+
 - Is synced with other Ceads data on the sync branch
+
 - Enables instant lookup of existing mappings
+
 - Is authoritative (extensions field is for reference/debugging)
 
 **Mapping recovery:** If the mapping file is corrupted or lost, it can be reconstructed
-by scanning all issues and reading `extensions.beads.original_id`. Run:
-`cead doctor --fix` to rebuild mappings from extensions data.
+by scanning all issues and reading `extensions.beads.original_id`. Run: `cead doctor
+--fix` to rebuild mappings from extensions data.
 
 #### 5.1.5 Import Algorithm
 
@@ -2373,8 +2531,11 @@ When re-importing an issue that already exists in Ceads:
 | Both updated | Merge using LWW rules, loser to attic |
 
 **Merge uses standard issue merge rules:**
+
 - `updated_at` determines winner for scalar fields
+
 - Labels use union (both additions preserved)
+
 - Description/notes use LWW with attic preservation
 
 **Example re-import scenario:**
@@ -2393,10 +2554,12 @@ Result: is-x1y2 has both changes:
 #### 5.1.7 Handling Deletions and Tombstones
 
 > **Canonical reference:** This section is the authoritative specification for
-> tombstone/deletion handling. See also: §2.5.3 (Notes on tombstone status),
-> §5.4 (Status Mapping), §5.5 (Migration Gotchas).
+> tombstone/deletion handling.
+> See also: §2.5.3 (Notes on tombstone status), §5.4 (Status Mapping), §5.5 (Migration
+> Gotchas).
 
-Beads uses `tombstone` status for soft-deleted issues. On import:
+Beads uses `tombstone` status for soft-deleted issues.
+On import:
 
 | Beads Status | Ceads Behavior | Rationale |
 | --- | --- | --- |
@@ -2411,7 +2574,8 @@ cead import beads.jsonl --skip-tombstones     # Skip tombstones (default)
 
 #### 5.1.8 Dependency ID Translation
 
-Beads dependencies reference Beads IDs. On import, these must be translated:
+Beads dependencies reference Beads IDs.
+On import, these must be translated:
 
 ```
 Beads: { "type": "blocks", "target": "bd-m5n6" }
@@ -2419,8 +2583,11 @@ Ceads: { "type": "blocks", "target": "is-d4e5f6" }  # Looked up from mapping
 ```
 
 **Algorithm:**
+
 1. Import all issues first (build complete mapping)
+
 2. Second pass: translate dependency target IDs
+
 3. If target not in mapping: log warning, skip dependency (orphan reference)
 
 #### 5.1.9 Import Output
@@ -2644,20 +2811,27 @@ Ceads CLI output.
 **Stable (will not change without major version bump):**
 
 - JSON output schema from `--json` flag (additive changes only)
+
 - Exit codes: 0 = success, 1 = error, 2 = usage error
+
 - Command names and primary flags listed in this spec
+
 - ID format pattern: `{prefix}-{6 hex chars}`
 
 **Stable with deprecation warnings:**
 
 - Flag aliases (e.g., `--db` → `--dir`)
+
 - Field renames in JSON output (old name continues to work)
 
 **Not guaranteed stable:**
 
 - Human-readable output formatting (column widths, colors, wording)
+
 - Error message text
+
 - Timing of sync operations
+
 - Internal file formats (index.json structure)
 
 **Beads compatibility aliases:**
@@ -2665,7 +2839,9 @@ Ceads CLI output.
 These flags/behaviors are maintained for Beads script compatibility:
 
 - `--db <path>` → `--dir <path>`
+
 - `--type <kind>` → maps to `kind` field (not `type`)
+
 - Display prefix `bd-` configurable via `display.id_prefix`
 
 #### Migration Gotchas
@@ -2752,9 +2928,9 @@ fi
 
 - Incremental update: <100ms for typical sync (10-50 changed files)
 
-**Incremental operations:** Common operations like `cead list`, `cead ready`, and
-`cead sync --status` use the index and diff-based updates to meet performance targets
-even at scale.
+**Incremental operations:** Common operations like `cead list`, `cead ready`, and `cead
+sync --status` use the index and diff-based updates to meet performance targets even at
+scale.
 
 #### File I/O Optimization
 
@@ -2943,13 +3119,17 @@ even at scale.
 **Choice**: Markdown + YAML front matter for issue storage
 
 **Context**: [ticket](https://github.com/wedow/ticket), TrackDown, and other tools
-successfully use Markdown + YAML frontmatter. We adopt this approach in V3.
+successfully use Markdown + YAML frontmatter.
+We adopt this approach in V3.
 
 **Prior Art Validation**:
 
 - ticket (1400+ GitHub stars): YAML front matter + Markdown body
+
 - TrackDown: Markdown files with structured headers
+
 - Hugo/Jekyll: Mature tooling for YAML front matter parsing
+
 - git-issue: Pure text format for issue tracking
 
 **Rationale for Markdown + YAML**:
@@ -2969,69 +3149,94 @@ successfully use Markdown + YAML frontmatter. We adopt this approach in V3.
 **Structured Data Handling**:
 
 - YAML front matter contains all schema fields (structured data)
+
 - Markdown body contains `description` and optional `## Notes` section
+
 - Canonical serialization ensures deterministic hashing
+
 - Schema validation via Zod after parsing
 
 **Tradeoffs**:
 
 - Parsing slightly more complex than JSON
+
 - Requires YAML + Markdown parsers (vs JSON only)
+
 - Multi-line fields need careful YAML escaping
 
 **Mitigations**:
 
 - Use established libraries (gray-matter, js-yaml)
+
 - Canonical serialization rules ensure consistency
+
 - Attic entries use pure YAML (no Markdown body needed)
 
 #### Decision 7: Hidden worktree for sync branch
 
 **Choice**: Use a hidden git worktree for sync branch access
 
-**Context**: Ceads stores issues on a sync branch (`ceads-sync`) that's separate
-from the user's working branch. We need a way to access and search sync branch
-content without affecting the user's checkout.
+**Context**: Ceads stores issues on a sync branch (`ceads-sync`) that’s separate from
+the user’s working branch.
+We need a way to access and search sync branch content without affecting the user’s
+checkout.
 
 **Alternatives Considered**:
 
 1. **Isolated index (`GIT_INDEX_FILE`)**: Use git plumbing with isolated index
+
    - Pro: Minimal disk usage, no extra checkout
+
    - Con: Files not accessible to ripgrep/grep for searching
 
 2. **Sparse checkout**: Checkout only `.ceads-sync/` directory
+
    - Pro: Files accessible, minimal overhead
-   - Con: Pollutes user's working directory, shows in `git status`
+
+   - Con: Pollutes user’s working directory, shows in `git status`
 
 3. **Hidden worktree**: Separate checkout at `.ceads/.worktree/`
-   - Pro: Files accessible for search, isolated from user's work
+
+   - Pro: Files accessible for search, isolated from user’s work
+
    - Con: Additional disk space for second checkout
 
 **Rationale for Hidden Worktree**:
 
 - **Search integration**: ripgrep/grep work directly on issue files
-- **User isolation**: Hidden in `.ceads/`, doesn't pollute working directory
+
+- **User isolation**: Hidden in `.ceads/`, doesn’t pollute working directory
+
 - **Git-native**: Uses standard `git worktree` mechanics
-- **Clean status**: Gitignored, doesn't appear in user's `git status`
+
+- **Clean status**: Gitignored, doesn’t appear in user’s `git status`
 
 **Implementation Notes**:
 
 - Worktree created at `.ceads/.worktree/`
+
 - Worktree directory added to `.ceads/.gitignore`
+
 - `cead init` creates worktree automatically
+
 - Worktree kept in sync via `cead sync` commands
+
 - Falls back to `git show` if worktree unavailable
 
 **Tradeoffs**:
 
 - Additional disk space (~2x issue storage)
+
 - Worktree must be kept in sync
+
 - Edge case: stale worktree if not synced recently
 
 **Mitigations**:
 
 - Search commands auto-refresh if worktree is stale
+
 - `cead doctor` can detect/repair worktree issues
+
 - Space overhead is minimal (issues are small files)
 
 ### 7.2 Future Enhancements (Phase 2+)
@@ -3267,8 +3472,9 @@ Also available via update: `cead update <id> --add-label X` and `--remove-label 
 | `bd dep remove <a> <b>` | `cead dep remove <id> <target>` | ✅ Full | Identical |
 | `bd dep tree <id>` | `cead dep tree <id>` | ✅ Full | Visualize deps |
 
-**Note:** Phase 1 supports only `blocks` dependency type. This is sufficient for the
-`ready` command algorithm. `related` and `discovered-from` are Phase 2.
+**Note:** Phase 1 supports only `blocks` dependency type.
+This is sufficient for the `ready` command algorithm.
+`related` and `discovered-from` are Phase 2.
 
 #### A.2.4 Sync Commands (Full Parity)
 
@@ -3410,7 +3616,8 @@ cead close <id> --reason "Done"  # Complete
 cead sync                    # Sync
 ```
 
-**Assessment:** ✅ Identical workflow. Claims are advisory in both (no enforcement).
+**Assessment:** ✅ Identical workflow.
+Claims are advisory in both (no enforcement).
 
 #### A.5.2 Creating Linked Work (Partial Parity)
 
@@ -3426,8 +3633,8 @@ cead create "Found bug" -t bug -p 1 --parent <id> --json
 # Or wait for Phase 2 for discovered-from
 ```
 
-**Assessment:** ⚠️ `discovered-from` dependency not available in Phase 1.
-Use `--parent` or wait for Phase 2.
+**Assessment:** ⚠️ `discovered-from` dependency not available in Phase 1. Use `--parent`
+or wait for Phase 2.
 
 #### A.5.3 Migration Workflow
 
@@ -3472,8 +3679,12 @@ cead config display.id_prefix bd
 ### A.8 Migration Compatibility
 
 - **CLI:** 95%+ compatible for core workflows
-- **Data:** Full import from Beads JSONL (including multi-source from main + sync branch)
+
+- **Data:** Full import from Beads JSONL (including multi-source from main + sync
+  branch)
+
 - **Display:** Configurable ID prefix (`bd-xxxx` vs `cd-xxxx`)
+
 - **Behavior:** Advisory claims, manual sync (no daemon)
 
 **Overall Assessment:** Ceads V3 Phase 1 provides sufficient feature parity for LLM
@@ -3497,22 +3708,28 @@ tracking) or local `ceads-sync`? Current spec uses `ceads-sync:` in examples, wh
 read stale data if not updated after fetch.
 
 **Options:**
+
 1. Always read from `origin/ceads-sync` after fetch
+
 2. Update local `ceads-sync` ref after fetch, then read from it
+
 3. Document both patterns with guidance on when to use each
 
 ### 8.2 Timestamp and Ordering
 
 **V2-012: Clock skew assumptions**
 
-LWW merge relies on `updated_at` timestamps. Clock skew between machines can cause
-counterintuitive winners. The attic preserves losers, but UX may suffer if the "wrong"
-version consistently wins.
+LWW merge relies on `updated_at` timestamps.
+Clock skew between machines can cause counterintuitive winners.
+The attic preserves losers, but UX may suffer if the “wrong” version consistently wins.
 
 **Options:**
+
 1. Add a note acknowledging the limitation, rely on attic for recovery
+
 2. Implement Hybrid Logical Clocks (HLC) in Phase 2
-3. Add optional "prefer remote" or "prefer local" config override
+
+3. Add optional “prefer remote” or “prefer local” config override
 
 ### 8.3 Mapping File Structure
 
@@ -3522,31 +3739,39 @@ version consistently wins.
 concurrently (though this is rare).
 
 **Options:**
+
 1. Accept single file (low risk, concurrent imports are rare)
+
 2. File-per-beads-id mappings (consistent with file-per-entity pattern)
+
 3. Define merge semantics for mapping file (union of keys)
 
 ### 8.4 ID Length
 
 **Idea 2: Longer internal IDs for long-term scaling**
 
-Current 6-hex-char IDs (24 bits, 16.7M possibilities) are sufficient for Phase 1.
-Should we extend to 8 chars (32 bits, 4B possibilities) for future-proofing?
+Current 6-hex-char IDs (24 bits, 16.7M possibilities) are sufficient for Phase 1. Should
+we extend to 8 chars (32 bits, 4B possibilities) for future-proofing?
 
 **Considerations:**
+
 - 6 chars: More readable, sufficient for most projects
+
 - 8 chars: More headroom, matches git short-hash conventions
+
 - Could migrate later by adding chars (old IDs remain valid)
 
 ### 8.5 Future Extension Points
 
 **Idea 7: Reserve directory structure for Phase 2 bridges**
 
-Should Phase 1 reserve `.ceads/cache/outbox/` and `.ceads/cache/inbox/` directories
-for future bridge runtime use?
+Should Phase 1 reserve `.ceads/cache/outbox/` and `.ceads/cache/inbox/` directories for
+future bridge runtime use?
 
 **Options:**
+
 1. Reserve now (empty dirs, documented for Phase 2)
+
 2. Add when needed (avoid premature structure)
 
 * * *
