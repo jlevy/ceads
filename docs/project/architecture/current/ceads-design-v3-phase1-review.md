@@ -184,7 +184,7 @@ source code:
 | `bd stats` | `cead stats` | ✅ Full | Same output |
 | `bd config` | `cead config` | ✅ Full | YAML-based |
 | `bd migrate` | ❌ Not applicable | - | No SQLite to migrate |
-| `bd info` | `cead info` | ⚠️ Missing | Should add for parity |
+| `bd info` | `cead info` | ✅ Full | Version, sync status, worktree health |
 
 ### 2.4 Daemon Commands (NOT INCLUDED)
 
@@ -255,9 +255,9 @@ source code:
 | `bd comment list` | ⏳ Phase 2 | - |  |
 | `bd comments show` | ⏳ Phase 2 | - |  |
 
-### 2.10 Missing Command: `cead info`
+### 2.10 `cead info` Command ✅ ADDED
 
-The spec should add a `cead info` command for parity with `bd info`:
+The `cead info` command has been added to the spec (Section 4.9) for parity with `bd info`:
 
 ```bash
 cead info [--json]
@@ -301,64 +301,74 @@ Output:
 
 ### 3.2 Issues and Gaps
 
-#### ISSUE 1: Missing `cead info` command
+> **Status:** ✅ All 8 issues below have been addressed in the design spec as of January 2025.
+
+#### ISSUE 1: Missing `cead info` command ✅ RESOLVED
 
 **Severity:** Low **Location:** Section 4 (CLI Layer) **Problem:** No equivalent to `bd
 info --json` which agents use to verify database status.
 **Recommendation:** Add `cead info` command showing version, sync status, worktree
 health.
+**Resolution:** Added `cead info` command in Section 4.9 of the design spec.
 
-#### ISSUE 2: Worktree creation timing unclear
+#### ISSUE 2: Worktree creation timing unclear ✅ RESOLVED
 
 **Severity:** Medium **Location:** Section 2.6 **Problem:** The spec says worktree is
-created by `cead init` or first `cead sync`, but also mentions “if ceads-sync exists.”
+created by `cead init` or first `cead sync`, but also mentions "if ceads-sync exists."
 The logic for handling fresh repos vs clones of existing ceads repos needs
 clarification. **Recommendation:** Add a decision tree for worktree initialization based
 on repo state.
+**Resolution:** Added detailed decision tree in Section 2.6.1 covering all scenarios.
 
-#### ISSUE 3: `--type` flag semantics
+#### ISSUE 3: `--type` flag semantics ✅ RESOLVED
 
 **Severity:** Low **Location:** Section 2.5.3, Section 5.3 **Problem:** The spec says
 CLI uses `--type` flag which maps to `kind` field internally.
 This is mentioned but could cause confusion.
 **Recommendation:** Add explicit note in CLI section: "The `--type` flag sets the `kind`
 field (not `type`, which is the entity discriminator)."
+**Resolution:** Added clarifying note in Section 4.2 (Create) of the design spec.
 
-#### ISSUE 4: Version field purpose unclear
+#### ISSUE 4: Version field purpose unclear ✅ RESOLVED
 
 **Severity:** Low **Location:** Section 2.5.1 **Problem:** The spec says version is for
-“merge ordering and debugging” but also says conflicts are detected by content hash, not
+"merge ordering and debugging" but also says conflicts are detected by content hash, not
 version comparison. This is confusing.
-**Recommendation:** Clarify that version is purely informational/debugging; it’s
+**Recommendation:** Clarify that version is purely informational/debugging; it's
 incremented on every change but not used for conflict detection.
+**Resolution:** Added clarifying note in Section 2.5.1 of the design spec.
 
-#### ISSUE 5: Search staleness threshold
+#### ISSUE 5: Search staleness threshold ✅ RESOLVED
 
 **Severity:** Low **Location:** Section 4.8 **Problem:** Search auto-refreshes if
-worktree is “stale (>5 minutes since last fetch).” This is arbitrary and may not match
+worktree is "stale (>5 minutes since last fetch)." This is arbitrary and may not match
 user expectations. **Recommendation:** Make this configurable via
 `settings.search_staleness_threshold` or document the rationale for 5 minutes.
+**Resolution:** Added `search_staleness_minutes` config option in Section 4.8 with configurable values.
 
-#### ISSUE 6: Missing `--include-closed` filter
+#### ISSUE 6: Missing `--include-closed` filter ✅ RESOLVED
 
 **Severity:** Low **Location:** Section 4.4 (List) **Problem:** No explicit way to
 include closed issues in list output.
 Beads has this. **Recommendation:** Add `--include-closed` or document that `--status
 closed` achieves this.
+**Resolution:** Added `--all` flag to list command in Section 4.4 of the design spec.
 
-#### ISSUE 7: Dependency type extensibility
+#### ISSUE 7: Dependency type extensibility ✅ RESOLVED
 
 **Severity:** Low **Location:** Section 2.5.3 **Problem:** `Dependency.type` is
 `z.literal('blocks')` which is not extensible.
 **Recommendation:** Change to `z.enum(['blocks'])` to allow easy addition of new types
 in Phase 2 without schema migration.
+**Resolution:** Changed schema to use `z.enum(['blocks'])` in Section 2.5.3.
 
-#### ISSUE 8: Attic entry ID format undefined
+#### ISSUE 8: Attic entry ID format undefined ✅ RESOLVED
 
 **Severity:** Low **Location:** Section 4.11 **Problem:** `cead attic show <entry-id>`
 but entry-id format is not defined.
 **Recommendation:** Define entry-id format, e.g., `{entity-id}_{timestamp}_{field}` or
 auto-generated UUID.
+**Resolution:** Defined entry ID format as `{entity-id}/{timestamp}_{field}` in Section 4.11.
 
 ### 3.3 Open Questions Assessment
 
@@ -377,20 +387,17 @@ My recommendations:
 
 ## 4. Recommendations
 
-### 4.1 Spec Improvements (Before Implementation)
+### 4.1 Spec Improvements (Before Implementation) ✅ ALL ADDRESSED
 
-1. **Add Use Case Positioning section** (Section 1.0 or 1.1) - Clarify Beads vs Ceads
-   trade-offs as outlined in Section 1 of this review.
+1. ✅ **Add Use Case Positioning section** (Section 1.0 or 1.1) - Added Section 1.2 "When to Use Ceads vs Beads" with comparison tables.
 
-2. **Add complete Beads command mapping** - Replace or augment Appendix A with the
-   complete mapping from Section 2 of this review.
+2. ✅ **Add complete Beads command mapping** - Added Appendix B with explicitly excluded commands.
 
-3. **Add `cead info` command** - Essential for agents to verify system state.
+3. ✅ **Add `cead info` command** - Added in Section 4.9.
 
-4. **Clarify worktree initialization logic** - Add decision tree for different repo
-   states.
+4. ✅ **Clarify worktree initialization logic** - Added decision tree in Section 2.6.1.
 
-5. **Fix Dependency.type schema** - Use enum instead of literal for extensibility.
+5. ✅ **Fix Dependency.type schema** - Changed to z.enum in Section 2.5.3.
 
 ### 4.2 Documentation Improvements
 
