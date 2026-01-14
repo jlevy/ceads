@@ -1,4 +1,4 @@
-# Ceads Design V3 Phase 1: Beads Replacement
+# Ceads Design V3: Beads Replacement
 
 **Author:** Joshua Levy (github.com/jlevy) and various LLMs
 
@@ -10,7 +10,7 @@
 
 ## Table of Contents
 
-- [Ceads Design V3 Phase 1: Beads Replacement](#ceads-design-v3-phase-1-beads-replacement)
+- [Ceads Design V3: Beads Replacement](#ceads-design-v3-beads-replacement)
 
   - [Table of Contents](#table-of-contents)
 
@@ -27,7 +27,7 @@
 
     - [1.5 Design Principles](#15-design-principles)
 
-    - [1.6 Non-Goals for Phase 1](#16-non-goals-for-phase-1)
+    - [1.6 Non-Goals](#16-non-goals)
 
     - [1.7 Layer Overview](#17-layer-overview)
 
@@ -235,19 +235,19 @@
 
       - [Decision 1: File-per-entity vs JSONL](#decision-1-file-per-entity-vs-jsonl)
 
-      - [Decision 2: No daemon in Phase 1](#decision-2-no-daemon-in-phase-1)
+      - [Decision 2: No daemon required](#decision-2-no-daemon-required)
 
       - [Decision 3: Sync branch instead of main](#decision-3-sync-branch-instead-of-main)
 
       - [Decision 4: Display ID prefix for Beads compat](#decision-4-display-id-prefix-for-beads-compat)
 
-      - [Decision 5: Only “blocks” dependencies in Phase 1](#decision-5-only-blocks-dependencies-in-phase-1)
+      - [Decision 5: Only “blocks” dependencies](#decision-5-only-blocks-dependencies)
 
       - [Decision 6: Markdown + YAML storage](#decision-6-markdown--yaml-storage)
 
       - [Decision 7: Hidden worktree for sync branch](#decision-7-hidden-worktree-for-sync-branch)
 
-    - [7.2 Future Enhancements (Phase 2+)](#72-future-enhancements-phase-2)
+    - [7.2 Future Enhancements](#72-future-enhancements)
 
       - [Additional Dependency Types (High Priority)](#additional-dependency-types-high-priority)
 
@@ -307,13 +307,13 @@
 
       - [A.5.3 Migration Workflow](#a53-migration-workflow)
 
-    - [A.6 Phase 1 Parity Summary](#a6-phase-1-parity-summary)
+    - [A.6 Parity Summary](#a6-parity-summary)
 
-    - [A.7 Deferred to Phase 2+](#a7-deferred-to-phase-2)
+    - [A.7 Deferred Features](#a7-deferred-features)
 
     - [A.8 Migration Compatibility](#a8-migration-compatibility)
 
-  - [Appendix B: Beads Commands NOT Included in Phase 1](#appendix-b-beads-commands-not-included-in-phase-1)
+  - [Appendix B: Beads Commands Not Included](#appendix-b-beads-commands-not-included)
 
     - [B.1 Daemon Commands](#b1-daemon-commands)
 
@@ -389,8 +389,7 @@ Ceads is pronounced “seeds” and follows Beads in the spirit of C following B
 
 ### 1.2 When to Use Ceads vs Beads
 
-Ceads and Beads serve different use cases.
-This section clarifies when each is appropriate.
+Ceads and Beads serve different use cases:
 
 **Use Ceads when:**
 
@@ -416,7 +415,7 @@ This section clarifies when each is appropriate.
 
 **Key Differences Summary:**
 
-| Aspect | Ceads V3 Phase 1 | Beads |
+| Aspect | Ceads | Beads |
 | --- | --- | --- |
 | Architecture | 2 locations (files + sync branch) | 4 locations (SQLite, JSONL, sync, main) |
 | Daemon | Not required | Required for real-time sync |
@@ -426,7 +425,7 @@ This section clarifies when each is appropriate.
 | Agent messaging | Not supported | Agent Mail |
 | Debugging | Inspect files directly | Requires SQLite queries |
 
-**Ceads V3 Phase 1 is NOT:**
+**Ceads is NOT:**
 
 - A real-time coordination system for multiple agents working simultaneously
 
@@ -436,7 +435,7 @@ This section clarifies when each is appropriate.
 
 - A workflow automation engine with templates
 
-For advanced coordination needs, continue using Beads or wait for Ceads Phase 2+.
+For advanced coordination needs, continue using Beads or wait for future Ceads versions.
 
 ### 1.3 Why Replace Beads? (Architecture Comparison)
 
@@ -475,13 +474,12 @@ architecture accumulated complexity:
 
 Ceads builds on lessons from the git-native issue tracking ecosystem:
 
-- **[ticket](https://github.com/wedow/ticket)**: A fast, simple Beads replacement
-  implemented as a single bash script (about 900 lines) with Markdown + YAML frontmatter
-  storage. Created by a frustrated Beads user, ticket demonstrates that simplicity and
-  minimal dependencies (bash + coreutils) can outperform complex architectures.
-  Successfully manages about 1,900 tickets in production.
-  Provides `migrate-beads` command for smooth transitions.
-  Key insight: “You don’t need to index everything with SQLite when you have awk.”
+- **[ticket](https://github.com/wedow/ticket)**: An elegantly simple Beads alternative
+  implemented as a single bash script (~~900 lines) with Markdown + YAML frontmatter
+  storage. Ticket demonstrates that simplicity and minimal dependencies (bash +
+  coreutils) can outperform complex architectures—it successfully manages ~~1,900
+  tickets in production and provides a `migrate-beads` command for smooth transitions.
+  The key insight: “You don’t need to index everything with SQLite when you have awk.”
   Ceads shares this philosophy while adding TypeScript implementation, stronger conflict
   resolution, and cross-platform reliability.
 
@@ -494,7 +492,7 @@ Ceads builds on lessons from the git-native issue tracking ecosystem:
 - **[beans](https://github.com/hmans/beans)**: Another minimalist git-friendly tracker
 
 The common thread: **simplicity, no background services, git for distribution**. Ceads
-combines these proven patterns with multi-environment sync and conflict resolution.
+builds on these proven patterns, adding multi-environment sync and conflict resolution.
 
 ### 1.4 Design Goals
 
@@ -530,9 +528,9 @@ combines these proven patterns with multi-environment sync and conflict resoluti
 
 6. **Progressive enhancement**: Core works standalone, bridges/UI are optional layers
 
-### 1.6 Non-Goals for Phase 1
+### 1.6 Non-Goals
 
-These are explicitly **deferred** to Phase 2 or later:
+Explicitly deferred to future versions:
 
 - Real-time presence/heartbeats
 
@@ -552,12 +550,12 @@ These are explicitly **deferred** to Phase 2 or later:
 
 - Custom fields
 
-**Rationale**: Ship a small, reliable core first.
-Add complexity only when proven necessary.
+**Rationale**: Ship a small, reliable core first; add complexity only when proven
+necessary.
 
 ### 1.7 Layer Overview
 
-Ceads V3 Phase 1 has three layers:
+Ceads has three layers:
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -920,7 +918,7 @@ START: Any cead command
 
 ### 2.4 Entity Collection Pattern
 
-Phase 1 has **one core entity type**: Issues
+Ceads has **one core entity type**: Issues
 
 Future phases may add: agents, messages, workflows, templates
 
@@ -984,7 +982,7 @@ function generateId(prefix: string): string {
 
 - **Collision probability**: With birthday paradox, ~~1% collision chance at ~~13,000
   issues; ~~50% at ~~5,000 simultaneous concurrent creations.
-  Acceptable for Phase 1 with collision retry.
+  Acceptable with collision retry.
 
 - **On collision**: Regenerate ID (detected by file-exists check before write)
 
@@ -1077,8 +1075,8 @@ const IssueStatus = z.enum(['open', 'in_progress', 'blocked', 'deferred', 'close
 const IssueKind = z.enum(['bug', 'feature', 'task', 'epic', 'chore']);
 const Priority = z.number().int().min(0).max(4);
 
-// Dependency types - using enum for extensibility (Phase 2 will add 'related', 'discovered-from')
-const DependencyType = z.enum(['blocks']);  // Phase 1: only "blocks" supported
+// Dependency types - using enum for extensibility (future: 'related', 'discovered-from')
+const DependencyType = z.enum(['blocks']);  // Currently only "blocks" supported
 
 const Dependency = z.object({
   type: DependencyType,
@@ -1969,7 +1967,7 @@ cead dep add bd-c3d4 bd-f14c --type blocks
 cead dep tree bd-a1b2
 ```
 
-**Note**: Phase 1 only supports `blocks` dependency type.
+**Note**: Currently only supports `blocks` dependency type.
 
 ### 4.7 Sync Commands
 
@@ -2242,8 +2240,8 @@ Options:
   --keep-days <n>           Keep closed issues for n days (default: 90)
 ```
 
-**Note**: Phase 1 keeps all closed issues.
-Compaction is Phase 2.
+**Note**: All closed issues are kept.
+Compaction is a future enhancement.
 
 #### Config
 
@@ -2898,11 +2896,11 @@ cead sync
 | `bd doctor` | `cead doctor` | ✅ Full | Different checks |
 | `bd info` | `cead info` | ✅ Full | System status |
 | `bd config` | `cead config` | ✅ Full | YAML not SQLite |
-| `bd compact` | `cead compact` | 🔄 Phase 2 | Deferred |
+| `bd compact` | `cead compact` | 🔄 Future | Deferred |
 | `bd prime` | *(none)* | ❌ Not planned | Beads-specific feature |
 | `bd diagnose` | `cead doctor` | ✅ Partial | Subset of diagnostics |
 | `bd import` | `cead import` | ✅ Full | Beads JSONL import |
-| `bd export` | `cead export` | 🔄 Phase 2 | Can export as JSON |
+| `bd export` | `cead export` | 🔄 Future | Can export as JSON |
 
 **Legend:**
 
@@ -2910,7 +2908,7 @@ cead sync
 
 - ✅ Partial: Core functionality, some options differ
 
-- 🔄 Phase 2: Planned for later phase
+- 🔄 Future: Planned for later phase
 
 - ❌ Not planned: Intentionally excluded
 
@@ -2926,7 +2924,7 @@ cead sync
 | `priority` | `priority` | Identical (0-4) |
 | `assignee` | `assignee` | Identical |
 | `labels` | `labels` | Identical |
-| `dependencies` | `dependencies` | Only "blocks" type in Phase 1 |
+| `dependencies` | `dependencies` | Only "blocks" type currently |
 | `created_at` | `created_at` | Identical |
 | `updated_at` | `updated_at` | Identical |
 | `closed_at` | `closed_at` | Identical |
@@ -2992,7 +2990,7 @@ Ceads options:
 
 - Beads: Required background daemon
 
-- Ceads: No daemon (optional background sync in Phase 2)
+- Ceads: No daemon (optional background sync planned)
 
 **Git integration:**
 
@@ -3251,7 +3249,7 @@ even at scale.
 
 - Slightly more disk space (negligible)
 
-#### Decision 2: No daemon in Phase 1
+#### Decision 2: No daemon required
 
 **Choice**: Optional daemon, not required
 
@@ -3309,7 +3307,7 @@ even at scale.
 
 - Config adds complexity
 
-#### Decision 5: Only “blocks” dependencies in Phase 1
+#### Decision 5: Only “blocks” dependencies
 
 **Choice**: Support only `blocks` dependency type
 
@@ -3331,11 +3329,11 @@ even at scale.
 
 **Context**: [ticket](https://github.com/wedow/ticket), TrackDown, and other tools
 successfully use Markdown + YAML frontmatter.
-We adopt this approach in V3.
+We adopt this approach.
 
-**Prior Art Validation**:
+**Prior art**:
 
-- ticket (1400+ GitHub stars): YAML front matter + Markdown body
+- ticket (~1400 GitHub stars): YAML front matter + Markdown body
 
 - TrackDown: Markdown files with structured headers
 
@@ -3450,12 +3448,12 @@ checkout.
 
 - Space overhead is minimal (issues are small files)
 
-### 7.2 Future Enhancements (Phase 2+)
+### 7.2 Future Enhancements
 
 #### Additional Dependency Types (High Priority)
 
-Phase 1 only supports `blocks` dependencies.
-Phase 2 should add:
+Currently only `blocks` dependencies are supported.
+Future versions should add:
 
 **`related`**: Link related issues without blocking semantics
 
@@ -3599,26 +3597,27 @@ repo/
 
 ## Appendix A: Beads to Ceads Feature Mapping
 
-This appendix provides a comprehensive mapping between Beads and Ceads V3 Phase 1 for
-migration planning and compatibility reference.
+This appendix provides a comprehensive mapping between Beads and Ceads for migration
+planning and compatibility reference.
 
 ### A.1 Executive Summary
 
-Ceads V3 Phase 1 provides CLI-level compatibility with Beads for core issue tracking
-while simplifying the architecture:
+Ceads provides CLI-level compatibility with Beads for core issue tracking while
+simplifying the architecture:
 
-| Aspect | Beads | Ceads V3 Phase 1 |
+| Aspect | Beads | Ceads |
 | --- | --- | --- |
 | Data locations | 4 (SQLite, local JSONL, sync branch, main) | 2 (files on sync branch, config on main) |
 | Storage | SQLite + JSONL | Markdown + YAML (file-per-entity) |
 | Daemon | Required (recommended) | Not required |
-| Agent coordination | External (Agent Mail) | Deferred to Phase 2 |
-| Comments | Embedded in issue | Deferred to Phase 2 |
+| Agent coordination | External (Agent Mail) | Deferred |
+| Comments | Embedded in issue | Deferred |
 | Conflict resolution | 3-way merge | Content hash LWW + attic |
 
-**Core Finding:** All essential issue tracking workflows in Beads have direct CLI
-equivalents in Ceads V3 Phase 1. Advanced features (agent coordination, templates,
-real-time sync) are explicitly deferred.
+**Core finding:** All essential Beads issue-tracking workflows have direct CLI
+equivalents in Ceads.
+Advanced features (agent coordination, templates, real-time sync) are explicitly
+deferred.
 
 ### A.2 CLI Command Mapping
 
@@ -3678,14 +3677,14 @@ Also available via update: `cead update <id> --add-label X` and `--remove-label 
 | --- | --- | --- | --- |
 | `bd dep add <a> <b>` | `cead dep add <id> <target>` | ✅ Full | Default: blocks |
 | `bd dep add <a> <b> --type blocks` | `cead dep add <id> <target> --type blocks` | ✅ Full | Identical |
-| `bd dep add <a> <b> --type related` | *(not in Phase 1)* | ⏳ Phase 2 | Only blocks |
-| `bd dep add <a> <b> --type discovered-from` | *(not in Phase 1)* | ⏳ Phase 2 | Only blocks |
+| `bd dep add <a> <b> --type related` | *(not yet)* | ⏳ Future | Only blocks |
+| `bd dep add <a> <b> --type discovered-from` | *(not yet)* | ⏳ Future | Only blocks |
 | `bd dep remove <a> <b>` | `cead dep remove <id> <target>` | ✅ Full | Identical |
 | `bd dep tree <id>` | `cead dep tree <id>` | ✅ Full | Visualize deps |
 
-**Note:** Phase 1 supports only `blocks` dependency type.
+**Note:** Currently supports only `blocks` dependency type.
 This is sufficient for the `ready` command algorithm.
-`related` and `discovered-from` are Phase 2.
+`related` and `discovered-from` are planned for the future.
 
 #### A.2.4 Sync Commands (Full Parity)
 
@@ -3706,9 +3705,9 @@ This is sufficient for the `ready` command algorithm.
 | `bd doctor --fix` | `cead doctor --fix` | ✅ Full | Auto-fix |
 | `bd stats` | `cead stats` | ✅ Full | Issue statistics |
 | `bd import` | `cead import <file>` | ✅ Full | Beads JSONL import |
-| `bd export` | *(not in Phase 1)* | ⏳ Phase 2 | Files are the format |
+| `bd export` | *(not yet)* | ⏳ Future | Files are the format |
 | `bd config` | `cead config` | ✅ Full | YAML config |
-| `bd compact` | *(not in Phase 1)* | ⏳ Phase 2 | Memory decay |
+| `bd compact` | *(not yet)* | ⏳ Future | Memory decay |
 
 #### A.2.6 Global Options (Full Parity)
 
@@ -3736,7 +3735,7 @@ This is sufficient for the `ready` command algorithm.
 | `priority` | `priority` | ✅ | 0-4, identical |
 | `assignee` | `assignee` | ✅ | Identical |
 | `labels` | `labels` | ✅ | Identical |
-| `dependencies` | `dependencies` | ✅ | Only `blocks` in Phase 1 |
+| `dependencies` | `dependencies` | ✅ | Only `blocks` currently |
 | `parent_id` | `parent_id` | ✅ | Identical |
 | `created_at` | `created_at` | ✅ | Identical |
 | `updated_at` | `updated_at` | ✅ | Identical |
@@ -3747,7 +3746,7 @@ This is sufficient for the `ready` command algorithm.
 | `defer` | `deferred_until` | ✅ | Renamed |
 | *(implicit)* | `version` | ✅ | New: conflict resolution |
 | *(implicit)* | `type` | ✅ | New: entity discriminator ("is") |
-| `comments` | *(Phase 2)* | ⏳ | Separate messages entity |
+| `comments` | *(future)* | ⏳ | Separate messages entity |
 
 #### A.3.2 Status Values
 
@@ -3771,23 +3770,23 @@ This is sufficient for the `ready` command algorithm.
 | `task` | `task` | ✅ |
 | `epic` | `epic` | ✅ |
 | `chore` | `chore` | ✅ |
-| `message` | *(Phase 2)* | ⏳ Separate entity |
-| `agent` | *(Phase 2)* | ⏳ Separate entity |
+| `message` | *(future)* | ⏳ Separate entity |
+| `agent` | *(future)* | ⏳ Separate entity |
 
 #### A.3.4 Dependency Types
 
 | Beads Type | Ceads Type | Status |
 | --- | --- | --- |
-| `blocks` | `blocks` | ✅ Phase 1 |
-| `related` | `related` | ⏳ Phase 2 |
-| `discovered-from` | `discovered-from` | ⏳ Phase 2 |
+| `blocks` | `blocks` | ✅ Supported |
+| `related` | `related` | ⏳ Future |
+| `discovered-from` | `discovered-from` | ⏳ Future |
 | `parent-child` | `parent_id` field | ✅ Different model |
 
 ### A.4 Architecture Comparison
 
 #### A.4.1 Storage
 
-| Aspect | Beads | Ceads V3 Phase 1 |
+| Aspect | Beads | Ceads |
 | --- | --- | --- |
 | Primary store | SQLite | Markdown + YAML files |
 | Sync format | JSONL | Markdown + YAML (same as primary) |
@@ -3797,7 +3796,7 @@ This is sufficient for the `ready` command algorithm.
 
 #### A.4.2 Sync
 
-| Aspect | Beads | Ceads V3 Phase 1 |
+| Aspect | Beads | Ceads |
 | --- | --- | --- |
 | Mechanism | SQLite ↔ JSONL ↔ git | Files ↔ git |
 | Branch | Main or sync branch | Sync branch only |
@@ -3819,7 +3818,7 @@ bd close <id> --reason "Done"  # Complete
 bd sync                       # Sync
 ```
 
-**Ceads V3 Phase 1:**
+**Ceads:**
 ```bash
 cead ready --json            # Find work
 cead update <id> --status in_progress  # Claim (advisory)
@@ -3838,15 +3837,15 @@ Claims are advisory in both (no enforcement).
 bd create "Found bug" -t bug -p 1 --deps discovered-from:<id> --json
 ```
 
-**Ceads V3 Phase 1:**
+**Ceads:**
 ```bash
-# Only blocks dependency supported in Phase 1
+# Only blocks dependency supported currently
 cead create "Found bug" -t bug -p 1 --parent <id> --json
-# Or wait for Phase 2 for discovered-from
+# Or wait for future version for discovered-from
 ```
 
-**Assessment:** ⚠️ `discovered-from` dependency not available in Phase 1. Use `--parent`
-or wait for Phase 2.
+**Assessment:** ⚠️ `discovered-from` dependency not yet available.
+Use `--parent` or wait for a future version.
 
 #### A.5.3 Migration Workflow
 
@@ -3865,7 +3864,7 @@ cead sync
 cead config display.id_prefix bd
 ```
 
-### A.6 Phase 1 Parity Summary
+### A.6 Parity Summary
 
 | Category | Parity | Notes |
 | --- | --- | --- |
@@ -3876,7 +3875,7 @@ cead config display.id_prefix bd
 | Maintenance | ✅ Full | Init, doctor, stats, config |
 | Import | ✅ Full | Beads JSONL + multi-source |
 
-### A.7 Deferred to Phase 2+
+### A.7 Deferred Features
 
 | Category | Priority | Notes |
 | --- | --- | --- |
@@ -3899,17 +3898,17 @@ cead config display.id_prefix bd
 
 - **Behavior:** Advisory claims, manual sync (no daemon)
 
-**Overall Assessment:** Ceads V3 Phase 1 provides sufficient feature parity for LLM
-agents to migrate from Beads for basic issue tracking workflows.
+**Overall assessment:** Ceads provides sufficient feature parity for LLM agents to
+migrate from Beads for basic issue tracking.
 The simpler architecture (no SQLite, no daemon, file-per-entity) addresses the key pain
-points identified in the Beads experience.
+points from real-world Beads use.
 
 * * *
 
-## Appendix B: Beads Commands NOT Included in Phase 1
+## Appendix B: Beads Commands Not Included
 
 This appendix provides a comprehensive list of Beads commands and features that are
-explicitly **not** included in Ceads V3 Phase 1.
+explicitly **not** included in Ceads.
 
 ### B.1 Daemon Commands
 
@@ -3928,20 +3927,20 @@ These commands are not applicable since Ceads has no daemon:
 
 ### B.2 Molecule/Workflow Commands
 
-Workflow orchestration features are deferred to Phase 2+:
+Workflow orchestration features are deferred to future:
 
 | Beads Command | Why Not Included |
 | --- | --- |
-| `bd mol pour` | Template instantiation - Phase 2+ |
-| `bd mol wisp` | Ephemeral work tracking - Phase 2+ |
-| `bd mol bond` | Workflow composition - Phase 2+ |
-| `bd mol squash` | Compress to digest - Phase 2+ |
-| `bd mol burn` | Discard wisp - Phase 2+ |
-| `bd mol wisp list` | Wisp management - Phase 2+ |
-| `bd mol wisp gc` | Garbage collection - Phase 2+ |
-| `bd mol distill` | Extract template - Phase 2+ |
-| `bd mol show` | Template inspection - Phase 2+ |
-| `bd formula list` | Template listing - Phase 2+ |
+| `bd mol pour` | Template instantiation - future |
+| `bd mol wisp` | Ephemeral work tracking - future |
+| `bd mol bond` | Workflow composition - future |
+| `bd mol squash` | Compress to digest - future |
+| `bd mol burn` | Discard wisp - future |
+| `bd mol wisp list` | Wisp management - future |
+| `bd mol wisp gc` | Garbage collection - future |
+| `bd mol distill` | Extract template - future |
+| `bd mol show` | Template inspection - future |
+| `bd formula list` | Template listing - future |
 
 ### B.3 Agent Coordination Commands
 
@@ -3949,31 +3948,31 @@ Real-time agent coordination is deferred:
 
 | Beads Command | Why Not Included |
 | --- | --- |
-| `bd agent register` | Agent registry - Phase 2+ |
-| `bd agent heartbeat` | Presence tracking - Phase 2+ |
-| `bd agent claim` | Atomic claims - Phase 2+ |
-| Agent Mail | Real-time messaging - Phase 2+ |
+| `bd agent register` | Agent registry - future |
+| `bd agent heartbeat` | Presence tracking - future |
+| `bd agent claim` | Atomic claims - future |
+| Agent Mail | Real-time messaging - future |
 
 ### B.4 Advanced Data Operations
 
 | Beads Command | Why Not Included |
 | --- | --- |
-| `bd compact` | Memory decay - Phase 2 |
-| `bd compact --auto` | AI-powered compaction - Phase 2 |
-| `bd admin cleanup` | Bulk deletion - Phase 2 |
+| `bd compact` | Memory decay - future |
+| `bd compact --auto` | AI-powered compaction - future |
+| `bd admin cleanup` | Bulk deletion - future |
 | `bd duplicates` | Duplicate detection - not planned |
 | `bd merge` | Merge duplicates - not planned |
 | `bd rename-prefix` | ID prefix rename - low priority |
 
 ### B.5 Comment Commands
 
-Comments are a separate entity type in Phase 2:
+Comments will be a separate entity type in the future:
 
 | Beads Command | Why Not Included |
 | --- | --- |
-| `bd comment add` | Comments entity - Phase 2+ |
-| `bd comment list` | Comments entity - Phase 2+ |
-| `bd comments show` | Comments entity - Phase 2+ |
+| `bd comment add` | Comments entity - future |
+| `bd comment list` | Comments entity - future |
+| `bd comments show` | Comments entity - future |
 
 ### B.6 Editor Integration Commands
 
@@ -3987,14 +3986,14 @@ Comments are a separate entity type in Phase 2:
 
 ### B.7 Additional Dependency Types
 
-Phase 1 only supports `blocks`:
+Currently only `blocks` is supported:
 
 | Beads Type | Why Not Included |
 | --- | --- |
-| `related` | Soft linking - Phase 2 |
-| `discovered-from` | Provenance tracking - Phase 2 |
-| `waits-for` | Fanout gates - Phase 2+ |
-| `conditional-blocks` | Error handling - Phase 2+ |
+| `related` | Soft linking - future |
+| `discovered-from` | Provenance tracking - future |
+| `waits-for` | Fanout gates - future |
+| `conditional-blocks` | Error handling - future |
 
 ### B.8 State Label Commands
 
@@ -4012,7 +4011,7 @@ Phase 1 only supports `blocks`:
 | `bd activity` | Activity feed - not planned |
 | `bd context` | Context management - not planned |
 | `bd migrate` | SQLite migration - not applicable |
-| `bd export` | Files are the format - Phase 2 (JSONL export) |
+| `bd export` | Files are the format - future (JSONL export) |
 | `bd cook` | Internal command - not applicable |
 
 ### B.10 Global Flags Not Supported
@@ -4029,8 +4028,8 @@ Phase 1 only supports `blocks`:
 
 | Beads Value | Why Not Included |
 | --- | --- |
-| `issue_type: message` | Messages are Phase 2+ |
-| `issue_type: agent` | Agent registry is Phase 2+ |
+| `issue_type: message` | Messages are future |
+| `issue_type: agent` | Agent registry is future |
 | `issue_type: role` | Advanced orchestration |
 | `issue_type: convoy` | Advanced orchestration |
 | `issue_type: molecule` | Workflow templates |
@@ -4043,8 +4042,8 @@ Phase 1 only supports `blocks`:
 
 ## 8. Open Questions
 
-The following items from the GPT-5 Pro design review require further discussion before
-implementation. See `ceads-design-v2-phase1-tracking.md` for full context.
+These items from the design review need further discussion before implementation.
+See `ceads-design-v2-phase1-tracking.md` for full context.
 
 ### 8.1 Git Operations
 
@@ -4074,7 +4073,7 @@ The attic preserves losers, but UX may suffer if the “wrong” version consist
 
 1. Add a note acknowledging the limitation, rely on attic for recovery
 
-2. Implement Hybrid Logical Clocks (HLC) in Phase 2
+2. Implement Hybrid Logical Clocks (HLC) in the future
 
 3. Add optional “prefer remote” or “prefer local” config override
 
@@ -4097,8 +4096,8 @@ concurrently (though this is rare).
 
 **Idea 2: Longer internal IDs for long-term scaling**
 
-Current 6-hex-char IDs (24 bits, 16.7M possibilities) are sufficient for Phase 1. Should
-we extend to 8 chars (32 bits, 4B possibilities) for future-proofing?
+Current 6-hex-char IDs (24 bits, 16.7M possibilities) are sufficient.
+Should we extend to 8 chars (32 bits, 4B possibilities) for future-proofing?
 
 **Considerations:**
 
@@ -4110,14 +4109,14 @@ we extend to 8 chars (32 bits, 4B possibilities) for future-proofing?
 
 ### 8.5 Future Extension Points
 
-**Idea 7: Reserve directory structure for Phase 2 bridges**
+**Idea 7: Reserve directory structure for future bridges**
 
-Should Phase 1 reserve `.ceads/cache/outbox/` and `.ceads/cache/inbox/` directories for
+Should we reserve `.ceads/cache/outbox/` and `.ceads/cache/inbox/` directories for
 future bridge runtime use?
 
 **Options:**
 
-1. Reserve now (empty dirs, documented for Phase 2)
+1. Reserve now (empty dirs, documented for future use)
 
 2. Add when needed (avoid premature structure)
 
@@ -4164,25 +4163,29 @@ branch.
 - Visibility vs cleanliness tradeoff: Main branch storage provides GitHub visibility but
   adds noise to diffs and history
 
-**Recommendation:** Defer to Phase 2. The gitignored working copy approach (Option 4)
-seems promising as it preserves the single-source-of-truth model while adding
-convenience.
+**Recommendation:** Defer for now.
+The gitignored working copy approach (Option 4) seems promising as it preserves the
+single-source-of-truth model while adding convenience.
 
 ### 8.7 External Issue Tracker Linking
 
 **Linking ceads issues to GitHub issues (and other providers)**
 
 A common workflow need is linking ceads issues to external issue trackers like GitHub
-Issues, Jira, Linear, etc. This would enable bidirectional sync of status and comments.
+Issues, Jira, Linear, etc.
+This would enable bidirectional sync of status and comments.
 
 **ID Convention Approach:**
 
-If all issue systems use clean, identifiable prefixes with unique patterns, linking could
-be convention-based:
+If all issue systems use clean, identifiable prefixes with unique patterns, linking
+could be convention-based:
 
 - Ceads: `is-a1b2c3` or `bd-a1b2c3` (configurable display prefix)
+
 - GitHub: `github#456` or `gh#456`
+
 - Jira: `PROJ-123`
+
 - Linear: `LIN-abc`
 
 These patterns are recognizable via regex, allowing automatic detection and linking when
@@ -4205,22 +4208,30 @@ linked:
 
 **Sync Behaviors:**
 
-- Closing a ceads issue could automatically close the linked GitHub issue (or vice versa)
+- Closing a ceads issue could automatically close the linked GitHub issue (or vice
+  versa)
+
 - Comments could sync bidirectionally
+
 - Status changes could propagate
+
 - Labels/tags could map between systems
 
 **Implementation Considerations:**
 
 - Provider plugins/adapters for different external systems
+
 - Conflict resolution when both sides change
+
 - Rate limiting and API authentication
+
 - Webhook-driven vs polling sync
+
 - Which system is authoritative for which fields
 
-**Recommendation:** Design the `linked` metadata structure in Phase 1 (even if unused),
-implement GitHub bridge in Phase 2 with plugin architecture for other providers.
+**Recommendation:** Design the `linked` metadata structure now (even if unused),
+implement GitHub bridge later with plugin architecture for other providers.
 
 * * *
 
-**End of Ceads V3 Phase 1 Design Specification**
+**End of Ceads Design Specification**
