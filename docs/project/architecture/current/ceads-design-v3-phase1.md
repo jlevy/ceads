@@ -349,6 +349,8 @@
 
     - [8.5 Future Extension Points](#85-future-extension-points)
 
+    - [8.6 Issue Storage Location](#86-issue-storage-location)
+
 * * *
 
 ## 1. Introduction
@@ -4116,6 +4118,53 @@ future bridge runtime use?
 1. Reserve now (empty dirs, documented for Phase 2)
 
 2. Add when needed (avoid premature structure)
+
+### 8.6 Issue Storage Location
+
+**Hybrid sync branch vs main branch storage**
+
+The current design stores all issues on the `ceads-sync` branch, keeping main branch
+clean. However, there may be use cases where some issues should live on the main branch
+(e.g., for visibility in PRs, code review context) while others remain on the sync
+branch.
+
+**Possible configurations:**
+
+1. **All sync branch** (current design): All issues on `ceads-sync`, main branch stays
+   clean. Simplest model, no reconciliation needed.
+
+2. **All main branch**: Issues stored in `.ceads` and/or other folders on main or
+   development branches, tracked with code.
+   Simpler git model but adds more noise to commit history and creates merge
+   complexities.
+
+3. **Status-based split**: Active issues (open, in_progress) on main or development
+   branches for visibility; closed/archived issues moved to sync branch automatically.
+   Ceads enforces the invariant.
+   Challenge: What happens when working on different feature branches?
+   Need to think through sync behavior.
+
+4. **Gitignored working copies**: Sync branch remains authoritative and complete.
+   Allow gitignored copies in a working directory (e.g., `.ceads/local/`) for convenient
+   reading and editing.
+   A `cead save` command would push edits from the gitignored copy to the sync branch.
+   This avoids reconciliation since sync branch is always the source of truth.
+
+**Considerations:**
+
+- Reconciliation complexity: Having issues in multiple locations creates sync challenges
+  (the pain point that motivated moving away from Beads’ 4-location model)
+
+- Branch-specific issues: How do issues get edited and merged on main and feature
+  branches? Do they diverge?
+  Get merged?
+
+- Visibility vs cleanliness tradeoff: Main branch storage provides GitHub visibility but
+  adds noise to diffs and history
+
+**Recommendation:** Defer to Phase 2. The gitignored working copy approach (Option 4)
+seems promising as it preserves the single-source-of-truth model while adding
+convenience.
 
 * * *
 
