@@ -33,6 +33,7 @@ lib-cov
 
 # Coverage directory used by tools like istanbul
 coverage
+coverage-tryscript
 *.lcov
 
 # nyc test coverage
