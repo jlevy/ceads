@@ -237,20 +237,21 @@ tbd/
 ```json
 {
   "dependencies": {
-    "commander": "^13.0.0",
-    "zod": "^3.24.0",
+    "commander": "^14.0.0",
+    "zod": "^4.0.0",
     "gray-matter": "^4.0.3",
     "js-yaml": "^4.1.0",
+    "ulid": "^3.0.0",
     "picocolors": "^1.1.0",
-    "@clack/prompts": "^0.10.0",
+    "@clack/prompts": "^0.11.0",
     "cli-table3": "^0.6.5"
   },
   "devDependencies": {
-    "typescript": "^5.9.0",
-    "tsdown": "^0.18.0",
-    "@types/node": "^24.0.0",
+    "typescript": "^5.8.0",
+    "tsdown": "^0.20.0",
+    "@types/node": "^22.0.0",
     "tryscript": "^0.1.4",
-    "vitest": "^3.0.0"
+    "vitest": "^4.0.0"
   }
 }
 ```
@@ -367,7 +368,7 @@ From the research docs, we will use:
 ```markdown
 ---
 type: is
-id: is-a1b2c3
+id: is-01hx5zzkbkactav9wevgemmvrz
 version: 3
 kind: bug
 title: Fix authentication timeout
@@ -378,7 +379,7 @@ labels:
   - backend
   - security
 dependencies:
-  - target: is-f14c3d
+  - target: is-01hx5zzkbkbctav9wevgemmvrz
     type: blocks
 parent_id: null
 created_at: 2025-01-07T10:00:00Z
@@ -483,15 +484,16 @@ async function atomicWrite(path: string, content: string): Promise<void> {
 
 ```
 .tbd-sync/
-├── issues/                 # Issue entities (Markdown)
-│   ├── is-a1b2c3.md
-│   └── is-f14c3d.md
+├── issues/                 # Issue entities (ULID-named files)
+│   ├── is-01hx5zzkbkactav9wevgemmvrz.md
+│   └── is-01hx5zzkbkbctav9wevgemmvrz.md
 ├── attic/                  # Conflict archive
 │   └── conflicts/
-│       └── is-a1b2c3/
+│       └── is-01hx5zzkbkactav9wevgemmvrz/
 │           └── 2025-01-07T10-30-00Z_description.md
-├── mappings/               # Import ID mappings
-│   └── beads.yml
+├── mappings/               # ID mappings
+│   ├── ids.yml            # short → ULID (e.g., a7k2 → 01hx5zzk...)
+│   └── beads.yml          # Beads imports
 └── meta.yml                # Metadata (schema version)
 ```
 
@@ -725,10 +727,12 @@ $ tbd info --json
 
 #### Phase 4 Tasks
 
-- [ ] Implement ID generation:
-  - [ ] `generateId(prefix)` - Random 6-char hex
-  - [ ] Collision detection and retry
-  - [ ] ID resolution (short prefix to full ID)
+- [ ] Implement dual ID generation:
+  - [ ] `generateInternalId(prefix)` - ULID-based internal ID (e.g., `is-01hx5zzk...`)
+  - [ ] `generateShortId()` - Base36 short ID for external use (e.g., `a7k2`)
+  - [ ] ID mapping storage (`.tbd-sync/mappings/ids.yml`)
+  - [ ] `resolveId(input)` - Exact lookup from short ID to internal ID (no prefix
+        matching)
 - [ ] Implement `tbd create`:
   - [ ] All options (-t, -p, -d, -f, -l, --assignee, --due, --defer, --parent)
   - [ ] `--from-file` for full YAML+Markdown input
@@ -758,55 +762,99 @@ $ tbd info --json
 
 #### Phase 4 Key Design Details
 
-**ID Generation** (collision-resistant random IDs):
+**Dual ID Generation** (ULID internal + base36 external):
+
+Tbd uses a dual ID system:
+
+- **Internal IDs**: `is-{ulid}` - 26 char ULID for storage, sorting, dependencies
+- **External IDs**: `{prefix}-{short}` - 4-5 char base36 for CLI, docs, commits
 
 ```typescript
-function generateId(prefix: string = 'is'): string {
-  const bytes = crypto.randomBytes(3); // 6 hex chars = 16 million possibilities
-  const hex = bytes.toString('hex');
-  return `${prefix}-${hex}`;
+import { ulid } from 'ulid';
+
+// Generate internal ID (ULID-based, time-sortable)
+function generateInternalId(prefix: string = 'is'): string {
+  return `${prefix}-${ulid().toLowerCase()}`;
+  // e.g., "is-01hx5zzkbkactav9wevgemmvrz"
 }
 
-async function generateUniqueId(storage: Storage): Promise<string> {
-  const MAX_ATTEMPTS = 5;
+// Generate short ID (base36 for human use)
+function generateShortId(): string {
+  const chars = '0123456789abcdefghijklmnopqrstuvwxyz';
+  let result = '';
+  for (let i = 0; i < 4; i++) {
+    result += chars[Math.floor(Math.random() * 36)];
+  }
+  return result; // e.g., "a7k2"
+}
+
+// Create new issue with both IDs
+async function createIssueIds(storage: Storage): Promise<{ internal: string; short: string }> {
+  const internalId = generateInternalId();
+  const ulid = internalId.replace(/^is-/, '');
+
+  // Generate unique short ID
+  const mapping = await storage.loadIdMapping();
+  let shortId: string;
+  const MAX_ATTEMPTS = 10;
   for (let i = 0; i < MAX_ATTEMPTS; i++) {
-    const id = generateId();
-    if (!(await storage.issueExists(id))) {
-      return id;
+    shortId = generateShortId();
+    if (!mapping.hasShortId(shortId)) {
+      break;
+    }
+    if (i === MAX_ATTEMPTS - 1) {
+      throw new Error('Failed to generate unique short ID');
     }
   }
-  throw new Error('Failed to generate unique ID after max attempts');
+
+  // Save mapping
+  mapping.set(shortId!, ulid);
+  await storage.saveIdMapping(mapping);
+
+  return { internal: internalId, short: shortId! };
 }
 ```
 
-**ID Resolution** (prefix matching for user convenience):
+**ID Mapping Storage** (`.tbd-sync/mappings/ids.yml`):
+
+```yaml
+# short_id: ulid (without prefix)
+a7k2: 01hx5zzkbkactav9wevgemmvrz
+b3m9: 01hx5zzkbkbctav9wevgemmvrz
+c4p1: 01hx5zzkbkcdtav9wevgemmvrz
+```
+
+**ID Resolution** (exact lookup, no prefix matching):
 
 ```typescript
 async function resolveIssueId(storage: Storage, input: string): Promise<string> {
-  // Handle display prefix (bd- → is-)
-  const normalized = input.replace(/^bd-/, 'is-');
+  // Strip any prefix (e.g., "bd-a7k2" → "a7k2")
+  const shortId = input.replace(/^[a-z]+-/, '');
 
-  // If full ID provided, verify it exists
-  if (normalized.match(/^is-[a-f0-9]{6}$/)) {
-    if (await storage.issueExists(normalized)) {
-      return normalized;
-    }
+  // Look up in mapping file
+  const mapping = await storage.loadIdMapping();
+  const ulid = mapping.getUlid(shortId);
+
+  if (!ulid) {
     throw new CLIError(`Issue not found: ${input}`);
   }
 
-  // Short prefix - find all matches
-  const prefix = normalized.startsWith('is-') ? normalized : `is-${normalized}`;
-  const matches = await storage.findIssuesByPrefix(prefix);
+  return `is-${ulid}`; // Return full internal ID
+}
 
-  if (matches.length === 0) {
-    throw new CLIError(`No issue found matching: ${input}`);
-  }
-  if (matches.length > 1) {
-    throw new CLIError(`Ambiguous ID '${input}' matches: ${matches.join(', ')}`);
-  }
-  return matches[0];
+// Format internal ID for display
+function formatDisplayId(internalId: string, config: Config, mapping: IdMapping): string {
+  const ulid = internalId.replace(/^is-/, '');
+  const shortId = mapping.getShortId(ulid);
+  const prefix = config.display?.id_prefix ?? 'bd';
+  return `${prefix}-${shortId}`; // e.g., "bd-a7k2"
 }
 ```
+
+**Why no prefix matching?** Issue IDs are permanent references that appear in
+documentation, commit messages, and external systems.
+Prefix matching would cause ambiguity as more issues are created.
+Users always type the full short ID.
 
 **List Filtering and Sorting**:
 

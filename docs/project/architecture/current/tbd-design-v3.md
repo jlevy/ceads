@@ -40,6 +40,10 @@
       - [Adding New Entity Types (Future)](#adding-new-entity-types-future)
     - [2.5 ID Generation](#25-id-generation)
       - [ID Generation Algorithm](#id-generation-algorithm)
+      - [ID Mapping](#id-mapping)
+      - [ID Resolution (CLI)](#id-resolution-cli)
+      - [File Naming](#file-naming)
+      - [Display Format](#display-format)
     - [2.6 Schemas](#26-schemas)
       - [2.6.1 Common Types](#261-common-types)
       - [2.6.2 BaseEntity](#262-baseentity)
@@ -125,7 +129,7 @@
       - [Decision 1: File-per-entity vs JSONL](#decision-1-file-per-entity-vs-jsonl)
       - [Decision 2: No daemon required](#decision-2-no-daemon-required)
       - [Decision 3: Sync branch instead of main](#decision-3-sync-branch-instead-of-main)
-      - [Decision 4: Display ID prefix for Beads compat](#decision-4-display-id-prefix-for-beads-compat)
+      - [Decision 4: Dual ID system (ULID + short base36)](#decision-4-dual-id-system-ulid--short-base36)
       - [Decision 5: Only “blocks” dependencies](#decision-5-only-blocks-dependencies)
       - [Decision 6: Markdown + YAML storage](#decision-6-markdown--yaml-storage)
       - [Decision 7: Hidden worktree for sync branch](#decision-7-hidden-worktree-for-sync-branch)
@@ -445,7 +449,7 @@ Issue files use the standard front matter pattern:
 ```markdown
 ---
 type: is
-id: is-a1b2c3
+id: is-01hx5zzkbkactav9wevgemmvrz
 version: 3
 kind: bug
 title: Fix authentication timeout
@@ -456,7 +460,7 @@ labels:
   - backend
   - security
 dependencies:
-  - target: is-f14c3d
+  - target: is-01hx5zzkbkbctav9wevgemmvrz
     type: blocks
 parent_id: null
 created_at: 2025-01-07T10:00:00Z
@@ -619,14 +623,15 @@ Tbd uses three directory locations:
 ```
 .tbd-sync/
 ├── issues/                 # Issue entities (Markdown)
-│   ├── is-a1b2c3.md
-│   └── is-f14c3d.md
+│   ├── is-01hx5zzkbkactav9wevgemmvrz.md
+│   └── is-01hx5zzkbkbctav9wevgemmvrz.md
 ├── attic/                  # Conflict archive
 │   └── conflicts/
-│       └── is-a1b2c3/
+│       └── is-01hx5zzkbkactav9wevgemmvrz/
 │           └── 2025-01-07T10-30-00Z_description.md
-├── mappings/               # Import ID mappings
-│   └── beads.yml          # Beads ID → Tbd ID mapping
+├── mappings/               # ID mappings
+│   ├── ids.yml            # Short ID → ULID mapping (e.g., a7k2 → 01hx5zzk...)
+│   └── beads.yml          # Beads ID → ULID mapping (for imports)
 └── meta.yml               # Metadata (schema version)
 ```
 
@@ -776,61 +781,138 @@ No sync algorithm changes needed—sync operates on files, not schemas.
 
 ### 2.5 ID Generation
 
-Entity IDs follow this pattern:
+Tbd uses a **dual ID system** to balance machine requirements (sorting, uniqueness) with
+human usability (short, memorable):
 
-```
-{prefix}-{hash}
-```
+| ID Type      | Format              | Example                         | Purpose                        |
+| ------------ | ------------------- | ------------------------------- | ------------------------------ |
+| **Internal** | `{type}-{ulid}`     | `is-01hx5zzkbkactav9wevgemmvrz` | Storage, sorting, dependencies |
+| **External** | `{project}-{short}` | `bd-a7k2`                       | CLI, docs, commits, references |
 
-- **Prefix**: 2 lowercase letters (`is-` for issues)
+**Internal IDs** use [ULID](https://github.com/ulid/spec) (Universally Unique
+Lexicographically Sortable Identifier):
 
-- **Hash**: 6 lowercase hex characters (stored form)
+- **Fixed prefix**: Entity type discriminator (`is-` for issues, `ms-` for messages)
+- **ULID body**: 26 lowercase characters (48-bit timestamp + 80-bit randomness)
+- **Lexicographic sorting**: IDs sort chronologically by creation time
+- **No collisions**: Monotonic generation within millisecond prevents duplicates
 
-Example: `is-a1b2c3`, `is-f14c3a`
+**External IDs** use short base36 codes mapped to internal IDs:
 
-> **Note:** Users may type shorter prefixes (4-6 chars) when referring to issues; these
-> are resolved to the unique matching full ID. Stored IDs are always 6 hex chars.
+- **Configurable prefix**: Project-specific (`bd`, `proj`, `tk`) via `display.id_prefix`
+- **Short code**: 4-5 base36 characters (a-z, 0-9)
+- **Immutable mapping**: Once assigned, never changes
+- **No prefix matching**: Users type the full short ID, always
 
 #### ID Generation Algorithm
 
 ```typescript
-import { randomBytes } from 'crypto';
+import { ulid } from 'ulid';
 
-function generateId(prefix: string): string {
-  // 3 bytes = 24 bits of entropy = 6 hex chars
-  const bytes = randomBytes(3);
-  const hash = bytes.toString('hex').toLowerCase();
-  return `${prefix}-${hash}`; // e.g., "is-a1b2c3"
+// Generate internal ID (ULID-based)
+function generateInternalId(prefix: string = 'is'): string {
+  return `${prefix}-${ulid().toLowerCase()}`;
+  // e.g., "is-01hx5zzkbkactav9wevgemmvrz"
+}
+
+// Generate external short ID (base36)
+function generateShortId(): string {
+  // 4 base36 chars = 1.7M possibilities, 5 chars = 60M
+  const chars = '0123456789abcdefghijklmnopqrstuvwxyz';
+  let result = '';
+  for (let i = 0; i < 4; i++) {
+    result += chars[Math.floor(Math.random() * 36)];
+  }
+  return result; // e.g., "a7k2"
 }
 ```
 
 **Properties:**
 
-- **Cryptographically random**: No timestamp or content dependency
+- **Time-ordered**: ULIDs encode creation timestamp, enabling chronological sort by ID
+- **No collisions**: ULID spec guarantees monotonic generation within same millisecond
+- **Human-friendly**: Short IDs are easy to type, say, and remember
+- **Deterministic sorting**: Alphabetical sort = chronological order
 
-- **Entropy**: 24 bits = 16.7 million possibilities
+#### ID Mapping
 
-- **Collision probability**: With birthday paradox, ~~1% collision chance at ~~13,000
-  issues; ~~50% at ~~5,000 simultaneous concurrent creations.
-  Acceptable with collision retry.
+The mapping between external and internal IDs is stored in `.tbd-sync/mappings/ids.yml`:
 
-- **On collision**: Regenerate ID (detected by file-exists check before write)
-
-**ID validation regex:**
-
-```typescript
-// Stored IDs are always 6 hex chars
-const IssueId = z.string().regex(/^is-[a-f0-9]{6}$/);
-
-// For CLI input, accept 4-6 chars and resolve to unique match
-const IssueIdInput = z.string().regex(/^(is-|bd-)?[a-f0-9]{4,6}$/);
+```yaml
+# .tbd-sync/mappings/ids.yml
+# short_id: ulid (without prefix)
+a7k2: 01hx5zzkbkactav9wevgemmvrz
+b3m9: 01hx5zzkbkbctav9wevgemmvrz
+c4p1: 01hx5zzkbkcdtav9wevgemmvrz
 ```
 
-**Display prefix note:** Internal IDs use `is-` prefix.
-The `display.id_prefix` config (default: `bd`) controls how IDs are shown to users for
-Beads compatibility.
-When a user types `bd-a1b2c3`, it is resolved to internal `is-a1b2c3`. When displaying,
-the internal ID is shown with the configured prefix.
+**Mapping properties:**
+
+- **Synced**: File lives on sync branch, shared across all machines
+- **Immutable entries**: Once a mapping exists, it never changes
+- **Merge strategy**: Union (no conflicts since short IDs are unique)
+- **Collision handling**: On short ID collision, regenerate and retry
+
+#### ID Resolution (CLI)
+
+When a user provides an ID:
+
+```typescript
+async function resolveId(input: string, storage: Storage): Promise<string> {
+  // Strip display prefix if present (e.g., "bd-a7k2" → "a7k2")
+  const shortId = input.replace(/^[a-z]+-/, '');
+
+  // Look up in mapping file
+  const mapping = await storage.loadIdMapping();
+  const ulid = mapping.get(shortId);
+
+  if (!ulid) {
+    throw new CLIError(`Issue not found: ${input}`);
+  }
+
+  return `is-${ulid}`; // Return full internal ID
+}
+```
+
+**No prefix matching**: Unlike git refs, issue IDs are permanent references that appear
+in documentation, commit messages, and external systems.
+Prefix matching would cause ambiguity as more issues are created.
+Users always type the full short ID.
+
+#### File Naming
+
+Issue files use the full internal ID:
+
+```
+.tbd-sync/issues/is-01hx5zzkbkactav9wevgemmvrz.md
+```
+
+**Why ULID in filename?**
+
+- Files sort chronologically in directory listings
+- Git diffs show changes in creation order
+- No lookup needed to determine file path from internal ID
+
+#### Display Format
+
+```typescript
+function formatDisplayId(internalId: string, config: Config): string {
+  const ulid = internalId.replace(/^is-/, '');
+  const shortId = config.idMapping.getShortId(ulid);
+  const prefix = config.display.id_prefix ?? 'bd';
+  return `${prefix}-${shortId}`; // e.g., "bd-a7k2"
+}
+```
+
+**CLI flow example:**
+
+```
+User types:     bd-a7k2
+Lookup:         a7k2 → 01hx5zzkbkactav9wevgemmvrz
+Internal ID:    is-01hx5zzkbkactav9wevgemmvrz
+File path:      .tbd-sync/issues/is-01hx5zzkbkactav9wevgemmvrz.md
+Display back:   bd-a7k2
+```
 
 ### 2.6 Schemas
 
@@ -845,8 +927,17 @@ import { z } from 'zod';
 // ISO8601 timestamp
 const Timestamp = z.string().datetime();
 
-// Issue ID (stored IDs always have exactly 6 hex chars)
-const IssueId = z.string().regex(/^is-[a-f0-9]{6}$/);
+// Internal Issue ID: is-{ulid} where ULID is 26 lowercase chars
+// Example: is-01hx5zzkbkactav9wevgemmvrz
+const InternalIssueId = z.string().regex(/^is-[0-9a-z]{26}$/);
+
+// Short ID: 4-5 base36 chars (used in external/display IDs)
+// Example: a7k2, b3m9
+const ShortId = z.string().regex(/^[0-9a-z]{4,5}$/);
+
+// External Issue ID input: accepts {prefix}-{short} or just {short}
+// Example: bd-a7k2, a7k2
+const ExternalIssueIdInput = z.string().regex(/^([a-z]+-)?[0-9a-z]{4,5}$/);
 
 // Edit counter - incremented on every local change
 // IMPORTANT: Version is NOT used for conflict detection (content hash is used instead).
@@ -2284,9 +2375,9 @@ field:
 {entity-id}/{timestamp}_{field}
 
 Examples:
-  is-a1b2c3/2025-01-07T10-30-00Z_description
-  is-f14c3d/2025-01-08T09-00-00Z_title
-  is-a1b2c3/2025-01-07T11-45-00Z_full    # Full entity conflict (rare)
+  is-01hx5zzkbkactav9wevgemmvrz/2025-01-07T10-30-00Z_description
+  is-01hx5zzkbkbctav9wevgemmvrz/2025-01-08T09-00-00Z_title
+  is-01hx5zzkbkactav9wevgemmvrz/2025-01-07T11-45-00Z_full    # Full entity conflict (rare)
 ```
 
 - **entity-id**: The issue ID (e.g., `is-a1b2c3`)
@@ -2993,10 +3084,12 @@ Tbd options:
 
 **ID format:**
 
-- Beads: `bd-xxxx` (4-6 hex chars)
+- Beads: `bd-xxxx` (4-6 hex chars, random)
 
-- Tbd: `is-xxxx` (4-6 hex chars)
-  - Display as `bd-xxxx` via `display.id_prefix` config
+- Tbd: Dual ID system
+  - Internal: `is-{ulid}` (26 chars, time-sortable)
+  - External: `{prefix}-{short}` (4-5 base36 chars, e.g., `bd-a7k2`)
+  - Display prefix configurable via `display.id_prefix` config
 
 ### 5.6 Compatibility Contract
 
@@ -3011,7 +3104,9 @@ CLI output.
 
 - Command names and primary flags listed in this spec
 
-- ID format pattern: `{prefix}-{6 hex chars}`
+- External ID format: `{prefix}-{4-5 base36 chars}` (e.g., `bd-a7k2`)
+
+- Internal ID format: `is-{26 char ulid}` (e.g., `is-01hx5zzkbkactav9wevgemmvrz`)
 
 **Stable with deprecation warnings:**
 
@@ -3041,10 +3136,11 @@ These flags/behaviors are maintained for Beads script compatibility:
 
 #### Migration Gotchas
 
-1. **IDs change**: Beads `bd-a1b2` becomes Tbd `is-a1b2` internally
-   - Set `display.id_prefix: bd` to show as `bd-a1b2`
-
-   - Old references in commit messages won’t auto-link
+1. **IDs change**: Beads `bd-a1b2` becomes a new short ID (e.g., `bd-x7k2`)
+   - Internal ID is ULID-based: `is-01hx5zzkbk...`
+   - Set `display.id_prefix: bd` to keep `bd-` prefix familiar
+   - Old Beads IDs in commit messages won’t auto-link to new IDs
+   - Mapping file `.tbd-sync/mappings/beads.yml` preserves the relationship
 
 2. **No daemon**: Background sync must be manual or cron-based
 
@@ -3273,23 +3369,33 @@ even at scale.
 
 - Users must understand two branches
 
-#### Decision 4: Display ID prefix for Beads compat
+#### Decision 4: Dual ID system (ULID + short base36)
 
-**Choice**: Internal `is-xxxx`, display as `bd-xxxx`
+**Choice**: Internal IDs use ULID (`is-{ulid}`), external IDs use short base36
+(`{prefix}-{short}`)
 
 **Rationale**:
 
-- Smooth migration from Beads
-
-- Familiar UX for existing users
-
-- Internal prefix distinguishes entity types
+- **Time-ordered sorting**: ULIDs sort chronologically, useful for debugging and
+  listings
+- **No collisions**: ULID’s 80-bit randomness eliminates collision retry logic
+- **Cross-project merging**: Multiple projects can merge their issues without internal
+  ID collisions (external IDs may need different prefixes)
+- **Human-friendly**: Short base36 IDs (4-5 chars) are easy to type and remember
+- **Permanent references**: External IDs are stable for docs, commits, external systems
+- **Beads compatibility**: Configurable display prefix (`bd-`) for migration
 
 **Tradeoffs**:
 
-- Two ID formats to understand
+- Two ID formats to understand (internal vs external)
+- Mapping file adds small complexity
+- Longer internal IDs in file paths
 
-- Config adds complexity
+**Mitigations**:
+
+- Users only interact with short external IDs
+- Mapping file syncs automatically
+- ULID sorting benefits outweigh longer paths
 
 #### Decision 5: Only “blocks” dependencies
 
@@ -3555,12 +3661,15 @@ repo/
 │
 └── (on tbd-sync branch)
     └── .tbd-sync/
-        ├── issues/                 # Issue entities
-        │   ├── is-a1b2.md
-        │   └── is-f14c.md
+        ├── issues/                 # Issue entities (ULID-named files)
+        │   ├── is-01hx5zzkbkactav9wevgemmvrz.md
+        │   └── is-01hx5zzkbkbctav9wevgemmvrz.md
+        ├── mappings/               # ID mappings
+        │   ├── ids.yml            # short → ULID (e.g., a7k2 → 01hx5zzk...)
+        │   └── beads.yml          # Beads imports
         ├── attic/                  # Conflict archive
         │   └── conflicts/
-        │       └── is-a1b2/
+        │       └── is-01hx5zzkbkactav9wevgemmvrz/
         │           └── 2025-01-07T10-30-00Z_description.yml
         └── meta.yml               # Metadata
 ```
@@ -4085,18 +4194,16 @@ The attic preserves losers, but UX may suffer if the “wrong” version consist
 
 ### 8.4 ID Length
 
-**Idea 2: Longer internal IDs for long-term scaling**
+**RESOLVED**: Adopted ULID-based internal IDs.
 
-Current 6-hex-char IDs (24 bits, 16.7M possibilities) are sufficient.
-Should we extend to 8 chars (32 bits, 4B possibilities) for future-proofing?
+Internal IDs now use full 26-character ULIDs (128 bits: 48-bit timestamp + 80-bit
+randomness). This provides:
 
-**Considerations:**
+- Effectively unlimited ID space (no collision concerns even across merged projects)
+- Time-ordered sorting as a bonus
+- Human interaction uses short 4-5 character base36 external IDs
 
-- 6 chars: More readable, sufficient for most projects
-
-- 8 chars: More headroom, matches git short-hash conventions
-
-- Could migrate later by adding chars (old IDs remain valid)
+The original concern about 6-hex-char limitations is moot with the dual ID system.
 
 ### 8.5 Future Extension Points
 
