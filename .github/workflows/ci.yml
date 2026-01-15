@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm format:check
+
+      - run: pnpm lint:check
+
+      - run: pnpm build
+
+      - run: pnpm publint
+
+      - run: pnpm --filter tbd-cli test:coverage
+
+      - name: Coverage Report
+        uses: davelosert/vitest-coverage-report-action@v2
+        if: always()
+        with:
+          working-directory: packages/tbd-cli
+          json-summary-path: coverage/coverage-summary.json
+          json-final-path: coverage/coverage-final.json
+          file-coverage-mode: ${{ github.event_name == 'pull_request' && 'changes' || 'all' }}

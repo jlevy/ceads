@@ -1,5 +1,15 @@
+# Reference repos (cloned for comparison)
 attic/
 
+# tbd-specific
+.tbd/cache/
+.tbd/.worktree/
+*.tmp.*
+
+attic/
+
+# Build output
+dist/
 
 # Logs
 logs

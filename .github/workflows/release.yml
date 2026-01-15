@@ -1,0 +1,63 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+  pull-requests: write
+  id-token: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+          registry-url: 'https://registry.npmjs.org'
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm build
+
+      - run: pnpm publint
+
+      - name: Publish to npm
+        run: pnpm -r publish --access public --no-git-checks
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_CONFIG_PROVENANCE: true
+
+      - name: Extract version from tag
+        id: version
+        run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Extract changelog for this version
+        id: changelog
+        run: |
+          # Extract the changelog section for this version
+          VERSION="${{ steps.version.outputs.version }}"
+          CHANGELOG=$(awk "/^## ${VERSION//./\\.}$/,/^## [0-9]/" packages/tbd-cli/CHANGELOG.md | head -n -1)
+          if [ -z "$CHANGELOG" ]; then
+            CHANGELOG="Release v${VERSION}"
+          fi
+          # Use delimiter for multiline output
+          echo "body<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGELOG" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          body: ${{ steps.changelog.outputs.body }}
+          prerelease: ${{ contains(steps.version.outputs.version, '-') }}

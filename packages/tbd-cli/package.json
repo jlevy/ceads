@@ -1,0 +1,72 @@
+{
+  "name": "tbd-cli",
+  "version": "0.1.0",
+  "description": "Git-native issue tracking for AI agents and humans",
+  "license": "MIT",
+  "author": "Joshua Levy <joshua@cal.berkeley.edu> (https://github.com/jlevy)",
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.mjs",
+  "types": "./dist/index.d.mts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "default": "./dist/index.mjs"
+    },
+    "./cli": {
+      "types": "./dist/cli.d.mts",
+      "default": "./dist/cli.mjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "bin": {
+    "tbd": "./dist/bin.mjs"
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jlevy/tbd.git",
+    "directory": "packages/tbd-cli"
+  },
+  "homepage": "https://github.com/jlevy/tbd#readme",
+  "bugs": {
+    "url": "https://github.com/jlevy/tbd/issues"
+  },
+  "keywords": [
+    "issue-tracker",
+    "git",
+    "cli",
+    "ai-agents",
+    "beads",
+    "tickets",
+    "markdown"
+  ],
+  "scripts": {
+    "build": "tsdown",
+    "dev": "tsdown --watch",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "publint": "publint",
+    "prepack": "pnpm build"
+  },
+  "dependencies": {
+    "commander": "^13.1.0",
+    "picocolors": "^1.1.1",
+    "yaml": "^2.7.0",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.7",
+    "@vitest/coverage-v8": "^2.1.8",
+    "publint": "^0.3.2",
+    "tsdown": "0.20.0-beta.3",
+    "vitest": "^2.1.8"
+  }
+}

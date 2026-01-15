@@ -1,0 +1,47 @@
+{
+  "name": "tbd-workspace",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.27.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "lefthook"
+    ]
+  },
+  "scripts": {
+    "build": "pnpm -r build",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "test:coverage": "pnpm --filter tbd-cli test:coverage",
+    "publint": "pnpm -r publint",
+    "format": "prettier --write --log-level warn .",
+    "format:check": "prettier --check --log-level warn .",
+    "lint": "eslint . --fix && pnpm typecheck && eslint . --max-warnings 0",
+    "lint:check": "pnpm typecheck && eslint . --max-warnings 0",
+    "prepare": "lefthook install",
+    "changeset": "changeset",
+    "version-packages": "changeset version",
+    "release": "pnpm build && pnpm publint && changeset publish",
+    "upgrade:check": "ncu --format group",
+    "upgrade": "ncu --target minor -u && pnpm install && pnpm test",
+    "upgrade:major": "ncu --target latest --interactive --format group",
+    "tbd": "tsx packages/tbd-cli/src/cli/bin.ts",
+    "tbd:bin": "node packages/tbd-cli/dist/bin.js"
+  },
+  "devDependencies": {
+    "@changesets/cli": "^2.29.0",
+    "@eslint/js": "^9.18.0",
+    "eslint": "^9.18.0",
+    "eslint-config-prettier": "^10.0.1",
+    "lefthook": "^1.10.10",
+    "npm-check-updates": "^17.1.14",
+    "prettier": "^3.4.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3",
+    "typescript-eslint": "^8.21.0"
+  }
+}

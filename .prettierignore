@@ -1,0 +1,11 @@
+dist
+node_modules
+pnpm-lock.yaml
+*.min.js
+*.min.css
+coverage
+.git
+.tbd
+.tbd-sync
+attic
+.changeset

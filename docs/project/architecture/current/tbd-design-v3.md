@@ -6,7 +6,7 @@
 
 **Date**: January 2025
 
-* * *
+---
 
 ## Table of Contents
 
@@ -40,6 +40,10 @@
       - [Adding New Entity Types (Future)](#adding-new-entity-types-future)
     - [2.5 ID Generation](#25-id-generation)
       - [ID Generation Algorithm](#id-generation-algorithm)
+      - [ID Mapping](#id-mapping)
+      - [ID Resolution (CLI)](#id-resolution-cli)
+      - [File Naming](#file-naming)
+      - [Display Format](#display-format)
     - [2.6 Schemas](#26-schemas)
       - [2.6.1 Common Types](#261-common-types)
       - [2.6.2 BaseEntity](#262-baseentity)
@@ -125,7 +129,7 @@
       - [Decision 1: File-per-entity vs JSONL](#decision-1-file-per-entity-vs-jsonl)
       - [Decision 2: No daemon required](#decision-2-no-daemon-required)
       - [Decision 3: Sync branch instead of main](#decision-3-sync-branch-instead-of-main)
-      - [Decision 4: Display ID prefix for Beads compat](#decision-4-display-id-prefix-for-beads-compat)
+      - [Decision 4: Dual ID system (ULID + short base36)](#decision-4-dual-id-system-ulid--short-base36)
       - [Decision 5: Only “blocks” dependencies](#decision-5-only-blocks-dependencies)
       - [Decision 6: Markdown + YAML storage](#decision-6-markdown--yaml-storage)
       - [Decision 7: Hidden worktree for sync branch](#decision-7-hidden-worktree-for-sync-branch)
@@ -183,7 +187,7 @@
     - [8.6 Issue Storage Location](#86-issue-storage-location)
     - [8.7 External Issue Tracker Linking](#87-external-issue-tracker-linking)
 
-* * *
+---
 
 ## 1. Introduction
 
@@ -224,37 +228,37 @@ Tbd and Beads serve different use cases:
 
 **Use Tbd when:**
 
-| Scenario | Why Tbd |
-| --- | --- |
-| Single agent, simple ticket tracking | Simpler, no daemon, fewer failure modes |
-| Multi-agent with async handoffs | Git sync is sufficient, advisory claims work |
-| Cloud sandbox / restricted environment | No daemon required, works with isolated git |
-| Network filesystem (NFS/SMB) | No SQLite, no file locking issues |
-| Need to debug sync issues | Markdown files are inspectable, no hidden state |
-| Protected main branch | Sync branch architecture keeps main clean |
+| Scenario                               | Why Tbd                                         |
+| -------------------------------------- | ----------------------------------------------- |
+| Single agent, simple ticket tracking   | Simpler, no daemon, fewer failure modes         |
+| Multi-agent with async handoffs        | Git sync is sufficient, advisory claims work    |
+| Cloud sandbox / restricted environment | No daemon required, works with isolated git     |
+| Network filesystem (NFS/SMB)           | No SQLite, no file locking issues               |
+| Need to debug sync issues              | Markdown files are inspectable, no hidden state |
+| Protected main branch                  | Sync branch architecture keeps main clean       |
 
 **Use Beads when:**
 
-| Scenario | Why Beads |
-| --- | --- |
+| Scenario                                     | Why Beads                                    |
+| -------------------------------------------- | -------------------------------------------- |
 | Multi-agent requiring real-time coordination | Agent Mail, daemon-based sync, atomic claims |
-| Complex workflow orchestration | Molecules, wisps, formulas, bonding |
-| Need ephemeral work tracking | Wisps (never synced, squash to digest) |
-| High-performance queries on 10K+ issues | SQLite with indexes is faster than file scan |
-| Need automatic "memory decay" | AI-powered compaction of old issues |
-| Need interactive edit mode | `bd edit` opens in $EDITOR |
+| Complex workflow orchestration               | Molecules, wisps, formulas, bonding          |
+| Need ephemeral work tracking                 | Wisps (never synced, squash to digest)       |
+| High-performance queries on 10K+ issues      | SQLite with indexes is faster than file scan |
+| Need automatic "memory decay"                | AI-powered compaction of old issues          |
+| Need interactive edit mode                   | `bd edit` opens in $EDITOR                   |
 
 **Key Differences Summary:**
 
-| Aspect | Tbd | Beads |
-| --- | --- | --- |
-| Architecture | 2 locations (files + sync branch) | 4 locations (SQLite, JSONL, sync, main) |
-| Daemon | Not required | Required for real-time sync |
-| Storage | Markdown + YAML files | SQLite + JSONL |
-| Coordination | Advisory claims, polling | Atomic claims, real-time |
-| Workflow templates | Not supported | Molecules, wisps, protos |
-| Agent messaging | Not supported | Agent Mail |
-| Debugging | Inspect files directly | Requires SQLite queries |
+| Aspect             | Tbd                               | Beads                                   |
+| ------------------ | --------------------------------- | --------------------------------------- |
+| Architecture       | 2 locations (files + sync branch) | 4 locations (SQLite, JSONL, sync, main) |
+| Daemon             | Not required                      | Required for real-time sync             |
+| Storage            | Markdown + YAML files             | SQLite + JSONL                          |
+| Coordination       | Advisory claims, polling          | Atomic claims, real-time                |
+| Workflow templates | Not supported                     | Molecules, wisps, protos                |
+| Agent messaging    | Not supported                     | Agent Mail                              |
+| Debugging          | Inspect files directly            | Requires SQLite queries                 |
 
 **Tbd is NOT:**
 
@@ -415,7 +419,7 @@ Tbd has three layers:
 
 **CLI Layer**: Beads-compatible command interface
 
-* * *
+---
 
 ## 2. File Layer
 
@@ -446,7 +450,7 @@ Issue files use the standard front matter pattern:
 ```markdown
 ---
 type: is
-id: is-a1b2c3
+id: is-01hx5zzkbkactav9wevgemmvrz
 version: 3
 kind: bug
 title: Fix authentication timeout
@@ -457,7 +461,7 @@ labels:
   - backend
   - security
 dependencies:
-  - target: is-f14c3d
+  - target: is-01hx5zzkbkbctav9wevgemmvrz
     type: blocks
 parent_id: null
 created_at: 2025-01-07T10:00:00Z
@@ -526,6 +530,7 @@ For content hashing and conflict detection, we need deterministic serialization:
 - LF line endings
 
 **Recommended `.gitattributes`:**
+
 ```
 .tbd-sync/** text eol=lf
 ```
@@ -619,14 +624,15 @@ Tbd uses three directory locations:
 ```
 .tbd-sync/
 ├── issues/                 # Issue entities (Markdown)
-│   ├── is-a1b2c3.md
-│   └── is-f14c3d.md
+│   ├── is-01hx5zzkbkactav9wevgemmvrz.md
+│   └── is-01hx5zzkbkbctav9wevgemmvrz.md
 ├── attic/                  # Conflict archive
 │   └── conflicts/
-│       └── is-a1b2c3/
+│       └── is-01hx5zzkbkactav9wevgemmvrz/
 │           └── 2025-01-07T10-30-00Z_description.md
-├── mappings/               # Import ID mappings
-│   └── beads.yml          # Beads ID → Tbd ID mapping
+├── mappings/               # ID mappings
+│   ├── ids.yml            # Short ID → ULID mapping (e.g., a7k2 → 01hx5zzk...)
+│   └── beads.yml          # Beads ID → ULID mapping (for imports)
 └── meta.yml               # Metadata (schema version)
 ```
 
@@ -699,13 +705,13 @@ ls .tbd/.worktree/.tbd-sync/issues/
 
 #### Worktree Lifecycle
 
-| Operation | Worktree Action |
-| --- | --- |
-| `tbd init` | Create worktree if tbd-sync exists |
-| `tbd sync --pull` | `git -C .worktree pull origin tbd-sync` |
-| `tbd sync --push` | Update worktree after successful push |
-| `tbd doctor` | Verify worktree health, repair if needed |
-| Repo clone | Worktree created on first tbd command |
+| Operation         | Worktree Action                          |
+| ----------------- | ---------------------------------------- |
+| `tbd init`        | Create worktree if tbd-sync exists       |
+| `tbd sync --pull` | `git -C .worktree pull origin tbd-sync`  |
+| `tbd sync --push` | Update worktree after successful push    |
+| `tbd doctor`      | Verify worktree health, repair if needed |
+| Repo clone        | Worktree created on first tbd command    |
 
 **Invariant:** The hidden worktree at `.tbd/.worktree/` always reflects the current
 state of the `tbd-sync` branch after sync operations.
@@ -739,12 +745,12 @@ START: Any tbd command
 
 **Scenarios:**
 
-| Repository State | Worktree Action |
-| --- | --- |
-| Fresh `tbd init` | Create orphan worktree with empty .tbd-sync/ |
-| Clone of existing tbd repo | Fetch remote, create worktree from origin/tbd-sync |
-| Existing local worktree corrupted | `tbd doctor --fix` removes and recreates |
-| Worktree exists but stale | `tbd sync` updates to latest commit |
+| Repository State                  | Worktree Action                                    |
+| --------------------------------- | -------------------------------------------------- |
+| Fresh `tbd init`                  | Create orphan worktree with empty .tbd-sync/       |
+| Clone of existing tbd repo        | Fetch remote, create worktree from origin/tbd-sync |
+| Existing local worktree corrupted | `tbd doctor --fix` removes and recreates           |
+| Worktree exists but stale         | `tbd sync` updates to latest commit                |
 
 ### 2.4 Entity Collection Pattern
 
@@ -754,9 +760,9 @@ Future phases may add: agents, messages, workflows, templates
 
 #### Directory Layout
 
-| Collection | Directory | Extension | ID Prefix | Purpose |
-| --- | --- | --- | --- | --- |
-| Issues | `.tbd-sync/issues/` | `.md` | `is-` | Task tracking (synced) |
+| Collection | Directory           | Extension | ID Prefix | Purpose                |
+| ---------- | ------------------- | --------- | --------- | ---------------------- |
+| Issues     | `.tbd-sync/issues/` | `.md`     | `is-`     | Task tracking (synced) |
 
 #### Adding New Entity Types (Future)
 
@@ -776,60 +782,138 @@ No sync algorithm changes needed—sync operates on files, not schemas.
 
 ### 2.5 ID Generation
 
-Entity IDs follow this pattern:
+Tbd uses a **dual ID system** to balance machine requirements (sorting, uniqueness) with
+human usability (short, memorable):
 
-```
-{prefix}-{hash}
-```
+| ID Type      | Format              | Example                         | Purpose                        |
+| ------------ | ------------------- | ------------------------------- | ------------------------------ |
+| **Internal** | `{type}-{ulid}`     | `is-01hx5zzkbkactav9wevgemmvrz` | Storage, sorting, dependencies |
+| **External** | `{project}-{short}` | `bd-a7k2`                       | CLI, docs, commits, references |
 
-- **Prefix**: 2 lowercase letters (`is-` for issues)
+**Internal IDs** use [ULID](https://github.com/ulid/spec) (Universally Unique
+Lexicographically Sortable Identifier):
 
-- **Hash**: 6 lowercase hex characters (stored form)
+- **Fixed prefix**: Entity type discriminator (`is-` for issues, `ms-` for messages)
+- **ULID body**: 26 lowercase characters (48-bit timestamp + 80-bit randomness)
+- **Lexicographic sorting**: IDs sort chronologically by creation time
+- **No collisions**: Monotonic generation within millisecond prevents duplicates
 
-Example: `is-a1b2c3`, `is-f14c3a`
+**External IDs** use short base36 codes mapped to internal IDs:
 
-> **Note:** Users may type shorter prefixes (4-6 chars) when referring to issues; these
-> are resolved to the unique matching full ID. Stored IDs are always 6 hex chars.
+- **Configurable prefix**: Project-specific (`bd`, `proj`, `tk`) via `display.id_prefix`
+- **Short code**: 4-5 base36 characters (a-z, 0-9)
+- **Immutable mapping**: Once assigned, never changes
+- **No prefix matching**: Users type the full short ID, always
 
 #### ID Generation Algorithm
 
 ```typescript
-import { randomBytes } from 'crypto';
+import { ulid } from 'ulid';
 
-function generateId(prefix: string): string {
-  // 3 bytes = 24 bits of entropy = 6 hex chars
-  const bytes = randomBytes(3);
-  const hash = bytes.toString('hex').toLowerCase();
-  return `${prefix}-${hash}`;  // e.g., "is-a1b2c3"
+// Generate internal ID (ULID-based)
+function generateInternalId(prefix: string = 'is'): string {
+  return `${prefix}-${ulid().toLowerCase()}`;
+  // e.g., "is-01hx5zzkbkactav9wevgemmvrz"
+}
+
+// Generate external short ID (base36)
+function generateShortId(): string {
+  // 4 base36 chars = 1.7M possibilities, 5 chars = 60M
+  const chars = '0123456789abcdefghijklmnopqrstuvwxyz';
+  let result = '';
+  for (let i = 0; i < 4; i++) {
+    result += chars[Math.floor(Math.random() * 36)];
+  }
+  return result; // e.g., "a7k2"
 }
 ```
 
 **Properties:**
 
-- **Cryptographically random**: No timestamp or content dependency
+- **Time-ordered**: ULIDs encode creation timestamp, enabling chronological sort by ID
+- **No collisions**: ULID spec guarantees monotonic generation within same millisecond
+- **Human-friendly**: Short IDs are easy to type, say, and remember
+- **Deterministic sorting**: Alphabetical sort = chronological order
 
-- **Entropy**: 24 bits = 16.7 million possibilities
+#### ID Mapping
 
-- **Collision probability**: With birthday paradox, ~~1% collision chance at ~~13,000
-  issues; ~~50% at ~~5,000 simultaneous concurrent creations.
-  Acceptable with collision retry.
+The mapping between external and internal IDs is stored in `.tbd-sync/mappings/ids.yml`:
 
-- **On collision**: Regenerate ID (detected by file-exists check before write)
-
-**ID validation regex:**
-```typescript
-// Stored IDs are always 6 hex chars
-const IssueId = z.string().regex(/^is-[a-f0-9]{6}$/);
-
-// For CLI input, accept 4-6 chars and resolve to unique match
-const IssueIdInput = z.string().regex(/^(is-|bd-)?[a-f0-9]{4,6}$/);
+```yaml
+# .tbd-sync/mappings/ids.yml
+# short_id: ulid (without prefix)
+a7k2: 01hx5zzkbkactav9wevgemmvrz
+b3m9: 01hx5zzkbkbctav9wevgemmvrz
+c4p1: 01hx5zzkbkcdtav9wevgemmvrz
 ```
 
-**Display prefix note:** Internal IDs use `is-` prefix.
-The `display.id_prefix` config (default: `bd`) controls how IDs are shown to users for
-Beads compatibility.
-When a user types `bd-a1b2c3`, it is resolved to internal `is-a1b2c3`. When displaying,
-the internal ID is shown with the configured prefix.
+**Mapping properties:**
+
+- **Synced**: File lives on sync branch, shared across all machines
+- **Immutable entries**: Once a mapping exists, it never changes
+- **Merge strategy**: Union (no conflicts since short IDs are unique)
+- **Collision handling**: On short ID collision, regenerate and retry
+
+#### ID Resolution (CLI)
+
+When a user provides an ID:
+
+```typescript
+async function resolveId(input: string, storage: Storage): Promise<string> {
+  // Strip display prefix if present (e.g., "bd-a7k2" → "a7k2")
+  const shortId = input.replace(/^[a-z]+-/, '');
+
+  // Look up in mapping file
+  const mapping = await storage.loadIdMapping();
+  const ulid = mapping.get(shortId);
+
+  if (!ulid) {
+    throw new CLIError(`Issue not found: ${input}`);
+  }
+
+  return `is-${ulid}`; // Return full internal ID
+}
+```
+
+**No prefix matching**: Unlike git refs, issue IDs are permanent references that appear
+in documentation, commit messages, and external systems.
+Prefix matching would cause ambiguity as more issues are created.
+Users always type the full short ID.
+
+#### File Naming
+
+Issue files use the full internal ID:
+
+```
+.tbd-sync/issues/is-01hx5zzkbkactav9wevgemmvrz.md
+```
+
+**Why ULID in filename?**
+
+- Files sort chronologically in directory listings
+- Git diffs show changes in creation order
+- No lookup needed to determine file path from internal ID
+
+#### Display Format
+
+```typescript
+function formatDisplayId(internalId: string, config: Config): string {
+  const ulid = internalId.replace(/^is-/, '');
+  const shortId = config.idMapping.getShortId(ulid);
+  const prefix = config.display.id_prefix ?? 'bd';
+  return `${prefix}-${shortId}`; // e.g., "bd-a7k2"
+}
+```
+
+**CLI flow example:**
+
+```
+User types:     bd-a7k2
+Lookup:         a7k2 → 01hx5zzkbkactav9wevgemmvrz
+Internal ID:    is-01hx5zzkbkactav9wevgemmvrz
+File path:      .tbd-sync/issues/is-01hx5zzkbkactav9wevgemmvrz.md
+Display back:   bd-a7k2
+```
 
 ### 2.6 Schemas
 
@@ -844,8 +928,17 @@ import { z } from 'zod';
 // ISO8601 timestamp
 const Timestamp = z.string().datetime();
 
-// Issue ID (stored IDs always have exactly 6 hex chars)
-const IssueId = z.string().regex(/^is-[a-f0-9]{6}$/);
+// Internal Issue ID: is-{ulid} where ULID is 26 lowercase chars
+// Example: is-01hx5zzkbkactav9wevgemmvrz
+const InternalIssueId = z.string().regex(/^is-[0-9a-z]{26}$/);
+
+// Short ID: 4-5 base36 chars (used in external/display IDs)
+// Example: a7k2, b3m9
+const ShortId = z.string().regex(/^[0-9a-z]{4,5}$/);
+
+// External Issue ID input: accepts {prefix}-{short} or just {short}
+// Example: bd-a7k2, a7k2
+const ExternalIssueIdInput = z.string().regex(/^([a-z]+-)?[0-9a-z]{4,5}$/);
 
 // Edit counter - incremented on every local change
 // IMPORTANT: Version is NOT used for conflict detection (content hash is used instead).
@@ -872,7 +965,7 @@ All entities share common fields:
 
 ```typescript
 const BaseEntity = z.object({
-  type: EntityType,           // Always "is" for issues
+  type: EntityType, // Always "is" for issues
   id: IssueId,
   version: Version,
   created_at: Timestamp,
@@ -887,8 +980,9 @@ const BaseEntity = z.object({
 > tools, bridges, and custom integrations to store metadata without modifying core
 > schemas. Keys should be namespaced (e.g., `github`, `slack`, `my-tool`). Unknown
 > extensions are preserved during sync and merge (pass-through).
-> 
+>
 > Example (in YAML front matter):
+>
 > ```yaml
 > extensions:
 >   github:
@@ -906,7 +1000,7 @@ const IssueKind = z.enum(['bug', 'feature', 'task', 'epic', 'chore']);
 const Priority = z.number().int().min(0).max(4);
 
 // Dependency types - using enum for extensibility (future: 'related', 'discovered-from')
-const DependencyType = z.enum(['blocks']);  // Currently only "blocks" supported
+const DependencyType = z.enum(['blocks']); // Currently only "blocks" supported
 
 const Dependency = z.object({
   type: DependencyType,
@@ -918,7 +1012,7 @@ const IssueSchema = BaseEntity.extend({
 
   title: z.string().min(1).max(500),
   description: z.string().max(50000).optional(),
-  notes: z.string().max(50000).optional(),      // Working notes (Beads parity)
+  notes: z.string().max(50000).optional(), // Working notes (Beads parity)
 
   kind: IssueKind.default('task'),
   status: IssueStatus.default('open'),
@@ -962,7 +1056,6 @@ type Issue = z.infer<typeof IssueSchema>;
 - `due_date` / `deferred_until`: Beads compatibility fields.
   Stored as full ISO8601 datetime.
   CLI accepts flexible input:
-
   - Full datetime: `2025-02-15T10:00:00Z`
 
   - Date only: `2025-02-15` (normalized to `2025-02-15T00:00:00Z` UTC)
@@ -986,36 +1079,42 @@ Project configuration stored in `.tbd/config.yml`:
 
 ```yaml
 # .tbd/config.yml
-tbd_version: "3.0.0"
+tbd_version: '3.0.0'
 
 sync:
-  branch: tbd-sync       # Branch name for synced data
-  remote: origin           # Remote repository
+  branch: tbd-sync # Branch name for synced data
+  remote: origin # Remote repository
 
 # Display settings
 display:
-  id_prefix: bd            # Show IDs as "bd-xxxx" for Beads compatibility
+  id_prefix: bd # Show IDs as "bd-xxxx" for Beads compatibility
 
 # Runtime settings
 settings:
-  auto_sync: false         # Auto-sync after write operations
-  index_enabled: true      # Use optional query index
+  auto_sync: false # Auto-sync after write operations
+  index_enabled: true # Use optional query index
 ```
 
 ```typescript
 const ConfigSchema = z.object({
   tbd_version: z.string(),
-  sync: z.object({
-    branch: z.string().default('tbd-sync'),
-    remote: z.string().default('origin'),
-  }).default({}),
-  display: z.object({
-    id_prefix: z.string().default('bd'),  // Beads compat
-  }).default({}),
-  settings: z.object({
-    auto_sync: z.boolean().default(false),
-    index_enabled: z.boolean().default(true),
-  }).default({}),
+  sync: z
+    .object({
+      branch: z.string().default('tbd-sync'),
+      remote: z.string().default('origin'),
+    })
+    .default({}),
+  display: z
+    .object({
+      id_prefix: z.string().default('bd'), // Beads compat
+    })
+    .default({}),
+  settings: z
+    .object({
+      auto_sync: z.boolean().default(false),
+      index_enabled: z.boolean().default(true),
+    })
+    .default({}),
 });
 ```
 
@@ -1042,11 +1141,11 @@ Each machine maintains its own local state:
 
 ```typescript
 const LocalStateSchema = z.object({
-  node_id: z.string().optional(),             // Unique identifier for this node
-  last_sync: Timestamp.optional(),            // When this node last synced successfully
-  last_push: Timestamp.optional(),            // When this node last pushed
-  last_pull: Timestamp.optional(),            // When this node last pulled
-  last_synced_commit: z.string().optional(),  // Git commit hash of last successful sync
+  node_id: z.string().optional(), // Unique identifier for this node
+  last_sync: Timestamp.optional(), // When this node last synced successfully
+  last_push: Timestamp.optional(), // When this node last pushed
+  last_pull: Timestamp.optional(), // When this node last pulled
+  last_synced_commit: z.string().optional(), // Git commit hash of last successful sync
 });
 ```
 
@@ -1075,7 +1174,7 @@ Preserved conflict losers:
 const AtticEntrySchema = z.object({
   entity_id: IssueId,
   timestamp: Timestamp,
-  field: z.string().optional(),      // Specific field or full entity
+  field: z.string().optional(), // Specific field or full entity
   lost_value: z.unknown(),
   winner_source: z.enum(['local', 'remote']),
   loser_source: z.enum(['local', 'remote']),
@@ -1088,7 +1187,7 @@ const AtticEntrySchema = z.object({
 });
 ```
 
-* * *
+---
 
 ## 3. Git Layer
 
@@ -1280,17 +1379,14 @@ conflict detection.
 > **Why content hash, not version?** In a distributed system, a higher version number
 > does NOT mean “contains the other writer’s changes”—it only means “edited more times
 > locally.”
-> 
+>
 > **Example of why version-only is unsafe:**
-> 
+>
 > - Base entity: version 3
->
 > - Agent A edits once → version 4
->
 > - Agent B (without seeing A) edits twice → version 5
->
 > - If A took remote because `5 > 4`, A’s edit would be silently lost.
-> 
+>
 > By merging whenever content differs, we ensure both writers’ changes are considered
 > and the loser is preserved in the attic.
 
@@ -1317,17 +1413,17 @@ conflict detection.
 
 Field-level merge strategies:
 
-| Strategy | Behavior | Used For |
-| --- | --- | --- |
-| `immutable` | Error if different | `type`, `id` |
-| `lww` | Last-write-wins by timestamp | Scalars (title, status, priority) |
-| `lww_with_attic` | LWW, preserve loser in attic | Long text (description) |
-| `union` | Combine arrays, dedupe, sort | Labels |
-| `merge_by_id` | Merge arrays by item ID, sort | Dependencies |
-| `max_plus_one` | `max(local, remote) + 1` | `version` |
-| `recalculate` | Fresh timestamp | `updated_at` |
-| `preserve_oldest` | Keep earliest value | `created_at`, `created_by` |
-| `deep_merge_by_key` | Union keys, LWW per key | `extensions` |
+| Strategy            | Behavior                      | Used For                          |
+| ------------------- | ----------------------------- | --------------------------------- |
+| `immutable`         | Error if different            | `type`, `id`                      |
+| `lww`               | Last-write-wins by timestamp  | Scalars (title, status, priority) |
+| `lww_with_attic`    | LWW, preserve loser in attic  | Long text (description)           |
+| `union`             | Combine arrays, dedupe, sort  | Labels                            |
+| `merge_by_id`       | Merge arrays by item ID, sort | Dependencies                      |
+| `max_plus_one`      | `max(local, remote) + 1`      | `version`                         |
+| `recalculate`       | Fresh timestamp               | `updated_at`                      |
+| `preserve_oldest`   | Keep earliest value           | `created_at`, `created_by`        |
+| `deep_merge_by_key` | Union keys, LWW per key       | `extensions`                      |
 
 **LWW Tie-Breaker Rule:**
 
@@ -1353,7 +1449,7 @@ const baseEntityMergeRules = {
   id: { strategy: 'immutable' },
   version: { strategy: 'max_plus_one' },
   created_at: { strategy: 'preserve_oldest' },
-  updated_at: { strategy: 'recalculate' },  // Always set to merge time
+  updated_at: { strategy: 'recalculate' }, // Always set to merge time
   extensions: { strategy: 'deep_merge_by_key' },
 };
 ```
@@ -1379,7 +1475,7 @@ const issueMergeRules: MergeRules<Issue> = {
   due_date: { strategy: 'lww' },
   deferred_until: { strategy: 'lww' },
   created_by: { strategy: 'preserve_oldest' },
-  closed_at: { strategy: 'lww' },  // See status/closed_at rules below
+  closed_at: { strategy: 'lww' }, // See status/closed_at rules below
   close_reason: { strategy: 'lww' },
 };
 ```
@@ -1398,14 +1494,14 @@ The `extensions` field uses per-namespace merging to preserve third-party data:
 
 ```typescript
 // Example: merging extensions
-local.extensions = { github: { issue: 123 }, slack: { channel: "dev" } };
-remote.extensions = { github: { pr: 456 }, jira: { key: "PROJ-1" } };
+local.extensions = { github: { issue: 123 }, slack: { channel: 'dev' } };
+remote.extensions = { github: { pr: 456 }, jira: { key: 'PROJ-1' } };
 
 // Result: union of keys, per-key LWW for conflicts
 merged.extensions = {
-  github: { pr: 456 },        // remote wins (LWW on github namespace)
-  slack: { channel: "dev" },  // preserved from local
-  jira: { key: "PROJ-1" }     // preserved from remote
+  github: { pr: 456 }, // remote wins (LWW on github namespace)
+  slack: { channel: 'dev' }, // preserved from local
+  jira: { key: 'PROJ-1' }, // preserved from remote
 };
 // Note: github.issue lost because remote's github namespace won LWW
 // The losing github namespace is preserved in attic
@@ -1442,7 +1538,7 @@ The attic preserves data lost in conflicts:
 }
 ```
 
-* * *
+---
 
 ## 4. CLI Layer
 
@@ -1493,6 +1589,7 @@ Options:
 6. Outputs instructions to commit config
 
 **Output:**
+
 ```
 Initialized tbd in /path/to/repo
 Created sync branch: tbd-sync
@@ -1531,6 +1628,7 @@ Options:
 > used for issue classification.
 
 **Examples:**
+
 ```bash
 tbd create "Fix authentication bug" -t bug -p 1
 tbd create "Add OAuth" -t feature -l backend -l security
@@ -1554,6 +1652,7 @@ tbd create --from-file new-issue.md
 - Title is required in the file’s frontmatter (or use `<title>` argument to override)
 
 **Output:**
+
 ```
 Created bd-a1b2: Fix authentication bug
 ```
@@ -1584,6 +1683,7 @@ Options:
 > closed issues.
 
 **Examples:**
+
 ```bash
 tbd list                             # Active issues only (excludes closed)
 tbd list --all                       # All issues including closed
@@ -1594,6 +1694,7 @@ tbd list --deferred
 ```
 
 **Output (human-readable):**
+
 ```
 ID        PRI  STATUS       TITLE
 bd-a1b2   1    in_progress  Fix authentication bug
@@ -1602,6 +1703,7 @@ bd-c3d4   3    blocked      Write API tests
 ```
 
 **Output (--json):**
+
 ```json
 [
   {
@@ -1706,6 +1808,7 @@ Options:
 ```
 
 **Examples:**
+
 ```bash
 tbd update bd-a1b2 --status in_progress
 tbd update bd-a1b2 --add-label urgent --priority 0
@@ -1741,6 +1844,7 @@ Options:
 ```
 
 **Examples:**
+
 ```bash
 tbd close bd-a1b2
 tbd close bd-a1b2 --reason "Fixed in commit abc123"
@@ -1794,6 +1898,7 @@ Options:
 ```
 
 **Output:**
+
 ```
 ISSUE       TITLE                    BLOCKED BY
 bd-c3d4     Write tests              bd-f14c (Add OAuth)
@@ -1815,6 +1920,7 @@ Options:
 ```
 
 **Examples:**
+
 ```bash
 tbd stale                    # Issues not updated in 7 days
 tbd stale --days 14          # Issues not updated in 14 days
@@ -1822,6 +1928,7 @@ tbd stale --status blocked   # Blocked issues that are stale
 ```
 
 **Output:**
+
 ```
 ISSUE       DAYS  STATUS       TITLE
 bd-a1b2     12    in_progress  Fix authentication bug
@@ -1842,6 +1949,7 @@ tbd label list
 ```
 
 **Examples:**
+
 ```bash
 tbd label add bd-a1b2 urgent
 tbd label remove bd-a1b2 low-priority
@@ -1862,6 +1970,7 @@ tbd dep tree <id>
 ```
 
 **Examples:**
+
 ```bash
 tbd dep add bd-c3d4 bd-f14c --type blocks
 tbd dep tree bd-a1b2
@@ -1886,12 +1995,14 @@ tbd sync --status
 ```
 
 **Output (sync):**
+
 ```
 Pulled 3 issues, pushed 2 issues
 No conflicts
 ```
 
 **Output (sync --status):**
+
 ```
 Local changes (not yet pushed):
   modified: is-a1b2.md
@@ -1923,6 +2034,7 @@ Options:
 ```
 
 **Examples:**
+
 ```bash
 # Basic search
 tbd search "authentication"
@@ -1944,6 +2056,7 @@ tbd search "FIXME" --count
 ```
 
 **Output (default):**
+
 ```
 bd-a1b2: Fix authentication timeout
   description (line 5): ...users experiencing authentication timeout after 5 minutes...
@@ -1955,6 +2068,7 @@ Found 2 issues with 2 matches
 ```
 
 **Output (--json):**
+
 ```json
 {
   "matches": [
@@ -2031,10 +2145,11 @@ This can be disabled with `--no-refresh`.
 > The threshold is configurable via `settings.search_staleness_minutes` in config.yml.
 
 **Configuration:**
+
 ```yaml
 # .tbd/config.yml
 settings:
-  search_staleness_minutes: 5  # Default: 5, set to 0 to always refresh, -1 to never
+  search_staleness_minutes: 5 # Default: 5, set to 0 to always refresh, -1 to never
 ```
 
 ```bash
@@ -2054,6 +2169,7 @@ Options:
 ```
 
 **Output:**
+
 ```
 Tbd Version: 3.0.0
 Sync Branch: tbd-sync
@@ -2065,6 +2181,7 @@ Issue Count: 127
 ```
 
 **Output (--json):**
+
 ```json
 {
   "tbd_version": "3.0.0",
@@ -2086,6 +2203,7 @@ tbd stats
 ```
 
 **Output:**
+
 ```
 Issues: 127
   Open: 43
@@ -2151,6 +2269,7 @@ tbd config --list
 ```
 
 **Examples:**
+
 ```bash
 tbd config sync.remote upstream
 tbd config display.id_prefix cd
@@ -2170,6 +2289,11 @@ Available on all commands:
 --json                      JSON output
 --color <when>              Colorize output: auto, always, never (default: auto)
 --actor <name>              Override actor name
+--dry-run                   Show what would be done without making changes
+--verbose                   Enable verbose output
+--quiet                     Suppress non-essential output
+--non-interactive           Disable all prompts, fail if input required
+--yes                       Assume yes to confirmation prompts
 ```
 
 **Color Output:**
@@ -2202,6 +2326,42 @@ Example: `tbd_ACTOR=claude-agent-1 tbd create "Fix bug"`
 > **Note:** `--db` is retained for Beads compatibility.
 > Prefer `--dir` for new usage.
 
+**Agent/Automation Flags:**
+
+These options enable non-interactive use in CI/CD pipelines and by AI agents:
+
+- `--non-interactive`: Disables all interactive prompts.
+  Commands that require user input will fail with an error instead of blocking.
+  Automatically enabled when `CI` environment variable is set or when stdin is not a
+  TTY.
+
+- `--yes`: Automatically answers “yes” to confirmation prompts.
+  Useful for batch operations or scripts.
+  Does not bypass `--non-interactive`—combine both for fully automated execution.
+
+- `--dry-run`: Shows what changes would be made without actually making them.
+  Essential for verifying agent-planned operations before execution.
+
+- `--verbose`: Enables detailed debug output to stderr.
+  Useful for troubleshooting.
+
+- `--quiet`: Suppresses informational messages.
+  Only errors and JSON data are output.
+  Combine with `--json` for pure machine-readable output.
+
+Example agent workflow:
+
+```bash
+# CI pipeline: create issue non-interactively
+CI=1 tbd create "Deploy failed" --kind bug --priority 2 --json
+
+# Agent: preview changes before committing
+tbd update td-abc1 --status done --dry-run --json
+
+# Batch script: close multiple issues
+tbd close td-abc1 td-abc2 td-abc3 --yes --quiet
+```
+
 ### 4.11 Attic Commands
 
 The attic preserves data lost in merge conflicts.
@@ -2216,9 +2376,9 @@ field:
 {entity-id}/{timestamp}_{field}
 
 Examples:
-  is-a1b2c3/2025-01-07T10-30-00Z_description
-  is-f14c3d/2025-01-08T09-00-00Z_title
-  is-a1b2c3/2025-01-07T11-45-00Z_full    # Full entity conflict (rare)
+  is-01hx5zzkbkactav9wevgemmvrz/2025-01-07T10-30-00Z_description
+  is-01hx5zzkbkbctav9wevgemmvrz/2025-01-08T09-00-00Z_title
+  is-01hx5zzkbkactav9wevgemmvrz/2025-01-07T11-45-00Z_full    # Full entity conflict (rare)
 ```
 
 - **entity-id**: The issue ID (e.g., `is-a1b2c3`)
@@ -2244,6 +2404,7 @@ Options:
 ```
 
 **Output:**
+
 ```
 TIMESTAMP                  ISSUE      FIELD        WINNER
 2025-01-07T10:30:00Z      bd-a1b2    description  remote
@@ -2260,6 +2421,7 @@ Options:
 ```
 
 **Output:**
+
 ```
 Attic Entry: 2025-01-07T10-30-00Z_description
 
@@ -2288,6 +2450,7 @@ Options:
 ```
 
 **Example:**
+
 ```bash
 # Preview restoration
 tbd attic restore 2025-01-07T10-30-00Z_description --dry-run
@@ -2319,7 +2482,7 @@ tbd attic restore 2025-01-07T10-30-00Z_description
 
 - Parseable by scripts
 
-* * *
+---
 
 ## 5. Beads Compatibility
 
@@ -2355,6 +2518,7 @@ Options:
 ```
 
 **Examples:**
+
 ```bash
 # Explicit file import (recommended for controlled migration)
 bd export > beads-export.jsonl
@@ -2644,12 +2808,12 @@ IMPORT_BEADS(jsonl_file):
 
 When re-importing an issue that already exists in Tbd:
 
-| Scenario | Behavior |
-| --- | --- |
-| Beads unchanged, Tbd unchanged | No-op |
-| Beads updated, Tbd unchanged | Update Tbd with Beads changes |
-| Beads unchanged, Tbd updated | Keep Tbd changes (skip) |
-| Both updated | Merge using LWW rules, loser to attic |
+| Scenario                       | Behavior                              |
+| ------------------------------ | ------------------------------------- |
+| Beads unchanged, Tbd unchanged | No-op                                 |
+| Beads updated, Tbd unchanged   | Update Tbd with Beads changes         |
+| Beads unchanged, Tbd updated   | Keep Tbd changes (skip)               |
+| Both updated                   | Merge using LWW rules, loser to attic |
 
 **Merge uses standard issue merge rules:**
 
@@ -2682,12 +2846,13 @@ Result: is-x1y2 has both changes:
 Beads uses `tombstone` status for soft-deleted issues.
 On import:
 
-| Beads Status | Tbd Behavior | Rationale |
-| --- | --- | --- |
-| `tombstone` (first import) | Skip by default | Don't import deleted issues |
-| `tombstone` (re-import) | Set `status: closed`, add label `deleted-in-beads` | Preserve history |
+| Beads Status               | Tbd Behavior                                       | Rationale                   |
+| -------------------------- | -------------------------------------------------- | --------------------------- |
+| `tombstone` (first import) | Skip by default                                    | Don't import deleted issues |
+| `tombstone` (re-import)    | Set `status: closed`, add label `deleted-in-beads` | Preserve history            |
 
 **Options:**
+
 ```bash
 tbd import beads.jsonl --include-tombstones  # Import tombstones as closed
 tbd import beads.jsonl --skip-tombstones     # Skip tombstones (default)
@@ -2731,6 +2896,7 @@ Import complete. Run 'tbd sync' to push changes.
 ```
 
 **With --dry-run:**
+
 ```bash
 $ tbd import beads-export.jsonl --dry-run
 
@@ -2789,31 +2955,31 @@ tbd sync
 
 ### 5.2 Command Mapping
 
-| Beads Command | Tbd Equivalent | Status | Notes |
-| --- | --- | --- | --- |
-| `bd init` | `tbd init` | ✅ Full | Identical behavior |
-| `bd create` | `tbd create` | ✅ Full | All options supported |
-| `bd list` | `tbd list` | ✅ Full | All filters supported |
-| `bd show` | `tbd show` | ✅ Full | Same output format |
-| `bd update` | `tbd update` | ✅ Full | All options supported |
-| `bd close` | `tbd close` | ✅ Full | With `--reason` |
-| `bd ready` | `tbd ready` | ✅ Full | Same algorithm |
-| `bd blocked` | `tbd blocked` | ✅ Full | Shows blocking issues |
-| `bd label add` | `tbd label add` | ✅ Full | Identical |
-| `bd label remove` | `tbd label remove` | ✅ Full | Identical |
-| `bd label list` | `tbd label list` | ✅ Full | Lists all labels |
-| `bd dep add` | `tbd dep add` | ✅ Full | Only "blocks" type |
-| `bd dep tree` | `tbd dep tree` | ✅ Full | Visualize dependencies |
-| `bd sync` | `tbd sync` | ✅ Full | Different mechanism, same UX |
-| `bd stats` | `tbd stats` | ✅ Full | Same statistics |
-| `bd doctor` | `tbd doctor` | ✅ Full | Different checks |
-| `bd info` | `tbd info` | ✅ Full | System status |
-| `bd config` | `tbd config` | ✅ Full | YAML not SQLite |
-| `bd compact` | `tbd compact` | 🔄 Future | Deferred |
-| `bd prime` | *(none)* | ❌ Not planned | Beads-specific feature |
-| `bd diagnose` | `tbd doctor` | ✅ Partial | Subset of diagnostics |
-| `bd import` | `tbd import` | ✅ Full | Beads JSONL import |
-| `bd export` | `tbd export` | 🔄 Future | Can export as JSON |
+| Beads Command     | Tbd Equivalent     | Status         | Notes                        |
+| ----------------- | ------------------ | -------------- | ---------------------------- |
+| `bd init`         | `tbd init`         | ✅ Full        | Identical behavior           |
+| `bd create`       | `tbd create`       | ✅ Full        | All options supported        |
+| `bd list`         | `tbd list`         | ✅ Full        | All filters supported        |
+| `bd show`         | `tbd show`         | ✅ Full        | Same output format           |
+| `bd update`       | `tbd update`       | ✅ Full        | All options supported        |
+| `bd close`        | `tbd close`        | ✅ Full        | With `--reason`              |
+| `bd ready`        | `tbd ready`        | ✅ Full        | Same algorithm               |
+| `bd blocked`      | `tbd blocked`      | ✅ Full        | Shows blocking issues        |
+| `bd label add`    | `tbd label add`    | ✅ Full        | Identical                    |
+| `bd label remove` | `tbd label remove` | ✅ Full        | Identical                    |
+| `bd label list`   | `tbd label list`   | ✅ Full        | Lists all labels             |
+| `bd dep add`      | `tbd dep add`      | ✅ Full        | Only "blocks" type           |
+| `bd dep tree`     | `tbd dep tree`     | ✅ Full        | Visualize dependencies       |
+| `bd sync`         | `tbd sync`         | ✅ Full        | Different mechanism, same UX |
+| `bd stats`        | `tbd stats`        | ✅ Full        | Same statistics              |
+| `bd doctor`       | `tbd doctor`       | ✅ Full        | Different checks             |
+| `bd info`         | `tbd info`         | ✅ Full        | System status                |
+| `bd config`       | `tbd config`       | ✅ Full        | YAML not SQLite              |
+| `bd compact`      | `tbd compact`      | 🔄 Future      | Deferred                     |
+| `bd prime`        | _(none)_           | ❌ Not planned | Beads-specific feature       |
+| `bd diagnose`     | `tbd doctor`       | ✅ Partial     | Subset of diagnostics        |
+| `bd import`       | `tbd import`       | ✅ Full        | Beads JSONL import           |
+| `bd export`       | `tbd export`       | 🔄 Future      | Can export as JSON           |
 
 **Legend:**
 
@@ -2827,36 +2993,36 @@ tbd sync
 
 ### 5.3 Field Mapping
 
-| Beads Field | Tbd Field | Notes |
-| --- | --- | --- |
-| `id` | `id` | New format: `is-xxxx` vs `bd-xxxx` |
-| `title` | `title` | Identical |
-| `description` | `description` | Identical |
-| `type` | `kind` | Renamed for clarity (`type` = entity discriminator) |
-| `status` | `status` | See status mapping below |
-| `priority` | `priority` | Identical (0-4) |
-| `assignee` | `assignee` | Identical |
-| `labels` | `labels` | Identical |
-| `dependencies` | `dependencies` | Only "blocks" type currently |
-| `created_at` | `created_at` | Identical |
-| `updated_at` | `updated_at` | Identical |
-| `closed_at` | `closed_at` | Identical |
-| `due` | `due_date` | Renamed |
-| `defer` | `deferred_until` | Renamed |
-| `parent` | `parent_id` | Renamed |
-| *(implicit)* | `version` | New: conflict resolution |
-| *(implicit)* | `type` | New: entity discriminator ("is") |
+| Beads Field    | Tbd Field        | Notes                                               |
+| -------------- | ---------------- | --------------------------------------------------- |
+| `id`           | `id`             | New format: `is-xxxx` vs `bd-xxxx`                  |
+| `title`        | `title`          | Identical                                           |
+| `description`  | `description`    | Identical                                           |
+| `type`         | `kind`           | Renamed for clarity (`type` = entity discriminator) |
+| `status`       | `status`         | See status mapping below                            |
+| `priority`     | `priority`       | Identical (0-4)                                     |
+| `assignee`     | `assignee`       | Identical                                           |
+| `labels`       | `labels`         | Identical                                           |
+| `dependencies` | `dependencies`   | Only "blocks" type currently                        |
+| `created_at`   | `created_at`     | Identical                                           |
+| `updated_at`   | `updated_at`     | Identical                                           |
+| `closed_at`    | `closed_at`      | Identical                                           |
+| `due`          | `due_date`       | Renamed                                             |
+| `defer`        | `deferred_until` | Renamed                                             |
+| `parent`       | `parent_id`      | Renamed                                             |
+| _(implicit)_   | `version`        | New: conflict resolution                            |
+| _(implicit)_   | `type`           | New: entity discriminator ("is")                    |
 
 ### 5.4 Status Mapping
 
-| Beads Status | Tbd Status | Migration Behavior |
-| --- | --- | --- |
-| `open` | `open` | Direct mapping |
-| `in_progress` | `in_progress` | Direct mapping |
-| `blocked` | `blocked` | Direct mapping |
-| `deferred` | `deferred` | Direct mapping |
-| `closed` | `closed` | Direct mapping |
-| `tombstone` | *(deleted)* | Skip on import or move to attic |
+| Beads Status  | Tbd Status    | Migration Behavior              |
+| ------------- | ------------- | ------------------------------- |
+| `open`        | `open`        | Direct mapping                  |
+| `in_progress` | `in_progress` | Direct mapping                  |
+| `blocked`     | `blocked`     | Direct mapping                  |
+| `deferred`    | `deferred`    | Direct mapping                  |
+| `closed`      | `closed`      | Direct mapping                  |
+| `tombstone`   | _(deleted)_   | Skip on import or move to attic |
 
 **Tombstone handling:**
 
@@ -2919,11 +3085,12 @@ Tbd options:
 
 **ID format:**
 
-- Beads: `bd-xxxx` (4-6 hex chars)
+- Beads: `bd-xxxx` (4-6 hex chars, random)
 
-- Tbd: `is-xxxx` (4-6 hex chars)
-
-  - Display as `bd-xxxx` via `display.id_prefix` config
+- Tbd: Dual ID system
+  - Internal: `is-{ulid}` (26 chars, time-sortable)
+  - External: `{prefix}-{short}` (4-5 base36 chars, e.g., `bd-a7k2`)
+  - Display prefix configurable via `display.id_prefix` config
 
 ### 5.6 Compatibility Contract
 
@@ -2938,7 +3105,9 @@ CLI output.
 
 - Command names and primary flags listed in this spec
 
-- ID format pattern: `{prefix}-{6 hex chars}`
+- External ID format: `{prefix}-{4-5 base36 chars}` (e.g., `bd-a7k2`)
+
+- Internal ID format: `is-{26 char ulid}` (e.g., `is-01hx5zzkbkactav9wevgemmvrz`)
 
 **Stable with deprecation warnings:**
 
@@ -2968,21 +3137,20 @@ These flags/behaviors are maintained for Beads script compatibility:
 
 #### Migration Gotchas
 
-1. **IDs change**: Beads `bd-a1b2` becomes Tbd `is-a1b2` internally
-
-   - Set `display.id_prefix: bd` to show as `bd-a1b2`
-
-   - Old references in commit messages won’t auto-link
+1. **IDs change**: Beads `bd-a1b2` becomes a new short ID (e.g., `bd-x7k2`)
+   - Internal ID is ULID-based: `is-01hx5zzkbk...`
+   - Set `display.id_prefix: bd` to keep `bd-` prefix familiar
+   - Old Beads IDs in commit messages won’t auto-link to new IDs
+   - Mapping file `.tbd-sync/mappings/beads.yml` preserves the relationship
 
 2. **No daemon**: Background sync must be manual or cron-based
 
 3. **No auto-flush**: Beads auto-syncs on write
-
    - Tbd syncs on `tbd sync` or with `settings.auto_sync: true` in config
 
 4. **Tombstone issues**: Decide import behavior (skip/convert/attic)
 
-* * *
+---
 
 ## 6. Implementation Notes
 
@@ -3004,8 +3172,8 @@ interface Index {
   by_label: { [label: string]: string[] };
 
   // Freshness tracking
-  last_updated: string;           // ISO8601 timestamp
-  baseline_commit: string;        // Git commit hash this index was built from
+  last_updated: string; // ISO8601 timestamp
+  baseline_commit: string; // Git commit hash this index was built from
 }
 ```
 
@@ -3136,7 +3304,7 @@ even at scale.
 
 - Full cutover when confident
 
-* * *
+---
 
 ## 7. Appendices
 
@@ -3202,23 +3370,33 @@ even at scale.
 
 - Users must understand two branches
 
-#### Decision 4: Display ID prefix for Beads compat
+#### Decision 4: Dual ID system (ULID + short base36)
 
-**Choice**: Internal `is-xxxx`, display as `bd-xxxx`
+**Choice**: Internal IDs use ULID (`is-{ulid}`), external IDs use short base36
+(`{prefix}-{short}`)
 
 **Rationale**:
 
-- Smooth migration from Beads
-
-- Familiar UX for existing users
-
-- Internal prefix distinguishes entity types
+- **Time-ordered sorting**: ULIDs sort chronologically, useful for debugging and
+  listings
+- **No collisions**: ULID’s 80-bit randomness eliminates collision retry logic
+- **Cross-project merging**: Multiple projects can merge their issues without internal
+  ID collisions (external IDs may need different prefixes)
+- **Human-friendly**: Short base36 IDs (4-5 chars) are easy to type and remember
+- **Permanent references**: External IDs are stable for docs, commits, external systems
+- **Beads compatibility**: Configurable display prefix (`bd-`) for migration
 
 **Tradeoffs**:
 
-- Two ID formats to understand
+- Two ID formats to understand (internal vs external)
+- Mapping file adds small complexity
+- Longer internal IDs in file paths
 
-- Config adds complexity
+**Mitigations**:
+
+- Users only interact with short external IDs
+- Mapping file syncs automatically
+- ULID sorting benefits outweigh longer paths
 
 #### Decision 5: Only “blocks” dependencies
 
@@ -3306,19 +3484,16 @@ checkout.
 **Alternatives Considered**:
 
 1. **Isolated index (`GIT_INDEX_FILE`)**: Use git plumbing with isolated index
-
    - Pro: Minimal disk usage, no extra checkout
 
    - Con: Files not accessible to ripgrep/grep for searching
 
 2. **Sparse checkout**: Checkout only `.tbd-sync/` directory
-
    - Pro: Files accessible, minimal overhead
 
    - Con: Pollutes user’s working directory, shows in `git status`
 
 3. **Hidden worktree**: Separate checkout at `.tbd/.worktree/`
-
    - Pro: Files accessible for search, isolated from user’s work
 
    - Con: Additional disk space for second checkout
@@ -3487,26 +3662,29 @@ repo/
 │
 └── (on tbd-sync branch)
     └── .tbd-sync/
-        ├── issues/                 # Issue entities
-        │   ├── is-a1b2.md
-        │   └── is-f14c.md
+        ├── issues/                 # Issue entities (ULID-named files)
+        │   ├── is-01hx5zzkbkactav9wevgemmvrz.md
+        │   └── is-01hx5zzkbkbctav9wevgemmvrz.md
+        ├── mappings/               # ID mappings
+        │   ├── ids.yml            # short → ULID (e.g., a7k2 → 01hx5zzk...)
+        │   └── beads.yml          # Beads imports
         ├── attic/                  # Conflict archive
         │   └── conflicts/
-        │       └── is-a1b2/
+        │       └── is-01hx5zzkbkactav9wevgemmvrz/
         │           └── 2025-01-07T10-30-00Z_description.yml
         └── meta.yml               # Metadata
 ```
 
 **File counts (example with 1,000 issues):**
 
-| Location | Files | Size |
-| --- | --- | --- |
-| `.tbd/` | 3 | <1 KB |
-| `.tbd/cache/` | 1-2 | <500 KB |
-| `.tbd-sync/issues/` | 1,000 | ~2 MB |
-| `.tbd-sync/attic/` | 10-50 | <100 KB |
+| Location            | Files | Size    |
+| ------------------- | ----- | ------- |
+| `.tbd/`             | 3     | <1 KB   |
+| `.tbd/cache/`       | 1-2   | <500 KB |
+| `.tbd-sync/issues/` | 1,000 | ~2 MB   |
+| `.tbd-sync/attic/`  | 10-50 | <100 KB |
 
-* * *
+---
 
 ## Appendix A: Beads to Tbd Feature Mapping
 
@@ -3518,14 +3696,14 @@ planning and compatibility reference.
 Tbd provides CLI-level compatibility with Beads for core issue tracking while
 simplifying the architecture:
 
-| Aspect | Beads | Tbd |
-| --- | --- | --- |
-| Data locations | 4 (SQLite, local JSONL, sync branch, main) | 2 (files on sync branch, config on main) |
-| Storage | SQLite + JSONL | Markdown + YAML (file-per-entity) |
-| Daemon | Required (recommended) | Not required |
-| Agent coordination | External (Agent Mail) | Deferred |
-| Comments | Embedded in issue | Deferred |
-| Conflict resolution | 3-way merge | Content hash LWW + attic |
+| Aspect              | Beads                                      | Tbd                                      |
+| ------------------- | ------------------------------------------ | ---------------------------------------- |
+| Data locations      | 4 (SQLite, local JSONL, sync branch, main) | 2 (files on sync branch, config on main) |
+| Storage             | SQLite + JSONL                             | Markdown + YAML (file-per-entity)        |
+| Daemon              | Required (recommended)                     | Not required                             |
+| Agent coordination  | External (Agent Mail)                      | Deferred                                 |
+| Comments            | Embedded in issue                          | Deferred                                 |
+| Conflict resolution | 3-way merge                                | Content hash LWW + attic                 |
 
 **Core finding:** All essential Beads issue-tracking workflows have direct CLI
 equivalents in Tbd.
@@ -3536,64 +3714,64 @@ explicitly deferred.
 
 #### A.2.1 Issue Commands (Full Parity)
 
-| Beads Command | Tbd Command | Status | Notes |
-| --- | --- | --- | --- |
-| `bd create "Title"` | `tbd create "Title"` | ✅ Full | Identical |
-| `bd create "Title" -t type` | `tbd create "Title" -t type` | ✅ Full | Same flag |
-| `bd create "Title" -p N` | `tbd create "Title" -p N` | ✅ Full | Priority 0-4 |
-| `bd create "Title" -d "desc"` | `tbd create "Title" -d "desc"` | ✅ Full | Description |
-| `bd create "Title" -f file.md` | `tbd create "Title" -f file.md` | ✅ Full | Body from file |
-| `bd create "Title" -l label` | `tbd create "Title" -l label` | ✅ Full | Repeatable |
-| `bd create "Title" --assignee X` | `tbd create "Title" --assignee X` | ✅ Full | Identical |
-| `bd create "Title" --parent <id>` | `tbd create "Title" --parent <id>` | ✅ Full | Hierarchical |
-| `bd create "Title" --due <date>` | `tbd create "Title" --due <date>` | ✅ Full | Due date |
-| `bd create "Title" --defer <date>` | `tbd create "Title" --defer <date>` | ✅ Full | Defer until |
-| `bd list` | `tbd list` | ✅ Full | Identical |
-| `bd list --status X` | `tbd list --status X` | ✅ Full | Identical |
-| `bd list --type X` | `tbd list --type X` | ✅ Full | Identical |
-| `bd list --priority N` | `tbd list --priority N` | ✅ Full | Identical |
-| `bd list --assignee X` | `tbd list --assignee X` | ✅ Full | Identical |
-| `bd list --label X` | `tbd list --label X` | ✅ Full | Repeatable |
-| `bd list --parent <id>` | `tbd list --parent <id>` | ✅ Full | List children |
-| `bd list --deferred` | `tbd list --deferred` | ✅ Full | Deferred issues |
-| `bd list --sort X` | `tbd list --sort X` | ✅ Full | priority/created/updated |
-| `bd list --limit N` | `tbd list --limit N` | ✅ Full | Identical |
-| `bd list --json` | `tbd list --json` | ✅ Full | JSON output |
-| `bd show <id>` | `tbd show <id>` | ✅ Full | Identical |
-| `bd update <id> --status X` | `tbd update <id> --status X` | ✅ Full | Identical |
-| `bd update <id> --priority N` | `tbd update <id> --priority N` | ✅ Full | Identical |
-| `bd update <id> --assignee X` | `tbd update <id> --assignee X` | ✅ Full | Identical |
-| `bd update <id> --description X` | `tbd update <id> --description X` | ✅ Full | Identical |
-| `bd update <id> --type X` | `tbd update <id> --type X` | ✅ Full | Identical |
-| `bd update <id> --due <date>` | `tbd update <id> --due <date>` | ✅ Full | Identical |
-| `bd update <id> --defer <date>` | `tbd update <id> --defer <date>` | ✅ Full | Identical |
-| `bd update <id> --parent <id>` | `tbd update <id> --parent <id>` | ✅ Full | Identical |
-| `bd close <id>` | `tbd close <id>` | ✅ Full | Identical |
-| `bd close <id> --reason "X"` | `tbd close <id> --reason "X"` | ✅ Full | With reason |
-| `bd reopen <id>` | `tbd reopen <id>` | ✅ Full | Identical |
-| `bd ready` | `tbd ready` | ✅ Full | Identical algorithm |
-| `bd blocked` | `tbd blocked` | ✅ Full | Shows blockers |
+| Beads Command                      | Tbd Command                         | Status  | Notes                    |
+| ---------------------------------- | ----------------------------------- | ------- | ------------------------ |
+| `bd create "Title"`                | `tbd create "Title"`                | ✅ Full | Identical                |
+| `bd create "Title" -t type`        | `tbd create "Title" -t type`        | ✅ Full | Same flag                |
+| `bd create "Title" -p N`           | `tbd create "Title" -p N`           | ✅ Full | Priority 0-4             |
+| `bd create "Title" -d "desc"`      | `tbd create "Title" -d "desc"`      | ✅ Full | Description              |
+| `bd create "Title" -f file.md`     | `tbd create "Title" -f file.md`     | ✅ Full | Body from file           |
+| `bd create "Title" -l label`       | `tbd create "Title" -l label`       | ✅ Full | Repeatable               |
+| `bd create "Title" --assignee X`   | `tbd create "Title" --assignee X`   | ✅ Full | Identical                |
+| `bd create "Title" --parent <id>`  | `tbd create "Title" --parent <id>`  | ✅ Full | Hierarchical             |
+| `bd create "Title" --due <date>`   | `tbd create "Title" --due <date>`   | ✅ Full | Due date                 |
+| `bd create "Title" --defer <date>` | `tbd create "Title" --defer <date>` | ✅ Full | Defer until              |
+| `bd list`                          | `tbd list`                          | ✅ Full | Identical                |
+| `bd list --status X`               | `tbd list --status X`               | ✅ Full | Identical                |
+| `bd list --type X`                 | `tbd list --type X`                 | ✅ Full | Identical                |
+| `bd list --priority N`             | `tbd list --priority N`             | ✅ Full | Identical                |
+| `bd list --assignee X`             | `tbd list --assignee X`             | ✅ Full | Identical                |
+| `bd list --label X`                | `tbd list --label X`                | ✅ Full | Repeatable               |
+| `bd list --parent <id>`            | `tbd list --parent <id>`            | ✅ Full | List children            |
+| `bd list --deferred`               | `tbd list --deferred`               | ✅ Full | Deferred issues          |
+| `bd list --sort X`                 | `tbd list --sort X`                 | ✅ Full | priority/created/updated |
+| `bd list --limit N`                | `tbd list --limit N`                | ✅ Full | Identical                |
+| `bd list --json`                   | `tbd list --json`                   | ✅ Full | JSON output              |
+| `bd show <id>`                     | `tbd show <id>`                     | ✅ Full | Identical                |
+| `bd update <id> --status X`        | `tbd update <id> --status X`        | ✅ Full | Identical                |
+| `bd update <id> --priority N`      | `tbd update <id> --priority N`      | ✅ Full | Identical                |
+| `bd update <id> --assignee X`      | `tbd update <id> --assignee X`      | ✅ Full | Identical                |
+| `bd update <id> --description X`   | `tbd update <id> --description X`   | ✅ Full | Identical                |
+| `bd update <id> --type X`          | `tbd update <id> --type X`          | ✅ Full | Identical                |
+| `bd update <id> --due <date>`      | `tbd update <id> --due <date>`      | ✅ Full | Identical                |
+| `bd update <id> --defer <date>`    | `tbd update <id> --defer <date>`    | ✅ Full | Identical                |
+| `bd update <id> --parent <id>`     | `tbd update <id> --parent <id>`     | ✅ Full | Identical                |
+| `bd close <id>`                    | `tbd close <id>`                    | ✅ Full | Identical                |
+| `bd close <id> --reason "X"`       | `tbd close <id> --reason "X"`       | ✅ Full | With reason              |
+| `bd reopen <id>`                   | `tbd reopen <id>`                   | ✅ Full | Identical                |
+| `bd ready`                         | `tbd ready`                         | ✅ Full | Identical algorithm      |
+| `bd blocked`                       | `tbd blocked`                       | ✅ Full | Shows blockers           |
 
 #### A.2.2 Label Commands (Full Parity)
 
-| Beads Command | Tbd Command | Status | Notes |
-| --- | --- | --- | --- |
-| `bd label add <id> <label>` | `tbd label add <id> <label>` | ✅ Full | Identical |
-| `bd label remove <id> <label>` | `tbd label remove <id> <label>` | ✅ Full | Identical |
-| `bd label list` | `tbd label list` | ✅ Full | All labels in use |
+| Beads Command                  | Tbd Command                     | Status  | Notes             |
+| ------------------------------ | ------------------------------- | ------- | ----------------- |
+| `bd label add <id> <label>`    | `tbd label add <id> <label>`    | ✅ Full | Identical         |
+| `bd label remove <id> <label>` | `tbd label remove <id> <label>` | ✅ Full | Identical         |
+| `bd label list`                | `tbd label list`                | ✅ Full | All labels in use |
 
 Also available via update: `tbd update <id> --add-label X` and `--remove-label X`
 
 #### A.2.3 Dependency Commands (Partial - blocks only)
 
-| Beads Command | Tbd Command | Status | Notes |
-| --- | --- | --- | --- |
-| `bd dep add <a> <b>` | `tbd dep add <id> <target>` | ✅ Full | Default: blocks |
-| `bd dep add <a> <b> --type blocks` | `tbd dep add <id> <target> --type blocks` | ✅ Full | Identical |
-| `bd dep add <a> <b> --type related` | *(not yet)* | ⏳ Future | Only blocks |
-| `bd dep add <a> <b> --type discovered-from` | *(not yet)* | ⏳ Future | Only blocks |
-| `bd dep remove <a> <b>` | `tbd dep remove <id> <target>` | ✅ Full | Identical |
-| `bd dep tree <id>` | `tbd dep tree <id>` | ✅ Full | Visualize deps |
+| Beads Command                               | Tbd Command                               | Status    | Notes           |
+| ------------------------------------------- | ----------------------------------------- | --------- | --------------- |
+| `bd dep add <a> <b>`                        | `tbd dep add <id> <target>`               | ✅ Full   | Default: blocks |
+| `bd dep add <a> <b> --type blocks`          | `tbd dep add <id> <target> --type blocks` | ✅ Full   | Identical       |
+| `bd dep add <a> <b> --type related`         | _(not yet)_                               | ⏳ Future | Only blocks     |
+| `bd dep add <a> <b> --type discovered-from` | _(not yet)_                               | ⏳ Future | Only blocks     |
+| `bd dep remove <a> <b>`                     | `tbd dep remove <id> <target>`            | ✅ Full   | Identical       |
+| `bd dep tree <id>`                          | `tbd dep tree <id>`                       | ✅ Full   | Visualize deps  |
 
 **Note:** Currently supports only `blocks` dependency type.
 This is sufficient for the `ready` command algorithm.
@@ -3601,128 +3779,135 @@ This is sufficient for the `ready` command algorithm.
 
 #### A.2.4 Sync Commands (Full Parity)
 
-| Beads Command | Tbd Command | Status | Notes |
-| --- | --- | --- | --- |
-| `bd sync` | `tbd sync` | ✅ Full | Pull then push |
-| `bd sync --pull` | `tbd sync --pull` | ✅ Full | Pull only |
-| `bd sync --push` | `tbd sync --push` | ✅ Full | Push only |
-| *(no equivalent)* | `tbd sync --status` | ✅ New | Show pending changes |
+| Beads Command     | Tbd Command         | Status  | Notes                |
+| ----------------- | ------------------- | ------- | -------------------- |
+| `bd sync`         | `tbd sync`          | ✅ Full | Pull then push       |
+| `bd sync --pull`  | `tbd sync --pull`   | ✅ Full | Pull only            |
+| `bd sync --push`  | `tbd sync --push`   | ✅ Full | Push only            |
+| _(no equivalent)_ | `tbd sync --status` | ✅ New  | Show pending changes |
 
 #### A.2.5 Maintenance Commands (Full Parity)
 
-| Beads Command | Tbd Command | Status | Notes |
-| --- | --- | --- | --- |
-| `bd init` | `tbd init` | ✅ Full | Identical |
-| `bd info` | `tbd info` | ✅ Full | System status |
-| `bd doctor` | `tbd doctor` | ✅ Full | Health checks |
-| `bd doctor --fix` | `tbd doctor --fix` | ✅ Full | Auto-fix |
-| `bd stats` | `tbd stats` | ✅ Full | Issue statistics |
-| `bd import` | `tbd import <file>` | ✅ Full | Beads JSONL import |
-| `bd export` | *(not yet)* | ⏳ Future | Files are the format |
-| `bd config` | `tbd config` | ✅ Full | YAML config |
-| `bd compact` | *(not yet)* | ⏳ Future | Memory decay |
+| Beads Command     | Tbd Command         | Status    | Notes                |
+| ----------------- | ------------------- | --------- | -------------------- |
+| `bd init`         | `tbd init`          | ✅ Full   | Identical            |
+| `bd info`         | `tbd info`          | ✅ Full   | System status        |
+| `bd doctor`       | `tbd doctor`        | ✅ Full   | Health checks        |
+| `bd doctor --fix` | `tbd doctor --fix`  | ✅ Full   | Auto-fix             |
+| `bd stats`        | `tbd stats`         | ✅ Full   | Issue statistics     |
+| `bd import`       | `tbd import <file>` | ✅ Full   | Beads JSONL import   |
+| `bd export`       | _(not yet)_         | ⏳ Future | Files are the format |
+| `bd config`       | `tbd config`        | ✅ Full   | YAML config          |
+| `bd compact`      | _(not yet)_         | ⏳ Future | Memory decay         |
 
 #### A.2.6 Global Options (Full Parity)
 
-| Beads Option | Tbd Option | Status | Notes |
-| --- | --- | --- | --- |
-| `--json` | `--json` | ✅ Full | JSON output |
-| `--help` | `--help` | ✅ Full | Help text |
-| `--version` | `--version` | ✅ Full | Version info |
-| `--db <path>` | `--db <path>` | ✅ Full | Custom .tbd path |
-| `--no-sync` | `--no-sync` | ✅ Full | Skip auto-sync |
-| `--actor <name>` | `--actor <name>` | ✅ Full | Override actor |
+| Beads Option     | Tbd Option          | Status  | Notes            |
+| ---------------- | ------------------- | ------- | ---------------- |
+| `--json`         | `--json`            | ✅ Full | JSON output      |
+| `--help`         | `--help`            | ✅ Full | Help text        |
+| `--version`      | `--version`         | ✅ Full | Version info     |
+| `--db <path>`    | `--db <path>`       | ✅ Full | Custom .tbd path |
+| `--no-sync`      | `--no-sync`         | ✅ Full | Skip auto-sync   |
+| `--actor <name>` | `--actor <name>`    | ✅ Full | Override actor   |
+| _(n/a)_          | `--dry-run`         | ✅ Tbd  | Preview changes  |
+| _(n/a)_          | `--verbose`         | ✅ Tbd  | Debug output     |
+| _(n/a)_          | `--quiet`           | ✅ Tbd  | Minimal output   |
+| _(n/a)_          | `--non-interactive` | ✅ Tbd  | Agent/CI mode    |
+| _(n/a)_          | `--yes`             | ✅ Tbd  | Auto-confirm     |
+| _(n/a)_          | `--color <when>`    | ✅ Tbd  | Color control    |
 
 ### A.3 Data Model Mapping
 
 #### A.3.1 Issue Schema
 
-| Beads Field | Tbd Field | Status | Notes |
-| --- | --- | --- | --- |
-| `id` | `id` | ✅ | `bd-xxxx` → display prefix configurable |
-| `title` | `title` | ✅ | Identical |
-| `description` | `description` | ✅ | Identical |
-| `notes` | `notes` | ✅ | Working notes field |
-| `issue_type` | `kind` | ✅ | Renamed for clarity |
-| `status` | `status` | ✅ | Full parity (see below) |
-| `priority` | `priority` | ✅ | 0-4, identical |
-| `assignee` | `assignee` | ✅ | Identical |
-| `labels` | `labels` | ✅ | Identical |
-| `dependencies` | `dependencies` | ✅ | Only `blocks` currently |
-| `parent_id` | `parent_id` | ✅ | Identical |
-| `created_at` | `created_at` | ✅ | Identical |
-| `updated_at` | `updated_at` | ✅ | Identical |
-| `created_by` | `created_by` | ✅ | Identical |
-| `closed_at` | `closed_at` | ✅ | Identical |
-| `close_reason` | `close_reason` | ✅ | Identical |
-| `due` | `due_date` | ✅ | Renamed |
-| `defer` | `deferred_until` | ✅ | Renamed |
-| *(implicit)* | `version` | ✅ | New: conflict resolution |
-| *(implicit)* | `type` | ✅ | New: entity discriminator ("is") |
-| `comments` | *(future)* | ⏳ | Separate messages entity |
+| Beads Field    | Tbd Field        | Status | Notes                                   |
+| -------------- | ---------------- | ------ | --------------------------------------- |
+| `id`           | `id`             | ✅     | `bd-xxxx` → display prefix configurable |
+| `title`        | `title`          | ✅     | Identical                               |
+| `description`  | `description`    | ✅     | Identical                               |
+| `notes`        | `notes`          | ✅     | Working notes field                     |
+| `issue_type`   | `kind`           | ✅     | Renamed for clarity                     |
+| `status`       | `status`         | ✅     | Full parity (see below)                 |
+| `priority`     | `priority`       | ✅     | 0-4, identical                          |
+| `assignee`     | `assignee`       | ✅     | Identical                               |
+| `labels`       | `labels`         | ✅     | Identical                               |
+| `dependencies` | `dependencies`   | ✅     | Only `blocks` currently                 |
+| `parent_id`    | `parent_id`      | ✅     | Identical                               |
+| `created_at`   | `created_at`     | ✅     | Identical                               |
+| `updated_at`   | `updated_at`     | ✅     | Identical                               |
+| `created_by`   | `created_by`     | ✅     | Identical                               |
+| `closed_at`    | `closed_at`      | ✅     | Identical                               |
+| `close_reason` | `close_reason`   | ✅     | Identical                               |
+| `due`          | `due_date`       | ✅     | Renamed                                 |
+| `defer`        | `deferred_until` | ✅     | Renamed                                 |
+| _(implicit)_   | `version`        | ✅     | New: conflict resolution                |
+| _(implicit)_   | `type`           | ✅     | New: entity discriminator ("is")        |
+| `comments`     | _(future)_       | ⏳     | Separate messages entity                |
 
 #### A.3.2 Status Values
 
-| Beads Status | Tbd Status | Migration |
-| --- | --- | --- |
-| `open` | `open` | ✅ Direct |
-| `in_progress` | `in_progress` | ✅ Direct |
-| `blocked` | `blocked` | ✅ Direct |
-| `deferred` | `deferred` | ✅ Direct |
-| `closed` | `closed` | ✅ Direct |
-| `tombstone` | *(deleted)* | ✅ Skip or move to attic |
-| `pinned` | *(label)* | ✅ Convert to label on import |
-| `hooked` | *(label)* | ✅ Convert to label on import |
+| Beads Status  | Tbd Status    | Migration                     |
+| ------------- | ------------- | ----------------------------- |
+| `open`        | `open`        | ✅ Direct                     |
+| `in_progress` | `in_progress` | ✅ Direct                     |
+| `blocked`     | `blocked`     | ✅ Direct                     |
+| `deferred`    | `deferred`    | ✅ Direct                     |
+| `closed`      | `closed`      | ✅ Direct                     |
+| `tombstone`   | _(deleted)_   | ✅ Skip or move to attic      |
+| `pinned`      | _(label)_     | ✅ Convert to label on import |
+| `hooked`      | _(label)_     | ✅ Convert to label on import |
 
 #### A.3.3 Issue Types/Kinds
 
-| Beads Type | Tbd Kind | Status |
-| --- | --- | --- |
-| `bug` | `bug` | ✅ |
-| `feature` | `feature` | ✅ |
-| `task` | `task` | ✅ |
-| `epic` | `epic` | ✅ |
-| `chore` | `chore` | ✅ |
-| `message` | *(future)* | ⏳ Separate entity |
-| `agent` | *(future)* | ⏳ Separate entity |
+| Beads Type | Tbd Kind   | Status             |
+| ---------- | ---------- | ------------------ |
+| `bug`      | `bug`      | ✅                 |
+| `feature`  | `feature`  | ✅                 |
+| `task`     | `task`     | ✅                 |
+| `epic`     | `epic`     | ✅                 |
+| `chore`    | `chore`    | ✅                 |
+| `message`  | _(future)_ | ⏳ Separate entity |
+| `agent`    | _(future)_ | ⏳ Separate entity |
 
 #### A.3.4 Dependency Types
 
-| Beads Type | Tbd Type | Status |
-| --- | --- | --- |
-| `blocks` | `blocks` | ✅ Supported |
-| `related` | `related` | ⏳ Future |
-| `discovered-from` | `discovered-from` | ⏳ Future |
-| `parent-child` | `parent_id` field | ✅ Different model |
+| Beads Type        | Tbd Type          | Status             |
+| ----------------- | ----------------- | ------------------ |
+| `blocks`          | `blocks`          | ✅ Supported       |
+| `related`         | `related`         | ⏳ Future          |
+| `discovered-from` | `discovered-from` | ⏳ Future          |
+| `parent-child`    | `parent_id` field | ✅ Different model |
 
 ### A.4 Architecture Comparison
 
 #### A.4.1 Storage
 
-| Aspect | Beads | Tbd |
-| --- | --- | --- |
-| Primary store | SQLite | Markdown + YAML files |
-| Sync format | JSONL | Markdown + YAML (same as primary) |
-| File structure | Single `issues.jsonl` | File per entity |
-| Location | `.beads/` on main | `.tbd-sync/` on sync branch |
-| Config | SQLite + various | `.tbd/config.yml` on main |
+| Aspect         | Beads                 | Tbd                               |
+| -------------- | --------------------- | --------------------------------- |
+| Primary store  | SQLite                | Markdown + YAML files             |
+| Sync format    | JSONL                 | Markdown + YAML (same as primary) |
+| File structure | Single `issues.jsonl` | File per entity                   |
+| Location       | `.beads/` on main     | `.tbd-sync/` on sync branch       |
+| Config         | SQLite + various      | `.tbd/config.yml` on main         |
 
 #### A.4.2 Sync
 
-| Aspect | Beads | Tbd |
-| --- | --- | --- |
-| Mechanism | SQLite ↔ JSONL ↔ git | Files ↔ git |
-| Branch | Main or sync branch | Sync branch only |
-| Conflict detection | 3-way (base, local, remote) | Content hash difference |
-| Conflict resolution | LWW + union | LWW + union (same strategies) |
-| Conflict preservation | Partial | Full (attic) |
-| Daemon required | Yes (recommended) | No |
+| Aspect                | Beads                       | Tbd                           |
+| --------------------- | --------------------------- | ----------------------------- |
+| Mechanism             | SQLite ↔ JSONL ↔ git        | Files ↔ git                   |
+| Branch                | Main or sync branch         | Sync branch only              |
+| Conflict detection    | 3-way (base, local, remote) | Content hash difference       |
+| Conflict resolution   | LWW + union                 | LWW + union (same strategies) |
+| Conflict preservation | Partial                     | Full (attic)                  |
+| Daemon required       | Yes (recommended)           | No                            |
 
 ### A.5 LLM Agent Workflow Comparison
 
 #### A.5.1 Basic Agent Loop (Full Parity)
 
 **Beads:**
+
 ```bash
 bd ready --json              # Find work
 bd update <id> --status in_progress  # Claim (advisory)
@@ -3732,6 +3917,7 @@ bd sync                       # Sync
 ```
 
 **Tbd:**
+
 ```bash
 tbd ready --json            # Find work
 tbd update <id> --status in_progress  # Claim (advisory)
@@ -3746,11 +3932,13 @@ Claims are advisory in both (no enforcement).
 #### A.5.2 Creating Linked Work (Partial Parity)
 
 **Beads:**
+
 ```bash
 bd create "Found bug" -t bug -p 1 --deps discovered-from:<id> --json
 ```
 
 **Tbd:**
+
 ```bash
 # Only blocks dependency supported currently
 tbd create "Found bug" -t bug -p 1 --parent <id> --json
@@ -3779,26 +3967,26 @@ tbd config display.id_prefix bd
 
 ### A.6 Parity Summary
 
-| Category | Parity | Notes |
-| --- | --- | --- |
-| Issue CRUD | ✅ Full | All core operations |
-| Labels | ✅ Full | Add, remove, list |
-| Dependencies | ⚠️ Partial | Only `blocks` type |
-| Sync | ✅ Full | Pull, push, status |
-| Maintenance | ✅ Full | Init, doctor, stats, config |
-| Import | ✅ Full | Beads JSONL + multi-source |
+| Category     | Parity     | Notes                       |
+| ------------ | ---------- | --------------------------- |
+| Issue CRUD   | ✅ Full    | All core operations         |
+| Labels       | ✅ Full    | Add, remove, list           |
+| Dependencies | ⚠️ Partial | Only `blocks` type          |
+| Sync         | ✅ Full    | Pull, push, status          |
+| Maintenance  | ✅ Full    | Init, doctor, stats, config |
+| Import       | ✅ Full    | Beads JSONL + multi-source  |
 
 ### A.7 Deferred Features
 
-| Category | Priority | Notes |
-| --- | --- | --- |
-| Agent registry | High | Built-in coordination |
-| Comments/Messages | High | Separate entity type |
-| `related` deps | Medium | Additional dep type |
-| `discovered-from` deps | Medium | Additional dep type |
-| Daemon | Medium | Optional background sync |
-| GitHub bridge | Low | External integration |
-| Templates | Low | Reusable workflows |
+| Category               | Priority | Notes                    |
+| ---------------------- | -------- | ------------------------ |
+| Agent registry         | High     | Built-in coordination    |
+| Comments/Messages      | High     | Separate entity type     |
+| `related` deps         | Medium   | Additional dep type      |
+| `discovered-from` deps | Medium   | Additional dep type      |
+| Daemon                 | Medium   | Optional background sync |
+| GitHub bridge          | Low      | External integration     |
+| Templates              | Low      | Reusable workflows       |
 
 ### A.8 Migration Compatibility
 
@@ -3816,7 +4004,7 @@ from Beads for basic issue tracking.
 The simpler architecture (no SQLite, no daemon, file-per-entity) addresses the key pain
 points from real-world Beads use.
 
-* * *
+---
 
 ## Appendix B: Beads Commands Not Included
 
@@ -3827,131 +4015,131 @@ explicitly **not** included in Tbd.
 
 These commands are not applicable since Tbd has no daemon:
 
-| Beads Command | Why Not Included |
-| --- | --- |
-| `bd daemon start` | No daemon architecture |
-| `bd daemon stop` | No daemon architecture |
-| `bd daemon status` | No daemon architecture |
-| `bd daemons list` | No daemon architecture |
-| `bd daemons health` | No daemon architecture |
+| Beads Command        | Why Not Included       |
+| -------------------- | ---------------------- |
+| `bd daemon start`    | No daemon architecture |
+| `bd daemon stop`     | No daemon architecture |
+| `bd daemon status`   | No daemon architecture |
+| `bd daemons list`    | No daemon architecture |
+| `bd daemons health`  | No daemon architecture |
 | `bd daemons killall` | No daemon architecture |
-| `bd daemons logs` | No daemon architecture |
+| `bd daemons logs`    | No daemon architecture |
 | `bd daemons restart` | No daemon architecture |
 
 ### B.2 Molecule/Workflow Commands
 
 Workflow orchestration features are deferred to future:
 
-| Beads Command | Why Not Included |
-| --- | --- |
-| `bd mol pour` | Template instantiation - future |
-| `bd mol wisp` | Ephemeral work tracking - future |
-| `bd mol bond` | Workflow composition - future |
-| `bd mol squash` | Compress to digest - future |
-| `bd mol burn` | Discard wisp - future |
-| `bd mol wisp list` | Wisp management - future |
-| `bd mol wisp gc` | Garbage collection - future |
-| `bd mol distill` | Extract template - future |
-| `bd mol show` | Template inspection - future |
-| `bd formula list` | Template listing - future |
+| Beads Command      | Why Not Included                 |
+| ------------------ | -------------------------------- |
+| `bd mol pour`      | Template instantiation - future  |
+| `bd mol wisp`      | Ephemeral work tracking - future |
+| `bd mol bond`      | Workflow composition - future    |
+| `bd mol squash`    | Compress to digest - future      |
+| `bd mol burn`      | Discard wisp - future            |
+| `bd mol wisp list` | Wisp management - future         |
+| `bd mol wisp gc`   | Garbage collection - future      |
+| `bd mol distill`   | Extract template - future        |
+| `bd mol show`      | Template inspection - future     |
+| `bd formula list`  | Template listing - future        |
 
 ### B.3 Agent Coordination Commands
 
 Real-time agent coordination is deferred:
 
-| Beads Command | Why Not Included |
-| --- | --- |
-| `bd agent register` | Agent registry - future |
-| `bd agent heartbeat` | Presence tracking - future |
-| `bd agent claim` | Atomic claims - future |
-| Agent Mail | Real-time messaging - future |
+| Beads Command        | Why Not Included             |
+| -------------------- | ---------------------------- |
+| `bd agent register`  | Agent registry - future      |
+| `bd agent heartbeat` | Presence tracking - future   |
+| `bd agent claim`     | Atomic claims - future       |
+| Agent Mail           | Real-time messaging - future |
 
 ### B.4 Advanced Data Operations
 
-| Beads Command | Why Not Included |
-| --- | --- |
-| `bd compact` | Memory decay - future |
-| `bd compact --auto` | AI-powered compaction - future |
-| `bd admin cleanup` | Bulk deletion - future |
-| `bd duplicates` | Duplicate detection - not planned |
-| `bd merge` | Merge duplicates - not planned |
-| `bd rename-prefix` | ID prefix rename - low priority |
+| Beads Command       | Why Not Included                  |
+| ------------------- | --------------------------------- |
+| `bd compact`        | Memory decay - future             |
+| `bd compact --auto` | AI-powered compaction - future    |
+| `bd admin cleanup`  | Bulk deletion - future            |
+| `bd duplicates`     | Duplicate detection - not planned |
+| `bd merge`          | Merge duplicates - not planned    |
+| `bd rename-prefix`  | ID prefix rename - low priority   |
 
 ### B.5 Comment Commands
 
 Comments will be a separate entity type in the future:
 
-| Beads Command | Why Not Included |
-| --- | --- |
-| `bd comment add` | Comments entity - future |
-| `bd comment list` | Comments entity - future |
+| Beads Command      | Why Not Included         |
+| ------------------ | ------------------------ |
+| `bd comment add`   | Comments entity - future |
+| `bd comment list`  | Comments entity - future |
 | `bd comments show` | Comments entity - future |
 
 ### B.6 Editor Integration Commands
 
-| Beads Command | Why Not Included |
-| --- | --- |
-| `bd setup claude` | Editor hooks - not planned |
-| `bd setup cursor` | Editor rules - not planned |
-| `bd setup aider` | Editor config - not planned |
-| `bd setup factory` | AGENTS.md - not planned |
-| `bd edit` | Interactive edit (human only) - not planned |
+| Beads Command      | Why Not Included                            |
+| ------------------ | ------------------------------------------- |
+| `bd setup claude`  | Editor hooks - not planned                  |
+| `bd setup cursor`  | Editor rules - not planned                  |
+| `bd setup aider`   | Editor config - not planned                 |
+| `bd setup factory` | AGENTS.md - not planned                     |
+| `bd edit`          | Interactive edit (human only) - not planned |
 
 ### B.7 Additional Dependency Types
 
 Currently only `blocks` is supported:
 
-| Beads Type | Why Not Included |
-| --- | --- |
-| `related` | Soft linking - future |
-| `discovered-from` | Provenance tracking - future |
-| `waits-for` | Fanout gates - future |
-| `conditional-blocks` | Error handling - future |
+| Beads Type           | Why Not Included             |
+| -------------------- | ---------------------------- |
+| `related`            | Soft linking - future        |
+| `discovered-from`    | Provenance tracking - future |
+| `waits-for`          | Fanout gates - future        |
+| `conditional-blocks` | Error handling - future      |
 
 ### B.8 State Label Commands
 
-| Beads Command | Why Not Included |
-| --- | --- |
-| `bd state` | Label-as-cache pattern - not planned |
+| Beads Command  | Why Not Included                     |
+| -------------- | ------------------------------------ |
+| `bd state`     | Label-as-cache pattern - not planned |
 | `bd set-state` | Label-as-cache pattern - not planned |
 
 ### B.9 Other Commands
 
-| Beads Command | Why Not Included |
-| --- | --- |
-| `bd prime` | Beads-specific priming - not applicable |
-| `bd audit` | Audit trail command - use git log |
-| `bd activity` | Activity feed - not planned |
-| `bd context` | Context management - not planned |
-| `bd migrate` | SQLite migration - not applicable |
-| `bd export` | Files are the format - future (JSONL export) |
-| `bd cook` | Internal command - not applicable |
+| Beads Command | Why Not Included                             |
+| ------------- | -------------------------------------------- |
+| `bd prime`    | Beads-specific priming - not applicable      |
+| `bd audit`    | Audit trail command - use git log            |
+| `bd activity` | Activity feed - not planned                  |
+| `bd context`  | Context management - not planned             |
+| `bd migrate`  | SQLite migration - not applicable            |
+| `bd export`   | Files are the format - future (JSONL export) |
+| `bd cook`     | Internal command - not applicable            |
 
 ### B.10 Global Flags Not Supported
 
-| Beads Flag | Why Not Included |
-| --- | --- |
-| `--no-daemon` | No daemon to disable |
-| `--no-auto-flush` | No auto-flush mechanism |
-| `--no-auto-import` | Different sync model |
-| `--sandbox` | Tbd is always "sandbox safe" |
-| `--allow-stale` | Different staleness model |
+| Beads Flag         | Why Not Included             |
+| ------------------ | ---------------------------- |
+| `--no-daemon`      | No daemon to disable         |
+| `--no-auto-flush`  | No auto-flush mechanism      |
+| `--no-auto-import` | Different sync model         |
+| `--sandbox`        | Tbd is always "sandbox safe" |
+| `--allow-stale`    | Different staleness model    |
 
 ### B.11 Issue Types/Statuses Not Supported
 
-| Beads Value | Why Not Included |
-| --- | --- |
-| `issue_type: message` | Messages are future |
-| `issue_type: agent` | Agent registry is future |
-| `issue_type: role` | Advanced orchestration |
-| `issue_type: convoy` | Advanced orchestration |
-| `issue_type: molecule` | Workflow templates |
-| `issue_type: gate` | Async gates |
-| `issue_type: merge-request` | External integration |
-| `status: pinned` | Convert to label on import |
-| `status: hooked` | Convert to label on import |
+| Beads Value                 | Why Not Included           |
+| --------------------------- | -------------------------- |
+| `issue_type: message`       | Messages are future        |
+| `issue_type: agent`         | Agent registry is future   |
+| `issue_type: role`          | Advanced orchestration     |
+| `issue_type: convoy`        | Advanced orchestration     |
+| `issue_type: molecule`      | Workflow templates         |
+| `issue_type: gate`          | Async gates                |
+| `issue_type: merge-request` | External integration       |
+| `status: pinned`            | Convert to label on import |
+| `status: hooked`            | Convert to label on import |
 
-* * *
+---
 
 ## 8. Open Questions
 
@@ -4007,18 +4195,16 @@ The attic preserves losers, but UX may suffer if the “wrong” version consist
 
 ### 8.4 ID Length
 
-**Idea 2: Longer internal IDs for long-term scaling**
+**RESOLVED**: Adopted ULID-based internal IDs.
 
-Current 6-hex-char IDs (24 bits, 16.7M possibilities) are sufficient.
-Should we extend to 8 chars (32 bits, 4B possibilities) for future-proofing?
+Internal IDs now use full 26-character ULIDs (128 bits: 48-bit timestamp + 80-bit
+randomness). This provides:
 
-**Considerations:**
+- Effectively unlimited ID space (no collision concerns even across merged projects)
+- Time-ordered sorting as a bonus
+- Human interaction uses short 4-5 character base36 external IDs
 
-- 6 chars: More readable, sufficient for most projects
-
-- 8 chars: More headroom, matches git short-hash conventions
-
-- Could migrate later by adding chars (old IDs remain valid)
+The original concern about 6-hex-char limitations is moot with the dual ID system.
 
 ### 8.5 Future Extension Points
 
@@ -4144,6 +4330,6 @@ linked:
 **Recommendation:** Design the `linked` metadata structure now (even if unused),
 implement GitHub bridge later with plugin architecture for other providers.
 
-* * *
+---
 
 **End of Tbd Design Specification**

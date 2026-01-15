@@ -1,0 +1,133 @@
+/**
+ * TypeScript types derived from Zod schemas.
+ *
+ * These types are the canonical TypeScript interface for tbd entities.
+ */
+
+import type { z } from 'zod';
+
+import type {
+  IssueSchema,
+  IssueStatus,
+  IssueKind,
+  Priority,
+  Dependency,
+  ConfigSchema,
+  MetaSchema,
+  LocalStateSchema,
+  AtticEntrySchema,
+} from './schemas.js';
+
+// =============================================================================
+// Entity Types
+// =============================================================================
+
+/**
+ * A tbd issue entity.
+ */
+export type Issue = z.infer<typeof IssueSchema>;
+
+/**
+ * Issue status enum values.
+ */
+export type IssueStatusType = z.infer<typeof IssueStatus>;
+
+/**
+ * Issue kind enum values.
+ */
+export type IssueKindType = z.infer<typeof IssueKind>;
+
+/**
+ * Priority level (0-4).
+ */
+export type PriorityType = z.infer<typeof Priority>;
+
+/**
+ * A dependency relationship.
+ */
+export type DependencyType = z.infer<typeof Dependency>;
+
+// =============================================================================
+// Configuration Types
+// =============================================================================
+
+/**
+ * Project configuration.
+ */
+export type Config = z.infer<typeof ConfigSchema>;
+
+/**
+ * Shared metadata.
+ */
+export type Meta = z.infer<typeof MetaSchema>;
+
+/**
+ * Per-node local state.
+ */
+export type LocalState = z.infer<typeof LocalStateSchema>;
+
+/**
+ * Attic entry for conflict losers.
+ */
+export type AtticEntry = z.infer<typeof AtticEntrySchema>;
+
+// =============================================================================
+// Input Types for Commands
+// =============================================================================
+
+/**
+ * Options for creating an issue.
+ */
+export interface CreateIssueOptions {
+  title: string;
+  description?: string;
+  kind?: IssueKindType;
+  priority?: PriorityType;
+  assignee?: string;
+  labels?: string[];
+  parent_id?: string;
+  due_date?: string;
+  deferred_until?: string;
+}
+
+/**
+ * Options for updating an issue.
+ */
+export interface UpdateIssueOptions {
+  title?: string;
+  description?: string;
+  notes?: string;
+  kind?: IssueKindType;
+  status?: IssueStatusType;
+  priority?: PriorityType;
+  assignee?: string | null;
+  addLabels?: string[];
+  removeLabels?: string[];
+  parent_id?: string | null;
+  due_date?: string | null;
+  deferred_until?: string | null;
+}
+
+/**
+ * Options for listing issues.
+ */
+export interface ListIssuesOptions {
+  status?: IssueStatusType | IssueStatusType[];
+  kind?: IssueKindType | IssueKindType[];
+  priority?: PriorityType;
+  assignee?: string;
+  labels?: string[];
+  parent?: string;
+  all?: boolean;
+  sort?: 'priority' | 'created' | 'updated';
+  limit?: number;
+}
+
+/**
+ * Options for searching issues.
+ */
+export interface SearchIssuesOptions {
+  query: string;
+  status?: IssueStatusType | IssueStatusType[];
+  limit?: number;
+}
