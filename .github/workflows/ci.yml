@@ -18,7 +18,23 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
     steps:
+      # Use sparse checkout on Windows to exclude docs with ':' in filenames
       - uses: actions/checkout@v4
+        if: runner.os != 'Windows'
+
+      - uses: actions/checkout@v4
+        if: runner.os == 'Windows'
+        with:
+          sparse-checkout: |
+            packages
+            .beads
+            .github
+            *.json
+            *.yaml
+            *.yml
+            *.md
+            *.ts
+          sparse-checkout-cone-mode: false
 
       - uses: pnpm/action-setup@v4
 

@@ -60,8 +60,19 @@ export function normalizeOutput(output: string): string {
   // Replace timestamps with placeholder
   normalized = normalized.replace(TIMESTAMP_PATTERN, '[TIMESTAMP]');
 
-  // Replace temp directory paths (tbd-golden-XXXXXXXX)
+  // Replace temp directory paths (cross-platform)
+  // Linux: /tmp/tbd-golden-XXXXXXXX
+  // macOS: /private/var/folders/.../tbd-golden-XXXXXXXX or /var/folders/.../tbd-golden-XXXXXXXX
+  // Windows: C:\Users\...\tbd-golden-XXXXXXXX
   normalized = normalized.replace(/\/tmp\/tbd-golden-[0-9a-f]+/g, '/tmp/tbd-golden-[TEMP]');
+  normalized = normalized.replace(
+    /\/(?:private\/)?var\/folders\/[^/]+\/[^/]+\/T\/tbd-golden-[0-9a-f]+/g,
+    '/tmp/tbd-golden-[TEMP]',
+  );
+  normalized = normalized.replace(
+    /[A-Z]:\\[^"]+\\tbd-golden-[0-9a-f]+/gi,
+    '/tmp/tbd-golden-[TEMP]',
+  );
 
   return normalized;
 }
