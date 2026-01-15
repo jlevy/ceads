@@ -2,7 +2,7 @@
   "name": "tbd-workspace",
   "private": true,
   "type": "module",
-  "packageManager": "pnpm@10.27.0",
+  "packageManager": "pnpm@10.28.0",
   "engines": {
     "node": ">=20"
   },
@@ -33,15 +33,15 @@
     "tbd:bin": "node packages/tbd-cli/dist/bin.js"
   },
   "devDependencies": {
-    "@changesets/cli": "^2.29.0",
-    "@eslint/js": "^9.18.0",
-    "eslint": "^9.18.0",
-    "eslint-config-prettier": "^10.0.1",
-    "lefthook": "^1.10.10",
-    "npm-check-updates": "^17.1.14",
-    "prettier": "^3.4.2",
-    "tsx": "^4.19.2",
-    "typescript": "^5.7.3",
-    "typescript-eslint": "^8.21.0"
+    "@changesets/cli": "^2.29.8",
+    "@eslint/js": "^9.39.2",
+    "eslint": "^9.39.2",
+    "eslint-config-prettier": "^10.1.8",
+    "lefthook": "^1.13.6",
+    "npm-check-updates": "^17.1.18",
+    "prettier": "^3.8.0",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.53.0"
   }
 }

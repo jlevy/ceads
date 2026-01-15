@@ -352,6 +352,7 @@ This plan is tracked using beads. The master epic is **tbd-100**.
 | 14         | tbd-1500 | Security Hardening                   | tbd-1501 through tbd-1502 | ✅ Complete |
 | 15         | tbd-1600 | Import Validation & Benchmarks       | tbd-1601 through tbd-1604 | ✅ Complete |
 | 16         | tbd-1700 | Comprehensive Tryscript Coverage     | tbd-1701 through tbd-1706 | ✅ Complete |
+| 17         | tbd-1800 | CI Fixes and Dependency Updates      | tbd-1801 through tbd-1805 | 🔄 Pending  |
 | Validation | tbd-1300 | Stage 5 Validation                   | tbd-1301 through tbd-1306 | ⚠️ Partial  |
 
 **Status Legend:** ✅ Complete | ⚠️ Partial (needs review) | 🔲 Pending
@@ -363,17 +364,18 @@ This plan is tracked using beads. The master epic is **tbd-100**.
 - Comprehensive tryscript golden tests with 97.47% line coverage (Phase 16 complete)
 - Security hardening: command injection fix + schema validation (Phase 14 complete)
 - Import validation and benchmarks (Phase 15 complete)
+- CI fixes: pnpm version conflict, Node.js 22 LTS, dependency updates (Phase 17)
 - Build and lint passing
 - README documentation complete (Phase 12)
-- Remaining: CI setup (tbd-1204), npm publish (tbd-1206)
+- Remaining: CI validation (tbd-1805), npm publish (tbd-1206)
 
 **Bead Tracking Summary:**
 
-| Status         | Count | Beads                                                                                                                                                                                                                                                                                                                                           |
-| -------------- | ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| ✅ Done        | 112   | tbd-101→tbd-111, tbd-200→tbd-209, tbd-300→tbd-309, tbd-400→tbd-409, tbd-500→tbd-504, tbd-600→tbd-607, tbd-700→tbd-708, tbd-800→tbd-804, tbd-900→tbd-904, tbd-1000→tbd-1004, tbd-1100→tbd-1105, tbd-1201, tbd-1202, tbd-1205, tbd-1301, tbd-1302, tbd-1305, tbd-1306, tbd-1400→tbd-1405, tbd-1500→tbd-1502, tbd-1600→tbd-1604, tbd-1700→tbd-1706 |
-| 🔄 In Progress | 1     | tbd-100 (master epic)                                                                                                                                                                                                                                                                                                                           |
-| 🔲 Open        | 7     | tbd-1200, tbd-1203, tbd-1204, tbd-1206, tbd-1300, tbd-1303, tbd-1304                                                                                                                                                                                                                                                                            |
+| Status         | Count | Beads                                                                                                                                                                                                                                                                                                                                                              |
+| -------------- | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| ✅ Done        | 117   | tbd-101→tbd-111, tbd-200→tbd-209, tbd-300→tbd-309, tbd-400→tbd-409, tbd-500→tbd-504, tbd-600→tbd-607, tbd-700→tbd-708, tbd-800→tbd-804, tbd-900→tbd-904, tbd-1000→tbd-1004, tbd-1100→tbd-1105, tbd-1201, tbd-1202, tbd-1205, tbd-1301, tbd-1302, tbd-1305, tbd-1306, tbd-1400→tbd-1405, tbd-1500→tbd-1502, tbd-1600→tbd-1604, tbd-1700→tbd-1706, tbd-1800→tbd-1804 |
+| 🔄 In Progress | 1     | tbd-100 (master epic)                                                                                                                                                                                                                                                                                                                                              |
+| 🔲 Open        | 8     | tbd-1200, tbd-1203, tbd-1204, tbd-1206, tbd-1300, tbd-1303, tbd-1304, tbd-1805                                                                                                                                                                                                                                                                                     |
 
 **Phase 13: Tryscript Coverage Migration (✅ Complete)**
 
@@ -422,6 +424,17 @@ This plan is tracked using beads. The master epic is **tbd-100**.
 | tbd-1705 | Create cli-import.tryscript.md     | Done   | Beads import and validation tests (~20) |
 | tbd-1706 | Verify 189 tryscript tests passing | Done   | All tests pass in sandbox mode          |
 
+**Phase 17: CI Fixes and Dependency Updates (🔄 Pending)**
+
+| Bead ID  | Task                               | Status | Notes                                    |
+| -------- | ---------------------------------- | ------ | ---------------------------------------- |
+| tbd-1800 | Phase 17 Epic                      | Done   | CI fixes and dependency updates          |
+| tbd-1801 | Fix pnpm version conflict in CI    | Done   | Removed explicit version, reads from pkg |
+| tbd-1802 | Update pnpm to 10.28.0             | Done   | Updated packageManager field             |
+| tbd-1803 | Update Node.js to LTS 22 in CI     | Done   | Updated from 20 to 22                    |
+| tbd-1804 | Update npm dependencies            | Done   | Minor version updates for all packages   |
+| tbd-1805 | Validate CI runs on GitHub Actions | Open   | Pending first run after push             |
+
 **Stage 5 Validation Status (⚠️ Partial):**
 
 | Bead ID  | Task                            | Status  | Notes                                          |
@@ -434,7 +447,7 @@ This plan is tracked using beads. The master epic is **tbd-100**.
 | tbd-1305 | Manual testing of full workflow | ✅ Done | Covered by 189 tryscript golden tests          |
 | tbd-1306 | Security review                 | ✅ Done | Fixed cmd injection, added schema validation   |
 
-**Remaining Tasks (Phase 12 + Validation):**
+**Remaining Tasks (Phase 12 + 17 + Validation):**
 
 | Bead ID  | Task                            | Status | Notes                               |
 | -------- | ------------------------------- | ------ | ----------------------------------- |
@@ -443,6 +456,7 @@ This plan is tracked using beads. The master epic is **tbd-100**.
 | tbd-1206 | Release preparation             | Open   | npm publish pending user action     |
 | tbd-1300 | Stage 5 Validation Epic         | Open   | Epic - 5/6 tasks complete           |
 | tbd-1304 | Verify cross-platform CI passes | Open   | Pending first PR merge              |
+| tbd-1805 | Validate CI runs                | Open   | Monitor GitHub Actions after push   |
 
 **Coverage Strategy (Implemented):**
 
