@@ -1,0 +1,53 @@
+# Golden test for tbd search command
+name: search command
+description: Test search functionality with various options
+
+scenarios:
+  - name: basic search
+    setup:
+      - command: tbd create "Authentication bug in login"
+        skipOutputValidation: true
+      - command: tbd create "Add OAuth support feature"
+        skipOutputValidation: true
+    steps:
+      - command: tbd search "auth" --no-refresh
+        expectedOutput:
+          contains:
+            - 'Found'
+            - 'Authentication bug'
+        exitCode: 0
+
+  - name: search with status filter
+    setup:
+      - command: tbd create "Open issue with keyword test"
+        skipOutputValidation: true
+    steps:
+      - command: tbd search "keyword" --status open --no-refresh
+        expectedOutput:
+          contains:
+            - 'Found'
+            - 'Open issue'
+        exitCode: 0
+
+  - name: search with limit
+    setup:
+      - command: tbd create "First match item"
+        skipOutputValidation: true
+      - command: tbd create "Second match item"
+        skipOutputValidation: true
+      - command: tbd create "Third match item"
+        skipOutputValidation: true
+    steps:
+      - command: tbd search "match" --limit 2 --no-refresh
+        expectedOutput:
+          contains:
+            - 'Found 2 result'
+        exitCode: 0
+
+  - name: search no results
+    steps:
+      - command: tbd search "nonexistentkeywordxyz123" --no-refresh
+        expectedOutput:
+          contains:
+            - 'No issues matching "nonexistentkeywordxyz123"'
+        exitCode: 0

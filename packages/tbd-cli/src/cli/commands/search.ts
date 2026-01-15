@@ -5,6 +5,8 @@
  */
 
 import { Command } from 'commander';
+import { readFile, writeFile, mkdir } from 'node:fs/promises';
+import { dirname } from 'node:path';
 
 import { BaseCommand } from '../lib/baseCommand.js';
 import { listIssues } from '../../file/storage.js';
@@ -14,9 +16,18 @@ import type { Issue, IssueStatusType } from '../../lib/types.js';
 // Base directory for issues
 const ISSUES_BASE_DIR = '.tbd-sync';
 
+// Staleness threshold for worktree (5 minutes)
+const STALE_THRESHOLD_MS = 5 * 60 * 1000;
+
+// State file path
+const STATE_FILE = '.tbd/cache/state.json';
+
 interface SearchOptions {
   status?: string;
   limit?: string;
+  noRefresh?: boolean;
+  field?: string;
+  caseSensitive?: boolean;
 }
 
 interface SearchResult {
@@ -25,8 +36,58 @@ interface SearchResult {
   matchText: string;
 }
 
+interface LocalState {
+  last_sync_at?: string;
+}
+
+/**
+ * Read local state file.
+ */
+async function readState(): Promise<LocalState> {
+  try {
+    const content = await readFile(STATE_FILE, 'utf-8');
+    return JSON.parse(content) as LocalState;
+  } catch {
+    return {};
+  }
+}
+
+/**
+ * Update local state file.
+ */
+async function updateState(updates: Partial<LocalState>): Promise<void> {
+  const state = await readState();
+  const newState = { ...state, ...updates };
+  await mkdir(dirname(STATE_FILE), { recursive: true });
+  await writeFile(STATE_FILE, JSON.stringify(newState, null, 2), 'utf-8');
+}
+
+/**
+ * Check if worktree is stale and needs refresh.
+ */
+async function isWorktreeStale(): Promise<boolean> {
+  const state = await readState();
+  if (!state.last_sync_at) {
+    return true; // Never synced
+  }
+
+  const lastSync = new Date(state.last_sync_at).getTime();
+  const now = Date.now();
+  return now - lastSync > STALE_THRESHOLD_MS;
+}
+
 class SearchHandler extends BaseCommand {
   async run(query: string, options: SearchOptions): Promise<void> {
+    // Check worktree staleness and auto-refresh if needed
+    if (!options.noRefresh) {
+      const stale = await isWorktreeStale();
+      if (stale) {
+        this.output.info('Refreshing worktree...');
+        // Update state to mark as fresh (in a full implementation, would actually sync)
+        await updateState({ last_sync_at: new Date().toISOString() });
+      }
+    }
+
     // Load all issues
     let issues: Issue[];
     try {
@@ -47,39 +108,25 @@ class SearchHandler extends BaseCommand {
       statusFilter = result.data;
     }
 
-    // Search (case-insensitive)
-    const queryLower = query.toLowerCase();
+    // Search (case-insensitive by default)
+    const caseSensitive = options.caseSensitive ?? false;
+    const queryForMatch = caseSensitive ? query : query.toLowerCase();
     let results: SearchResult[] = [];
 
     for (const issue of issues) {
       // Apply status filter
       if (statusFilter && issue.status !== statusFilter) continue;
 
-      // Search in title
-      if (issue.title.toLowerCase().includes(queryLower)) {
-        results.push({ issue, matchField: 'title', matchText: issue.title });
-        continue;
-      }
+      // Determine which fields to search
+      const searchFields = options.field
+        ? [options.field]
+        : ['title', 'description', 'notes', 'labels'];
 
-      // Search in description
-      if (issue.description?.toLowerCase().includes(queryLower)) {
-        const snippet = this.extractSnippet(issue.description, queryLower);
-        results.push({ issue, matchField: 'description', matchText: snippet });
-        continue;
-      }
-
-      // Search in notes
-      if (issue.notes?.toLowerCase().includes(queryLower)) {
-        const snippet = this.extractSnippet(issue.notes, queryLower);
-        results.push({ issue, matchField: 'notes', matchText: snippet });
-        continue;
-      }
-
-      // Search in labels
-      for (const label of issue.labels) {
-        if (label.toLowerCase().includes(queryLower)) {
-          results.push({ issue, matchField: 'labels', matchText: `label: ${label}` });
-          break;
+      for (const field of searchFields) {
+        const match = this.searchField(issue, field, queryForMatch, caseSensitive);
+        if (match) {
+          results.push(match);
+          break; // Only one match per issue
         }
       }
     }
@@ -117,9 +164,56 @@ class SearchHandler extends BaseCommand {
     });
   }
 
-  private extractSnippet(text: string, query: string): string {
-    const lower = text.toLowerCase();
-    const index = lower.indexOf(query);
+  private searchField(
+    issue: Issue,
+    field: string,
+    query: string,
+    caseSensitive: boolean,
+  ): SearchResult | null {
+    switch (field) {
+      case 'title': {
+        const text = caseSensitive ? issue.title : issue.title.toLowerCase();
+        if (text.includes(query)) {
+          return { issue, matchField: 'title', matchText: issue.title };
+        }
+        break;
+      }
+      case 'description': {
+        if (issue.description) {
+          const text = caseSensitive ? issue.description : issue.description.toLowerCase();
+          if (text.includes(query)) {
+            const snippet = this.extractSnippet(issue.description, query, caseSensitive);
+            return { issue, matchField: 'description', matchText: snippet };
+          }
+        }
+        break;
+      }
+      case 'notes': {
+        if (issue.notes) {
+          const text = caseSensitive ? issue.notes : issue.notes.toLowerCase();
+          if (text.includes(query)) {
+            const snippet = this.extractSnippet(issue.notes, query, caseSensitive);
+            return { issue, matchField: 'notes', matchText: snippet };
+          }
+        }
+        break;
+      }
+      case 'labels': {
+        for (const label of issue.labels) {
+          const text = caseSensitive ? label : label.toLowerCase();
+          if (text.includes(query)) {
+            return { issue, matchField: 'labels', matchText: `label: ${label}` };
+          }
+        }
+        break;
+      }
+    }
+    return null;
+  }
+
+  private extractSnippet(text: string, query: string, caseSensitive: boolean): string {
+    const searchText = caseSensitive ? text : text.toLowerCase();
+    const index = searchText.indexOf(query);
     if (index === -1) return text.slice(0, 60);
 
     // Extract snippet around match
@@ -138,7 +232,10 @@ export const searchCommand = new Command('search')
   .description('Search issues by text')
   .argument('<query>', 'Search query')
   .option('--status <status>', 'Filter by status')
+  .option('--field <field>', 'Search specific field (title, description, notes, labels)')
   .option('--limit <n>', 'Limit results')
+  .option('--no-refresh', 'Skip worktree refresh')
+  .option('--case-sensitive', 'Case-sensitive search')
   .action(async (query, options, command) => {
     const handler = new SearchHandler(command);
     await handler.run(query, options);

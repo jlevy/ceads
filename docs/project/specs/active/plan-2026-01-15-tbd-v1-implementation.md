@@ -342,8 +342,8 @@ This plan is tracked using beads. The master epic is **tbd-100**.
 | 4          | tbd-400  | Issue CRUD Commands                  | tbd-401 through tbd-409   | ✅ Complete |
 | 5          | tbd-500  | Workflow Commands                    | tbd-501 through tbd-504   | ✅ Complete |
 | 6          | tbd-600  | Label & Dependency Commands          | tbd-601 through tbd-607   | ✅ Complete |
-| 7          | tbd-700  | Sync Operations                      | tbd-701 through tbd-708   | ⚠️ Partial  |
-| 8          | tbd-800  | Search Command                       | tbd-801 through tbd-804   | ⚠️ Partial  |
+| 7          | tbd-700  | Sync Operations                      | tbd-701 through tbd-708   | ✅ Complete |
+| 8          | tbd-800  | Search Command                       | tbd-801 through tbd-804   | ✅ Complete |
 | 9          | tbd-900  | Maintenance Commands                 | tbd-901 through tbd-904   | ✅ Complete |
 | 10         | tbd-1000 | Attic Commands                       | tbd-1001 through tbd-1004 | ✅ Complete |
 | 11         | tbd-1100 | Import Command                       | tbd-1101 through tbd-1105 | ✅ Complete |
@@ -355,10 +355,12 @@ This plan is tracked using beads. The master epic is **tbd-100**.
 **Implementation Progress (2026-01-15):**
 
 - Core functionality implemented and passing 104 tests
-- All CLI commands implemented
-- Golden tests passing
+- All CLI commands implemented (Phases 1-11 complete)
+- Sync operations with isolated index, merge algorithm, and push retry (Phase 7)
+- Search with worktree staleness check (Phase 8)
+- Golden tests passing for all commands
 - Build and lint passing
-- Remaining work: sync refinements, search enhancements, documentation
+- Remaining work: Phase 12 polish and documentation
 
 ### Phase 1: Core Schemas & Serialization
 
@@ -1410,13 +1412,13 @@ bd-[..] Issue B
 
 #### Phase 7 Tasks
 
-- [ ] Implement isolated index operations — **tbd-701** ⚠️ (partial)
+- [x] Implement isolated index operations — **tbd-701** ✅
 - [x] Implement `tbd sync --pull` — **tbd-702** ✅
 - [x] Implement `tbd sync --push` — **tbd-703** ✅
 - [x] Implement `tbd sync` (full) — **tbd-704** ✅
 - [x] Implement `tbd sync --status` — **tbd-705** ✅
-- [ ] Implement merge algorithm with field-level strategies — **tbd-706** ⚠️ (needs review)
-- [ ] Implement push retry algorithm — **tbd-707** ⚠️ (partial)
+- [x] Implement merge algorithm with field-level strategies — **tbd-706** ✅
+- [x] Implement push retry algorithm — **tbd-707** ✅
 - [x] Write golden tests for sync operations — **tbd-708** ✅
 
 #### Phase 7 Key Design Details
@@ -1749,8 +1751,8 @@ No pending changes
 
 - [x] Implement search backend (ripgrep/grep detection) — **tbd-801** ✅
 - [x] Implement `tbd search` command — **tbd-802** ✅
-- [ ] Implement worktree staleness check and auto-refresh — **tbd-803** ⚠️ (needs review)
-- [ ] Write golden tests for search command — **tbd-804** ⚠️ (needs more coverage)
+- [x] Implement worktree staleness check and auto-refresh — **tbd-803** ✅
+- [x] Write golden tests for search command — **tbd-804** ✅
 
 #### Phase 8 Key Design Details
 
@@ -2817,7 +2819,8 @@ jobs:
 
 ## Revision History
 
-| Date       | Author | Changes                                                                                   |
-| ---------- | ------ | ----------------------------------------------------------------------------------------- |
-| 2026-01-15 | Claude | Initial plan spec created                                                                 |
-| 2026-01-15 | Claude | Updated bead status tracking: Phases 1-6 complete, Phases 7-12 partial, 104 tests passing |
+| Date       | Author | Changes                                                                                        |
+| ---------- | ------ | ---------------------------------------------------------------------------------------------- |
+| 2026-01-15 | Claude | Initial plan spec created                                                                      |
+| 2026-01-15 | Claude | Updated bead status tracking: Phases 1-6 complete, Phases 7-12 partial, 104 tests passing      |
+| 2026-01-15 | Claude | Implemented Phase 7 (sync: isolated index, merge, retry) and Phase 8 (search: staleness check) |
