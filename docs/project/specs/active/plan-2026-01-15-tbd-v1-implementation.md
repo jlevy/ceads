@@ -360,7 +360,9 @@ This plan is tracked using beads. The master epic is **tbd-100**.
 - Search with worktree staleness check (Phase 8)
 - Golden tests passing for all commands
 - Build and lint passing
-- Remaining work: Phase 12 polish and documentation
+- README documentation complete (Phase 12)
+- Manual validation complete (all commands verified)
+- Remaining: CI setup, npm publish
 
 ### Phase 1: Core Schemas & Serialization
 
@@ -2695,10 +2697,10 @@ Would import from beads2.jsonl:
 
 - [x] Implement colored output with TTY detection — **tbd-1201** ✅
 - [x] Implement help improvements — **tbd-1202** ✅
-- [ ] Performance optimization — **tbd-1203** ⚠️ (pending benchmarks)
+- [ ] Performance optimization — **tbd-1203** ⚠️ (deferred - awaiting production usage data)
 - [ ] Cross-platform testing — **tbd-1204** ⚠️ (needs CI setup)
-- [ ] Documentation (README, migration guide) — **tbd-1205** ⚠️ (pending)
-- [ ] Release preparation — **tbd-1206** ⚠️ (pending)
+- [x] Documentation (README, migration guide) — **tbd-1205** ✅
+- [ ] Release preparation — **tbd-1206** ⚠️ (pending npm publish)
 
 ---
 
@@ -2709,11 +2711,11 @@ Would import from beads2.jsonl:
 ### Validation Checklist
 
 - [x] All golden tests pass — **tbd-1301** ✅ (104 tests passing)
-- [ ] Unit test coverage > 80% — **tbd-1302** ⚠️ (needs measurement)
-- [ ] Performance targets met (<50ms common operations) — **tbd-1303** ⚠️ (needs benchmarks)
-- [ ] Cross-platform CI passes (Linux, macOS, Windows) — **tbd-1304** ⚠️ (needs CI)
-- [ ] Manual testing of full workflow — **tbd-1305** ⚠️ (pending)
-- [ ] Security review (no command injection, safe file operations) — **tbd-1306** ⚠️ (pending)
+- [ ] Unit test coverage > 80% — **tbd-1302** ⚠️ (deferred - current coverage functional)
+- [ ] Performance targets met (<50ms common operations) — **tbd-1303** ⚠️ (deferred)
+- [ ] Cross-platform CI passes (Linux, macOS, Windows) — **tbd-1304** ⚠️ (needs CI setup)
+- [x] Manual testing of full workflow — **tbd-1305** ✅ (all commands validated)
+- [x] Security review (no command injection, safe file operations) — **tbd-1306** ✅ (uses parameterized commands, atomic file writes)
 
 ### Definition of Done
 
@@ -2824,3 +2826,4 @@ jobs:
 | 2026-01-15 | Claude | Initial plan spec created                                                                      |
 | 2026-01-15 | Claude | Updated bead status tracking: Phases 1-6 complete, Phases 7-12 partial, 104 tests passing      |
 | 2026-01-15 | Claude | Implemented Phase 7 (sync: isolated index, merge, retry) and Phase 8 (search: staleness check) |
+| 2026-01-15 | Claude | Added README (tbd-1205), manual validation (tbd-1305), security review (tbd-1306)              |
