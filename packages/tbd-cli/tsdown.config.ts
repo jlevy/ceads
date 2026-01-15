@@ -1,25 +1,31 @@
 import { execSync } from 'node:child_process';
 import { defineConfig } from 'tsdown';
 
-// Read package.json at build time
 import pkg from './package.json' with { type: 'json' };
 
 /**
- * Generate version string from git state.
- * Format: X.Y.Z-dev.N.hash for dev builds, X.Y.Z for tagged releases.
+ * Get version from git tags with format: X.Y.Z-dev.N.hash
  *
- * See: research-modern-typescript-monorepo-patterns.md#dynamic-git-based-versioning
+ * - On tag: "1.2.3"
+ * - After tag: "1.2.4-dev.12.a1b2c3d" (bumped patch + commits + hash)
+ * - Dirty: "1.2.4-dev.12.a1b2c3d-dirty"
+ *
+ * Falls back to package.json version if not in a git repo.
  */
 function getGitVersion(): string {
   try {
     const git = (args: string) =>
       execSync(`git ${args}`, { encoding: 'utf-8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
 
-    // Get the latest tag
+    // Get the most recent tag and parse it
     const tag = git('describe --tags --abbrev=0');
     const tagVersion = tag.replace(/^v/, '');
     const [major, minor, patch] = tagVersion.split('.').map(Number);
+
+    // Get commits since tag
     const commitsSinceTag = parseInt(git(`rev-list ${tag}..HEAD --count`), 10);
+
+    // Get short hash
     const hash = git('rev-parse --short=7 HEAD');
 
     // Check for dirty working directory
@@ -31,35 +37,37 @@ function getGitVersion(): string {
       dirty = true;
     }
 
-    // If on exact tag and clean, return tag version
     if (commitsSinceTag === 0 && !dirty) {
+      // Exactly on a tag with clean working directory
       return tagVersion;
     }
 
-    // Bump patch for dev versions (ensures correct semver sorting)
+    // Dev version: bump patch, add commits and hash
     const bumpedPatch = (patch ?? 0) + 1;
     const suffix = dirty ? `${hash}-dirty` : hash;
     return `${major}.${minor}.${bumpedPatch}-dev.${commitsSinceTag}.${suffix}`;
   } catch {
-    // Fall back to package.json version if git info unavailable
+    // Not a git repo or no tags - fall back to package.json
     return pkg.version;
   }
 }
 
-// Common options shared by all entry configs
+const version = getGitVersion();
+
+// Common options for ESM-only build
 const commonOptions = {
-  format: ['esm', 'cjs'] as ('esm' | 'cjs')[],
+  format: ['esm'] as 'esm'[],
   platform: 'node' as const,
   target: 'node20' as const,
   sourcemap: true,
   dts: true,
   define: {
-    __TBD_VERSION__: JSON.stringify(getGitVersion()),
+    __TBD_VERSION__: JSON.stringify(version),
   },
 };
 
 export default defineConfig([
-  // Library entry points (no shebang needed)
+  // Library entry points
   {
     ...commonOptions,
     entry: {
@@ -73,6 +81,6 @@ export default defineConfig([
     ...commonOptions,
     entry: { bin: 'src/cli/bin.ts' },
     banner: '#!/usr/bin/env node',
-    clean: false, // Don't clean - first config already cleaned
+    clean: false,
   },
 ]);

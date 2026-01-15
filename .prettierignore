@@ -7,3 +7,5 @@ coverage
 .git
 .tbd
 .tbd-sync
+attic
+.changeset

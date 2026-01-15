@@ -1,3 +1,6 @@
+# Reference repos (cloned for comparison)
+attic/
+
 # tbd-specific
 .tbd/cache/
 .tbd/.worktree/

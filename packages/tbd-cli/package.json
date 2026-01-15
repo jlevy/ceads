@@ -6,29 +6,16 @@
   "author": "Joshua Levy <joshua@cal.berkeley.edu> (https://github.com/jlevy)",
   "type": "module",
   "sideEffects": false,
-  "main": "./dist/index.cjs",
-  "module": "./dist/index.mjs",
+  "main": "./dist/index.mjs",
   "types": "./dist/index.d.mts",
   "exports": {
     ".": {
-      "import": {
-        "types": "./dist/index.d.mts",
-        "default": "./dist/index.mjs"
-      },
-      "require": {
-        "types": "./dist/index.d.cts",
-        "default": "./dist/index.cjs"
-      }
+      "types": "./dist/index.d.mts",
+      "default": "./dist/index.mjs"
     },
     "./cli": {
-      "import": {
-        "types": "./dist/cli.d.mts",
-        "default": "./dist/cli.mjs"
-      },
-      "require": {
-        "types": "./dist/cli.d.cts",
-        "default": "./dist/cli.cjs"
-      }
+      "types": "./dist/cli.d.mts",
+      "default": "./dist/cli.mjs"
     },
     "./package.json": "./package.json"
   },

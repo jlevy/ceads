@@ -43,6 +43,7 @@ export default [
       '**/node_modules/**',
       '**/.pnpm-store/**',
       '**/coverage/**',
+      '**/attic/**',
       'eslint.config.*',
     ],
   },
@@ -53,9 +54,6 @@ export default [
   // Type-aware TypeScript rules
   ...typedRecommended,
   ...typedStylistic,
-
-  // Prettier config must be last to override conflicting rules
-  prettier,
 
   // TypeScript-specific rules
   {
@@ -154,4 +152,7 @@ export default [
       '@typescript-eslint/no-empty-function': 'off',
     },
   },
+
+  // Prettier config must be LAST to override conflicting rules
+  prettier,
 ];
