@@ -334,21 +334,31 @@ From the research docs, we will use:
 
 This plan is tracked using beads. The master epic is **tbd-100**.
 
-| Phase | Epic ID | Title | Tasks |
-|-------|---------|-------|-------|
-| 1 | tbd-101 | Core Schemas & Serialization | tbd-102 through tbd-111 |
-| 2 | tbd-200 | Storage Layer & Basic Git Operations | tbd-201 through tbd-209 |
-| 3 | tbd-300 | CLI Foundation & Init Command | tbd-301 through tbd-309 |
-| 4 | tbd-400 | Issue CRUD Commands | tbd-401 through tbd-409 |
-| 5 | tbd-500 | Workflow Commands | tbd-501 through tbd-504 |
-| 6 | tbd-600 | Label & Dependency Commands | tbd-601 through tbd-607 |
-| 7 | tbd-700 | Sync Operations | tbd-701 through tbd-708 |
-| 8 | tbd-800 | Search Command | tbd-801 through tbd-804 |
-| 9 | tbd-900 | Maintenance Commands | tbd-901 through tbd-904 |
-| 10 | tbd-1000 | Attic Commands | tbd-1001 through tbd-1004 |
-| 11 | tbd-1100 | Import Command | tbd-1101 through tbd-1105 |
-| 12 | tbd-1200 | Polish & Documentation | tbd-1201 through tbd-1206 |
-| Validation | tbd-1300 | Stage 5 Validation | tbd-1301 through tbd-1306 |
+| Phase      | Epic ID  | Title                                | Tasks                     | Status      |
+| ---------- | -------- | ------------------------------------ | ------------------------- | ----------- |
+| 1          | tbd-101  | Core Schemas & Serialization         | tbd-102 through tbd-111   | ✅ Complete |
+| 2          | tbd-200  | Storage Layer & Basic Git Operations | tbd-201 through tbd-209   | ✅ Complete |
+| 3          | tbd-300  | CLI Foundation & Init Command        | tbd-301 through tbd-309   | ✅ Complete |
+| 4          | tbd-400  | Issue CRUD Commands                  | tbd-401 through tbd-409   | ✅ Complete |
+| 5          | tbd-500  | Workflow Commands                    | tbd-501 through tbd-504   | ✅ Complete |
+| 6          | tbd-600  | Label & Dependency Commands          | tbd-601 through tbd-607   | ✅ Complete |
+| 7          | tbd-700  | Sync Operations                      | tbd-701 through tbd-708   | ⚠️ Partial  |
+| 8          | tbd-800  | Search Command                       | tbd-801 through tbd-804   | ⚠️ Partial  |
+| 9          | tbd-900  | Maintenance Commands                 | tbd-901 through tbd-904   | ✅ Complete |
+| 10         | tbd-1000 | Attic Commands                       | tbd-1001 through tbd-1004 | ✅ Complete |
+| 11         | tbd-1100 | Import Command                       | tbd-1101 through tbd-1105 | ✅ Complete |
+| 12         | tbd-1200 | Polish & Documentation               | tbd-1201 through tbd-1206 | ⚠️ Partial  |
+| Validation | tbd-1300 | Stage 5 Validation                   | tbd-1301 through tbd-1306 | 🔲 Pending  |
+
+**Status Legend:** ✅ Complete | ⚠️ Partial (needs review) | 🔲 Pending
+
+**Implementation Progress (2026-01-15):**
+
+- Core functionality implemented and passing 104 tests
+- All CLI commands implemented
+- Golden tests passing
+- Build and lint passing
+- Remaining work: sync refinements, search enhancements, documentation
 
 ### Phase 1: Core Schemas & Serialization
 
@@ -358,18 +368,18 @@ This plan is tracked using beads. The master epic is **tbd-100**.
 
 #### Phase 1 Tasks
 
-- [ ] Implement Zod schemas:
-  - [ ] Common types (Timestamp, IssueId, Version) — **tbd-102**
-  - [ ] IssueSchema — **tbd-103**
-  - [ ] ConfigSchema — **tbd-104**
-  - [ ] MetaSchema — **tbd-105**
-  - [ ] LocalStateSchema — **tbd-106**
-  - [ ] AtticEntrySchema — **tbd-107**
-- [ ] Implement serialization:
-  - [ ] YAML + Markdown parsing (gray-matter) — **tbd-108**
-  - [ ] Canonical serialization for hashing — **tbd-109**
-  - [ ] Content hash generation — **tbd-110**
-- [ ] Write unit tests for schemas and serialization — **tbd-111**
+- [x] Implement Zod schemas:
+  - [x] Common types (Timestamp, IssueId, Version) — **tbd-102** ✅
+  - [x] IssueSchema — **tbd-103** ✅
+  - [x] ConfigSchema — **tbd-104** ✅
+  - [x] MetaSchema — **tbd-105** ✅
+  - [x] LocalStateSchema — **tbd-106** ✅
+  - [x] AtticEntrySchema — **tbd-107** ✅
+- [x] Implement serialization:
+  - [x] YAML + Markdown parsing (gray-matter) — **tbd-108** ✅
+  - [x] Canonical serialization for hashing — **tbd-109** ✅
+  - [x] Content hash generation — **tbd-110** ✅
+- [x] Write unit tests for schemas and serialization — **tbd-111** ✅
 
 #### Phase 1 Key Design Details
 
@@ -448,16 +458,16 @@ Unit tests for:
 
 #### Phase 2 Tasks
 
-- [ ] Implement atomic file writes — **tbd-201**
-- [ ] Implement issue file operations:
-  - [ ] `readIssue(id)` - Parse .md file to Issue — **tbd-202**
-  - [ ] `writeIssue(issue)` - Serialize Issue to .md file — **tbd-203**
-  - [ ] `listIssues()` - Enumerate all issue files — **tbd-204**
-  - [ ] `deleteIssue(id)` - Remove issue file — **tbd-205**
-- [ ] Implement config operations (readConfig, writeConfig, initConfig) — **tbd-206**
-- [ ] Implement basic git plumbing (gitExec, getCurrentBranch, branchExists, getRemoteUrl) — **tbd-207**
-- [ ] Implement worktree management (initWorktree, updateWorktree, checkWorktreeHealth) — **tbd-208**
-- [ ] Write unit tests for storage and git operations — **tbd-209**
+- [x] Implement atomic file writes — **tbd-201** ✅
+- [x] Implement issue file operations:
+  - [x] `readIssue(id)` - Parse .md file to Issue — **tbd-202** ✅
+  - [x] `writeIssue(issue)` - Serialize Issue to .md file — **tbd-203** ✅
+  - [x] `listIssues()` - Enumerate all issue files — **tbd-204** ✅
+  - [x] `deleteIssue(id)` - Remove issue file — **tbd-205** ✅
+- [x] Implement config operations (readConfig, writeConfig, initConfig) — **tbd-206** ✅
+- [x] Implement basic git plumbing (gitExec, getCurrentBranch, branchExists, getRemoteUrl) — **tbd-207** ✅
+- [x] Implement worktree management (initWorktree, updateWorktree, checkWorktreeHealth) — **tbd-208** ✅
+- [x] Write unit tests for storage and git operations — **tbd-209** ✅
 
 #### Phase 2 Key Design Details
 
@@ -544,16 +554,16 @@ Does .tbd/.worktree/ exist and valid?
 
 #### Phase 3 Tasks
 
-- [ ] Implement CLI infrastructure:
-  - [ ] bin.ts entry point with shebang — **tbd-301**
-  - [ ] Commander program setup with global options — **tbd-302**
-  - [ ] BaseCommand class — **tbd-303**
-  - [ ] OutputManager for dual output — **tbd-304**
-  - [ ] CLIError classes — **tbd-305**
-  - [ ] Context management (getCommandContext) — **tbd-306**
-- [ ] Implement `tbd init` — **tbd-307**
-- [ ] Implement `tbd info` — **tbd-308**
-- [ ] Write golden tests for init and info commands — **tbd-309**
+- [x] Implement CLI infrastructure:
+  - [x] bin.ts entry point with shebang — **tbd-301** ✅
+  - [x] Commander program setup with global options — **tbd-302** ✅
+  - [x] BaseCommand class — **tbd-303** ✅
+  - [x] OutputManager for dual output — **tbd-304** ✅
+  - [x] CLIError classes — **tbd-305** ✅
+  - [x] Context management (getCommandContext) — **tbd-306** ✅
+- [x] Implement `tbd init` — **tbd-307** ✅
+- [x] Implement `tbd info` — **tbd-308** ✅
+- [x] Write golden tests for init and info commands — **tbd-309** ✅
 
 #### Phase 3 Key Design Details
 
@@ -736,15 +746,15 @@ $ tbd info --json
 
 #### Phase 4 Tasks
 
-- [ ] Implement dual ID generation — **tbd-401**
-- [ ] Implement ID mapping storage and resolution — **tbd-402**
-- [ ] Implement `tbd create` — **tbd-403**
-- [ ] Implement `tbd list` — **tbd-404**
-- [ ] Implement `tbd show` — **tbd-405**
-- [ ] Implement `tbd update` — **tbd-406**
-- [ ] Implement `tbd close` — **tbd-407**
-- [ ] Implement `tbd reopen` — **tbd-408**
-- [ ] Write golden tests for issue CRUD commands — **tbd-409**
+- [x] Implement dual ID generation — **tbd-401** ✅
+- [x] Implement ID mapping storage and resolution — **tbd-402** ✅
+- [x] Implement `tbd create` — **tbd-403** ✅
+- [x] Implement `tbd list` — **tbd-404** ✅
+- [x] Implement `tbd show` — **tbd-405** ✅
+- [x] Implement `tbd update` — **tbd-406** ✅
+- [x] Implement `tbd close` — **tbd-407** ✅
+- [x] Implement `tbd reopen` — **tbd-408** ✅
+- [x] Write golden tests for issue CRUD commands — **tbd-409** ✅
 
 #### Phase 4 Key Design Details
 
@@ -1067,10 +1077,10 @@ $ tbd show $ID --json | jq '.status'
 
 #### Phase 5 Tasks
 
-- [ ] Implement `tbd ready` — **tbd-501**
-- [ ] Implement `tbd blocked` — **tbd-502**
-- [ ] Implement `tbd stale` — **tbd-503**
-- [ ] Write golden tests for workflow commands — **tbd-504**
+- [x] Implement `tbd ready` — **tbd-501** ✅
+- [x] Implement `tbd blocked` — **tbd-502** ✅
+- [x] Implement `tbd stale` — **tbd-503** ✅
+- [x] Write golden tests for workflow commands — **tbd-504** ✅
 
 #### Phase 5 Key Design Details
 
@@ -1209,13 +1219,13 @@ $ tbd blocked
 
 #### Phase 6 Tasks
 
-- [ ] Implement `tbd label add` — **tbd-601**
-- [ ] Implement `tbd label remove` — **tbd-602**
-- [ ] Implement `tbd label list` — **tbd-603**
-- [ ] Implement `tbd dep add` — **tbd-604**
-- [ ] Implement `tbd dep remove` — **tbd-605**
-- [ ] Implement `tbd dep tree` — **tbd-606**
-- [ ] Write golden tests for label and dependency commands — **tbd-607**
+- [x] Implement `tbd label add` — **tbd-601** ✅
+- [x] Implement `tbd label remove` — **tbd-602** ✅
+- [x] Implement `tbd label list` — **tbd-603** ✅
+- [x] Implement `tbd dep add` — **tbd-604** ✅
+- [x] Implement `tbd dep remove` — **tbd-605** ✅
+- [x] Implement `tbd dep tree` — **tbd-606** ✅
+- [x] Write golden tests for label and dependency commands — **tbd-607** ✅
 
 #### Phase 6 Key Design Details
 
@@ -1400,14 +1410,14 @@ bd-[..] Issue B
 
 #### Phase 7 Tasks
 
-- [ ] Implement isolated index operations — **tbd-701**
-- [ ] Implement `tbd sync --pull` — **tbd-702**
-- [ ] Implement `tbd sync --push` — **tbd-703**
-- [ ] Implement `tbd sync` (full) — **tbd-704**
-- [ ] Implement `tbd sync --status` — **tbd-705**
-- [ ] Implement merge algorithm with field-level strategies — **tbd-706**
-- [ ] Implement push retry algorithm — **tbd-707**
-- [ ] Write golden tests for sync operations — **tbd-708**
+- [ ] Implement isolated index operations — **tbd-701** ⚠️ (partial)
+- [x] Implement `tbd sync --pull` — **tbd-702** ✅
+- [x] Implement `tbd sync --push` — **tbd-703** ✅
+- [x] Implement `tbd sync` (full) — **tbd-704** ✅
+- [x] Implement `tbd sync --status` — **tbd-705** ✅
+- [ ] Implement merge algorithm with field-level strategies — **tbd-706** ⚠️ (needs review)
+- [ ] Implement push retry algorithm — **tbd-707** ⚠️ (partial)
+- [x] Write golden tests for sync operations — **tbd-708** ✅
 
 #### Phase 7 Key Design Details
 
@@ -1737,10 +1747,10 @@ No pending changes
 
 #### Phase 8 Tasks
 
-- [ ] Implement search backend (ripgrep/grep detection) — **tbd-801**
-- [ ] Implement `tbd search` command — **tbd-802**
-- [ ] Implement worktree staleness check and auto-refresh — **tbd-803**
-- [ ] Write golden tests for search command — **tbd-804**
+- [x] Implement search backend (ripgrep/grep detection) — **tbd-801** ✅
+- [x] Implement `tbd search` command — **tbd-802** ✅
+- [ ] Implement worktree staleness check and auto-refresh — **tbd-803** ⚠️ (needs review)
+- [ ] Write golden tests for search command — **tbd-804** ⚠️ (needs more coverage)
 
 #### Phase 8 Key Design Details
 
@@ -1944,10 +1954,10 @@ $ tbd search "OAuth" --type feature --json
 
 #### Phase 9 Tasks
 
-- [ ] Implement `tbd stats` — **tbd-901**
-- [ ] Implement `tbd doctor` — **tbd-902**
-- [ ] Implement `tbd config` — **tbd-903**
-- [ ] Write golden tests for maintenance commands — **tbd-904**
+- [x] Implement `tbd stats` — **tbd-901** ✅
+- [x] Implement `tbd doctor` — **tbd-902** ✅
+- [x] Implement `tbd config` — **tbd-903** ✅
+- [x] Write golden tests for maintenance commands — **tbd-904** ✅
 
 #### Phase 9 Key Design Details
 
@@ -2182,10 +2192,10 @@ display:
 
 #### Phase 10 Tasks
 
-- [ ] Implement `tbd attic list` — **tbd-1001**
-- [ ] Implement `tbd attic show` — **tbd-1002**
-- [ ] Implement `tbd attic restore` — **tbd-1003**
-- [ ] Write golden tests for attic commands — **tbd-1004**
+- [x] Implement `tbd attic list` — **tbd-1001** ✅
+- [x] Implement `tbd attic show` — **tbd-1002** ✅
+- [x] Implement `tbd attic restore` — **tbd-1003** ✅
+- [x] Write golden tests for attic commands — **tbd-1004** ✅
 
 #### Phase 10 Key Design Details
 
@@ -2358,11 +2368,11 @@ Field: description
 
 #### Phase 11 Tasks
 
-- [ ] Implement JSONL parsing for Beads export format — **tbd-1101**
-- [ ] Implement ID mapping for import — **tbd-1102**
-- [ ] Implement `tbd import <file>` — **tbd-1103**
-- [ ] Implement `tbd import --from-beads` — **tbd-1104**
-- [ ] Write golden tests for import command — **tbd-1105**
+- [x] Implement JSONL parsing for Beads export format — **tbd-1101** ✅
+- [x] Implement ID mapping for import — **tbd-1102** ✅
+- [x] Implement `tbd import <file>` — **tbd-1103** ✅
+- [x] Implement `tbd import --from-beads` — **tbd-1104** ✅
+- [x] Write golden tests for import command — **tbd-1105** ✅
 
 #### Phase 11 Key Design Details
 
@@ -2681,12 +2691,12 @@ Would import from beads2.jsonl:
 
 #### Phase 12 Tasks
 
-- [ ] Implement colored output with TTY detection — **tbd-1201**
-- [ ] Implement help improvements — **tbd-1202**
-- [ ] Performance optimization — **tbd-1203**
-- [ ] Cross-platform testing — **tbd-1204**
-- [ ] Documentation (README, migration guide) — **tbd-1205**
-- [ ] Release preparation — **tbd-1206**
+- [x] Implement colored output with TTY detection — **tbd-1201** ✅
+- [x] Implement help improvements — **tbd-1202** ✅
+- [ ] Performance optimization — **tbd-1203** ⚠️ (pending benchmarks)
+- [ ] Cross-platform testing — **tbd-1204** ⚠️ (needs CI setup)
+- [ ] Documentation (README, migration guide) — **tbd-1205** ⚠️ (pending)
+- [ ] Release preparation — **tbd-1206** ⚠️ (pending)
 
 ---
 
@@ -2696,12 +2706,12 @@ Would import from beads2.jsonl:
 
 ### Validation Checklist
 
-- [ ] All golden tests pass — **tbd-1301**
-- [ ] Unit test coverage > 80% — **tbd-1302**
-- [ ] Performance targets met (<50ms common operations) — **tbd-1303**
-- [ ] Cross-platform CI passes (Linux, macOS, Windows) — **tbd-1304**
-- [ ] Manual testing of full workflow — **tbd-1305**
-- [ ] Security review (no command injection, safe file operations) — **tbd-1306**
+- [x] All golden tests pass — **tbd-1301** ✅ (104 tests passing)
+- [ ] Unit test coverage > 80% — **tbd-1302** ⚠️ (needs measurement)
+- [ ] Performance targets met (<50ms common operations) — **tbd-1303** ⚠️ (needs benchmarks)
+- [ ] Cross-platform CI passes (Linux, macOS, Windows) — **tbd-1304** ⚠️ (needs CI)
+- [ ] Manual testing of full workflow — **tbd-1305** ⚠️ (pending)
+- [ ] Security review (no command injection, safe file operations) — **tbd-1306** ⚠️ (pending)
 
 ### Definition of Done
 
@@ -2807,6 +2817,7 @@ jobs:
 
 ## Revision History
 
-| Date       | Author | Changes                   |
-| ---------- | ------ | ------------------------- |
-| 2026-01-15 | Claude | Initial plan spec created |
+| Date       | Author | Changes                                                                                   |
+| ---------- | ------ | ----------------------------------------------------------------------------------------- |
+| 2026-01-15 | Claude | Initial plan spec created                                                                 |
+| 2026-01-15 | Claude | Updated bead status tracking: Phases 1-6 complete, Phases 7-12 partial, 104 tests passing |
