@@ -122,7 +122,8 @@ We use [Conventional Commits](https://www.conventionalcommits.org/) for commit m
 
 - `feat`: New feature
 - `fix`: Bug fix
-- `docs`: Documentation only
+- `docs`: Documentation for the product or main codebase (not process docs)
+- `process`: Documentation or tooling changes to agent or human development processes
 - `style`: Code style (formatting, no logic change)
 - `refactor`: Code change that neither fixes a bug nor adds a feature
 - `test`: Adding or updating tests
@@ -136,6 +137,8 @@ feat: Add support for custom labels
 fix: Handle empty issue list gracefully
 
 docs: Update CLI usage examples
+
+process: Add TDD guidelines for agent workflows
 
 test: Add golden tests for sync command
 
