@@ -8,11 +8,11 @@
 
 import { readFile, mkdir, access } from 'node:fs/promises';
 import { join } from 'node:path';
+import { writeFile } from 'atomically';
 import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
 
 import type { Config } from '../lib/types.js';
 import { ConfigSchema } from '../lib/schemas.js';
-import { atomicWriteFile } from './storage.js';
 
 /**
  * Path to config file relative to project root.
@@ -75,7 +75,7 @@ export async function writeConfig(baseDir: string, config: Config): Promise<void
     lineWidth: 0,
   });
 
-  await atomicWriteFile(configPath, yaml);
+  await writeFile(configPath, yaml);
 }
 
 /**

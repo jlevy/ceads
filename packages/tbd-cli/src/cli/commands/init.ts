@@ -8,10 +8,11 @@ import { Command } from 'commander';
 import { mkdir, stat } from 'node:fs/promises';
 import { join } from 'node:path';
 
+import { writeFile } from 'atomically';
+
 import { BaseCommand } from '../lib/baseCommand.js';
 import { VERSION } from '../../index.js';
 import { initConfig } from '../../file/config.js';
-import { atomicWriteFile } from '../../file/storage.js';
 import { TBD_DIR, CACHE_DIR, WORKTREE_DIR_NAME, DATA_SYNC_DIR_NAME } from '../../lib/paths.js';
 import { initWorktree } from '../../file/git.js';
 
@@ -42,7 +43,7 @@ class InitHandler extends BaseCommand {
       await initConfig(cwd, VERSION);
       this.output.debug(`Created ${TBD_DIR}/config.yml`);
 
-      // 2. Create .tbd/.gitignore (uses atomicWriteFile for consistency)
+      // 2. Create .tbd/.gitignore
       // Per spec §2.3: Must ignore cache/, data-sync-worktree/, and data-sync/
       const gitignoreContent = [
         '# Local cache (not shared)',
@@ -58,7 +59,7 @@ class InitHandler extends BaseCommand {
         '*.tmp',
         '',
       ].join('\n');
-      await atomicWriteFile(join(cwd, TBD_DIR, '.gitignore'), gitignoreContent);
+      await writeFile(join(cwd, TBD_DIR, '.gitignore'), gitignoreContent);
       this.output.debug(`Created ${TBD_DIR}/.gitignore`);
 
       // 3. Create .tbd/cache/ directory

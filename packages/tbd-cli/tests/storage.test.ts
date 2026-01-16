@@ -6,13 +6,8 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { mkdtemp, rm, readFile, writeFile as fsWriteFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import {
-  readIssue,
-  writeIssue,
-  listIssues,
-  deleteIssue,
-  atomicWriteFile,
-} from '../src/file/storage.js';
+import { writeFile } from 'atomically';
+import { readIssue, writeIssue, listIssues, deleteIssue } from '../src/file/storage.js';
 import type { Issue } from '../src/lib/types.js';
 import { TEST_ULIDS, testId } from './test-helpers.js';
 
@@ -31,7 +26,7 @@ const makeIssue = (overrides: Partial<Issue> = {}): Issue => ({
   ...overrides,
 });
 
-describe('atomicWriteFile', () => {
+describe('atomically writeFile', () => {
   let tempDir: string;
 
   beforeEach(async () => {
@@ -46,7 +41,7 @@ describe('atomicWriteFile', () => {
     const filePath = join(tempDir, 'test.txt');
     const content = 'Hello, World!';
 
-    await atomicWriteFile(filePath, content);
+    await writeFile(filePath, content);
 
     const read = await readFile(filePath, 'utf-8');
     expect(read).toBe(content);
@@ -55,8 +50,8 @@ describe('atomicWriteFile', () => {
   it('overwrites existing file', async () => {
     const filePath = join(tempDir, 'test.txt');
 
-    await atomicWriteFile(filePath, 'original');
-    await atomicWriteFile(filePath, 'updated');
+    await writeFile(filePath, 'original');
+    await writeFile(filePath, 'updated');
 
     const read = await readFile(filePath, 'utf-8');
     expect(read).toBe('updated');
@@ -65,7 +60,7 @@ describe('atomicWriteFile', () => {
   it('creates parent directories', async () => {
     const filePath = join(tempDir, 'nested', 'dir', 'test.txt');
 
-    await atomicWriteFile(filePath, 'content');
+    await writeFile(filePath, 'content');
 
     const read = await readFile(filePath, 'utf-8');
     expect(read).toBe('content');
@@ -74,7 +69,7 @@ describe('atomicWriteFile', () => {
   it('cleans up temp file on success', async () => {
     const filePath = join(tempDir, 'test.txt');
 
-    await atomicWriteFile(filePath, 'content');
+    await writeFile(filePath, 'content');
 
     // Should not have any .tmp files
     const { readdir } = await import('node:fs/promises');

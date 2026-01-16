@@ -9,19 +9,10 @@
 
 import { readFile, unlink, readdir } from 'node:fs/promises';
 import { join } from 'node:path';
-import { writeFile as atomicallyWriteFile } from 'atomically';
+import { writeFile } from 'atomically';
 
 import type { Issue } from '../lib/types.js';
 import { parseIssue, serializeIssue } from './parser.js';
-
-/**
- * Atomic file write using the atomically library.
- * Automatically creates parent directories and uses temp file + rename pattern.
- * Includes retry logic for transient errors (EMFILE, ENFILE, EAGAIN, EBUSY, EACCESS, EPERM).
- */
-export async function atomicWriteFile(filePath: string, content: string): Promise<void> {
-  await atomicallyWriteFile(filePath, content);
-}
 
 /**
  * Get the path to an issue file.
@@ -47,7 +38,7 @@ export async function readIssue(baseDir: string, id: string): Promise<Issue> {
 export async function writeIssue(baseDir: string, issue: Issue): Promise<void> {
   const filePath = getIssuePath(baseDir, issue.id);
   const content = serializeIssue(issue);
-  await atomicWriteFile(filePath, content);
+  await writeFile(filePath, content);
 }
 
 /**

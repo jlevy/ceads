@@ -9,8 +9,10 @@ import { readFile, access, mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
 
+import { writeFile } from 'atomically';
+
 import { BaseCommand } from '../lib/baseCommand.js';
-import { writeIssue, listIssues, atomicWriteFile } from '../../file/storage.js';
+import { writeIssue, listIssues } from '../../file/storage.js';
 import { generateInternalId } from '../../lib/ids.js';
 import { IssueStatus, IssueKind } from '../../lib/schemas.js';
 import type { Issue, IssueStatusType, IssueKindType, DependencyType } from '../../lib/types.js';
@@ -82,7 +84,7 @@ async function saveMapping(mapping: IdMapping): Promise<void> {
   await mkdir(mappingsDir, { recursive: true });
   const mappingPath = join(mappingsDir, 'beads.yml');
   const content = stringifyYaml(mapping, { sortMapEntries: true });
-  await atomicWriteFile(mappingPath, content);
+  await writeFile(mappingPath, content);
 }
 
 /**

@@ -9,8 +9,10 @@ import { readdir, readFile, mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
 
+import { writeFile } from 'atomically';
+
 import { BaseCommand } from '../lib/baseCommand.js';
-import { readIssue, writeIssue, atomicWriteFile } from '../../file/storage.js';
+import { readIssue, writeIssue } from '../../file/storage.js';
 import { normalizeIssueId } from '../../lib/ids.js';
 import { resolveDataSyncDir, resolveAtticDir } from '../../lib/paths.js';
 
@@ -107,7 +109,7 @@ export async function saveAtticEntry(entry: AtticEntry): Promise<void> {
   const filepath = join(atticPath, filename);
   const content = stringifyYaml(entry, { sortMapEntries: true });
 
-  await atomicWriteFile(filepath, content);
+  await writeFile(filepath, content);
 }
 
 // List attic entries

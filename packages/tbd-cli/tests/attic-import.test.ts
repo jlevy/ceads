@@ -3,13 +3,14 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mkdir, rm, writeFile, readFile } from 'node:fs/promises';
+import { mkdir, rm, writeFile as fsWriteFile, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { randomBytes } from 'node:crypto';
+import { writeFile } from 'atomically';
 import { stringify as stringifyYaml, parse as parseYaml } from 'yaml';
 
-import { writeIssue, readIssue, atomicWriteFile } from '../src/file/storage.js';
+import { writeIssue, readIssue } from '../src/file/storage.js';
 import type { Issue } from '../src/lib/types.js';
 import { DATA_SYNC_DIR, ATTIC_DIR, MAPPINGS_DIR } from '../src/lib/paths.js';
 import { TEST_ULIDS, testId } from './test-helpers.js';
@@ -69,7 +70,7 @@ describe('attic commands logic', () => {
     const filename = `${entry.entity_id}_${safeTimestamp}_${entry.field}.yml`;
     const filepath = join(testDir, atticDir, filename);
     const content = stringifyYaml(entry, { sortMapEntries: true });
-    await atomicWriteFile(filepath, content);
+    await writeFile(filepath, content);
 
     // Read and verify
     const savedContent = await readFile(filepath, 'utf-8');
@@ -120,7 +121,7 @@ describe('attic commands logic', () => {
     const safeTimestamp = entry.timestamp.replace(/:/g, '-');
     const filename = `${entry.entity_id}_${safeTimestamp}_${entry.field}.yml`;
     const filepath = join(testDir, atticDir, filename);
-    await atomicWriteFile(filepath, stringifyYaml(entry));
+    await writeFile(filepath, stringifyYaml(entry));
 
     // Simulate restore: load issue, restore field, save
     const loaded = await readIssue(issuesDir, issueId);
@@ -178,7 +179,7 @@ describe('import command logic', () => {
 
     const jsonlContent = beadsIssues.map((i) => JSON.stringify(i)).join('\n');
     const jsonlPath = join(testDir, 'beads-export.jsonl');
-    await writeFile(jsonlPath, jsonlContent, 'utf-8');
+    await fsWriteFile(jsonlPath, jsonlContent, 'utf-8');
 
     // Parse JSONL
     const content = await readFile(jsonlPath, 'utf-8');
@@ -231,7 +232,7 @@ describe('import command logic', () => {
     };
 
     const mappingPath = join(testDir, mappingsDir, 'beads.yml');
-    await atomicWriteFile(mappingPath, stringifyYaml(mapping));
+    await writeFile(mappingPath, stringifyYaml(mapping));
 
     // Read mapping back
     const content = await readFile(mappingPath, 'utf-8');

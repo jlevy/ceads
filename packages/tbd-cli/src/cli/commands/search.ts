@@ -7,8 +7,10 @@
 import { Command } from 'commander';
 import { readFile } from 'node:fs/promises';
 
+import { writeFile } from 'atomically';
+
 import { BaseCommand } from '../lib/baseCommand.js';
-import { listIssues, atomicWriteFile } from '../../file/storage.js';
+import { listIssues } from '../../file/storage.js';
 import { IssueStatus } from '../../lib/schemas.js';
 import type { Issue, IssueStatusType } from '../../lib/types.js';
 import { resolveDataSyncDir } from '../../lib/paths.js';
@@ -51,12 +53,11 @@ async function readState(): Promise<LocalState> {
 
 /**
  * Update local state file.
- * Uses atomicWriteFile to ensure parent directories exist and write is atomic.
  */
 async function updateState(updates: Partial<LocalState>): Promise<void> {
   const state = await readState();
   const newState = { ...state, ...updates };
-  await atomicWriteFile(STATE_FILE, JSON.stringify(newState, null, 2));
+  await writeFile(STATE_FILE, JSON.stringify(newState, null, 2));
 }
 
 /**
