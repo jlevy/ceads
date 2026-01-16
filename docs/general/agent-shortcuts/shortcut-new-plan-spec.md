@@ -15,6 +15,7 @@ Create a to-do list with the following items then perform all of them:
    and asking for clarifications as soon as you need them.
 
    Rules:
+
    - You may break work into a few phases (phases) if it helps with incremental testing.
      But **use as few phases as possible.** If it is straightforward, use one phase.
 

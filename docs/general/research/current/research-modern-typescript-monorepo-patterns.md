@@ -29,7 +29,7 @@
 | **publint**                | ^0.3.0             | [npmjs.com/package/publint](https://www.npmjs.com/package/publint)                                                                        |
 | **@changesets/cli**        | ^2.29.0            | [github.com/changesets/changesets/releases](https://github.com/changesets/changesets/releases)                                            |
 | **@types/node**            | ^24.0.0            | Should match Node.js major version (^25.0.0 also available)                                                                               |
-| **actions/checkout**       | v5                 | [github.com/actions/checkout/releases](https://github.com/actions/checkout/releases) — v6 available, uses Node 24                         |
+| **actions/checkout**       | v6                 | [github.com/actions/checkout/releases](https://github.com/actions/checkout/releases) — Latest (v6.0.2), requires Runner v2.329.0+         |
 | **actions/setup-node**     | v6                 | [github.com/actions/setup-node/releases](https://github.com/actions/setup-node/releases)                                                  |
 | **pnpm/action-setup**      | v4                 | [github.com/pnpm/action-setup/releases](https://github.com/pnpm/action-setup/releases)                                                    |
 | **changesets/action**      | v1                 | [github.com/changesets/action](https://github.com/changesets/action)                                                                      |
@@ -766,7 +766,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - uses: pnpm/action-setup@v4
         with:
@@ -790,7 +790,8 @@ jobs:
 - Node.js 24 is the current LTS ("Krypton", active until Oct 2026, maintained until Apr
   2028\)
 
-- `actions/checkout@v5` requires Actions Runner v2.327.1+ (node24 runtime)
+- `actions/checkout@v6` requires Actions Runner v2.329.0+ (stores credentials under
+  $RUNNER_TEMP)
 
 - `pnpm/action-setup@v4` includes built-in caching
 
@@ -827,7 +828,7 @@ jobs:
   release:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
