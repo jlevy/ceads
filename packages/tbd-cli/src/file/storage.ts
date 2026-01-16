@@ -7,39 +7,20 @@
  * See: tbd-design-v3.md §3.2 Storage Layer
  */
 
-import { readFile, writeFile, unlink, readdir, mkdir } from 'node:fs/promises';
-import { join, dirname } from 'node:path';
-import { randomBytes } from 'node:crypto';
+import { readFile, unlink, readdir } from 'node:fs/promises';
+import { join } from 'node:path';
+import { writeFile as atomicallyWriteFile } from 'atomically';
 
 import type { Issue } from '../lib/types.js';
 import { parseIssue, serializeIssue } from './parser.js';
 
 /**
- * Atomic file write using temp file + rename pattern.
- * Prevents corruption from crashes during write.
+ * Atomic file write using the atomically library.
+ * Automatically creates parent directories and uses temp file + rename pattern.
+ * Includes retry logic for transient errors (EMFILE, ENFILE, EAGAIN, EBUSY, EACCESS, EPERM).
  */
 export async function atomicWriteFile(filePath: string, content: string): Promise<void> {
-  // Ensure parent directory exists
-  const dir = dirname(filePath);
-  await mkdir(dir, { recursive: true });
-
-  // Write to temp file then rename
-  const tempPath = `${filePath}.${randomBytes(8).toString('hex')}.tmp`;
-
-  try {
-    await writeFile(tempPath, content, 'utf-8');
-    // Rename is atomic on POSIX systems
-    const { rename } = await import('node:fs/promises');
-    await rename(tempPath, filePath);
-  } catch (error) {
-    // Clean up temp file on error
-    try {
-      await unlink(tempPath);
-    } catch {
-      // Ignore cleanup errors
-    }
-    throw error;
-  }
+  await atomicallyWriteFile(filePath, content);
 }
 
 /**

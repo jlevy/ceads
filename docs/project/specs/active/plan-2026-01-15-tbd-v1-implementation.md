@@ -398,6 +398,68 @@ Key patterns:
 - Branch/remote names validated via Zod schemas before use
 - Isolated index (`GIT_INDEX_FILE`) protects user's staging area
 
+### 3.5 Git Version Requirements
+
+**Minimum Version**: Git 2.17.0 (required for `git worktree remove`)
+**Recommended Version**: Git 2.42.0 (native `git worktree add --orphan` support)
+
+#### Feature Dependencies by Version
+
+| Feature Used | Git Command | Minimum Version |
+| --- | --- | --- |
+| Worktree basics | `git worktree add`, `list`, `prune` | 2.5 (2015) |
+| Worktree remove | `git worktree remove --force` | 2.17 (2018) |
+| Orphan worktree | `git worktree add --orphan` | **2.42 (Aug 2023)** |
+| Plumbing commands | `read-tree`, `write-tree`, `commit-tree` | Ancient |
+
+#### Platform Compatibility
+
+| Platform | Default Git | Has `--orphan`? | Action Needed |
+| --- | --- | --- | --- |
+| Ubuntu 24.04 LTS | 2.43 | ✅ Yes | None |
+| Ubuntu 22.04 LTS | 2.34 | ❌ No | Fallback used |
+| Debian 12 (Bookworm) | 2.39 | ❌ No | Fallback used |
+| macOS (Homebrew) | Latest | ✅ Yes | None |
+| Windows (Git for Windows) | Latest | ✅ Yes | None |
+
+#### Fallback Strategy for Git < 2.42
+
+When `git worktree add --orphan` is unavailable, tbd uses a fallback strategy:
+
+1. Save current branch
+2. Create orphan branch via `git checkout --orphan <branch>`
+3. Clear index with `git rm -rf --cached .`
+4. Create empty initial commit
+5. Switch back to original branch
+6. Create worktree from the new branch with `--detach`
+
+This maintains compatibility with Ubuntu 22.04 LTS (supported until 2027) while
+still recommending users upgrade for best experience.
+
+#### Version Detection
+
+tbd includes automatic Git version detection (`getGitVersion()`, `checkGitVersion()`)
+that:
+- Parses `git --version` output
+- Compares against minimum requirements
+- Provides platform-specific upgrade instructions when needed
+- Logs a warning when using fallback methods
+
+Users on older Git versions will see:
+```
+Warning: Git 2.34.1 detected. Git 2.42.0+ recommended.
+Upgrade: https://git-scm.com/download/linux
+Using fallback method for orphan branch creation.
+```
+
+#### Upgrade Links (Platform-Specific)
+
+| Platform | Upgrade URL |
+| --- | --- |
+| Linux | https://git-scm.com/download/linux |
+| macOS | https://git-scm.com/download/mac |
+| Windows | https://git-scm.com/download/win |
+
 * * *
 
 ## Stage 4: Implementation Stage

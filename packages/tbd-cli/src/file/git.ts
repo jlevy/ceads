@@ -10,10 +10,12 @@
  */
 
 import { execFile } from 'node:child_process';
+import { mkdir } from 'node:fs/promises';
 import { promisify } from 'node:util';
 import { join } from 'node:path';
 
 import type { Issue } from '../lib/types.js';
+import { atomicWriteFile } from './storage.js';
 
 const execFileAsync = promisify(execFile);
 
@@ -24,6 +26,133 @@ const execFileAsync = promisify(execFile);
 export async function git(...args: string[]): Promise<string> {
   const { stdout } = await execFileAsync('git', args);
   return stdout.trim();
+}
+
+// =============================================================================
+// Git Version Detection
+// See: plan spec §3.4 Git Integration Architecture
+// =============================================================================
+
+/**
+ * Minimum Git version required for full functionality.
+ * Git 2.42 introduced `git worktree add --orphan` which tbd uses.
+ *
+ * Versions below this will use a fallback strategy for orphan worktree creation.
+ */
+export const MIN_GIT_VERSION = '2.42.0';
+
+/**
+ * Minimum Git version for basic worktree support (without --orphan).
+ */
+export const MIN_GIT_VERSION_WORKTREE = '2.17.0';
+
+/**
+ * Parsed Git version information.
+ */
+export interface GitVersion {
+  major: number;
+  minor: number;
+  patch: number;
+  raw: string;
+}
+
+/**
+ * Get the installed Git version.
+ *
+ * @returns Parsed version information
+ * @throws Error if git is not installed or version cannot be parsed
+ */
+export async function getGitVersion(): Promise<GitVersion> {
+  const versionOutput = await git('--version');
+  // Output format: "git version 2.42.0" or "git version 2.42.0.windows.1"
+  const versionRegex = /git version (\d+)\.(\d+)\.(\d+)/;
+  const match = versionRegex.exec(versionOutput);
+
+  const major = match?.[1];
+  const minor = match?.[2];
+  const patch = match?.[3];
+
+  if (!major || !minor || !patch) {
+    throw new Error(`Unable to parse git version from: ${versionOutput}`);
+  }
+
+  return {
+    major: parseInt(major, 10),
+    minor: parseInt(minor, 10),
+    patch: parseInt(patch, 10),
+    raw: versionOutput,
+  };
+}
+
+/**
+ * Compare two version strings.
+ *
+ * @returns -1 if a < b, 0 if a === b, 1 if a > b
+ */
+export function compareVersions(a: GitVersion, b: string): number {
+  const parts = b.split('.');
+  const bMajor = parseInt(parts[0] ?? '0', 10);
+  const bMinor = parseInt(parts[1] ?? '0', 10);
+  const bPatch = parseInt(parts[2] ?? '0', 10);
+
+  if (a.major !== bMajor) return a.major < bMajor ? -1 : 1;
+  if (a.minor !== bMinor) return a.minor < bMinor ? -1 : 1;
+  if (a.patch !== bPatch) return a.patch < bPatch ? -1 : 1;
+  return 0;
+}
+
+/**
+ * Check if the installed Git version meets minimum requirements.
+ *
+ * @returns Object with check results and upgrade instructions if needed
+ */
+export async function checkGitVersion(): Promise<{
+  version: GitVersion;
+  meetsMinimum: boolean;
+  hasOrphanWorktree: boolean;
+  upgradeInstructions?: string;
+}> {
+  const version = await getGitVersion();
+  const hasOrphanWorktree = compareVersions(version, MIN_GIT_VERSION) >= 0;
+  const meetsMinimum = compareVersions(version, MIN_GIT_VERSION_WORKTREE) >= 0;
+
+  let upgradeInstructions: string | undefined;
+  if (!hasOrphanWorktree) {
+    upgradeInstructions = getUpgradeInstructions(version);
+  }
+
+  return {
+    version,
+    meetsMinimum,
+    hasOrphanWorktree,
+    upgradeInstructions,
+  };
+}
+
+/**
+ * Get platform-specific upgrade instructions.
+ * Points to official documentation rather than detailed commands for easier maintenance.
+ */
+function getUpgradeInstructions(currentVersion: GitVersion): string {
+  const platform = process.platform;
+  const versionStr = `${currentVersion.major}.${currentVersion.minor}.${currentVersion.patch}`;
+
+  let upgradeUrl: string;
+  switch (platform) {
+    case 'darwin':
+      upgradeUrl = 'https://git-scm.com/download/mac';
+      break;
+    case 'linux':
+      upgradeUrl = 'https://git-scm.com/download/linux';
+      break;
+    case 'win32':
+      upgradeUrl = 'https://git-scm.com/download/win';
+      break;
+    default:
+      upgradeUrl = 'https://git-scm.com/downloads';
+  }
+
+  return `Git ${versionStr} detected. Git ${MIN_GIT_VERSION}+ recommended.\nUpgrade: ${upgradeUrl}`;
 }
 
 /**
@@ -574,6 +703,52 @@ export async function checkWorktreeHealth(baseDir: string): Promise<WorktreeHeal
 }
 
 /**
+ * Fallback for creating orphan worktree on Git < 2.42.
+ *
+ * Strategy: Create orphan branch in main repo first, make initial commit,
+ * then create worktree from that branch.
+ *
+ * @param baseDir - The base directory of the repository
+ * @param worktreePath - Path where the worktree should be created
+ * @param syncBranch - The sync branch name
+ */
+async function createOrphanWorktreeFallback(
+  baseDir: string,
+  worktreePath: string,
+  syncBranch: string,
+): Promise<void> {
+  // Save current branch to restore later
+  const currentBranch = await getCurrentBranch();
+
+  try {
+    // Create orphan branch using checkout --orphan (available since Git 1.7.2)
+    await git('-C', baseDir, 'checkout', '--orphan', syncBranch);
+
+    // Remove all files from index (orphan branch starts with staged files from previous HEAD)
+    await git('-C', baseDir, 'rm', '-rf', '--cached', '.').catch(() => {
+      // Ignore error if nothing to remove
+    });
+
+    // Create an empty initial commit
+    await git('-C', baseDir, 'commit', '--allow-empty', '-m', 'Initialize tbd-sync branch (empty)');
+
+    // Switch back to original branch
+    await git('-C', baseDir, 'checkout', currentBranch);
+
+    // Now create worktree from the newly created branch
+    await git('-C', baseDir, 'worktree', 'add', worktreePath, syncBranch, '--detach');
+  } catch (error) {
+    // Try to restore original branch on failure
+    try {
+      await git('-C', baseDir, 'checkout', currentBranch);
+    } catch {
+      // Ignore restore errors
+    }
+    throw error;
+  }
+}
+
+/**
  * Initialize the hidden worktree for the tbd-sync branch.
  * Follows the decision tree from tbd-design-v3.md §2.3.
  *
@@ -628,18 +803,30 @@ export async function initWorktree(
     }
 
     // No branch exists - create orphan worktree
-    // Note: --orphan creates a new branch with no history
-    await git('-C', baseDir, 'worktree', 'add', worktreePath, '--orphan', syncBranch);
+    // Check Git version for --orphan support (Git 2.42+)
+    const { hasOrphanWorktree, upgradeInstructions } = await checkGitVersion();
+
+    if (hasOrphanWorktree) {
+      // Git 2.42+: Use native --orphan flag
+      await git('-C', baseDir, 'worktree', 'add', worktreePath, '--orphan', syncBranch);
+    } else {
+      // Git < 2.42: Fallback - create orphan branch manually, then worktree
+      // This preserves compatibility with Ubuntu 22.04 LTS (Git 2.34) and similar
+      if (upgradeInstructions) {
+        // Log warning but continue with fallback
+        console.warn(`Warning: ${upgradeInstructions.split('\n')[0]}`);
+        console.warn('Using fallback method for orphan branch creation.\n');
+      }
+      await createOrphanWorktreeFallback(baseDir, worktreePath, syncBranch);
+    }
 
     // Initialize the data-sync directory structure in the worktree
     const dataSyncPath = join(worktreePath, TBD_DIR, DATA_SYNC_DIR_NAME);
-    const { mkdir } = await import('node:fs/promises');
     await mkdir(join(dataSyncPath, 'issues'), { recursive: true });
     await mkdir(join(dataSyncPath, 'mappings'), { recursive: true });
     await mkdir(join(dataSyncPath, 'attic', 'conflicts'), { recursive: true });
 
     // Create initial commit in worktree
-    const { atomicWriteFile } = await import('./storage.js');
     await atomicWriteFile(join(dataSyncPath, 'meta.yml'), 'schema_version: 1\n');
     await atomicWriteFile(join(dataSyncPath, 'issues', '.gitkeep'), '');
     await atomicWriteFile(join(dataSyncPath, 'mappings', '.gitkeep'), '');

@@ -41,6 +41,9 @@ importers:
 
   packages/tbd-cli:
     dependencies:
+      atomically:
+        specifier: ^2.1.0
+        version: 2.1.0
       commander:
         specifier: ^14.0.2
         version: 14.0.2

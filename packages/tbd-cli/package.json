@@ -63,6 +63,7 @@
     "prepack": "pnpm build"
   },
   "dependencies": {
+    "atomically": "^2.1.0",
     "commander": "^14.0.2",
     "picocolors": "^1.1.1",
     "ulid": "^3.0.2",
