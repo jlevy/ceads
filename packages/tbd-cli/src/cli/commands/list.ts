@@ -9,6 +9,7 @@ import { Command } from 'commander';
 import { BaseCommand } from '../lib/baseCommand.js';
 import type { Issue, IssueStatusType, IssueKindType } from '../../lib/types.js';
 import { listIssues } from '../../file/storage.js';
+import { formatDisplayId } from '../../lib/ids.js';
 
 interface ListOptions {
   status?: IssueStatusType;
@@ -52,9 +53,9 @@ class ListHandler extends BaseCommand {
       }
     }
 
-    // Format output
+    // Format output - use short display IDs instead of internal ULIDs
     const displayIssues = issues.map((i) => ({
-      id: `bd-${i.id.slice(3)}`,
+      id: formatDisplayId(i.id),
       internalId: i.id,
       priority: i.priority,
       status: i.status,

@@ -58,8 +58,11 @@ export function normalizeOutput(output: string): string {
     .join('\n');
 
   // Replace ULIDs with placeholder
-  // Match both is-[ulid] and bd-[ulid] patterns
+  // Match is-[ulid] (internal IDs)
   normalized = normalized.replace(/\b(is-)[0-9a-z]{26}\b/g, '$1[ULID]');
+  // Match bd-[6 chars] (short display IDs)
+  normalized = normalized.replace(/\b(bd-)[0-9a-z]{6}\b/g, '$1[ULID]');
+  // Match bd-[26 chars] (full ULID display IDs, for backwards compatibility)
   normalized = normalized.replace(/\b(bd-)[0-9a-z]{26}\b/g, '$1[ULID]');
 
   // Replace standalone ULIDs (in JSON output)
