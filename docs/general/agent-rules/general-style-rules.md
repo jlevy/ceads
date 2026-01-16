@@ -3,7 +3,6 @@ description: General Style Rules
 globs:
 alwaysApply: true
 ---
-
 # General Style Rules
 
 ## Always Auto-Format
@@ -17,6 +16,7 @@ These rules apply to output and other messages, comments, log messages, user mes
 and UI messages.
 
 - **Use of emojis:**
+
   - **Do not use emojis gratuitously:** Use emojis in output only if it enhances the
     clarity and can be done with a consistent semantic vocabulary.
 
@@ -26,6 +26,7 @@ and UI messages.
     Whatever you use, just be sure to do it consistently across the codebase.
 
   - You MAY use the following emojis if you use them consistently:
+
     - 📈 for reports and quantitative summaries
 
     - ⏰ for timings and scheduling

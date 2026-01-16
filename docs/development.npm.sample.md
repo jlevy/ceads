@@ -2,7 +2,7 @@
 
 > This is a sample `development.md` file describing developer workflows for agents and
 > humans, using a simple npm/node project as an example.
->
+> 
 > Fill this in or adjust as needed with all information agents should routinely need
 > (such as what you’d put in CLAUDE.md).
 

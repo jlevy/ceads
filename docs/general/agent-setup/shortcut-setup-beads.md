@@ -151,6 +151,7 @@ Use `0-4` or `P0-P4` format (NOT "high"/"medium"/"low"):
 3. **Work on it**: Implement, test, document
 
 4. **Discover new work?** Create linked issue:
+
    - `bd create "Found bug" -p 1 --deps "discovered-from:<parent-id>"`
 
    - Dependencies format: `'type:id'` or `'id'` (e.g.,

@@ -31,7 +31,9 @@ Create a to-do list with the following items then perform all of them:
 
    Make a checklist for this review based on the following list, then go through the
    checklist one step at a time.
+
    - Step 3.1: Ensure code follows general rules:
+
      - @docs/general/agent-rules/general-eng-assistant-rules.md
 
      - @docs/general/agent-rules/general-coding-rules.md

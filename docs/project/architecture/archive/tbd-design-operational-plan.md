@@ -13,7 +13,7 @@
 > The core design uses simple `updated_at` LWW with the attic preserving all conflict
 > losers.
 
----
+* * *
 
 ## Overview
 
@@ -44,7 +44,7 @@ All paths in this document use the current directory structure:
 └── meta.json               # Runtime metadata
 ```
 
----
+* * *
 
 ## Phase 1: Critical Issues (Must Address Before v1)
 
@@ -137,7 +137,7 @@ function updateHlc(current: HybridTimestamp, nodeId: string): HybridTimestamp {
 }
 ```
 
----
+* * *
 
 ### Edit 1.2: Add Bridge Consistency Guarantees
 
@@ -189,7 +189,7 @@ When Git and Bridge both have changes to the same entity:
    - Bridge changes preserved in attic with `source: "bridge"` metadata
 ```
 
----
+* * *
 
 ### Edit 1.3: Add Idempotency Keys to Outbound Queue
 
@@ -260,7 +260,7 @@ const CacheState = z.object({
 └── state.json
 ```
 
----
+* * *
 
 ## Phase 2: Important Issues (Strong Recommendation)
 
@@ -347,7 +347,7 @@ Options:
 - Stale claims (agent inactive + expired lease) auto-release
 ```
 
----
+* * *
 
 ### Edit 2.2: Add GitHub Field-Level Sync Direction
 

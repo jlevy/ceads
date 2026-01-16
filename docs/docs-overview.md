@@ -36,6 +36,7 @@ General rules that apply to all projects:
 Project-specific specifications, architecture, and research docs:
 
 - @docs/project/specs/ — Change specifications for features and bugfixes:
+
   - `active/` — Currently in-progress specifications
 
   - `done/` — Completed specifications (historic)

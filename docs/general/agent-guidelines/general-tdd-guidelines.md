@@ -102,11 +102,13 @@ Always run all the tests (except long-running tests) each time.
 Tests in the project are broken down into three types:
 
 1. Unit — fast, focused tests for small units of business logic
+
    - No network/web access
 
    - Typically part of CI builds.
 
 2. Integration — tests that exercise multiple components efficiently
+
    - Mock external APIs
 
    - No network/web access
@@ -117,6 +119,7 @@ Tests in the project are broken down into three types:
 
 3. Golden — tests that check behavior in a fine-grained way across known “golden”
    scenarios
+
    - These are an essential type of test that is often neglected but very powerful!
      Use whenever possible.
 

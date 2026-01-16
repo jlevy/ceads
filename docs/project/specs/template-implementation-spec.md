@@ -16,7 +16,7 @@ context once implementation is complete.
 ## Stage 3: Implementation Stage
 
 > AGENT INSTRUCTIONS:
->
+> 
 > - Break down to implementation and small feedback loops, with tests and features.
 > - Clarify if any changes require backward compatibility (DO NOT preserve backward
 >   compatibility unless confirmed in the spec).
@@ -27,17 +27,17 @@ context once implementation is complete.
 > - Rules:
 >   1. Explicitly look for duplicated code and consolidate
 >   2. Explicitly look for dead code and remove
->
+> 
 > Add implementation plans below.
 > Begin with Phases.
 
 ### Implementation Phases
 
 > AGENT INSTRUCTIONS:
->
+> 
 > The implementation includes ongoing TDD (Test Driven Development) so should include
 > testing at each phase and whenever possible.
->
+> 
 > - If there are a lot of changes required, break the changes into a few separate
 >   commits, each testable and reviewable by the user, so ideally at most a few thousand
 >   lines of code.
@@ -66,7 +66,7 @@ The implementation is broken into phases that may be committed and tested separa
 ### Automated Testing Strategy
 
 > Describe the steps to test this feature below.
->
+> 
 > Be sure to read the project README.md for context on formatting, linting, building,
 > and testing steps for this project.
 

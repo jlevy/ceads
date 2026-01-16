@@ -3,7 +3,6 @@ description: General Coding Rules
 globs:
 alwaysApply: true
 ---
-
 # General Coding Rules
 
 ## Constants and Magic Numbers
@@ -20,7 +19,7 @@ alwaysApply: true
   ```typescript
   // BAD: Hardcoded numbers
   const tradeCount = Math.min(trades.length, 50);
-
+  
   // GOOD: Named constants with documentation
   /**
    * Execution statistics counting limits for dialog tab display.
@@ -32,7 +31,7 @@ alwaysApply: true
     /** Maximum conversation turns to count before showing "100+" */
     maxConversationTurnCount: 100,
   } as const;
-
+  
   // Usage:
   const tradeCount = Math.min(trades.length, EXECUTION_STATS_LIMITS.maxTradeCount);
   ```

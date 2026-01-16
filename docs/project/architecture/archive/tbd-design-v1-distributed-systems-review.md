@@ -9,7 +9,7 @@
 **Last Updated:** January 2025 (recommendations reviewed; complex items deferred to
 Optional Enhancements appendix)
 
----
+* * *
 
 ## Executive Summary
 
@@ -59,7 +59,7 @@ The design uses a split directory structure:
 
 This separation ensures synced data never causes merge conflicts on working branches.
 
----
+* * *
 
 ## Table of Contents
 
@@ -87,7 +87,7 @@ This separation ensures synced data never causes merge conflicts on working bran
 
 12. [Operational Plan: Critical and Important Edits](#12-operational-plan-critical-and-important-edits)
 
----
+* * *
 
 ## 1. Source of Truth: Git vs Bridge
 
@@ -99,10 +99,10 @@ The document states (line 1749):
 
 **This is the correct choice.** Here’s why:
 
-| Approach                   | Pros                                                 | Cons                                                           |
-| -------------------------- | ---------------------------------------------------- | -------------------------------------------------------------- |
-| **Git as truth** (current) | Durable, auditable, works offline, no vendor lock-in | Higher latency for coordination                                |
-| **Bridge as truth**        | Sub-second coordination, real-time updates           | Single point of failure, requires connectivity, data loss risk |
+| Approach | Pros | Cons |
+| --- | --- | --- |
+| **Git as truth** (current) | Durable, auditable, works offline, no vendor lock-in | Higher latency for coordination |
+| **Bridge as truth** | Sub-second coordination, real-time updates | Single point of failure, requires connectivity, data loss risk |
 
 ### Recommendation: Keep Git as Source of Truth
 
@@ -121,7 +121,7 @@ Bridge Sync Conflict Resolution:
    → Git wins, bridge change preserved in attic with bridge_source metadata
 ```
 
----
+* * *
 
 ## 2. Clock Synchronization and LWW: A Critical Flaw
 
@@ -200,7 +200,7 @@ function hlcCompare(a: HybridTimestamp, b: HybridTimestamp): number {
 **Reference:**
 [Kulkarni et al., “Logical Physical Clocks and Consistent Snapshots in Globally Distributed Databases”](https://cse.buffalo.edu/tech-reports/2014-04.pdf)
 
----
+* * *
 
 ## 3. Claim Coordination: Race Conditions
 
@@ -281,7 +281,7 @@ const IssueSchema = BaseEntity.extend({
 This separates the **coordination concern** (real-time, through Bridge) from the
 **durability concern** (Git).
 
----
+* * *
 
 ## 4. Bridge Layer Consistency Guarantees
 
@@ -319,15 +319,15 @@ preserved in the attic.
 
 Define expected latencies for different modes:
 
-| Mode            | Operation        | Expected Latency      |
-| --------------- | ---------------- | --------------------- |
-| File-only       | Read/Write       | <10ms                 |
-| Git sync        | Pull/Push        | 1-30 seconds          |
-| Bridge (GitHub) | Propagation      | 1-5 seconds (webhook) |
-| Bridge (Native) | Propagation      | <100ms                |
-| Bridge (Slack)  | Message delivery | <1 second             |
+| Mode | Operation | Expected Latency |
+| --- | --- | --- |
+| File-only | Read/Write | <10ms |
+| Git sync | Pull/Push | 1-30 seconds |
+| Bridge (GitHub) | Propagation | 1-5 seconds (webhook) |
+| Bridge (Native) | Propagation | <100ms |
+| Bridge (Slack) | Message delivery | <1 second |
 
----
+* * *
 
 ## 5. GitHub Issues Bridge: Specific Concerns
 
@@ -368,7 +368,7 @@ requests). With many agents syncing frequently, this becomes a concern.
 
 **Add:** Rate limit handling, exponential backoff, and request batching.
 
----
+* * *
 
 ## 6. Message Ordering and Causality
 
@@ -412,7 +412,7 @@ const MessageSchema = BaseEntity.extend({
 For simple comment threads (no replies to replies), the current design is probably
 acceptable with a note that ordering is best-effort.
 
----
+* * *
 
 ## 7. Offline-First Cache: Missing Guarantees
 
@@ -469,7 +469,7 @@ Is FIFO required? The document says “FIFO” but doesn’t specify behavior on
 
 - Or does message 1 block the queue?
 
----
+* * *
 
 ## 8. Sequence Array Merge: Open Question Analysis
 
@@ -478,12 +478,12 @@ Appendix 7.2).
 
 ### Analysis of Options
 
-| Option          | Behavior                 | Pros                | Cons                              |
-| --------------- | ------------------------ | ------------------- | --------------------------------- |
-| LWW with attic  | Later timestamp wins     | Simple, recoverable | May lose intentional reordering   |
-| OT              | Transform concurrent ops | Preserves intent    | Complex implementation            |
-| Union + sort    | Merge and re-sort        | No data loss        | Order may not match either intent |
-| Conflict marker | User resolves            | Explicit            | Blocks progress                   |
+| Option | Behavior | Pros | Cons |
+| --- | --- | --- | --- |
+| LWW with attic | Later timestamp wins | Simple, recoverable | May lose intentional reordering |
+| OT | Transform concurrent ops | Preserves intent | Complex implementation |
+| Union + sort | Merge and re-sort | No data loss | Order may not match either intent |
+| Conflict marker | User resolves | Explicit | Blocks progress |
 
 ### Recommendation: LWW with Enhanced Attic
 
@@ -508,7 +508,7 @@ const SequenceAtticEntry = AtticEntrySchema.extend({
 This makes attic recovery more actionable: users can see what changed and manually
 reconcile if needed.
 
----
+* * *
 
 ## 9. Summary of Recommendations
 
@@ -532,55 +532,55 @@ problems arise in practice.
 ### Deferred to Optional Enhancements
 
 - [ ] **HLC for conflict resolution** — Add if clock skew causes frequent wrong-winner
-      conflicts. See [Section 2](#2-clock-synchronization-and-lww-a-critical-flaw).
-      **DEFERRED:** Documented in Appendix 7.7.1.
+  conflicts. See [Section 2](#2-clock-synchronization-and-lww-a-critical-flaw).
+  **DEFERRED:** Documented in Appendix 7.7.1.
 
 - [ ] **Lease-based claims** — Add if duplicate work becomes a problem.
-      See [Section 3](#3-claim-coordination-race-conditions).
-      **DEFERRED:** Documented in Appendix 7.7.2.
+  See [Section 3](#3-claim-coordination-race-conditions).
+  **DEFERRED:** Documented in Appendix 7.7.2.
 
 - [ ] **Idempotency keys and dead letter queue** — Add when Bridge Layer is built.
-      See [Section 7](#7-offline-first-cache-missing-guarantees).
-      **DEFERRED:** Documented in Appendix 7.7.3.
+  See [Section 7](#7-offline-first-cache-missing-guarantees).
+  **DEFERRED:** Documented in Appendix 7.7.3.
 
 - [ ] **Bridge conflict resolution details** — Design when Bridge Layer is built.
-      See [Section 1](#1-source-of-truth-git-vs-bridge).
-      **DEFERRED:** Documented in Appendix 7.7.4.
+  See [Section 1](#1-source-of-truth-git-vs-bridge).
+  **DEFERRED:** Documented in Appendix 7.7.4.
 
 - [ ] **Webhook security** — Implement when Bridge Layer is built.
-      **DEFERRED:** Documented in Appendix 7.7.5.
+  **DEFERRED:** Documented in Appendix 7.7.5.
 
 ### Implemented in v1
 
 - [x] **Basic consistency model** — Eventual consistency, Git as truth, attic for
-      conflicts. Documented in Bridge Architecture section.
+  conflicts. Documented in Bridge Architecture section.
 
 - [x] **Schema migration strategy** — Forward/backward compatibility, version tracking.
-      Added as Section 2.6.
+  Added as Section 2.6.
 
 - [x] **ID generation specification** — Crypto-random, collision handling.
-      Expanded in Section 2.4.
+  Expanded in Section 2.4.
 
 ### Nice to Have (v2 Considerations)
 
 These would improve the system but aren’t blocking for v1:
 
 - [ ] **Causal ordering for messages** — Lamport timestamps for threaded conversations
-      to handle clock skew.
-      See [Section 6](#6-message-ordering-and-causality).
+  to handle clock skew.
+  See [Section 6](#6-message-ordering-and-causality).
 
 - [ ] **CRDT consideration for labels/dependencies** — More principled merge for
-      set-like fields (G-Set or 2P-Set).
-      See distributed systems references in design doc.
+  set-like fields (G-Set or 2P-Set).
+  See distributed systems references in design doc.
 
 - [ ] **Enhanced sequence merge context in attic** — Better attic entries for recovery
-      when sequence arrays conflict.
-      See [Section 8](#8-sequence-array-merge-open-question-analysis).
+  when sequence arrays conflict.
+  See [Section 8](#8-sequence-array-merge-open-question-analysis).
 
 - [ ] **GitHub rate limit handling** — Add exponential backoff and request batching for
-      GitHub API calls.
+  GitHub API calls.
 
----
+* * *
 
 ## 10. Alternative Architecture: Event Sourcing
 
@@ -626,7 +626,7 @@ Sync: Replicate events, derive state
 This is a significant architectural change that may not be appropriate for v1, but worth
 considering for future evolution if merge conflicts become a pain point.
 
----
+* * *
 
 ## Conclusion
 
@@ -655,23 +655,23 @@ The main areas needing work are:
 These are tractable problems with known solutions from distributed systems literature.
 The design provides a solid foundation to build on.
 
----
+* * *
 
 ## 11. Additional Issues (Second Pass Review)
 
 The following issues were identified in a second review pass:
 
-| Issue                                    | Severity  | Summary                                                |
-| ---------------------------------------- | --------- | ------------------------------------------------------ |
-| **11.1** ID Generation                   | Important | Hash collision risk; need crypto-random + 6 chars      |
-| **11.2** Partial Sync Failures           | Important | No rollback/recovery strategy                          |
-| **11.3** Multi-Entity Atomicity          | Important | Operations spanning files can leave inconsistent state |
-| **11.4** Schema Migration                | Important | No strategy for cross-version sync                     |
-| **11.5** Webhook Security                | Important | No validation for GitHub/Slack webhooks                |
-| **11.6** Outbound Queue Crash Safety     | Medium    | Duplicate delivery risk (solved by idempotency)        |
-| **11.7** Reference Integrity During Sync | Medium    | Soft references may be temporarily broken              |
+| Issue | Severity | Summary |
+| --- | --- | --- |
+| **11.1** ID Generation | Important | Hash collision risk; need crypto-random + 6 chars |
+| **11.2** Partial Sync Failures | Important | No rollback/recovery strategy |
+| **11.3** Multi-Entity Atomicity | Important | Operations spanning files can leave inconsistent state |
+| **11.4** Schema Migration | Important | No strategy for cross-version sync |
+| **11.5** Webhook Security | Important | No validation for GitHub/Slack webhooks |
+| **11.6** Outbound Queue Crash Safety | Medium | Duplicate delivery risk (solved by idempotency) |
+| **11.7** Reference Integrity During Sync | Medium | Soft references may be temporarily broken |
 
----
+* * *
 
 ## 12. Operational Edit Plan
 
@@ -706,7 +706,7 @@ separate document for easier tracking:
 
 **Phase 3:** Verification checklist for updating examples
 
----
+* * *
 
 ## References
 

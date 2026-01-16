@@ -8,7 +8,7 @@
 
 - `docs/general/agent-guidelines/general-tdd-guidelines.md`
 
----
+* * *
 
 ## TL;DR (What to do)
 
@@ -40,7 +40,7 @@ maintaining hundreds of unit or integration tests is burdensome, even for coding
 Traditional unit tests struggle to capture the full behavior of systems with many
 interacting components, non-deterministic outputs, and complex state transitions.
 Session-level testing provides complete visibility into what the system actually does
-_inside and outside_ both when it conforms and when it changes.
+*inside and outside* both when it conforms and when it changes.
 
 ### Terminology Note
 
@@ -75,7 +75,7 @@ and how they change.
 
 ### Transparent Box Testing
 
-Golden session testing is “transparent box” testing: you capture _every_ meaningful
+Golden session testing is “transparent box” testing: you capture *every* meaningful
 detail of execution, not just inputs and outputs.
 The goal is full visibility into system behavior so that any change—intentional or
 accidental—shows up in diffs.
@@ -84,15 +84,15 @@ tests.
 
 Sessions should be serialized in a clean text format.
 Generally, YAML is a good choice, but other text formats are also acceptable.
-Do _not_ make session data you record abstract or high-level.
+Do *not* make session data you record abstract or high-level.
 The practical goal is to make the serialized session:
 
-- _as detailed as possible within a reasonable size budget_ (small enough to manually
+- *as detailed as possible within a reasonable size budget* (small enough to manually
   review in PRs and commit to git, e.g. <2000 lines of YAML session data per test)
 
-- _stable and deterministic_ across runs and environments (we get into this later)
+- *stable and deterministic* across runs and environments (we get into this later)
 
-- _in a clean format that is easy to diff_ to see changes and regressions when reviewing
+- *in a clean format that is easy to diff* to see changes and regressions when reviewing
   PRs
 
 You should aim to capture everything meaningful that happens in the code within the size
@@ -160,7 +160,7 @@ data, but normalize non-deterministic values so diffs are meaningful.
 For example, replace `transactionId: "abc123"` with `transactionId: "[GENERATED]"`
 before writing the session file.
 
----
+* * *
 
 ## Related Work
 
@@ -170,8 +170,8 @@ The core concepts have established precedents:
   “golden master” reference for regression testing.
   Records complete system behavior and filters out unstable/non-deterministic elements.
 
-- **Characterization Testing** (Michael Feathers, _Working Effectively with Legacy
-  Code_): Write tests characterizing current behavior before refactoring.
+- **Characterization Testing** (Michael Feathers, *Working Effectively with Legacy
+  Code*): Write tests characterizing current behavior before refactoring.
   Helps understand complex systems through their outputs and protects against unintended
   changes during refactoring.
 
@@ -198,7 +198,7 @@ testing, the characterization of complex systems from Feathers’ work, the scru
 concept from approval testing, the recording pattern from VCR, and the trace depth of
 record-replay—unified into a single methodology.
 
----
+* * *
 
 ## Core Principles
 
@@ -317,8 +317,8 @@ tests/
 
 ### 5. Unify Session Abstractions Across CLI and GUI
 
-_This principle applies to projects with a UI/app layer.
-Skip if CLI-only._
+*This principle applies to projects with a UI/app layer.
+Skip if CLI-only.*
 
 The CLI should use identical code paths as the GUI. The same event types and session
 structures should power:
@@ -449,6 +449,7 @@ They deserve the same review rigor as code.
 4. Introduce `MOCK_MODE` (`mocked` by default; `live` for updates).
 
 5. Implement a CLI:
+
    - `test golden --scenario <name>` → run, compare, fail on diff
 
    - `test golden --scenario <name> --update` → rewrite YAML
@@ -500,7 +501,7 @@ They deserve the same review rigor as code.
 
 - Over-approval without careful review → tests pass but behavior is wrong.
 
----
+* * *
 
 ## Reading Session Diffs
 
@@ -527,7 +528,7 @@ Well-structured session files have these properties:
 Review diffs as behavioral changes: if diffs are intentional, update the golden; if not,
 fix the code or mocks.
 
----
+* * *
 
 ## Implementation Checklist
 
@@ -538,7 +539,7 @@ When implementing golden testing for a new project:
 - [ ] Mark each field as stable or unstable in schema documentation
 
 - [ ] Implement stable field filtering by having it in the event data model from the
-      start
+  start
 
 - [ ] Add mock mode toggle via environment variable
 
@@ -566,29 +567,29 @@ When implementing golden testing for a new project:
 
 - [ ] Consider complementary testing approaches (property-based, contract testing)
 
----
+* * *
 
 ## Comparison with Alternatives
 
 ### By Use Case and Suitability
 
-| Approach        | Scope                | Stability            | Maintenance | Debugging | AI Suitability |
-| --------------- | -------------------- | -------------------- | ----------- | --------- | -------------- |
-| Golden Sessions | Full session traces  | High (stable fields) | Medium      | Excellent | Excellent      |
-| ApprovalTests   | Whole value outputs  | Medium-High          | Medium      | Good      | Very Good      |
-| Jest Snapshots  | Component outputs    | Low (brittle)        | High        | Poor      | Poor           |
-| VCR/Cassettes   | HTTP only            | Medium               | Low         | Limited   | Limited        |
-| Unit Tests      | Individual functions | High                 | Low         | Good      | Limited        |
+| Approach | Scope | Stability | Maintenance | Debugging | AI Suitability |
+| --- | --- | --- | --- | --- | --- |
+| Golden Sessions | Full session traces | High (stable fields) | Medium | Excellent | Excellent |
+| ApprovalTests | Whole value outputs | Medium-High | Medium | Good | Very Good |
+| Jest Snapshots | Component outputs | Low (brittle) | High | Poor | Poor |
+| VCR/Cassettes | HTTP only | Medium | Low | Limited | Limited |
+| Unit Tests | Individual functions | High | Low | Good | Limited |
 
 ### By Artifact Form and Workflow
 
-| Approach                | Artifact Form          | Update Flow              | Primary Risk                   |
-| ----------------------- | ---------------------- | ------------------------ | ------------------------------ |
-| Golden Sessions         | Execution trace (YAML) | Regenerate + review diff | Trace bloat if unmanaged       |
-| ApprovalTests           | Approved artifact      | Re-approve on change     | Over-approval without review   |
-| Jest Snapshots          | Serialized component   | Update snapshots         | Brittleness from noise         |
-| VCR/Cassettes           | HTTP interaction trace | Re-record cassette       | Drift vs real service behavior |
-| Golden Files (Go/Bazel) | Text/binary output     | Regenerate golden        | Bloat if unmanaged             |
+| Approach | Artifact Form | Update Flow | Primary Risk |
+| --- | --- | --- | --- |
+| Golden Sessions | Execution trace (YAML) | Regenerate + review diff | Trace bloat if unmanaged |
+| ApprovalTests | Approved artifact | Re-approve on change | Over-approval without review |
+| Jest Snapshots | Serialized component | Update snapshots | Brittleness from noise |
+| VCR/Cassettes | HTTP interaction trace | Re-record cassette | Drift vs real service behavior |
+| Golden Files (Go/Bazel) | Text/binary output | Regenerate golden | Bloat if unmanaged |
 
 **When to use simpler alternatives**:
 
@@ -611,16 +612,16 @@ Golden session testing works well alongside other testing strategies:
 - **Unit tests**: For isolated function logic and edge cases.
   Golden tests provide end-to-end coverage; unit tests provide granular verification.
 
----
+* * *
 
 ## References
 
 **Books**:
 
-- Feathers, Michael. _Working Effectively with Legacy Code_. Prentice Hall, 2004.
+- Feathers, Michael. *Working Effectively with Legacy Code*. Prentice Hall, 2004.
 
 - Pryce, Nat & Freeman, Steve.
-  _Growing Object-Oriented Software, Guided by Tests_. Addison-Wesley, 2009.
+  *Growing Object-Oriented Software, Guided by Tests*. Addison-Wesley, 2009.
 
 **Articles**:
 

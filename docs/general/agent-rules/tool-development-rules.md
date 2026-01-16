@@ -2,7 +2,6 @@
 description: Rules and patterns for developing LLM-usable tools
 applies_to: All tool development tasks
 ---
-
 # Tool Development Rules
 
 ## Universal Patterns
@@ -10,6 +9,7 @@ applies_to: All tool development tasks
 Every tool implementation must follow these patterns:
 
 1. **Tool Structure**
+
    - Use AI SDK `tool()` function from ‘ai’ package
 
    - Define Zod schema with `.describe()` on every field
@@ -21,6 +21,7 @@ Every tool implementation must follow these patterns:
    - Handle errors with clear, actionable messages
 
 2. **LLM-Optimized Descriptions**
+
    - Start with action verb: “Get...”, “Search...”, “Execute …”
 
    - Include usage context: “Use this to …”
@@ -33,6 +34,7 @@ Every tool implementation must follow these patterns:
      Use this to identify overbought/oversold conditions in backtests.”
 
 3. **Parameter Descriptions**
+
    - Every Zod field must have `.describe()` with clear explanation
 
    - Include format examples: “Date in YYYY-MM-DD format (example: ‘2024-01-15’)”
@@ -42,6 +44,7 @@ Every tool implementation must follow these patterns:
    - Explain purpose: “Why this parameter affects the result”
 
 4. **Backtest-Safe Tools** (for tools that support historical queries)
+
    - Must have date/timestamp parameter for point-in-time queries
 
    - Never return data from future dates
@@ -53,6 +56,7 @@ Every tool implementation must follow these patterns:
    - Validate all date parameters follow YYYY-MM-DD format
 
 5. **Mock Mode Support**
+
    - Check `runConfig?.mockApis` for global mock mode
 
    - OR check feature-specific flag (e.g., `runConfig?.mockPrice`)
@@ -109,7 +113,7 @@ Every new tool requires updates in 3 locations:
 
    ```typescript
    import { createNewTool } from './newTool';
-
+   
    // In resolveTools() switch statement:
    case 'new_tool_id':
      tools.new_tool_id = createNewTool(runConfig);
@@ -121,6 +125,7 @@ Every new tool requires updates in 3 locations:
 Minimum test coverage for every tool:
 
 1. **Schema Validation Tests**
+
    - Valid parameters accepted
 
    - Invalid parameters rejected with clear errors
@@ -130,6 +135,7 @@ Minimum test coverage for every tool:
    - Type checking works correctly
 
 2. **Mock Mode Tests**
+
    - Returns mock data when configured
 
    - Mock data matches real response schema
@@ -137,6 +143,7 @@ Minimum test coverage for every tool:
    - Can be used in tests without API calls
 
 3. **API Integration Tests**
+
    - Successful API responses parsed correctly
 
    - API errors handled gracefully
@@ -146,6 +153,7 @@ Minimum test coverage for every tool:
    - Authentication works (if applicable)
 
 4. **Backtest Safety Tests** (if `supportsBacktest: true`)
+
    - Future dates blocked by cutoff wrapper
 
    - Historical dates allowed
@@ -153,6 +161,7 @@ Minimum test coverage for every tool:
    - Date parameter validation works
 
 5. **LLM Evaluation Tests**
+
    - LLM can discover when to use tool
 
    - LLM can construct valid parameters
@@ -168,31 +177,37 @@ Minimum test coverage for every tool:
 Avoid these frequent mistakes:
 
 1. **Ambiguous Tool Description**
+
    - Problem: LLM doesn’t know when to use tool
 
    - Fix: Add concrete usage examples and context
 
 2. **Confusing Parameter Names**
+
    - Problem: LLM sends wrong data or guesses format
 
    - Fix: Use clear names and detailed `.describe()` with examples
 
 3. **Missing Error Messages**
+
    - Problem: LLM doesn’t know what went wrong
 
    - Fix: Throw errors with specific details about what failed and why
 
 4. **No Format Examples**
+
    - Problem: LLM guesses date/time formats incorrectly
 
    - Fix: Include explicit format in description with example
 
 5. **Future Data Leakage**
+
    - Problem: Backtest results invalid due to lookahead bias
 
    - Fix: Validate all date params, use cutoff wrapper, test thoroughly
 
 6. **Overly Complex Schemas**
+
    - Problem: LLM struggles with many optional parameters
 
    - Fix: Keep schemas simple, use sensible defaults, make intent clear

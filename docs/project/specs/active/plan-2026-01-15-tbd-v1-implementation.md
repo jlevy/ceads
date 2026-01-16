@@ -46,28 +46,28 @@ Implement Tbd V1 as a TypeScript CLI application following the design specificat
 
 ### API/CLI Compatibility
 
-| Area               | Compatibility Level | Notes                                               |
-| ------------------ | ------------------- | --------------------------------------------------- |
-| CLI command names  | Full                | `tbd` command with Beads-compatible subcommands     |
-| CLI options        | Full                | Same flags as Beads (`--json`, `-t`, `-p`, etc.)    |
-| JSON output schema | Full                | Matches Beads JSON output structure                 |
-| Exit codes         | Full                | 0=success, 1=error, 2=usage error                   |
-| ID format          | Compatible          | Internal `is-xxxx`, display as `bd-xxxx` via config |
+| Area | Compatibility Level | Notes |
+| --- | --- | --- |
+| CLI command names | Full | `tbd` command with Beads-compatible subcommands |
+| CLI options | Full | Same flags as Beads (`--json`, `-t`, `-p`, etc.) |
+| JSON output schema | Full | Matches Beads JSON output structure |
+| Exit codes | Full | 0=success, 1=error, 2=usage error |
+| ID format | Compatible | Internal `is-xxxx`, display as `bd-xxxx` via config |
 
 ### Data Compatibility
 
-| Area          | Compatibility Level | Notes                                            |
-| ------------- | ------------------- | ------------------------------------------------ |
-| Beads import  | Full                | Import from JSONL export or `--from-beads`       |
-| Issue fields  | Full                | All Beads fields mapped to Tbd equivalents       |
-| Status values | Full                | Direct mapping except `tombstone` (skip/convert) |
-| Dependencies  | Partial             | Only `blocks` type in V1                         |
+| Area | Compatibility Level | Notes |
+| --- | --- | --- |
+| Beads import | Full | Import from JSONL export or `--from-beads` |
+| Issue fields | Full | All Beads fields mapped to Tbd equivalents |
+| Status values | Full | Direct mapping except `tombstone` (skip/convert) |
+| Dependencies | Partial | Only `blocks` type in V1 |
 
 ### Breaking Changes
 
 - None - this is a new implementation
 
----
+* * *
 
 ## Stage 1: Planning Stage
 
@@ -112,18 +112,18 @@ Implement Tbd V1 as a TypeScript CLI application following the design specificat
 
 ### 1.3 Technical Decisions
 
-| Decision          | Choice                | Rationale                                       |
-| ----------------- | --------------------- | ----------------------------------------------- |
-| Package manager   | pnpm                  | Best monorepo support, disk efficiency          |
-| Build tool        | tsdown                | Modern, fast, proper ESM/CJS dual output        |
-| CLI framework     | Commander.js          | Industry standard, excellent TypeScript support |
-| Schema validation | Zod                   | Type inference, excellent error messages        |
-| YAML parsing      | gray-matter + js-yaml | Mature, handles front matter correctly          |
-| Testing           | tryscript             | Golden testing for CLI, Markdown-based tests    |
-| Colors            | picocolors            | Tiny, fast, TTY-aware                           |
-| Prompts           | @clack/prompts        | Beautiful, accessible prompts                   |
+| Decision | Choice | Rationale |
+| --- | --- | --- |
+| Package manager | pnpm | Best monorepo support, disk efficiency |
+| Build tool | tsdown | Modern, fast, proper ESM/CJS dual output |
+| CLI framework | Commander.js | Industry standard, excellent TypeScript support |
+| Schema validation | Zod | Type inference, excellent error messages |
+| YAML parsing | gray-matter + js-yaml | Mature, handles front matter correctly |
+| Testing | tryscript | Golden testing for CLI, Markdown-based tests |
+| Colors | picocolors | Tiny, fast, TTY-aware |
+| Prompts | @clack/prompts | Beautiful, accessible prompts |
 
----
+* * *
 
 ## Stage 2: Architecture Stage
 
@@ -290,7 +290,7 @@ User Command
                     (tbd-sync branch)
 ```
 
----
+* * *
 
 ## Stage 3: Refine Architecture
 
@@ -298,15 +298,15 @@ User Command
 
 From the research docs, we will use:
 
-| Pattern              | Source              | Usage                                      |
-| -------------------- | ------------------- | ------------------------------------------ |
-| Base Command         | CLI patterns doc §3 | Centralize context, output, error handling |
-| OutputManager        | CLI patterns doc §4 | Dual text/JSON output                      |
-| Handler + Command    | CLI patterns doc §5 | Separate concerns                          |
-| Named Option Types   | CLI patterns doc §6 | TypeScript safety                          |
-| Formatter Pattern    | CLI patterns doc §7 | Consistent output formatting               |
-| Git-based versioning | Monorepo doc §7     | Dynamic version strings                    |
-| Atomic writes        | Design spec §2.1    | Safe file operations                       |
+| Pattern | Source | Usage |
+| --- | --- | --- |
+| Base Command | CLI patterns doc §3 | Centralize context, output, error handling |
+| OutputManager | CLI patterns doc §4 | Dual text/JSON output |
+| Handler + Command | CLI patterns doc §5 | Separate concerns |
+| Named Option Types | CLI patterns doc §6 | TypeScript safety |
+| Formatter Pattern | CLI patterns doc §7 | Consistent output formatting |
+| Git-based versioning | Monorepo doc §7 | Dynamic version strings |
+| Atomic writes | Design spec §2.1 | Safe file operations |
 
 ### 3.2 Performance Considerations
 
@@ -322,7 +322,7 @@ From the research docs, we will use:
 - **Files as truth**: No SQLite, no caching required for correctness
 - **Standard git**: Use git CLI, no libgit2 binding
 
----
+* * *
 
 ## Stage 4: Implementation Stage
 
@@ -332,34 +332,36 @@ From the research docs, we will use:
 
 ### Implementation Tracking
 
-This plan is tracked using beads. The master epic is **tbd-100**.
+This plan is tracked using beads.
+The master epic is **tbd-100**.
 
-| Phase      | Epic ID  | Title                                | Tasks                     | Status      |
-| ---------- | -------- | ------------------------------------ | ------------------------- | ----------- |
-| 1          | tbd-101  | Core Schemas & Serialization         | tbd-102 through tbd-111   | ✅ Complete |
-| 2          | tbd-200  | Storage Layer & Basic Git Operations | tbd-201 through tbd-209   | ✅ Complete |
-| 3          | tbd-300  | CLI Foundation & Init Command        | tbd-301 through tbd-309   | ✅ Complete |
-| 4          | tbd-400  | Issue CRUD Commands                  | tbd-401 through tbd-409   | ✅ Complete |
-| 5          | tbd-500  | Workflow Commands                    | tbd-501 through tbd-504   | ✅ Complete |
-| 6          | tbd-600  | Label & Dependency Commands          | tbd-601 through tbd-607   | ✅ Complete |
-| 7          | tbd-700  | Sync Operations                      | tbd-701 through tbd-708   | ✅ Complete |
-| 8          | tbd-800  | Search Command                       | tbd-801 through tbd-804   | ✅ Complete |
-| 9          | tbd-900  | Maintenance Commands                 | tbd-901 through tbd-904   | ✅ Complete |
-| 10         | tbd-1000 | Attic Commands                       | tbd-1001 through tbd-1004 | ✅ Complete |
-| 11         | tbd-1100 | Import Command                       | tbd-1101 through tbd-1105 | ✅ Complete |
-| 12         | tbd-1200 | Polish & Documentation               | tbd-1201 through tbd-1206 | ⚠️ Partial  |
-| 13         | tbd-1400 | Tryscript Coverage Migration         | tbd-1401 through tbd-1405 | ✅ Complete |
-| 14         | tbd-1500 | Security Hardening                   | tbd-1501 through tbd-1502 | ✅ Complete |
-| 15         | tbd-1600 | Import Validation & Benchmarks       | tbd-1601 through tbd-1604 | ✅ Complete |
-| 16         | tbd-1700 | Comprehensive Tryscript Coverage     | tbd-1701 through tbd-1706 | ✅ Complete |
-| 17         | tbd-1800 | CI Fixes and Dependency Updates      | tbd-1801 through tbd-1805 | 🔄 Pending  |
-| Validation | tbd-1300 | Stage 5 Validation                   | tbd-1301 through tbd-1306 | ⚠️ Partial  |
+| Phase | Epic ID | Title | Tasks | Status |
+| --- | --- | --- | --- | --- |
+| 1 | tbd-101 | Core Schemas & Serialization | tbd-102 through tbd-111 | ✅ Complete |
+| 2 | tbd-200 | Storage Layer & Basic Git Operations | tbd-201 through tbd-209 | ✅ Complete |
+| 3 | tbd-300 | CLI Foundation & Init Command | tbd-301 through tbd-309 | ✅ Complete |
+| 4 | tbd-400 | Issue CRUD Commands | tbd-401 through tbd-409 | ✅ Complete |
+| 5 | tbd-500 | Workflow Commands | tbd-501 through tbd-504 | ✅ Complete |
+| 6 | tbd-600 | Label & Dependency Commands | tbd-601 through tbd-607 | ✅ Complete |
+| 7 | tbd-700 | Sync Operations | tbd-701 through tbd-708 | ✅ Complete |
+| 8 | tbd-800 | Search Command | tbd-801 through tbd-804 | ✅ Complete |
+| 9 | tbd-900 | Maintenance Commands | tbd-901 through tbd-904 | ✅ Complete |
+| 10 | tbd-1000 | Attic Commands | tbd-1001 through tbd-1004 | ✅ Complete |
+| 11 | tbd-1100 | Import Command | tbd-1101 through tbd-1105 | ✅ Complete |
+| 12 | tbd-1200 | Polish & Documentation | tbd-1201 through tbd-1206 | ⚠️ Partial |
+| 13 | tbd-1400 | Tryscript Coverage Migration | tbd-1401 through tbd-1405 | ✅ Complete |
+| 14 | tbd-1500 | Security Hardening | tbd-1501 through tbd-1502 | ✅ Complete |
+| 15 | tbd-1600 | Import Validation & Benchmarks | tbd-1601 through tbd-1604 | ✅ Complete |
+| 16 | tbd-1700 | Comprehensive Tryscript Coverage | tbd-1701 through tbd-1706 | ✅ Complete |
+| 17 | tbd-1800 | CI Fixes and Dependency Updates | tbd-1801 through tbd-1805 | 🔄 Pending |
+| Validation | tbd-1300 | Stage 5 Validation | tbd-1301 through tbd-1306 | ⚠️ Partial |
 
 **Status Legend:** ✅ Complete | ⚠️ Partial (needs review) | 🔲 Pending
 
 **Implementation Progress (2026-01-15):**
 
-- Core functionality implemented and passing **104 vitest + 189 tryscript tests (293 total)**
+- Core functionality implemented and passing **104 vitest + 189 tryscript tests (293
+  total)**
 - All CLI commands implemented (Phases 1-11 complete)
 - Comprehensive tryscript golden tests with 97.47% line coverage (Phase 16 complete)
 - Security hardening: command injection fix + schema validation (Phase 14 complete)
@@ -371,22 +373,22 @@ This plan is tracked using beads. The master epic is **tbd-100**.
 
 **Bead Tracking Summary:**
 
-| Status         | Count | Beads                                                                                                                                                                                                                                                                                                                                                              |
-| -------------- | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| ✅ Done        | 117   | tbd-101→tbd-111, tbd-200→tbd-209, tbd-300→tbd-309, tbd-400→tbd-409, tbd-500→tbd-504, tbd-600→tbd-607, tbd-700→tbd-708, tbd-800→tbd-804, tbd-900→tbd-904, tbd-1000→tbd-1004, tbd-1100→tbd-1105, tbd-1201, tbd-1202, tbd-1205, tbd-1301, tbd-1302, tbd-1305, tbd-1306, tbd-1400→tbd-1405, tbd-1500→tbd-1502, tbd-1600→tbd-1604, tbd-1700→tbd-1706, tbd-1800→tbd-1804 |
-| 🔄 In Progress | 1     | tbd-100 (master epic)                                                                                                                                                                                                                                                                                                                                              |
-| 🔲 Open        | 8     | tbd-1200, tbd-1203, tbd-1204, tbd-1206, tbd-1300, tbd-1303, tbd-1304, tbd-1805                                                                                                                                                                                                                                                                                     |
+| Status | Count | Beads |
+| --- | --- | --- |
+| ✅ Done | 117 | tbd-101→tbd-111, tbd-200→tbd-209, tbd-300→tbd-309, tbd-400→tbd-409, tbd-500→tbd-504, tbd-600→tbd-607, tbd-700→tbd-708, tbd-800→tbd-804, tbd-900→tbd-904, tbd-1000→tbd-1004, tbd-1100→tbd-1105, tbd-1201, tbd-1202, tbd-1205, tbd-1301, tbd-1302, tbd-1305, tbd-1306, tbd-1400→tbd-1405, tbd-1500→tbd-1502, tbd-1600→tbd-1604, tbd-1700→tbd-1706, tbd-1800→tbd-1804 |
+| 🔄 In Progress | 1 | tbd-100 (master epic) |
+| 🔲 Open | 8 | tbd-1200, tbd-1203, tbd-1204, tbd-1206, tbd-1300, tbd-1303, tbd-1304, tbd-1805 |
 
 **Phase 13: Tryscript Coverage Migration (✅ Complete)**
 
-| Bead ID  | Task                              | Status | Notes                                  |
-| -------- | --------------------------------- | ------ | -------------------------------------- |
-| tbd-1400 | Phase 13 Epic                     | Done   | Tryscript migration complete           |
-| tbd-1401 | Add tryscript and c8 dependencies | Done   | Added to package.json devDependencies  |
-| tbd-1402 | Create tryscript golden tests     | Done   | 21 tests in cli.tryscript.md           |
-| tbd-1403 | Set up coverage merge workflow    | Done   | vitest + tryscript --merge-lcov        |
-| tbd-1404 | Update package.json scripts       | Done   | test:coverage, test:tryscript commands |
-| tbd-1405 | Update plan document              | Done   | This update                            |
+| Bead ID | Task | Status | Notes |
+| --- | --- | --- | --- |
+| tbd-1400 | Phase 13 Epic | Done | Tryscript migration complete |
+| tbd-1401 | Add tryscript and c8 dependencies | Done | Added to package.json devDependencies |
+| tbd-1402 | Create tryscript golden tests | Done | 21 tests in cli.tryscript.md |
+| tbd-1403 | Set up coverage merge workflow | Done | vitest + tryscript --merge-lcov |
+| tbd-1404 | Update package.json scripts | Done | test:coverage, test:tryscript commands |
+| tbd-1405 | Update plan document | Done | This update |
 
 **Coverage Results After Migration:**
 
@@ -396,77 +398,78 @@ This plan is tracked using beads. The master epic is **tbd-100**.
 
 **Phase 14: Security Hardening (✅ Complete)**
 
-| Bead ID  | Task                                    | Status | Notes                                      |
-| -------- | --------------------------------------- | ------ | ------------------------------------------ |
-| tbd-1500 | Phase 14 Epic                           | Done   | Security hardening complete                |
-| tbd-1501 | Fix command injection in git.ts         | Done   | Changed exec to execFile                   |
-| tbd-1502 | Add schema validation for branch/remote | Done   | GitBranchName and GitRemoteName validators |
+| Bead ID | Task | Status | Notes |
+| --- | --- | --- | --- |
+| tbd-1500 | Phase 14 Epic | Done | Security hardening complete |
+| tbd-1501 | Fix command injection in git.ts | Done | Changed exec to execFile |
+| tbd-1502 | Add schema validation for branch/remote | Done | GitBranchName and GitRemoteName validators |
 
 **Phase 15: Import Validation & Benchmarks (✅ Complete)**
 
-| Bead ID  | Task                         | Status | Notes                        |
-| -------- | ---------------------------- | ------ | ---------------------------- |
-| tbd-1600 | Phase 15 Epic                | Done   | Import validation complete   |
-| tbd-1601 | Create benchmark script      | Done   | 5K issue performance tests   |
-| tbd-1602 | Add validate-import script   | Done   | Compares tbd vs beads data   |
-| tbd-1603 | Update CI with benchmark job | Done   | Cross-platform CI configured |
-| tbd-1604 | Document validation process  | Done   | Validation spec created      |
+| Bead ID | Task | Status | Notes |
+| --- | --- | --- | --- |
+| tbd-1600 | Phase 15 Epic | Done | Import validation complete |
+| tbd-1601 | Create benchmark script | Done | 5K issue performance tests |
+| tbd-1602 | Add validate-import script | Done | Compares tbd vs beads data |
+| tbd-1603 | Update CI with benchmark job | Done | Cross-platform CI configured |
+| tbd-1604 | Document validation process | Done | Validation spec created |
 
 **Phase 16: Comprehensive Tryscript Coverage (✅ Complete)**
 
-| Bead ID  | Task                               | Status | Notes                                   |
-| -------- | ---------------------------------- | ------ | --------------------------------------- |
-| tbd-1700 | Phase 16 Epic                      | Done   | Comprehensive tryscript coverage        |
-| tbd-1701 | Create cli-setup.tryscript.md      | Done   | Help, version, init, info tests (~25)   |
-| tbd-1702 | Create cli-crud.tryscript.md       | Done   | CRUD operations tests (~60)             |
-| tbd-1703 | Create cli-workflow.tryscript.md   | Done   | Workflow commands tests (~50)           |
-| tbd-1704 | Create cli-advanced.tryscript.md   | Done   | Search, sync, doctor, etc. tests (~45)  |
-| tbd-1705 | Create cli-import.tryscript.md     | Done   | Beads import and validation tests (~20) |
-| tbd-1706 | Verify 189 tryscript tests passing | Done   | All tests pass in sandbox mode          |
+| Bead ID | Task | Status | Notes |
+| --- | --- | --- | --- |
+| tbd-1700 | Phase 16 Epic | Done | Comprehensive tryscript coverage |
+| tbd-1701 | Create cli-setup.tryscript.md | Done | Help, version, init, info tests (~25) |
+| tbd-1702 | Create cli-crud.tryscript.md | Done | CRUD operations tests (~60) |
+| tbd-1703 | Create cli-workflow.tryscript.md | Done | Workflow commands tests (~50) |
+| tbd-1704 | Create cli-advanced.tryscript.md | Done | Search, sync, doctor, etc. tests (~45) |
+| tbd-1705 | Create cli-import.tryscript.md | Done | Beads import and validation tests (~20) |
+| tbd-1706 | Verify 189 tryscript tests passing | Done | All tests pass in sandbox mode |
 
 **Phase 17: CI Fixes and Dependency Updates (🔄 Pending)**
 
-| Bead ID  | Task                               | Status | Notes                                    |
-| -------- | ---------------------------------- | ------ | ---------------------------------------- |
-| tbd-1800 | Phase 17 Epic                      | Done   | CI fixes and dependency updates          |
-| tbd-1801 | Fix pnpm version conflict in CI    | Done   | Removed explicit version, reads from pkg |
-| tbd-1802 | Update pnpm to 10.28.0             | Done   | Updated packageManager field             |
-| tbd-1803 | Update Node.js to LTS 22 in CI     | Done   | Updated from 20 to 22                    |
-| tbd-1804 | Update npm dependencies            | Done   | Minor version updates for all packages   |
-| tbd-1805 | Validate CI runs on GitHub Actions | Open   | Pending first run after push             |
+| Bead ID | Task | Status | Notes |
+| --- | --- | --- | --- |
+| tbd-1800 | Phase 17 Epic | Done | CI fixes and dependency updates |
+| tbd-1801 | Fix pnpm version conflict in CI | Done | Removed explicit version, reads from pkg |
+| tbd-1802 | Update pnpm to 10.28.0 | Done | Updated packageManager field |
+| tbd-1803 | Update Node.js to LTS 22 in CI | Done | Updated from 20 to 22 |
+| tbd-1804 | Update npm dependencies | Done | Minor version updates for all packages |
+| tbd-1805 | Validate CI runs on GitHub Actions | Open | Pending first run after push |
 
 **Stage 5 Validation Status (⚠️ Partial):**
 
-| Bead ID  | Task                            | Status  | Notes                                          |
-| -------- | ------------------------------- | ------- | ---------------------------------------------- |
-| tbd-1300 | Stage 5 Validation Epic         | Open    | Epic - 5/6 tasks complete                      |
-| tbd-1301 | Verify all golden tests pass    | ✅ Done | 293 tests passing (104 vitest + 189 tryscript) |
-| tbd-1302 | Verify unit test coverage > 80% | ✅ Done | 97.47% line coverage achieved                  |
-| tbd-1303 | Verify performance targets      | ✅ Done | Benchmark passes on 5K issues                  |
-| tbd-1304 | Verify cross-platform CI passes | Open    | CI configured, pending first run               |
-| tbd-1305 | Manual testing of full workflow | ✅ Done | Covered by 189 tryscript golden tests          |
-| tbd-1306 | Security review                 | ✅ Done | Fixed cmd injection, added schema validation   |
+| Bead ID | Task | Status | Notes |
+| --- | --- | --- | --- |
+| tbd-1300 | Stage 5 Validation Epic | Open | Epic - 5/6 tasks complete |
+| tbd-1301 | Verify all golden tests pass | ✅ Done | 293 tests passing (104 vitest + 189 tryscript) |
+| tbd-1302 | Verify unit test coverage > 80% | ✅ Done | 97.47% line coverage achieved |
+| tbd-1303 | Verify performance targets | ✅ Done | Benchmark passes on 5K issues |
+| tbd-1304 | Verify cross-platform CI passes | Open | CI configured, pending first run |
+| tbd-1305 | Manual testing of full workflow | ✅ Done | Covered by 189 tryscript golden tests |
+| tbd-1306 | Security review | ✅ Done | Fixed cmd injection, added schema validation |
 
 **Remaining Tasks (Phase 12 + 17 + Validation):**
 
-| Bead ID  | Task                            | Status | Notes                               |
-| -------- | ------------------------------- | ------ | ----------------------------------- |
-| tbd-1200 | Phase 12 Epic                   | Open   | Epic - depends on tasks below       |
-| tbd-1204 | Cross-platform testing          | Open   | CI workflow configured, pending run |
-| tbd-1206 | Release preparation             | Open   | npm publish pending user action     |
-| tbd-1300 | Stage 5 Validation Epic         | Open   | Epic - 5/6 tasks complete           |
-| tbd-1304 | Verify cross-platform CI passes | Open   | Pending first PR merge              |
-| tbd-1805 | Validate CI runs                | Open   | Monitor GitHub Actions after push   |
+| Bead ID | Task | Status | Notes |
+| --- | --- | --- | --- |
+| tbd-1200 | Phase 12 Epic | Open | Epic - depends on tasks below |
+| tbd-1204 | Cross-platform testing | Open | CI workflow configured, pending run |
+| tbd-1206 | Release preparation | Open | npm publish pending user action |
+| tbd-1300 | Stage 5 Validation Epic | Open | Epic - 5/6 tasks complete |
+| tbd-1304 | Verify cross-platform CI passes | Open | Pending first PR merge |
+| tbd-1805 | Validate CI runs | Open | Monitor GitHub Actions after push |
 
 **Coverage Strategy (Implemented):**
 
-Following tryscript best practices (same approach as markform repo), using **unit tests + tryscript** with merged lcov coverage:
+Following tryscript best practices (same approach as markform repo), using **unit tests
+\+ tryscript** with merged lcov coverage:
 
-| Test Type        | Coverage Tool              | Purpose                         |
-| ---------------- | -------------------------- | ------------------------------- |
-| Unit tests       | vitest + v8 → lcov.info    | Test code imported directly     |
-| Golden/CLI tests | tryscript + c8 → lcov.info | Test CLI via subprocess         |
-| **Merged**       | `--merge-lcov`             | Combined coverage for full view |
+| Test Type | Coverage Tool | Purpose |
+| --- | --- | --- |
+| Unit tests | vitest + v8 → lcov.info | Test code imported directly |
+| Golden/CLI tests | tryscript + c8 → lcov.info | Test CLI via subprocess |
+| **Merged** | `--merge-lcov` | Combined coverage for full view |
 
 **Coverage Collection Commands:**
 
@@ -492,13 +495,15 @@ pnpm test:tryscript:update
 - Unit tests cover `src/lib` (96.45%)
 - CLI commands covered via `tests/cli.tryscript.md` (21 tests)
 - Merged coverage: **97.47% lines**, 97.41% statements
-- All commands tested: init, create, list, show, update, close, stats, label, ready, doctor
+- All commands tested: init, create, list, show, update, close, stats, label, ready,
+  doctor
 
 **Reference:** See `npx tryscript docs` for detailed coverage documentation.
 
 **Beads Import Validation Plan:**
 
-To validate the beads import process is production-ready, perform the following end-to-end validation:
+To validate the beads import process is production-ready, perform the following
+end-to-end validation:
 
 1. **ID Preservation Requirements:**
    - Public issue IDs from beads (e.g., `tbd-100`, `tbd-101`) MUST be preserved exactly
@@ -510,10 +515,10 @@ To validate the beads import process is production-ready, perform the following 
    ```bash
    # Step 1: Import from beads
    tbd import --from-beads
-
+   
    # Step 2: Verify import with check command
    tbd import --check  # Validates sync with beads data
-
+   
    # Step 3: List and verify issue counts match
    tbd list --all | wc -l  # Should match bd list --all count
    ```
@@ -540,7 +545,8 @@ To validate the beads import process is production-ready, perform the following 
    - Compare field values: title, status, priority, labels
    - Report any mismatches or missing issues
 
-This validation should be performed on this repository's `tbd-*` issues as the test case.
+This validation should be performed on this repository’s `tbd-*` issues as the test
+case.
 
 ### Phase 1: Core Schemas & Serialization
 
@@ -647,8 +653,10 @@ Unit tests for:
   - [x] `listIssues()` - Enumerate all issue files — **tbd-204** ✅
   - [x] `deleteIssue(id)` - Remove issue file — **tbd-205** ✅
 - [x] Implement config operations (readConfig, writeConfig, initConfig) — **tbd-206** ✅
-- [x] Implement basic git plumbing (gitExec, getCurrentBranch, branchExists, getRemoteUrl) — **tbd-207** ✅
-- [x] Implement worktree management (initWorktree, updateWorktree, checkWorktreeHealth) — **tbd-208** ✅
+- [x] Implement basic git plumbing (gitExec, getCurrentBranch, branchExists,
+  getRemoteUrl) — **tbd-207** ✅
+- [x] Implement worktree management (initWorktree, updateWorktree, checkWorktreeHealth)
+  — **tbd-208** ✅
 - [x] Write unit tests for storage and git operations — **tbd-209** ✅
 
 #### Phase 2 Key Design Details
@@ -2875,12 +2883,13 @@ Would import from beads2.jsonl:
 
 - [x] Implement colored output with TTY detection — **tbd-1201** ✅
 - [x] Implement help improvements — **tbd-1202** ✅
-- [ ] Performance optimization — **tbd-1203** ⚠️ (deferred - awaiting production usage data)
+- [ ] Performance optimization — **tbd-1203** ⚠️ (deferred - awaiting production usage
+  data)
 - [ ] Cross-platform testing — **tbd-1204** ⚠️ (needs CI setup)
 - [x] Documentation (README, migration guide) — **tbd-1205** ✅
 - [ ] Release preparation — **tbd-1206** ⚠️ (pending npm publish)
 
----
+* * *
 
 ## Stage 5: Validation Stage
 
@@ -2889,11 +2898,14 @@ Would import from beads2.jsonl:
 ### Validation Checklist
 
 - [x] All golden tests pass — **tbd-1301** ✅ (104 tests passing)
-- [ ] Unit test coverage > 80% — **tbd-1302** ⚠️ (deferred - current coverage functional)
+- [ ] Unit test coverage > 80% — **tbd-1302** ⚠️ (deferred - current coverage
+  functional)
 - [ ] Performance targets met (<50ms common operations) — **tbd-1303** ⚠️ (deferred)
-- [ ] Cross-platform CI passes (Linux, macOS, Windows) — **tbd-1304** ⚠️ (needs CI setup)
+- [ ] Cross-platform CI passes (Linux, macOS, Windows) — **tbd-1304** ⚠️ (needs CI
+  setup)
 - [x] Manual testing of full workflow — **tbd-1305** ✅ (all commands validated)
-- [x] Security review (no command injection, safe file operations) — **tbd-1306** ✅ (uses parameterized commands, atomic file writes)
+- [x] Security review (no command injection, safe file operations) — **tbd-1306** ✅
+  (uses parameterized commands, atomic file writes)
 
 ### Definition of Done
 
@@ -2903,7 +2915,7 @@ Would import from beads2.jsonl:
 4. **Published**: npm package published and installable
 5. **Compatible**: Beads import works, CLI flags compatible
 
----
+* * *
 
 ## Testing Strategy: tryscript Golden Tests
 
@@ -2941,13 +2953,13 @@ sandbox: true # Isolate in temp directory
 
 ### Elision Patterns
 
-| Pattern  | Matches                   |
-| -------- | ------------------------- |
-| `[..]`   | Any text on that line     |
-| `...`    | Zero or more lines        |
-| `[CWD]`  | Current working directory |
-| `[ROOT]` | Sandbox root directory    |
-| `? N`    | Exit code N               |
+| Pattern | Matches |
+| --- | --- |
+| `[..]` | Any text on that line |
+| `...` | Zero or more lines |
+| `[CWD]` | Current working directory |
+| `[ROOT]` | Sandbox root directory |
+| `? N` | Exit code N |
 
 ### Running Tests
 
@@ -2979,7 +2991,7 @@ jobs:
       - run: pnpm test:unit
 ```
 
----
+* * *
 
 ## Open Questions
 
@@ -2995,13 +3007,13 @@ jobs:
 2. **Windows path handling**: Test and fix during Phase 12
 3. **Error message formatting**: Refine during testing
 
----
+* * *
 
 ## Revision History
 
-| Date       | Author | Changes                                                                                        |
-| ---------- | ------ | ---------------------------------------------------------------------------------------------- |
-| 2026-01-15 | Claude | Initial plan spec created                                                                      |
-| 2026-01-15 | Claude | Updated bead status tracking: Phases 1-6 complete, Phases 7-12 partial, 104 tests passing      |
+| Date | Author | Changes |
+| --- | --- | --- |
+| 2026-01-15 | Claude | Initial plan spec created |
+| 2026-01-15 | Claude | Updated bead status tracking: Phases 1-6 complete, Phases 7-12 partial, 104 tests passing |
 | 2026-01-15 | Claude | Implemented Phase 7 (sync: isolated index, merge, retry) and Phase 8 (search: staleness check) |
-| 2026-01-15 | Claude | Added README (tbd-1205), manual validation (tbd-1305), security review (tbd-1306)              |
+| 2026-01-15 | Claude | Added README (tbd-1205), manual validation (tbd-1305), security review (tbd-1306) |

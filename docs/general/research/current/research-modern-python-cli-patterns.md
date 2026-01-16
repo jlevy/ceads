@@ -18,7 +18,7 @@
 - [simple-modern-uv Template](https://github.com/jlevy/simple-modern-uv) — Modern Python
   project template
 
----
+* * *
 
 ## Executive Summary
 
@@ -41,7 +41,7 @@ versioning** for accurate version strings.
 
 4. What directory structure best organizes CLI code in a library/CLI hybrid package?
 
----
+* * *
 
 ## Research Methodology
 
@@ -62,7 +62,7 @@ to recurring problems, and documented with complete implementation examples.
 
 - PEP standards for versioning and packaging
 
----
+* * *
 
 ## Research Findings
 
@@ -100,7 +100,7 @@ commands. The `lib/` directory prevents code duplication, while `types/` keeps t
 definitions organized.
 The `src` layout prevents import confusion during development.
 
----
+* * *
 
 ### 2. Agent & CI Compatibility
 
@@ -110,11 +110,11 @@ The `src` layout prevents import confusion during development.
 
 Modern CLIs must work reliably in three execution contexts:
 
-| Mode                           | Context                    | Behavior                                    |
-| ------------------------------ | -------------------------- | ------------------------------------------- |
-| **Interactive (TTY)**          | Human at terminal          | Prompts, spinners, colored output allowed   |
+| Mode | Context | Behavior |
+| --- | --- | --- |
+| **Interactive (TTY)** | Human at terminal | Prompts, spinners, colored output allowed |
 | **Non-interactive (headless)** | CI, scripts, agent runners | No prompts, deterministic output, fail-fast |
-| **Protocol mode**              | MCP/JSON-RPC adapters      | Structured I/O only (future extension)      |
+| **Protocol mode** | MCP/JSON-RPC adapters | Structured I/O only (future extension) |
 
 **Key flags for automation**:
 
@@ -235,7 +235,7 @@ Key requirements:
 **Assessment**: Explicit automation support enables CLIs to work reliably with AI
 agents, CI pipelines, and scripted workflows without TTY hacks or brittle parsing.
 
----
+* * *
 
 ### 3. Modern Tooling Stack
 
@@ -245,22 +245,22 @@ agents, CI pipelines, and scripted workflows without TTY hacks or brittle parsin
 
 Use this modern tooling stack for Python CLI development:
 
-| Tool                                           | Purpose                                    | Can Replace                                        |
-| ---------------------------------------------- | ------------------------------------------ | -------------------------------------------------- |
-| [uv](https://docs.astral.sh/uv/)               | Package management, venvs, Python versions | pip, poetry, pyenv, virtualenv (in most workflows) |
-| [Rich](https://rich.readthedocs.io/)           | Terminal output, tables, progress          | colorama, tabulate                                 |
-| [Ruff](https://docs.astral.sh/ruff/)           | Linting and formatting                     | black, flake8, isort                               |
-| [BasedPyright](https://docs.basedpyright.com/) | Type checking                              | mypy                                               |
-| [pytest](https://docs.pytest.org/)             | Testing                                    | unittest                                           |
+| Tool | Purpose | Can Replace |
+| --- | --- | --- |
+| [uv](https://docs.astral.sh/uv/) | Package management, venvs, Python versions | pip, poetry, pyenv, virtualenv (in most workflows) |
+| [Rich](https://rich.readthedocs.io/) | Terminal output, tables, progress | colorama, tabulate |
+| [Ruff](https://docs.astral.sh/ruff/) | Linting and formatting | black, flake8, isort |
+| [BasedPyright](https://docs.basedpyright.com/) | Type checking | mypy |
+| [pytest](https://docs.pytest.org/) | Testing | unittest |
 
 **CLI Framework Choice:**
 
 Two modern approaches for CLI parsing, both integrating well with Rich:
 
-| Approach                                                                                                                     | Best For                                  | Trade-offs                                       |
-| ---------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- | ------------------------------------------------ |
-| **[argparse](https://docs.python.org/3/library/argparse.html) + [rich_argparse](https://github.com/hamdanal/rich_argparse)** | Traditional CLIs, straightforward options | Simple, minimal, stdlib-based; more explicit     |
-| **[Typer](https://typer.tiangolo.com/)**                                                                                     | Complex CLIs, type-hint enthusiasts       | Modern API, automatic features; more opinionated |
+| Approach | Best For | Trade-offs |
+| --- | --- | --- |
+| **[argparse](https://docs.python.org/3/library/argparse.html) + [rich_argparse](https://github.com/hamdanal/rich_argparse)** | Traditional CLIs, straightforward options | Simple, minimal, stdlib-based; more explicit |
+| **[Typer](https://typer.tiangolo.com/)** | Complex CLIs, type-hint enthusiasts | Modern API, automatic features; more opinionated |
 
 **Option A: argparse + rich_argparse (Simple and traditional)**
 
@@ -380,7 +380,7 @@ straightforward CLIs with standard options.
 Typer is more opinionated but provides automatic features that can reduce boilerplate
 for complex CLIs with many commands.
 
----
+* * *
 
 ### 4. Base Command Pattern
 
@@ -499,7 +499,7 @@ New commands inherit consistent behavior for error handling, dry-run support, an
 formatting. Throwing `CLIError` instead of calling `sys.exit()` or `raise SystemExit()`
 improves testability and ensures proper resource cleanup.
 
----
+* * *
 
 ### 5. Dual Output Mode (Text + JSON)
 
@@ -620,13 +620,13 @@ class OutputManager:
 
 **Key principles**:
 
-| Output Type       | Destination | When Shown           |
-| ----------------- | ----------- | -------------------- |
-| Data (results)    | stdout      | Always               |
-| Success messages  | stdout      | Text mode, not quiet |
-| Errors            | stderr      | Always               |
-| Warnings          | stderr      | Always               |
-| Spinners/progress | stderr      | Text mode, TTY only  |
+| Output Type | Destination | When Shown |
+| --- | --- | --- |
+| Data (results) | stdout | Always |
+| Success messages | stdout | Text mode, not quiet |
+| Errors | stderr | Always |
+| Warnings | stderr | Always |
+| Spinners/progress | stderr | Text mode, TTY only |
 
 **Note**: Spinners and progress indicators go to **stderr** to keep stdout clean for
 pipeable data. Disable them entirely when stderr is not a TTY (prevents corruption in
@@ -636,7 +636,7 @@ pipeable data. Disable them entirely when stderr is not a TTY (prevents corrupti
 (`my-cli list --format json | jq '.items[]'`) while providing rich interactive output
 for terminal users.
 
----
+* * *
 
 ### 6. Handler + Command Structure
 
@@ -699,7 +699,7 @@ def show_command(
 complex handler logic.
 The handler class is testable in isolation.
 
----
+* * *
 
 ### 7. Typed Options with TypedDict
 
@@ -749,7 +749,7 @@ class MyFeatureListOptions:
 autocomplete in editors.
 Worth the small overhead of maintaining definitions.
 
----
+* * *
 
 ### 8. Formatter Pattern
 
@@ -817,7 +817,7 @@ self.output.data(
 **Assessment**: Separating formatters makes them reusable and testable.
 The JSON formatter defines the contract for machine consumers.
 
----
+* * *
 
 ### 9. Version Handling
 
@@ -888,7 +888,7 @@ def main(
 **Assessment**: Git-based versioning eliminates version drift between git tags and
 package metadata. The version is always accurate.
 
----
+* * *
 
 ### 10. Global Options
 
@@ -1005,7 +1005,7 @@ json_output: Annotated[bool, typer.Option("--json", help="Output as JSON")] = Fa
 **Assessment**: Centralizing global options ensures consistency and prevents option name
 conflicts across commands.
 
----
+* * *
 
 ### 11. Rich Output Utilities
 
@@ -1085,7 +1085,7 @@ def spinner_context(message: str):
 **Assessment**: Centralizing Rich utilities ensures consistent styling across all
 commands and makes it easy to update the visual style in one place.
 
----
+* * *
 
 ### 12. Stdout/Stderr Separation
 
@@ -1131,7 +1131,7 @@ def output_warning(message: str) -> None:
 **Assessment**: Proper stdout/stderr separation is fundamental to Unix philosophy and
 enables CLI tools to be composed in pipelines.
 
----
+* * *
 
 ### 13. Error Handling with Custom Exceptions
 
@@ -1193,17 +1193,17 @@ def my_command(ctx: typer.Context) -> None:
 
 **Exit code conventions**:
 
-| Code | Meaning                          |
-| ---- | -------------------------------- |
-| 0    | Success                          |
-| 1    | General error                    |
-| 2    | Invalid usage / validation error |
-| 130  | Interrupted (Ctrl+C)             |
+| Code | Meaning |
+| --- | --- |
+| 0 | Success |
+| 1 | General error |
+| 2 | Invalid usage / validation error |
+| 130 | Interrupted (Ctrl+C) |
 
 **Assessment**: Custom exceptions make error handling explicit and testable.
 Exit codes follow Unix conventions for proper integration with shell scripts.
 
----
+* * *
 
 ### 14. Testing with CliRunner
 
@@ -1275,7 +1275,7 @@ def test_command_with_file(isolated_filesystem) -> None:
 **Assessment**: CliRunner provides isolated testing without subprocess overhead.
 Tests can verify exit codes, stdout/stderr output, and side effects.
 
----
+* * *
 
 ### 15. Interactive Prompts with Questionary
 
@@ -1332,7 +1332,7 @@ def create(
 **Assessment**: Questionary provides beautiful prompts that integrate well with Rich.
 Always support a `--yes` flag to enable non-interactive automation.
 
----
+* * *
 
 ### 16. Documentation Command
 
@@ -1381,7 +1381,7 @@ def get_all_commands_help(app: typer.Typer) -> str:
 **Assessment**: A docs command provides a single reference for all CLI functionality,
 especially valuable for CLIs with many subcommands.
 
----
+* * *
 
 ## Best Practices Summary
 
@@ -1422,7 +1422,7 @@ especially valuable for CLIs with many subcommands.
 
 17. **Add docs/schema/examples commands** for human and machine documentation
 
----
+* * *
 
 ## References
 

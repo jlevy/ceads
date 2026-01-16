@@ -15,6 +15,7 @@ import {
   normalizeIssueId,
   isInternalId,
   isShortId,
+  formatDisplayId,
 } from '../src/lib/ids.js';
 import { IssueId } from '../src/lib/schemas.js';
 
@@ -126,5 +127,44 @@ describe('normalizeIssueId', () => {
     // Short IDs require mapping lookup which normalizeIssueId doesn't have access to
     expect(normalizeIssueId('bd-a7k2')).toBe('bd-a7k2');
     expect(normalizeIssueId('a7k2')).toBe('a7k2');
+  });
+
+  it('returns corrupted is- IDs as-is for later validation', () => {
+    // IDs that start with is- but have wrong length
+    expect(normalizeIssueId('is-abc')).toBe('is-abc');
+    expect(normalizeIssueId('is-toolong1234567890123456789')).toBe('is-toolong1234567890123456789');
+  });
+
+  it('returns bd- short IDs unchanged when not full ULID', () => {
+    // bd- prefix with short ID (not 26 chars)
+    expect(normalizeIssueId('bd-a7k2x')).toBe('bd-a7k2x');
+    expect(normalizeIssueId('bd-12345')).toBe('bd-12345');
+  });
+
+  it('returns other prefixed IDs unchanged', () => {
+    // Other prefixes that aren't is- or bd-
+    expect(normalizeIssueId('xx-abcdef')).toBe('xx-abcdef');
+  });
+});
+
+describe('formatDisplayId', () => {
+  it('formats internal ID with default bd- prefix', () => {
+    const displayId = formatDisplayId(`is-${VALID_ULID}`);
+    expect(displayId).toBe('bd-01hx5z');
+  });
+
+  it('uses custom prefix when provided', () => {
+    const displayId = formatDisplayId(`is-${VALID_ULID}`, 'issue');
+    expect(displayId).toBe('issue-01hx5z');
+  });
+
+  it('handles IDs without is- prefix', () => {
+    const displayId = formatDisplayId(VALID_ULID);
+    expect(displayId).toBe('bd-01hx5z');
+  });
+
+  it('truncates to first 6 chars of ULID', () => {
+    const displayId = formatDisplayId('is-abcdef123456789012345678');
+    expect(displayId).toBe('bd-abcdef');
   });
 });

@@ -16,4 +16,5 @@ version of the documentation
 
 3. Make the concise and redundant parts of the spec.
    Look for areas of duplication and parts that reference previous version.
-   Do not include parts like: Result\*\*: ~60% less code change than original 6-phase plan
+   Do not include parts like: Result\*\*: ~60% less code change than original 6-phase
+   plan

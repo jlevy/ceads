@@ -6,11 +6,11 @@
 
 ## Tool Versions Researched
 
-| Tool                | Version | Notes                           |
-| ------------------- | ------- | ------------------------------- |
-| Vitest              | 4.0.16  | Testing framework               |
-| @vitest/coverage-v8 | 4.0.16  | V8-based coverage (recommended) |
-| TypeScript          | 5.9.3   | Language version                |
+| Tool | Version | Notes |
+| --- | --- | --- |
+| Vitest | 4.0.16 | Testing framework |
+| @vitest/coverage-v8 | 4.0.16 | V8-based coverage (recommended) |
+| TypeScript | 5.9.3 | Language version |
 
 ## Executive Summary
 
@@ -31,12 +31,12 @@ using Vitest with the v8 coverage provider.
 
 ### Recommended Thresholds
 
-| Metric     | Starting | Target | Notes                                    |
-| ---------- | -------- | ------ | ---------------------------------------- |
-| Statements | 70%      | 80-90% | Catch untested code paths                |
-| Branches   | 65%      | 75-85% | Critical for TypeScript with union types |
-| Functions  | 70%      | 80-90% | Ensure all exported APIs are tested      |
-| Lines      | 70%      | 80-90% | General code execution coverage          |
+| Metric | Starting | Target | Notes |
+| --- | --- | --- | --- |
+| Statements | 70% | 80-90% | Catch untested code paths |
+| Branches | 65% | 75-85% | Critical for TypeScript with union types |
+| Functions | 70% | 80-90% | Ensure all exported APIs are tested |
+| Lines | 70% | 80-90% | General code execution coverage |
 
 ### Why Branch Coverage Matters for TypeScript
 
@@ -84,14 +84,14 @@ Low branch coverage often indicates untested error paths and edge cases.
 
 **Recommended Reporters:**
 
-| Reporter       | Purpose                                                               |
-| -------------- | --------------------------------------------------------------------- |
-| `text`         | Terminal output for CI/quick checks                                   |
-| `text-summary` | Brief summary in terminal                                             |
-| `html`         | Detailed visual reports for local dev                                 |
-| `json`         | Machine-readable for CI/CD integration                                |
+| Reporter | Purpose |
+| --- | --- |
+| `text` | Terminal output for CI/quick checks |
+| `text-summary` | Brief summary in terminal |
+| `html` | Detailed visual reports for local dev |
+| `json` | Machine-readable for CI/CD integration |
 | `json-summary` | Machine-readable summary (`coverage-summary.json`) for PR annotations |
-| `lcov`         | Standard format for Codecov/Coveralls                                 |
+| `lcov` | Standard format for Codecov/Coveralls |
 
 ## Vitest Configuration
 
@@ -276,11 +276,11 @@ thresholds: {
 
 ## Test Organization
 
-| Test Type   | Pattern                    | Include in Coverage |
-| ----------- | -------------------------- | ------------------- |
-| Unit        | `**/*.test.ts`             | Yes                 |
-| Integration | `**/*.integration.test.ts` | Yes                 |
-| E2E         | `**/*.e2e.test.ts`         | No (exclude)        |
+| Test Type | Pattern | Include in Coverage |
+| --- | --- | --- |
+| Unit | `**/*.test.ts` | Yes |
+| Integration | `**/*.integration.test.ts` | Yes |
+| E2E | `**/*.e2e.test.ts` | No (exclude) |
 
 ## References
 

@@ -21,7 +21,7 @@
 
 - [@clack/prompts Documentation](https://github.com/bombshell-dev/clack)
 
----
+* * *
 
 ## Executive Summary
 
@@ -45,7 +45,7 @@ for dual-mode output, **Handler + Command separation** for clean organization, a
 
 4. What directory structure best organizes CLI code in a library/CLI hybrid package?
 
----
+* * *
 
 ## Research Methodology
 
@@ -64,7 +64,7 @@ solutions to recurring problems, and documented with complete implementation exa
 
 - npm versioning conventions and semver sorting requirements
 
----
+* * *
 
 ## Research Findings
 
@@ -98,7 +98,7 @@ commands.
 The `lib/` directory prevents code duplication, while `types/` keeps TypeScript
 interfaces organized.
 
----
+* * *
 
 ### 2. Agent & Automation Compatibility
 
@@ -108,11 +108,11 @@ interfaces organized.
 
 Modern CLIs must work reliably in three execution contexts:
 
-| Mode                           | Context                    | Behavior                                    |
-| ------------------------------ | -------------------------- | ------------------------------------------- |
-| **Interactive (TTY)**          | Human at terminal          | Prompts, spinners, colored output allowed   |
+| Mode | Context | Behavior |
+| --- | --- | --- |
+| **Interactive (TTY)** | Human at terminal | Prompts, spinners, colored output allowed |
 | **Non-interactive (headless)** | CI, scripts, agent runners | No prompts, deterministic output, fail-fast |
-| **Protocol mode**              | MCP/JSON-RPC adapters      | Structured I/O only (future extension)      |
+| **Protocol mode** | MCP/JSON-RPC adapters | Structured I/O only (future extension) |
 
 **Key flags for automation**:
 
@@ -234,7 +234,7 @@ Key requirements:
 **Assessment**: Explicit automation support enables CLIs to work reliably with AI
 agents, CI pipelines, and scripted workflows without TTY hacks or brittle parsing.
 
----
+* * *
 
 ### 3. Base Command Pattern
 
@@ -336,19 +336,19 @@ main();
 
 **Exit code conventions** (aligned with Unix standards):
 
-| Code | Meaning                                                   |
-| ---- | --------------------------------------------------------- |
-| 0    | Success                                                   |
-| 1    | Operational error (API failed, file not found)            |
-| 2    | Validation/usage error (missing argument, invalid option) |
-| 130  | Interrupted (SIGINT / Ctrl+C)                             |
+| Code | Meaning |
+| --- | --- |
+| 0 | Success |
+| 1 | Operational error (API failed, file not found) |
+| 2 | Validation/usage error (missing argument, invalid option) |
+| 130 | Interrupted (SIGINT / Ctrl+C) |
 
 **Assessment**: The Base Command pattern dramatically reduces boilerplate.
 New commands inherit consistent behavior for error handling, dry-run support, and output
 formatting. Throwing typed errors instead of calling `process.exit()` improves
 testability and ensures proper resource cleanup.
 
----
+* * *
 
 ### 4. Dual Output Mode (Text + JSON)
 
@@ -405,13 +405,13 @@ export class OutputManager {
 
 **Key principles**:
 
-| Output Type       | Destination | When Shown           |
-| ----------------- | ----------- | -------------------- |
-| Data (results)    | stdout      | Always               |
-| Success messages  | stdout      | Text mode, not quiet |
-| Errors            | stderr      | Always               |
-| Warnings          | stderr      | Always               |
-| Spinners/progress | stderr      | Text mode, TTY only  |
+| Output Type | Destination | When Shown |
+| --- | --- | --- |
+| Data (results) | stdout | Always |
+| Success messages | stdout | Text mode, not quiet |
+| Errors | stderr | Always |
+| Warnings | stderr | Always |
+| Spinners/progress | stderr | Text mode, TTY only |
 
 **Note**: Spinners and progress indicators go to **stderr** to keep stdout clean for
 pipeable data. Disable them entirely when stdout is not a TTY (prevents corruption in
@@ -421,7 +421,7 @@ pipeable data. Disable them entirely when stdout is not a TTY (prevents corrupti
 (`my-cli list --format json | jq '.items[]'`) while providing rich interactive output
 for terminal users.
 
----
+* * *
 
 ### 5. Handler + Command Structure
 
@@ -467,7 +467,7 @@ export const myFeatureCommand = new Command('my-feature')
 complex handler logic.
 The handler class is testable in isolation.
 
----
+* * *
 
 ### 6. Named Option Types
 
@@ -518,7 +518,7 @@ const listCommand = new Command('list')
 in editors. Parsing options at the Commander layer (via coercion functions) keeps
 handlers clean and ensures consistent validation across commands.
 
----
+* * *
 
 ### 7. Formatter Pattern
 
@@ -569,7 +569,7 @@ this.output.data(
 **Assessment**: Separating formatters makes them reusable and testable.
 The JSON formatter defines the contract for machine consumers.
 
----
+* * *
 
 ### 8. Version Handling
 
@@ -606,7 +606,7 @@ const program = new Command().name('my-cli').version(VERSION, '--version', 'Show
 **Assessment**: Centralizing version in the library (injected at build time) ensures CLI
 and programmatic consumers see the same version.
 
----
+* * *
 
 ### 9. Global Options
 
@@ -671,10 +671,10 @@ export function shouldColorize(colorOption: 'auto' | 'always' | 'never'): boolea
 
 **Critical: Use `createColors()` with picocolors**
 
-picocolors detects TTY support at module load time. If `process.stdout.isTTY` is false
-when the module loads (common when running via `pnpm run` or in CI), all color functions
-become no-ops regardless of `--color=always`. Use `pc.createColors(enabled)` to override
-this:
+picocolors detects TTY support at module load time.
+If `process.stdout.isTTY` is false when the module loads (common when running via
+`pnpm run` or in CI), all color functions become no-ops regardless of `--color=always`.
+Use `pc.createColors(enabled)` to override this:
 
 ```ts
 import pc from 'picocolors';
@@ -698,8 +698,9 @@ This ensures `--color=always` works correctly even when stdout is not a TTY.
 
 **Colored help output**
 
-Commander.js v14+ supports built-in help styling via `configureHelp()`. Create a reusable
-config object that combines picocolors manual color control with Commander's style hooks:
+Commander.js v14+ supports built-in help styling via `configureHelp()`. Create a
+reusable config object that combines picocolors manual color control with Commander’s
+style hooks:
 
 ```ts
 // lib/output.ts
@@ -754,7 +755,7 @@ extensible but more concise for the common case:
 **Assessment**: Centralizing global options ensures consistency and prevents option name
 conflicts across commands.
 
----
+* * *
 
 ### 10. Avoid Single-Letter Option Aliases
 
@@ -794,7 +795,7 @@ Document which aliases exist for compatibility vs which are native to your CLI.
 Full names are self-documenting and avoid collisions.
 However, backward compatibility with an existing CLI is a valid reason to use them.
 
----
+* * *
 
 ### 11. Show Help After Errors
 
@@ -836,7 +837,7 @@ automatically.
 **Assessment**: This small configuration change significantly improves user experience
 when commands are misused.
 
----
+* * *
 
 ### 12. Stdout/Stderr Separation
 
@@ -861,7 +862,7 @@ this.output.warn('Deprecated option');
 **Assessment**: Proper stdout/stderr separation is fundamental to Unix philosophy and
 enables CLI tools to be composed in pipelines.
 
----
+* * *
 
 ### 13. Testing with Dry-Run
 
@@ -897,7 +898,7 @@ class MyCommandHandler extends BaseCommand {
 **Assessment**: Dry-run support enables safe testing of destructive commands and helps
 users verify what a command will do before executing it.
 
----
+* * *
 
 ### 14. Preaction Hooks
 
@@ -926,7 +927,7 @@ program.hook('preAction', (thisCommand) => {
 **Assessment**: Preaction hooks are useful for setup that should run before any command
 but shouldn’t be duplicated in each command handler.
 
----
+* * *
 
 ### 15. Documentation Command
 
@@ -958,7 +959,7 @@ const docsCommand = new Command('docs')
 **Assessment**: A docs command provides a single reference for all CLI functionality,
 which is especially valuable for CLIs with many subcommands.
 
----
+* * *
 
 ### 16. Testing CLI Commands
 
@@ -1018,7 +1019,7 @@ describe('CLI', () => {
 including argument parsing, exit codes, and output streams.
 Use `--format json` for assertions to avoid brittle text parsing.
 
----
+* * *
 
 ## Best Practices Summary
 
@@ -1061,7 +1062,7 @@ Use `--format json` for assertions to avoid brittle text parsing.
 
 18. **Add docs/schema/examples commands** for human and machine documentation
 
----
+* * *
 
 ## References
 

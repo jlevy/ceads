@@ -12,7 +12,7 @@
 
 - Git-native issue tracking systems
 
----
+* * *
 
 ## Executive Summary
 
@@ -44,7 +44,7 @@ coordination patterns relevant to the TBD architecture.
 - Multi-agent coordination is undergoing rapid evolution in 2026 with standardized
   protocols (A2A, MCP, ACP, ANP)
 
----
+* * *
 
 ## Research Methodology
 
@@ -70,7 +70,7 @@ Conducted comprehensive web search for:
 
 - Academic surveys on agent interoperability protocols
 
----
+* * *
 
 ## Research Findings
 
@@ -108,7 +108,7 @@ Conducted comprehensive web search for:
 operations on issues.
 Rate limits apply based on authentication type.
 
----
+* * *
 
 #### 1.2 GitHub GraphQL API
 
@@ -154,7 +154,7 @@ Rate limits apply based on authentication type.
 **Assessment**: GraphQL is ideal for complex queries requiring specific fields or
 relationships. More efficient for bandwidth but requires learning GraphQL query syntax.
 
----
+* * *
 
 #### 1.3 GitHub Webhooks
 
@@ -216,7 +216,7 @@ relationships. More efficient for bandwidth but requires learning GraphQL query 
 **Assessment**: Webhooks are essential for real-time synchronization.
 Must handle webhook verification, replay attacks, and implement proper retry logic.
 
----
+* * *
 
 #### 1.4 GitHub App Authentication
 
@@ -228,6 +228,7 @@ https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-githu
 **Authentication Types**:
 
 1. **JWT (JSON Web Token)** - Authenticate as the app itself
+
    - Required to generate installation access tokens
 
    - Used for app-level operations (list installations, suspend installations)
@@ -235,6 +236,7 @@ https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-githu
    - Short-lived tokens
 
 2. **Installation Access Tokens** - Authenticate as an app installation
+
    - Required for most API operations on behalf of installation
 
    - Expire after 1 hour
@@ -244,6 +246,7 @@ https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-githu
    - Ideal for automation workflows
 
 3. **User Access Tokens** - OAuth tokens with fine-grained permissions
+
    - User + app combined permissions (intersection)
 
    - No traditional OAuth scopes, uses fine-grained permissions
@@ -287,7 +290,7 @@ https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-githu
 Installation tokens with 1-hour expiry require refresh logic.
 Use SDK to simplify.
 
----
+* * *
 
 #### 1.5 GitHub App Permissions and Webhooks
 
@@ -307,6 +310,7 @@ https://docs.github.com/en/apps/creating-github-apps/registering-a-github-app/ch
 **Permission → Webhook Example**:
 
 - To receive `issues` webhook events:
+
   1. First grant “Issues” permission under “Repository permissions”
 
   2. Then subscribe to “Issues” events under “Subscribe to events”
@@ -336,7 +340,7 @@ https://docs.github.com/en/apps/creating-github-apps/registering-a-github-app/ch
 **Assessment**: Permission model is granular and security-focused.
 Clear documentation needed for users about why specific permissions are required.
 
----
+* * *
 
 ### 2. Slack APIs
 
@@ -405,7 +409,7 @@ Clear documentation needed for users about why specific permissions are required
 events. Requires publicly accessible HTTP endpoint or use Socket Mode for
 firewall/security scenarios.
 
----
+* * *
 
 #### 2.2 Slack Socket Mode
 
@@ -473,7 +477,7 @@ firewall/security scenarios.
 endpoints are not feasible.
 Slightly more complex than webhooks but more flexible for certain deployment scenarios.
 
----
+* * *
 
 #### 2.3 Slack Real Time Messaging (RTM) API
 
@@ -529,7 +533,7 @@ Slightly more complex than webhooks but more flexible for certain deployment sce
 **Assessment**: Do not use for new development.
 Migrate existing RTM implementations to Socket Mode or Events API.
 
----
+* * *
 
 #### 2.4 Slack Incoming Webhooks
 
@@ -592,7 +596,7 @@ Migrate existing RTM implementations to Socket Mode or Events API.
 Ideal for one-way notifications.
 For bidirectional communication, use Events API or Socket Mode.
 
----
+* * *
 
 #### 2.5 Slack Bolt Framework
 
@@ -668,7 +672,7 @@ npm install @slack/bolt
 Use it instead of low-level SDK unless you have specific requirements.
 Significantly reduces development time.
 
----
+* * *
 
 ### 3. Git-Native Issue Trackers
 
@@ -739,7 +743,7 @@ Excellent model for distributed issue management.
 Strong GraphQL API for integrations.
 Consider as reference architecture.
 
----
+* * *
 
 #### 3.2 git-issue
 
@@ -792,7 +796,7 @@ Very lightweight and transparent.
 Text file approach is both strength (simplicity) and weakness (less structured than git
 objects). Good for small teams or personal projects.
 
----
+* * *
 
 #### 3.3 tk (ticket)
 
@@ -853,7 +857,7 @@ YAML frontmatter + markdown is optimal format for LLM parsing.
 Simple dependency tracking.
 Consider for TBD if prioritizing AI agent experience.
 
----
+* * *
 
 #### 3.4 Beads
 
@@ -909,7 +913,7 @@ https://aibit.im/blog/post/beads-elevate-your-ai-agent-s-memory-with-git-backed-
 Very relevant to TBD design.
 Consider hybrid approach: human-readable markdown in git + local cache for performance.
 
----
+* * *
 
 #### 3.5 git-appraise
 
@@ -982,7 +986,7 @@ Separating different data types into different refs is elegant.
 Schema approach ensures consistency.
 Consider for TBD comment/discussion system.
 
----
+* * *
 
 ### 4. Multi-Agent Coordination Patterns
 
@@ -993,6 +997,7 @@ Consider for TBD comment/discussion system.
 **Key Protocols**:
 
 1. **Model Context Protocol (MCP)** - Anthropic
+
    - JSON-RPC client-server interface
 
    - Secure tool invocation
@@ -1000,6 +1005,7 @@ Consider for TBD comment/discussion system.
    - Typed data exchange
 
 2. **Agent Communication Protocol (ACP)**
+
    - REST-native messaging
 
    - Multi-part messages
@@ -1009,6 +1015,7 @@ Consider for TBD comment/discussion system.
    - Multimodal agent responses
 
 3. **Agent-to-Agent Protocol (A2A)** - Google
+
    - Peer-to-peer task outsourcing
 
    - Capability-based Agent Cards
@@ -1018,6 +1025,7 @@ Consider for TBD comment/discussion system.
    - Dynamic role assignment
 
 4. **Agent Network Protocol (ANP)**
+
    - Open-network agent discovery
 
    - Decentralized identifiers (DIDs)
@@ -1049,7 +1057,7 @@ Consider for TBD comment/discussion system.
 for TBD multi-agent coordination.
 Consider implementing A2A-compatible agent cards for agent capabilities.
 
----
+* * *
 
 #### 4.2 Google’s Eight Essential Design Patterns
 
@@ -1099,7 +1107,7 @@ Consider implementing A2A-compatible agent cards for agent capabilities.
 TBD likely needs Router (for task delegation), Tool Use (for git operations), and
 Human-in-the-Loop (for approvals).
 
----
+* * *
 
 #### 4.3 Orchestration Approaches
 
@@ -1108,6 +1116,7 @@ Human-in-the-Loop (for approvals).
 **Categories**:
 
 1. **Centralized (Manager/Router)**
+
    - Single manager agent assigns tasks
 
    - Controls workflow
@@ -1119,6 +1128,7 @@ Human-in-the-Loop (for approvals).
    - Con: Single point of failure
 
 2. **Decentralized (Peer-to-Peer)**
+
    - Agents communicate directly
 
    - No central coordinator
@@ -1128,6 +1138,7 @@ Human-in-the-Loop (for approvals).
    - Con: More complex protocols
 
 3. **Hierarchical**
+
    - Multiple layers of coordination
 
    - Team leads and workers
@@ -1166,7 +1177,7 @@ Human-in-the-Loop (for approvals).
 agents, git agents, etc.). Pub-sub for event notifications.
 A2A for peer delegation.
 
----
+* * *
 
 #### 4.4 Leading Multi-Agent Frameworks (2026)
 
@@ -1175,6 +1186,7 @@ A2A for peer delegation.
 **Top Frameworks**:
 
 1. **LangGraph (LangChain)**
+
    - Graph-based workflows
 
    - Modular design
@@ -1184,6 +1196,7 @@ A2A for peer delegation.
    - Strong developer ecosystem
 
 2. **MetaGPT (FoundationAgents)**
+
    - Role-based collaboration
 
    - Software development roles (engineer, QA, PM)
@@ -1191,6 +1204,7 @@ A2A for peer delegation.
    - Structured agent interactions
 
 3. **AutoGen (Microsoft)**
+
    - Conversational collaboration
 
    - Planner-executor-critic loops
@@ -1198,6 +1212,7 @@ A2A for peer delegation.
    - Multi-agent conversations
 
 4. **Agent Development Kit (Google)**
+
    - Multi-agent orchestration
 
    - Integrated evaluation and debugging
@@ -1240,7 +1255,7 @@ A2A for peer delegation.
 Study AutoGen’s planner-executor-critic pattern for code review.
 Ensure TBD agents are interoperable with major frameworks.
 
----
+* * *
 
 #### 4.5 Message Passing Patterns
 
@@ -1302,54 +1317,54 @@ Ensure TBD agents are interoperable with major frameworks.
 updates, and pub-sub for event notifications.
 Include correlation IDs for debugging distributed operations.
 
----
+* * *
 
 ## Comparative Analysis
 
 ### GitHub API Comparison
 
-| Feature            | REST API        | GraphQL API                    |
-| ------------------ | --------------- | ------------------------------ |
-| Learning curve     | Easy            | Moderate                       |
-| Flexibility        | Fixed endpoints | Custom queries                 |
-| Data fetching      | May over-fetch  | Fetch exactly what needed      |
-| Version management | URL versioning  | Schema evolution               |
-| Rate limiting      | Endpoint-based  | Query complexity-based         |
-| Best for           | CRUD operations | Complex queries, relationships |
+| Feature | REST API | GraphQL API |
+| --- | --- | --- |
+| Learning curve | Easy | Moderate |
+| Flexibility | Fixed endpoints | Custom queries |
+| Data fetching | May over-fetch | Fetch exactly what needed |
+| Version management | URL versioning | Schema evolution |
+| Rate limiting | Endpoint-based | Query complexity-based |
+| Best for | CRUD operations | Complex queries, relationships |
 
 **Recommendation**: Use REST for simple CRUD, GraphQL for complex queries with multiple
 related resources.
 
----
+* * *
 
 ### Slack Communication Comparison
 
-| Feature           | Events API (HTTP) | Socket Mode  | RTM API (Legacy) |
-| ----------------- | ----------------- | ------------ | ---------------- |
-| Connection type   | HTTP POST         | WebSocket    | WebSocket        |
-| Public endpoint   | Required          | Not required | Not required     |
-| Firewall-friendly | No                | Yes          | Yes              |
-| Status            | Recommended       | Recommended  | Deprecated       |
-| Setup complexity  | Low               | Medium       | Medium           |
-| Permissions       | Fine-grained      | Fine-grained | Overly broad     |
+| Feature | Events API (HTTP) | Socket Mode | RTM API (Legacy) |
+| --- | --- | --- | --- |
+| Connection type | HTTP POST | WebSocket | WebSocket |
+| Public endpoint | Required | Not required | Not required |
+| Firewall-friendly | No | Yes | Yes |
+| Status | Recommended | Recommended | Deprecated |
+| Setup complexity | Low | Medium | Medium |
+| Permissions | Fine-grained | Fine-grained | Overly broad |
 
 **Recommendation**: Use Events API for production with public endpoints, Socket Mode for
 development or firewall scenarios.
 Avoid RTM.
 
----
+* * *
 
 ### Git-Native Issue Tracker Comparison
 
-| Feature        | git-bug       | git-issue     | tk (ticket)   | Beads     | git-appraise |
-| -------------- | ------------- | ------------- | ------------- | --------- | ------------ |
-| Storage format | Git objects   | Text files    | Markdown+YAML | JSONL     | Git refs     |
-| UI options     | CLI/TUI/Web   | CLI           | CLI           | N/A       | CLI/Eclipse  |
-| GraphQL API    | Yes           | No            | No            | No        | No           |
-| Bridges        | GitHub/GitLab | GitHub/GitLab | No            | No        | No           |
-| AI-friendly    | Medium        | High          | Very High     | Very High | Medium       |
-| Complexity     | High          | Low           | Low           | Medium    | Medium       |
-| Dependencies   | Go runtime    | Bash/Git      | Bash only     | SQLite    | Go runtime   |
+| Feature | git-bug | git-issue | tk (ticket) | Beads | git-appraise |
+| --- | --- | --- | --- | --- | --- |
+| Storage format | Git objects | Text files | Markdown+YAML | JSONL | Git refs |
+| UI options | CLI/TUI/Web | CLI | CLI | N/A | CLI/Eclipse |
+| GraphQL API | Yes | No | No | No | No |
+| Bridges | GitHub/GitLab | GitHub/GitLab | No | No | No |
+| AI-friendly | Medium | High | Very High | Very High | Medium |
+| Complexity | High | Low | Low | Medium | Medium |
+| Dependencies | Go runtime | Bash/Git | Bash only | SQLite | Go runtime |
 
 **Strengths/Weaknesses Summary**:
 
@@ -1373,22 +1388,22 @@ Avoid RTM.
   Best for review workflows.
   Not issue-focused.
 
----
+* * *
 
 ### Multi-Agent Protocol Comparison
 
-| Protocol | Transport | Best For               | Maturity | Interop |
-| -------- | --------- | ---------------------- | -------- | ------- |
-| MCP      | JSON-RPC  | Client-server tools    | Stable   | Growing |
-| ACP      | REST/HTTP | Multimodal responses   | Emerging | Limited |
-| A2A      | HTTP/SSE  | P2P enterprise         | Emerging | Growing |
-| ANP      | HTTP/DID  | Decentralized networks | Early    | Limited |
+| Protocol | Transport | Best For | Maturity | Interop |
+| --- | --- | --- | --- | --- |
+| MCP | JSON-RPC | Client-server tools | Stable | Growing |
+| ACP | REST/HTTP | Multimodal responses | Emerging | Limited |
+| A2A | HTTP/SSE | P2P enterprise | Emerging | Growing |
+| ANP | HTTP/DID | Decentralized networks | Early | Limited |
 
 **Recommendation**: Implement A2A for agent coordination, consider MCP for tool
 invocation interface.
 Monitor ANP for future decentralized scenarios.
 
----
+* * *
 
 ## Best Practices
 
@@ -1428,7 +1443,7 @@ Monitor ANP for future decentralized scenarios.
 
 - Cache data when appropriate
 
----
+* * *
 
 ### 2. Slack Integration Best Practices
 
@@ -1466,7 +1481,7 @@ Monitor ANP for future decentralized scenarios.
 
 - Support slash commands for common operations
 
----
+* * *
 
 ### 3. Git-Native Storage Best Practices
 
@@ -1502,7 +1517,7 @@ Monitor ANP for future decentralized scenarios.
 
 - Use git shallow clones for limited history
 
----
+* * *
 
 ### 4. Multi-Agent Coordination Best Practices
 
@@ -1552,11 +1567,12 @@ Monitor ANP for future decentralized scenarios.
 
 - Version all interfaces
 
----
+* * *
 
 ## Open Research Questions
 
 1. **How should TBD handle real-time synchronization conflicts?**
+
    - When GitHub issue and TBD task diverge during offline work
 
    - Conflict resolution strategies (last-write-wins vs manual merge)
@@ -1564,6 +1580,7 @@ Monitor ANP for future decentralized scenarios.
    - Next steps: Prototype conflict detection and resolution UI
 
 2. **What’s the optimal local cache strategy for TBD?**
+
    - SQLite like Beads vs in-memory vs no cache
 
    - Cache invalidation strategies
@@ -1573,6 +1590,7 @@ Monitor ANP for future decentralized scenarios.
    - Next steps: Benchmark different approaches with realistic data
 
 3. **How to implement agent capability discovery?**
+
    - Static agent cards vs dynamic capability queries
 
    - Centralized registry vs peer discovery
@@ -1580,6 +1598,7 @@ Monitor ANP for future decentralized scenarios.
    - Next steps: Design agent registration and discovery system
 
 4. **What authentication model for bridge agents?**
+
    - Per-user OAuth vs shared service account
 
    - Token storage and rotation
@@ -1589,6 +1608,7 @@ Monitor ANP for future decentralized scenarios.
    - Next steps: Security review and threat modeling
 
 5. **How to handle webhook delivery failures?**
+
    - Retry logic and backoff strategies
 
    - Persistent queue vs in-memory
@@ -1598,6 +1618,7 @@ Monitor ANP for future decentralized scenarios.
    - Next steps: Design failure handling architecture
 
 6. **Should TBD support custom agent plugins?**
+
    - Plugin API design
 
    - Sandboxing and security
@@ -1606,7 +1627,7 @@ Monitor ANP for future decentralized scenarios.
 
    - Next steps: Define plugin architecture requirements
 
----
+* * *
 
 ## Recommendations
 
@@ -1629,6 +1650,7 @@ For TBD bridge integrations, use modern, well-supported APIs and protocols:
 #### GitHub Bridge Architecture
 
 1. **Authentication**: GitHub App with installation tokens
+
    - Use Octokit SDK for token management
 
    - Implement token refresh service
@@ -1636,6 +1658,7 @@ For TBD bridge integrations, use modern, well-supported APIs and protocols:
    - Store private key in secure vault
 
 2. **API Layer**: Hybrid REST/GraphQL
+
    - REST for issue CRUD operations
 
    - GraphQL for bulk queries and complex relationships
@@ -1643,6 +1666,7 @@ For TBD bridge integrations, use modern, well-supported APIs and protocols:
    - Cache frequently-accessed data
 
 3. **Webhook Handling**: Async queue processing
+
    - Receive webhook on endpoint
 
    - Validate signature
@@ -1654,6 +1678,7 @@ For TBD bridge integrations, use modern, well-supported APIs and protocols:
    - Process event and sync to TBD
 
 4. **Sync Strategy**: Bidirectional with conflict detection
+
    - GitHub → TBD: Real-time via webhooks
 
    - TBD → GitHub: On local commit
@@ -1663,6 +1688,7 @@ For TBD bridge integrations, use modern, well-supported APIs and protocols:
 #### Slack Bridge Architecture
 
 1. **Connection**: Socket Mode for development, Events API for production
+
    - Use Bolt framework (Python or JavaScript)
 
    - Handle reconnections gracefully
@@ -1670,6 +1696,7 @@ For TBD bridge integrations, use modern, well-supported APIs and protocols:
    - Implement rate limiting
 
 2. **Event Handling**: Subscribe to relevant events
+
    - Message events for new issues/comments
 
    - User events for @mentions
@@ -1679,6 +1706,7 @@ For TBD bridge integrations, use modern, well-supported APIs and protocols:
    - App events for lifecycle management
 
 3. **Commands**: Slash commands for common operations
+
    - `/tbd create` - Create new task
 
    - `/tbd list` - List open tasks
@@ -1688,6 +1716,7 @@ For TBD bridge integrations, use modern, well-supported APIs and protocols:
    - `/tbd status` - Update task status
 
 4. **Notifications**: Rich message formatting
+
    - Use Block Kit for structured messages
 
    - Thread related notifications
@@ -1712,18 +1741,19 @@ For TBD bridge integrations, use modern, well-supported APIs and protocols:
    updated: 2026-01-08T15:30:00Z
    tags: [bridge, github, integration]
    ---
-
+   
    # Description
-
+   
    Implement bidirectional sync between TBD and GitHub Issues...
-
+   
    # Discussion
-
+   
    - Comment 1...
    - Comment 2...
    ```
 
 2. **Optional Cache**: SQLite for performance
+
    - Index tasks by status, assignee, tags
 
    - Enable fast queries without parsing all files
@@ -1733,6 +1763,7 @@ For TBD bridge integrations, use modern, well-supported APIs and protocols:
    - Invalidate on git pull
 
 3. **Git Structure**: Use dedicated branch or refs
+
    - Option A: `.tbd/` directory on main branch
 
    - Option B: Separate `tbd-tasks` branch
@@ -1754,6 +1785,7 @@ For TBD bridge integrations, use modern, well-supported APIs and protocols:
 **Recommended**: Hierarchical A2A with router pattern
 
 1. **Agent Roles**:
+
    - **Router Agent**: Receives user requests, delegates to specialists
 
    - **GitHub Bridge Agent**: Handles GitHub sync
@@ -1765,6 +1797,7 @@ For TBD bridge integrations, use modern, well-supported APIs and protocols:
    - **Query Agent**: Handles search and reporting
 
 2. **Communication Protocol**: A2A with JSON-RPC
+
    - Agent capability cards describe what each agent can do
 
    - Router consults cards to delegate tasks
@@ -1774,6 +1807,7 @@ For TBD bridge integrations, use modern, well-supported APIs and protocols:
    - Correlation IDs for request tracing
 
 3. **Orchestration**: Event-driven with pub-sub
+
    - Central event bus for agent coordination
 
    - Agents subscribe to relevant event types
@@ -1783,6 +1817,7 @@ For TBD bridge integrations, use modern, well-supported APIs and protocols:
    - Easy to add new agents
 
 4. **Reliability**: Human-in-the-loop for critical operations
+
    - Agent proposes changes
 
    - User reviews and approves
@@ -1863,7 +1898,7 @@ For TBD bridge integrations, use modern, well-supported APIs and protocols:
 
 - ✅ Faster initial development
 
----
+* * *
 
 ## References
 
@@ -1949,7 +1984,7 @@ For TBD bridge integrations, use modern, well-supported APIs and protocols:
 
 - [AI Agent Orchestration Guide](https://kanerika.com/blogs/ai-agent-orchestration/)
 
----
+* * *
 
 ## Appendices
 
@@ -2194,5 +2229,4 @@ def verify_signature(payload, signature, secret):
 - API Docs: https://docs.github.com/en/webhooks
 
 ```
-
 ```

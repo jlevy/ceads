@@ -6,11 +6,12 @@
 
 **Date**: January 2025
 
----
+* * *
 
 ## Table of Contents
 
 1. [Introduction](#1-introduction)
+
    - [What is Tbd?](#11-what-is-tbd)
 
    - [Motivation](#12-motivation)
@@ -26,6 +27,7 @@
    - [Layer Overview](#17-layer-overview)
 
 2. [File Layer](#2-file-layer)
+
    - [Overview](#21-overview)
 
    - [Directory Structure](#22-directory-structure)
@@ -39,6 +41,7 @@
    - [Schema Versioning and Migration](#26-schema-versioning-and-migration)
 
 3. [Git Layer](#3-git-layer)
+
    - [Overview](#31-overview)
 
    - [Sync Branch Architecture](#32-sync-branch-architecture)
@@ -56,6 +59,7 @@
    - [Deletion Semantics](#38-deletion-semantics)
 
 4. [CLI Layer](#4-cli-layer)
+
    - [Overview](#41-overview)
 
    - [Command Structure](#42-command-structure)
@@ -77,6 +81,7 @@
    - [Output Formats](#410-output-formats)
 
 5. [Bridge Layer (Future)](#5-bridge-layer-future)
+
    - [Overview](#51-overview)
 
    - [Bridge Architecture](#52-bridge-architecture)
@@ -94,6 +99,7 @@
    - [Offline-First Architecture](#58-offline-first-architecture)
 
 6. [Implementation Notes](#6-implementation-notes)
+
    - [Daemon (Optional)](#61-daemon-optional)
 
    - [Use Cases by Complexity](#62-use-cases-by-complexity)
@@ -103,6 +109,7 @@
    - [Other Potential Layers](#64-other-potential-layers-not-specified)
 
 7. [Appendices](#7-appendices)
+
    - [Design Decisions](#71-design-decisions)
 
    - [Open Questions](#72-open-questions)
@@ -117,13 +124,13 @@
 
    - [Optional Enhancements](#77-optional-enhancements)
 
----
+* * *
 
 ## 1. Introduction
 
 ### 1.1 What is Tbd?
 
-> _The name “Tbd” follows “Beads” in the spirit of C following (and learning from) B._
+> *The name “Tbd” follows “Beads” in the spirit of C following (and learning from) B.*
 
 **Tbd** (pronounced “seeds”) is a git-native coordination layer for AI coding agents.
 It provides issue tracking, agent registry, claims, and messaging—all stored as JSON
@@ -277,33 +284,33 @@ If violated, the noted mitigations apply:
 
 1. **Clock sync within seconds**: We assume NTP keeps local clocks accurate to within a
    few seconds. Last-Write-Wins (LWW) using `updated_at` timestamps works reliably under
-   this assumption. _If violated_: Conflicts may resolve to the “wrong” winner.
+   this assumption. *If violated*: Conflicts may resolve to the “wrong” winner.
    The attic preserves the loser, enabling manual recovery.
    See Appendix 7.7.1 for HLC enhancement if clock skew becomes problematic.
 
 2. **Git available everywhere**: All environments have git installed and can push/pull
-   to the remote. _If violated_: System cannot sync.
+   to the remote. *If violated*: System cannot sync.
    Local operations still work.
 
 3. **Cooperative agents**: Agents follow conventions (check claims, respect status).
    The system is not designed to prevent malicious actors.
-   _If violated_: Agents may duplicate work or create conflicts.
+   *If violated*: Agents may duplicate work or create conflicts.
    Human oversight can resolve.
 
 4. **Low conflict rate**: Multiple agents editing the same entity simultaneously is
    rare. The design optimizes for this common case.
-   _If violated_: More conflicts go to attic.
+   *If violated*: More conflicts go to attic.
    LWW still resolves deterministically.
    Consider lease-based claims (Appendix 7.7.2) if racing becomes frequent.
 
 5. **Temporary partitions**: Offline periods are bounded (hours to days, not weeks).
    Eventually all nodes can sync.
-   _If violated_: Larger merge conflicts when reconnecting.
+   *If violated*: Larger merge conflicts when reconnecting.
    Attic preserves all versions.
 
 6. **Human oversight available**: Edge cases and ambiguous conflicts can be escalated to
    human review via attic inspection.
-   _If violated_: Some conflicts may resolve suboptimally, but no data is lost.
+   *If violated*: Some conflicts may resolve suboptimally, but no data is lost.
 
 ### 1.7 Layer Overview
 
@@ -359,7 +366,7 @@ Slack, etc.). Optional; system works fully without it.
 
 - Watch Layer: File system watching for UIs/IDEs
 
----
+* * *
 
 ## 2. File Layer
 
@@ -375,6 +382,7 @@ Key properties:
 
 - **Canonical JSON format**: All JSON files MUST use canonical serialization to ensure
   content hashes are consistent across implementations:
+
   - Keys sorted alphabetically (recursive)
 
   - 2-space indentation
@@ -530,17 +538,17 @@ Only the merge rules (in Git Layer) need updating for new node types.
 
 #### Built-in Node Collections (on sync branch)
 
-| Collection | Directory                   | Internal Prefix | Purpose                                   |
-| ---------- | --------------------------- | --------------- | ----------------------------------------- |
-| Issues     | `.tbd-sync/nodes/issues/`   | `is-`           | Task tracking                             |
-| Agents     | `.tbd-sync/nodes/agents/`   | `ag-`           | Agent registry                            |
-| Messages   | `.tbd-sync/nodes/messages/` | `ms-`           | Comments on issues (and future messaging) |
+| Collection | Directory | Internal Prefix | Purpose |
+| --- | --- | --- | --- |
+| Issues | `.tbd-sync/nodes/issues/` | `is-` | Task tracking |
+| Agents | `.tbd-sync/nodes/agents/` | `ag-` | Agent registry |
+| Messages | `.tbd-sync/nodes/messages/` | `ms-` | Comments on issues (and future messaging) |
 
 #### Non-Node Collections (on main branch, gitignored)
 
-| Collection | Directory           | Internal Prefix | Purpose                          |
-| ---------- | ------------------- | --------------- | -------------------------------- |
-| Local      | `.tbd/local/nodes/` | `lo-`           | Private workspace (never synced) |
+| Collection | Directory | Internal Prefix | Purpose |
+| --- | --- | --- | --- |
+| Local | `.tbd/local/nodes/` | `lo-` | Private workspace (never synced) |
 
 > **Note**: Local items use the same entity pattern but are not “nodes” because they are
 > not part of the shared coordination graph.
@@ -548,11 +556,11 @@ Only the merge rules (in Git Layer) need updating for new node types.
 
 #### Future Node Collections (Examples)
 
-| Collection | Directory                    | Internal Prefix | Purpose               |
-| ---------- | ---------------------------- | --------------- | --------------------- |
-| Templates  | `.tbd-sync/nodes/templates/` | `tp-`           | Issue templates       |
-| Workflows  | `.tbd-sync/nodes/workflows/` | `wf-`           | Multi-step procedures |
-| Artifacts  | `.tbd-sync/nodes/artifacts/` | `ar-`           | File attachments      |
+| Collection | Directory | Internal Prefix | Purpose |
+| --- | --- | --- | --- |
+| Templates | `.tbd-sync/nodes/templates/` | `tp-` | Issue templates |
+| Workflows | `.tbd-sync/nodes/workflows/` | `wf-` | Multi-step procedures |
+| Artifacts | `.tbd-sync/nodes/artifacts/` | `ar-` | File attachments |
 
 > **Note**: Messages support comments on issues and replies to other messages via
 > `in_reply_to`. Messages are time-sorted by `created_at`. Future extensions (threading
@@ -718,14 +726,14 @@ Where `n` = number of issues, `N` = 36^length (total possible IDs).
 **Collision probability table:**
 
 | Issue Count | 3-char | 4-char | 5-char | 6-char |
-| ----------- | ------ | ------ | ------ | ------ |
-| 50          | 2.6%   | 0.07%  | 0.00%  | 0.00%  |
-| 100         | 10.2%  | 0.30%  | 0.01%  | 0.00%  |
-| 200         | 34.6%  | 1.18%  | 0.03%  | 0.00%  |
-| 500         | 95.8%  | 7.17%  | 0.21%  | 0.01%  |
-| 1,000       | 100%   | 25.75% | 0.82%  | 0.02%  |
-| 2,000       | 100%   | 69.60% | 3.25%  | 0.09%  |
-| 5,000       | 100%   | 99.94% | 18.68% | 0.57%  |
+| --- | --- | --- | --- | --- |
+| 50 | 2.6% | 0.07% | 0.00% | 0.00% |
+| 100 | 10.2% | 0.30% | 0.01% | 0.00% |
+| 200 | 34.6% | 1.18% | 0.03% | 0.00% |
+| 500 | 95.8% | 7.17% | 0.21% | 0.01% |
+| 1,000 | 100% | 25.75% | 0.82% | 0.02% |
+| 2,000 | 100% | 69.60% | 3.25% | 0.09% |
+| 5,000 | 100% | 99.94% | 18.68% | 0.57% |
 
 **Adaptive length algorithm:**
 
@@ -752,13 +760,13 @@ function collisionProbability(n: number, length: number): number {
 
 **Default thresholds (10% max collision):**
 
-| Issue Count  | Short ID Length   |
-| ------------ | ----------------- |
-| 0-100        | 3 chars           |
-| 101-600      | 4 chars           |
-| 601-3,500    | 5 chars           |
-| 3,501-21,000 | 6 chars           |
-| 21,001+      | continues scaling |
+| Issue Count | Short ID Length |
+| --- | --- |
+| 0-100 | 3 chars |
+| 101-600 | 4 chars |
+| 601-3,500 | 5 chars |
+| 3,501-21,000 | 6 chars |
+| 21,001+ | continues scaling |
 
 ##### Short ID Mapping Storage
 
@@ -877,12 +885,12 @@ Not critical since they’re tiny.
 
 Internal prefixes are fixed and match directory names:
 
-| Internal Prefix | Entity Type | Directory             |
-| --------------- | ----------- | --------------------- |
-| `is-`           | Issues      | `issues/`             |
-| `ag-`           | Agents      | `agents/`             |
-| `ms-`           | Messages    | `messages/`           |
-| `lo-`           | Local       | `local/` (not synced) |
+| Internal Prefix | Entity Type | Directory |
+| --- | --- | --- |
+| `is-` | Issues | `issues/` |
+| `ag-` | Agents | `agents/` |
+| `ms-` | Messages | `messages/` |
+| `lo-` | Local | `local/` (not synced) |
 
 Internal prefixes are used in file references, cross-entity links, and storage.
 The CLI accepts both internal IDs (`is-a1b2c3d4e5`) and external IDs (`proj-a1b`) and
@@ -947,9 +955,9 @@ const BaseEntity = z.object({
 > tools, bridges, and custom integrations to store metadata without modifying core
 > schemas. Keys should be namespaced (e.g., `"github"`, `"slack"`, `"my-tool"`). Unknown
 > extensions are preserved during sync and merge (pass-through).
->
+> 
 > Example:
->
+> 
 > ```json
 > {
 >   "extensions": {
@@ -1011,18 +1019,18 @@ type Issue = z.infer<typeof IssueSchema>;
 > (on child) and `sequence` (on parent).
 > These are **redundant by design** for query efficiency, but can become inconsistent
 > during conflicts.
->
+> 
 > **Authoritative source**: `parent_id` is authoritative.
 > A child “belongs to” whoever it claims as parent.
 > The `sequence` array is a convenience for ordering.
->
+> 
 > **Invariants:**
->
+> 
 > - If child.parent_id = P, then child.id SHOULD appear in P.sequence
 > - If P.sequence contains C, then C.parent_id SHOULD equal P
->
+> 
 > **When inconsistent** (detected by `tbd doctor`):
->
+> 
 > - If child has parent_id but isn’t in parent’s sequence: add to sequence
 > - If parent’s sequence contains ID but that issue has different parent_id: remove from
 >   sequence
@@ -1060,16 +1068,16 @@ type Agent = z.infer<typeof AgentSchema>;
 > **Heartbeat churn warning**: Frequent updates to `last_heartbeat` create Git sync
 > contention. If N agents each update heartbeats every minute, the sync branch sees N×60
 > commits/hour, causing push rejections and retry storms.
->
+> 
 > **Mitigation strategies:**
->
+> 
 > 1. **Throttle heartbeats**: Update every 5-15 minutes, not every minute
 > 2. **Separate presence from durable state**: Use Bridge Layer for real-time presence;
 >    Git stores only durable changes (status, working_on, file_reservations)
 > 3. **Batch updates**: Coalesce multiple field changes into single commits
 > 4. **Infer liveness**: Determine agent activity from recent entity updates rather than
 >    explicit heartbeats
->
+> 
 > **Recommendation for v1**: Update `last_heartbeat` only on meaningful state changes
 > (starting work, finishing work, status change), not on a timer.
 > Real-time presence should use Bridge Layer when available.
@@ -1316,7 +1324,7 @@ type AtticEntry = z.infer<typeof AtticEntrySchema>;
 ```
 
 > **Why base/ours/theirs?** Storing all three values enables:
->
+> 
 > - Understanding what actually happened (was base modified by both?)
 > - Manual recovery (user can see all versions and pick the right one)
 > - Debugging merge algorithm issues
@@ -1402,7 +1410,7 @@ When Agent A (schema v2) syncs with Agent B (schema v1):
 **Warning:** If v2 has breaking changes, B may fail to parse.
 CLI should warn: “Remote entities require CLI version >= X.Y.Z”
 
----
+* * *
 
 ## 3. Git Layer
 
@@ -1558,14 +1566,14 @@ SYNC_FILE(local_path, sync_path):
 > **Critical**: The sync algorithm uses **content hash** as the conflict detector, not
 > version comparison. In a distributed system, a higher version number does NOT mean
 > “contains the other writer’s changes”—it only means “edited more times locally.”
->
+> 
 > **Example of why version-only is unsafe:**
->
+> 
 > - Base entity: version 3
 > - Agent A edits once → version 4
 > - Agent B (without seeing A) edits twice → version 5
 > - If A took remote because `5 > 4`, A’s edit would be silently lost.
->
+> 
 > By merging whenever content differs, we ensure both writers’ changes are considered
 > and the loser is preserved in the attic.
 
@@ -1664,11 +1672,11 @@ Jitter spreads retries across time, reducing contention.
 
 #### 3.3.7 Sync Triggers
 
-| Trigger              | Action                   |
-| -------------------- | ------------------------ |
-| `tbd sync` command   | Immediate full sync      |
+| Trigger | Action |
+| --- | --- |
+| `tbd sync` command | Immediate full sync |
 | Daemon sync interval | Periodic background sync |
-| Agent shutdown       | Final sync before exit   |
+| Agent shutdown | Final sync before exit |
 
 ### 3.4 Conflict Detection and Resolution
 
@@ -1715,33 +1723,33 @@ outcome. Merge rules are defined per entity type and applied during conflict res
 
 #### Merge Strategies
 
-| Strategy         | Behavior                                        | Used For                                           |
-| ---------------- | ----------------------------------------------- | -------------------------------------------------- |
-| `immutable`      | Error if different                              | `type` field, message content                      |
-| `lww`            | Last-write-wins by `updated_at` + ID tiebreaker | Scalars (title, status, priority)                  |
-| `lww_with_attic` | LWW, but preserve loser in attic                | Long text (description), ordered arrays (sequence) |
-| `union`          | Combine both arrays, dedupe (add-only)          | Arrays of primitives (labels) - v1 default         |
-| `set_3way`       | 3-way set merge (supports removals)             | Arrays when base available (future)                |
-| `merge_by_id`    | Merge arrays by item ID                         | Arrays of objects (dependencies)                   |
-| `max_plus_one`   | `max(local, remote) + 1`                        | `version` field                                    |
-| `recalculate`    | Fresh timestamp                                 | `updated_at` field                                 |
+| Strategy | Behavior | Used For |
+| --- | --- | --- |
+| `immutable` | Error if different | `type` field, message content |
+| `lww` | Last-write-wins by `updated_at` + ID tiebreaker | Scalars (title, status, priority) |
+| `lww_with_attic` | LWW, but preserve loser in attic | Long text (description), ordered arrays (sequence) |
+| `union` | Combine both arrays, dedupe (add-only) | Arrays of primitives (labels) - v1 default |
+| `set_3way` | 3-way set merge (supports removals) | Arrays when base available (future) |
+| `merge_by_id` | Merge arrays by item ID | Arrays of objects (dependencies) |
+| `max_plus_one` | `max(local, remote) + 1` | `version` field |
+| `recalculate` | Fresh timestamp | `updated_at` field |
 
 > **Limitation of `union` strategy**: Union merging is **add-only**. If Agent A removes
 > a label while Agent B keeps it, the merged result will contain the label (B’s version
 > contributes it). Removals do not propagate—the label reappears after merge.
->
+> 
 > This is acceptable for labels (typically additive), but means:
->
+> 
 > - To truly remove a label, all copies must remove it before any sync
 > - Or, use `set_3way` when base is available (see `mergeSet3Way` in Section 3.6)
 > - Or, use LWW for the entire labels array (loses additions, but removals work)
->
+> 
 > **Design choice**: We use `union` (add-only) for labels in v1 because:
->
+> 
 > 1. Labels are typically additive (adding context is common, removal is rare)
 > 2. False additions are less harmful than false removals
 > 3. Simple to implement and reason about
->
+> 
 > **Future enhancement**: When using a Git merge driver (which provides base), upgrade
 > to `set_3way` for correct removal handling.
 > The algorithm is already documented.
@@ -2113,7 +2121,7 @@ removal.
 > **Design choice**: Tbd uses soft-delete as the primary deletion mechanism.
 > Hard deletion is available but creates consistency challenges in distributed systems.
 
----
+* * *
 
 ## 4. CLI Layer
 
@@ -2515,12 +2523,12 @@ Proceeding anyway (advisory claim)
 > enforce exclusivity.
 > Agents should check `assignee` before starting work and coordinate via messages if
 > conflicts arise. This simple approach works well in practice because:
->
+> 
 > - Race conditions are rare (two agents claiming the exact same issue)
 > - Git sync propagates claims within seconds to minutes
 > - If conflicts occur, the attic preserves all work
 > - Explicit coordination is clearer than implicit locking
->
+> 
 > See [Appendix 7.7](#77-optional-enhancements) for lease-based claims if stronger
 > coordination is needed.
 
@@ -2621,16 +2629,16 @@ Options:
 
 **Beads Status Mapping:**
 
-| Beads Status  | Tbd Import Behavior              |
-| ------------- | -------------------------------- |
-| `open`        | → `open`                         |
-| `in_progress` | → `in_progress`                  |
-| `blocked`     | → `blocked`                      |
-| `deferred`    | → `deferred`                     |
-| `closed`      | → `closed`                       |
-| `tombstone`   | Skipped (deleted)                |
-| `pinned`      | → `open` + label `pinned`        |
-| `hooked`      | → `in_progress` + label `hooked` |
+| Beads Status | Tbd Import Behavior |
+| --- | --- |
+| `open` | → `open` |
+| `in_progress` | → `in_progress` |
+| `blocked` | → `blocked` |
+| `deferred` | → `deferred` |
+| `closed` | → `closed` |
+| `tombstone` | Skipped (deleted) |
+| `pinned` | → `open` + label `pinned` |
+| `hooked` | → `in_progress` + label `hooked` |
 
 **Examples:**
 
@@ -2774,7 +2782,7 @@ tbd list --json
 > **Note**: JSON output uses internal prefixes (`is-`, `ag-`) for consistency with file
 > storage. Human-readable output uses external prefixes (`cd-`, `agent-`).
 
----
+* * *
 
 ## 5. Bridge Layer (Future)
 
@@ -2851,11 +2859,11 @@ const bridge = z.record(z.string(), BridgeLink).optional();
 
 Bridges provide eventually consistent views of Git state:
 
-| Guarantee                 | Description                                       |
-| ------------------------- | ------------------------------------------------- |
-| **Eventual Consistency**  | All agents eventually see the same state          |
-| **Conflict Preservation** | No data ever lost; conflicts preserved in attic   |
-| **Git is Truth**          | On conflict, Git wins; Bridge changes go to attic |
+| Guarantee | Description |
+| --- | --- |
+| **Eventual Consistency** | All agents eventually see the same state |
+| **Conflict Preservation** | No data ever lost; conflicts preserved in attic |
+| **Git is Truth** | On conflict, Git wins; Bridge changes go to attic |
 
 **Tbd does NOT provide:**
 
@@ -2867,13 +2875,13 @@ Bridges provide eventually consistent views of Git state:
 
 #### Latency Expectations
 
-| Mode            | Operation        | Expected Latency      |
-| --------------- | ---------------- | --------------------- |
-| File-only       | Read/Write       | <10ms                 |
-| Git sync        | Pull/Push        | 1-30 seconds          |
-| Bridge (GitHub) | Propagation      | 1-5 seconds (webhook) |
-| Bridge (Native) | Propagation      | <100ms                |
-| Bridge (Slack)  | Message delivery | <1 second             |
+| Mode | Operation | Expected Latency |
+| --- | --- | --- |
+| File-only | Read/Write | <10ms |
+| Git sync | Pull/Push | 1-30 seconds |
+| Bridge (GitHub) | Propagation | 1-5 seconds (webhook) |
+| Bridge (Native) | Propagation | <100ms |
+| Bridge (Slack) | Message delivery | <1 second |
 
 #### Configuration Example
 
@@ -2952,14 +2960,14 @@ tbd github promote <issue-id> --labels "tbd-sync,priority:high"
 
 #### Field Mapping
 
-| Tbd Field     | GitHub Field | Notes                                     |
-| ------------- | ------------ | ----------------------------------------- |
-| `title`       | `title`      | Direct mapping                            |
-| `description` | `body`       | Includes Tbd metadata block               |
-| `status`      | Labels       | `status:open`, `status:in_progress`, etc. |
-| `priority`    | Labels       | `priority:0`, `priority:1`, etc.          |
-| `assignee`    | Labels       | `claimed:agent-id`                        |
-| `labels`      | Labels       | Prefixed: `tbd:label-name`                |
+| Tbd Field | GitHub Field | Notes |
+| --- | --- | --- |
+| `title` | `title` | Direct mapping |
+| `description` | `body` | Includes Tbd metadata block |
+| `status` | Labels | `status:open`, `status:in_progress`, etc. |
+| `priority` | Labels | `priority:0`, `priority:1`, etc. |
+| `assignee` | Labels | `claimed:agent-id` |
+| `labels` | Labels | Prefixed: `tbd:label-name` |
 
 #### Conflict Resolution
 
@@ -3258,13 +3266,13 @@ The Local UI Bridge validates our architecture by showing that:
 
 #### Feature Examples
 
-| Feature                 | File-Watch Mode                       | Daemon Mode                   |
-| ----------------------- | ------------------------------------- | ----------------------------- |
-| **Kanban board**        | ✅ Read issues, drag to change status | ✅ Same, with instant sync    |
-| **Agent activity feed** | ⚠️ Poll agent files                   | ✅ Real-time stream           |
-| **Live presence**       | ❌ Not available                      | ✅ "Agent X is working on..." |
-| **Notifications**       | ⚠️ Must poll                          | ✅ Push notifications         |
-| **Offline editing**     | ✅ Works completely offline           | ✅ Queued, syncs on reconnect |
+| Feature | File-Watch Mode | Daemon Mode |
+| --- | --- | --- |
+| **Kanban board** | ✅ Read issues, drag to change status | ✅ Same, with instant sync |
+| **Agent activity feed** | ⚠️ Poll agent files | ✅ Real-time stream |
+| **Live presence** | ❌ Not available | ✅ "Agent X is working on..." |
+| **Notifications** | ⚠️ Must poll | ✅ Push notifications |
+| **Offline editing** | ✅ Works completely offline | ✅ Queued, syncs on reconnect |
 
 #### Potential UI Views
 
@@ -3365,16 +3373,16 @@ Agent reconnects:
 
 Not everything needs to be in git:
 
-| Data Type           | Storage        | Rationale                   |
-| ------------------- | -------------- | --------------------------- |
-| Issues              | Git            | Durable, historical, shared |
-| Agents              | Git            | Durable, historical, shared |
-| Messages (archived) | Git (optional) | Audit trail if needed       |
-| Messages (recent)   | Cache only     | Ephemeral, high volume      |
-| Outbound queue      | Cache only     | Temporary until delivered   |
-| Connection state    | Cache only     | Local-only, transient       |
+| Data Type | Storage | Rationale |
+| --- | --- | --- |
+| Issues | Git | Durable, historical, shared |
+| Agents | Git | Durable, historical, shared |
+| Messages (archived) | Git (optional) | Audit trail if needed |
+| Messages (recent) | Cache only | Ephemeral, high volume |
+| Outbound queue | Cache only | Temporary until delivered |
+| Connection state | Cache only | Local-only, transient |
 
----
+* * *
 
 ## 6. Implementation Notes
 
@@ -3394,12 +3402,12 @@ You need the daemon only for the Bridge Layer or sub-second local coordination.
 
 #### Layer Requirements
 
-| Layer      | Without Daemon                     | With Daemon                     |
-| ---------- | ---------------------------------- | ------------------------------- |
-| **File**   | ✅ Read/write JSON files directly  | Same, but cached in memory      |
-| **Git**    | ✅ CLI calls git commands directly | Same, but batched               |
-| **CLI**    | ✅ Each command does file I/O      | Routes through daemon socket    |
-| **Bridge** | ⚠️ Needs persistent process        | Daemon handles webhooks, queues |
+| Layer | Without Daemon | With Daemon |
+| --- | --- | --- |
+| **File** | ✅ Read/write JSON files directly | Same, but cached in memory |
+| **Git** | ✅ CLI calls git commands directly | Same, but batched |
+| **CLI** | ✅ Each command does file I/O | Routes through daemon socket |
+| **Bridge** | ⚠️ Needs persistent process | Daemon handles webhooks, queues |
 
 #### When You Need the Daemon
 
@@ -3508,15 +3516,15 @@ interface Response {
 
 #### Operations
 
-| Operation   | Description                     |
-| ----------- | ------------------------------- |
-| `register`  | Register agent, get session     |
+| Operation | Description |
+| --- | --- |
+| `register` | Register agent, get session |
 | `heartbeat` | Update last_heartbeat timestamp |
-| `claim`     | Atomically claim an issue       |
-| `release`   | Release a claimed issue         |
-| `update`    | Update entity fields            |
-| `query`     | Query entities with filters     |
-| `sync`      | Trigger git sync                |
+| `claim` | Atomically claim an issue |
+| `release` | Release a claimed issue |
+| `update` | Update entity fields |
+| `query` | Query entities with filters |
+| `sync` | Trigger git sync |
 
 #### Notification Events
 
@@ -3859,7 +3867,7 @@ File system watching for UIs and IDEs:
 
 - WebSocket server for push updates
 
----
+* * *
 
 ## 7. Appendices
 
@@ -4074,11 +4082,13 @@ How to update sync branch without checking it out?
 **Options**:
 
 1. **Bare git operations** (`git read-tree`, `git write-tree`, `git update-ref`)
+
    - Pro: No disk I/O for checkout
 
    - Con: Complex, error-prone, hard to debug
 
 2. **Hidden worktree** (`git worktree add .tbd/local/worktrees/tbd-sync`)
+
    - Pro: Standard git porcelain (pull, commit, push)
 
    - Pro: Enables native Git 3-way merge with merge driver
@@ -4088,6 +4098,7 @@ How to update sync branch without checking it out?
    - Con: Extra disk space (~size of `.tbd-sync/` directory)
 
 3. **Shallow clone of sync branch**
+
    - Pro: Isolated from main repo
 
    - Con: Separate clone to manage, more complex setup
@@ -4196,20 +4207,20 @@ This allows references in commit messages to be traced to new IDs.
 
 ### 7.4 Comparison with Beads
 
-| Aspect                    | Beads                                      | Tbd                                                  |
-| ------------------------- | ------------------------------------------ | ---------------------------------------------------- |
-| Data locations            | 4 (SQLite, local JSONL, sync branch, main) | 3 (config on main, data on sync branch, local cache) |
-| File system compatibility | SQLite WAL fails on NFS/cloud              | Works on any file system                             |
-| Main branch               | JSONL committed                            | Config only (config.yml)                             |
-| Storage format            | Single JSONL file                          | File per entity                                      |
-| Skip-worktree             | Required hack                              | Not needed                                           |
-| Git worktrees             | Required for sync branch                   | Not needed                                           |
-| Daemon                    | Always recommended                         | Optional                                             |
-| Sync layer                | Schema-aware                               | Schema-agnostic (sync) / schema-aware (merge)        |
-| Merge conflicts           | JSONL line-based (cross-entity)            | Per-file (per-entity)                                |
-| Entity types              | Issues + molecules                         | Extensible (issues, agents, ...)                     |
-| Agent coordination        | External (Agent Mail)                      | Built-in                                             |
-| Architecture              | Monolithic                                 | Layered (File, Git, CLI, Bridge)                     |
+| Aspect | Beads | Tbd |
+| --- | --- | --- |
+| Data locations | 4 (SQLite, local JSONL, sync branch, main) | 3 (config on main, data on sync branch, local cache) |
+| File system compatibility | SQLite WAL fails on NFS/cloud | Works on any file system |
+| Main branch | JSONL committed | Config only (config.yml) |
+| Storage format | Single JSONL file | File per entity |
+| Skip-worktree | Required hack | Not needed |
+| Git worktrees | Required for sync branch | Not needed |
+| Daemon | Always recommended | Optional |
+| Sync layer | Schema-aware | Schema-agnostic (sync) / schema-aware (merge) |
+| Merge conflicts | JSONL line-based (cross-entity) | Per-file (per-entity) |
+| Entity types | Issues + molecules | Extensible (issues, agents, ...) |
+| Agent coordination | External (Agent Mail) | Built-in |
+| Architecture | Monolithic | Layered (File, Git, CLI, Bridge) |
 
 ### 7.5 File Structure Reference
 
@@ -4464,6 +4475,7 @@ settings:
 #### Predecessor System
 
 - **Beads** — Git-backed issue tracking for AI coding agents
+
   - Repository: https://github.com/steveyegge/beads
 
   - Introducing Beads:
@@ -4478,6 +4490,7 @@ settings:
 #### Core Technologies
 
 - **Git**
+
   - Pro Git Book: https://git-scm.com/book/en/v2
 
   - Git Internals - Plumbing and Porcelain:
@@ -4494,6 +4507,7 @@ settings:
   - git-ls-tree: https://git-scm.com/docs/git-ls-tree
 
 - **SQLite**
+
   - Write-Ahead Logging: https://sqlite.org/wal.html — Documents WAL mode and its
     network filesystem limitations
 
@@ -4504,6 +4518,7 @@ settings:
     advisory locking requirements
 
 - **Zod** — TypeScript-first schema validation with static type inference
+
   - Documentation: https://zod.dev/
 
   - Repository: https://github.com/colinhacks/zod
@@ -4514,6 +4529,7 @@ settings:
 #### Distributed Systems Concepts
 
 - **CRDTs** (Conflict-free Replicated Data Types)
+
   - Resource hub: https://crdt.tech/
 
   - Foundational paper (Shapiro et al.
@@ -4526,11 +4542,13 @@ settings:
   - Yjs (implementation): https://github.com/yjs/yjs
 
 - **Operational Transform**
+
   - Wikipedia overview: https://en.wikipedia.org/wiki/Operational_transformation
 
   - ShareDB (implementation): https://github.com/share/sharedb
 
 - **Optimistic Concurrency Control**
+
   - Wikipedia: https://en.wikipedia.org/wiki/Optimistic_concurrency_control
 
   - AWS DynamoDB versioning:
@@ -4557,16 +4575,19 @@ settings:
 #### Bridge Layer Technologies
 
 - **Convex** — Reactive database with automatic query subscriptions
+
   - Documentation: https://docs.convex.dev/
 
   - Repository: https://github.com/get-convex/convex-backend
 
 - **Supabase Realtime** — PostgreSQL change notifications via WebSocket
+
   - Documentation: https://supabase.com/docs/guides/realtime
 
   - Repository: https://github.com/supabase/realtime
 
 - **NATS** — Cloud-native messaging (CNCF project)
+
   - Documentation: https://docs.nats.io
 
   - Repository: https://github.com/nats-io/nats-server
@@ -4575,6 +4596,7 @@ settings:
   - Documentation: https://redis.io/docs/latest/develop/pubsub/
 
 - **GitHub API**
+
   - REST API (Issues): https://docs.github.com/en/rest/issues
 
   - GraphQL API: https://docs.github.com/en/graphql
@@ -4582,6 +4604,7 @@ settings:
   - Webhooks: https://docs.github.com/en/webhooks
 
 - **Slack API**
+
   - Events API: https://docs.slack.dev/apis/events-api/
 
   - Socket Mode: https://docs.slack.dev/apis/events-api/using-socket-mode/
@@ -4600,6 +4623,7 @@ settings:
 
 - **Model Context Protocol (MCP)** — Open standard for AI tool integration (donated to
   Linux Foundation, Dec 2025)
+
   - Specification: https://modelcontextprotocol.io/specification/2025-11-25
 
   - Repository: https://github.com/modelcontextprotocol
@@ -4607,6 +4631,7 @@ settings:
   - Announcement: https://www.anthropic.com/news/model-context-protocol
 
 - **LangChain** — High-level agent framework (v1.0)
+
   - Documentation: https://docs.langchain.com
 
   - Repository: https://github.com/langchain-ai/langchain
@@ -4615,11 +4640,13 @@ settings:
   - Documentation: https://www.langchain.com/langgraph
 
 - **CrewAI** — Multi-agent framework (v1.0)
+
   - Documentation: https://docs.crewai.com/
 
   - Repository: https://github.com/crewAIInc/crewAI
 
 - **AutoGen** — Microsoft’s multi-agent framework (merging with Semantic Kernel)
+
   - Documentation: https://microsoft.github.io/autogen/stable/
 
   - Repository: https://github.com/microsoft/autogen

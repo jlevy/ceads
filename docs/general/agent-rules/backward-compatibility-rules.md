@@ -3,7 +3,6 @@ description: Backward Compatibility Guidelines
 globs:
 alwaysApply: true
 ---
-
 ## Backward Compatibility Guidelines
 
 ### Types of Backward Compatibility
@@ -67,7 +66,7 @@ For the following areas:
 - In general, compatibility for libraries, servers, file formats and database schemas is
   VERY IMPORTANT. Compatibility and migration should be planned carefully.
 
-- Backward compatibility and legacy support _within_ a single application is usually NOT
+- Backward compatibility and legacy support *within* a single application is usually NOT
   important and should NOT be done if it needlessly complicates code changes.
   But if not specified, it also should be clarified to be sure it is not needed.
 

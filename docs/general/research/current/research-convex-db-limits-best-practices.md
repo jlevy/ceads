@@ -7,16 +7,16 @@ verification and cross-references)
 
 **Legend**:
 
-| Symbol | Meaning                                                                                      |
-| ------ | -------------------------------------------------------------------------------------------- |
-| ✅     | **Verified** - Confirmed against official Convex documentation                               |
-| ⚠️     | **Unverified** - Not confirmed in recent documentation review; may need manual check         |
-| 📝     | **Anecdotal** - From production experience; not explicitly documented                        |
-| 🔒     | **Hard Limit** - Cannot be changed regardless of plan                                        |
-| 🔄     | **Soft Limit** - Can be increased for Professional plan customers (contact support)          |
-| ❌     | **Not Allowed** - Operation is prohibited or not supported                                   |
-| 🔍     | **Undocumented/Discrepancy** - Not in official Convex docs, or source code differs from docs |
-| 🛠️     | **Configurable** - Can be changed via environment variable for self-hosted deployments       |
+| Symbol | Meaning |
+| --- | --- |
+| ✅ | **Verified** - Confirmed against official Convex documentation |
+| ⚠️ | **Unverified** - Not confirmed in recent documentation review; may need manual check |
+| 📝 | **Anecdotal** - From production experience; not explicitly documented |
+| 🔒 | **Hard Limit** - Cannot be changed regardless of plan |
+| 🔄 | **Soft Limit** - Can be increased for Professional plan customers (contact support) |
+| ❌ | **Not Allowed** - Operation is prohibited or not supported |
+| 🔍 | **Undocumented/Discrepancy** - Not in official Convex docs, or source code differs from docs |
+| 🛠️ | **Configurable** - Can be changed via environment variable for self-hosted deployments |
 
 **Notation**: Combinations like “✅ 🔒” mean “Verified Hard Limit”
 
@@ -26,7 +26,7 @@ verification and cross-references)
   — Deep dive into source code implementation of limits and configurability for
   self-hosted deployments
 
----
+* * *
 
 ## Executive Summary
 
@@ -47,7 +47,7 @@ combining official best practices—selective indexes, pagination, aggregate com
 bounded queries, proper namespacing, and scheduled jobs—with proactive monitoring of
 storage and bandwidth quotas.
 
----
+* * *
 
 ## Research Methodology
 
@@ -90,7 +90,7 @@ This research synthesizes information from:
 - [Convex Helpers](https://github.com/get-convex/convex-helpers) — Additional utilities
   for pagination and queries
 
----
+* * *
 
 ## Core Limits Reference
 
@@ -98,13 +98,13 @@ This research synthesizes information from:
 
 **Hard Limits (per function invocation)** ✅ 🔒:
 
-| Limit Type                        | Documented Value                    | Source Code Default | Status      |
-| --------------------------------- | ----------------------------------- | ------------------- | ----------- |
-| **Maximum data read**             | 8 MiB per query/mutation            | 16 MiB              | ✅ 🔒 🔍 🛠️ |
-| **Maximum documents scanned**     | 16,384 documents per query/mutation | 32,000              | ✅ 🔒 🔍 🛠️ |
-| **Maximum data written**          | 8 MiB per mutation                  | 16 MiB              | ✅ 🔒 🔍 🛠️ |
-| **Maximum documents written**     | 8,192 documents per mutation        | 16,000              | ✅ 🔒 🔍 🛠️ |
-| **Maximum db.get/db.query calls** | 4,096 per transaction               | 4,096               | ✅ 🔒 🛠️    |
+| Limit Type | Documented Value | Source Code Default | Status |
+| --- | --- | --- | --- |
+| **Maximum data read** | 8 MiB per query/mutation | 16 MiB | ✅ 🔒 🔍 🛠️ |
+| **Maximum documents scanned** | 16,384 documents per query/mutation | 32,000 | ✅ 🔒 🔍 🛠️ |
+| **Maximum data written** | 8 MiB per mutation | 16 MiB | ✅ 🔒 🔍 🛠️ |
+| **Maximum documents written** | 8,192 documents per mutation | 16,000 | ✅ 🔒 🔍 🛠️ |
+| **Maximum db.get/db.query calls** | 4,096 per transaction | 4,096 | ✅ 🔒 🛠️ |
 
 **🔍 Source Code vs Documentation Discrepancy**:
 
@@ -159,15 +159,15 @@ entire document.
 
 **Hard Limits (per document)** ✅ 🔒:
 
-| Limit                              | Value                    | Source Location                           | Status   |
-| ---------------------------------- | ------------------------ | ----------------------------------------- | -------- |
-| **Maximum document size**          | 1 MiB (1,048,576 bytes)  | `crates/common/src/document.rs:101`       | ✅ 🔒    |
-| **Maximum fields per document**    | 1,024 fields             | `crates/value/src/object.rs:30`           | ✅ 🔒    |
-| **Maximum nesting depth (user)**   | 16 levels                | `crates/common/src/document.rs:102`       | ✅ 🔒    |
-| **Maximum nesting depth (system)** | 64 levels                | `crates/value/src/size.rs:8`              | ✅ 🔒    |
-| **Maximum array elements**         | 8,192 elements per array | `crates/value/src/array.rs:26`            | ✅ 🔒    |
-| **Maximum field name length**      | 1,024 characters         | `crates/sync_types/src/identifier.rs:124` | ✅ 🔒 🔍 |
-| **Maximum identifier length**      | 64 characters            | `crates/sync_types/src/identifier.rs:10`  | ✅ 🔒    |
+| Limit | Value | Source Location | Status |
+| --- | --- | --- | --- |
+| **Maximum document size** | 1 MiB (1,048,576 bytes) | `crates/common/src/document.rs:101` | ✅ 🔒 |
+| **Maximum fields per document** | 1,024 fields | `crates/value/src/object.rs:30` | ✅ 🔒 |
+| **Maximum nesting depth (user)** | 16 levels | `crates/common/src/document.rs:102` | ✅ 🔒 |
+| **Maximum nesting depth (system)** | 64 levels | `crates/value/src/size.rs:8` | ✅ 🔒 |
+| **Maximum array elements** | 8,192 elements per array | `crates/value/src/array.rs:26` | ✅ 🔒 |
+| **Maximum field name length** | 1,024 characters | `crates/sync_types/src/identifier.rs:124` | ✅ 🔒 🔍 |
+| **Maximum identifier length** | 64 characters | `crates/sync_types/src/identifier.rs:10` | ✅ 🔒 |
 
 **🔍 Note on Field Name vs Identifier Length**:
 
@@ -225,14 +225,14 @@ const events = await ctx.db.query('events').collect();
 
 **Concurrent Execution Limits** ✅ 🔄 🛠️:
 
-| Resource Type                 | Default (Code) | Source Location                      | Status   |
-| ----------------------------- | -------------- | ------------------------------------ | -------- |
-| **Queries**                   | 16 concurrent  | `crates/common/src/knobs.rs:768-773` | ✅ 🔄 🛠️ |
-| **Mutations**                 | 16 concurrent  | `crates/common/src/knobs.rs:781-786` | ✅ 🔄 🛠️ |
-| **V8 Actions**                | 16 concurrent  | `crates/common/src/knobs.rs:802-807` | ✅ 🔄 🛠️ |
-| **Node Actions**              | 16 concurrent  | `crates/common/src/knobs.rs:818-823` | ✅ 🔄 🛠️ |
-| **HTTP Actions**              | 16 concurrent  | `crates/common/src/knobs.rs:832-841` | ✅ 🔄 🛠️ |
-| **Scheduled Job Parallelism** | 10 concurrent  | `crates/common/src/knobs.rs:281-282` | ✅ 🔄 🛠️ |
+| Resource Type | Default (Code) | Source Location | Status |
+| --- | --- | --- | --- |
+| **Queries** | 16 concurrent | `crates/common/src/knobs.rs:768-773` | ✅ 🔄 🛠️ |
+| **Mutations** | 16 concurrent | `crates/common/src/knobs.rs:781-786` | ✅ 🔄 🛠️ |
+| **V8 Actions** | 16 concurrent | `crates/common/src/knobs.rs:802-807` | ✅ 🔄 🛠️ |
+| **Node Actions** | 16 concurrent | `crates/common/src/knobs.rs:818-823` | ✅ 🔄 🛠️ |
+| **HTTP Actions** | 16 concurrent | `crates/common/src/knobs.rs:832-841` | ✅ 🔄 🛠️ |
+| **Scheduled Job Parallelism** | 10 concurrent | `crates/common/src/knobs.rs:281-282` | ✅ 🔄 🛠️ |
 
 **🔍 Note on Concurrency Defaults**:
 
@@ -252,24 +252,24 @@ export APPLICATION_MAX_CONCURRENT_HTTP_ACTIONS=64
 export SCHEDULED_JOB_EXECUTION_PARALLELISM=20
 ```
 
-_Note: Professional plan limits (256, 1000, etc.)
-are enforced by Convex Cloud’s “big brain” service, not by these code defaults._
+*Note: Professional plan limits (256, 1000, etc.)
+are enforced by Convex Cloud’s “big brain” service, not by these code defaults.*
 
 **Execution Time Limits** ✅ 🔒 🛠️:
 
-| Limit                             | Value             | Source Location                      | Status   |
-| --------------------------------- | ----------------- | ------------------------------------ | -------- |
-| **Query/Mutation user timeout**   | 1 second          | `crates/common/src/knobs.rs:692-693` | ✅ 🔒 🛠️ |
-| **Query/Mutation system timeout** | 15 seconds        | `crates/common/src/knobs.rs:703-704` | ✅ 🔒 🛠️ |
-| **Action timeout**                | 10 minutes (600s) | `crates/common/src/knobs.rs:119-120` | ✅ 🔒 🛠️ |
-| **V8 action system timeout**      | 5 minutes (300s)  | `crates/common/src/knobs.rs:745-746` | ✅ 🔒 🛠️ |
+| Limit | Value | Source Location | Status |
+| --- | --- | --- | --- |
+| **Query/Mutation user timeout** | 1 second | `crates/common/src/knobs.rs:692-693` | ✅ 🔒 🛠️ |
+| **Query/Mutation system timeout** | 15 seconds | `crates/common/src/knobs.rs:703-704` | ✅ 🔒 🛠️ |
+| **Action timeout** | 10 minutes (600s) | `crates/common/src/knobs.rs:119-120` | ✅ 🔒 🛠️ |
+| **V8 action system timeout** | 5 minutes (300s) | `crates/common/src/knobs.rs:745-746` | ✅ 🔒 🛠️ |
 
 **Scheduled Functions** ✅ 🔒 🛠️:
 
-| Limit                          | Value  | Source Location                      | Status      |
-| ------------------------------ | ------ | ------------------------------------ | ----------- |
-| **Max scheduled per mutation** | 1,000  | `crates/common/src/knobs.rs:254-255` | ✅ 🔒 🛠️    |
-| **Total scheduled args**       | 16 MiB | `crates/common/src/knobs.rs:269-275` | ✅ 🔒 🛠️ 🔍 |
+| Limit | Value | Source Location | Status |
+| --- | --- | --- | --- |
+| **Max scheduled per mutation** | 1,000 | `crates/common/src/knobs.rs:254-255` | ✅ 🔒 🛠️ |
+| **Total scheduled args** | 16 MiB | `crates/common/src/knobs.rs:269-275` | ✅ 🔒 🛠️ 🔍 |
 
 **🔍 Note**: The source code default for scheduled args is **16 MiB**, not 8 MiB as
 sometimes documented.
@@ -302,12 +302,14 @@ For operations that may exceed this limit:
 
 1. **Sampling Strategy**: Process a representative subset of data instead of the entire
    dataset
+
    - Example: Validate first 100,000 records instead of all records
 
    - Mark results as “sampled” to indicate incomplete coverage
 
 2. **Resumable Pattern**: Store progress in a database table and resume from last
    checkpoint
+
    - Use a state table to track:
      `{ operation: string, lastCursor: string, completed: boolean }`
 
@@ -316,11 +318,13 @@ For operations that may exceed this limit:
    - Trigger next batch via scheduled function or manual invocation
 
 3. **Scheduled Functions**: Break large operations into smaller cron jobs
+
    - Schedule multiple functions to run sequentially
 
    - Each function processes a manageable chunk within timeout
 
 4. **Optimize Efficiency**: Reduce round-trips and increase batch sizes
+
    - Use larger `numItems` in pagination (up to database limits)
 
    - Batch multiple operations within single queries/mutations
@@ -358,7 +362,7 @@ This limit is not documented in official Convex docs but is verified in source c
    for (let i = 0; i < items.length; i++) {
      console.log(`Processing item ${i}`);
    }
-
+   
    // Good: Logs ~10 times for same dataset
    for (let i = 0; i < items.length; i++) {
      if (i % 100 === 0) {
@@ -392,11 +396,11 @@ This limit is not documented in official Convex docs but is verified in source c
 
 **Limits (per action invocation)** ✅ 🔄 🛠️:
 
-| Runtime                       | Memory Limit | Source Location                        | Cold Start                   | Status   |
-| ----------------------------- | ------------ | -------------------------------------- | ---------------------------- | -------- |
-| **Convex Runtime** (default)  | 64 MB        | `crates/common/src/knobs.rs:849-850`   | Faster (no cold start)       | ✅ 🔄 🛠️ |
-| **Node.js Runtime (static)**  | 512 MB       | `crates/common/src/knobs.rs:1119-1120` | Slower (cold start possible) | ✅ 🔄 🛠️ |
-| **Node.js Runtime (dynamic)** | 4,096 MB     | `crates/common/src/knobs.rs:1130-1131` | Build/analyze only           | ✅ 🔄 🛠️ |
+| Runtime | Memory Limit | Source Location | Cold Start | Status |
+| --- | --- | --- | --- | --- |
+| **Convex Runtime** (default) | 64 MB | `crates/common/src/knobs.rs:849-850` | Faster (no cold start) | ✅ 🔄 🛠️ |
+| **Node.js Runtime (static)** | 512 MB | `crates/common/src/knobs.rs:1119-1120` | Slower (cold start possible) | ✅ 🔄 🛠️ |
+| **Node.js Runtime (dynamic)** | 4,096 MB | `crates/common/src/knobs.rs:1130-1131` | Build/analyze only | ✅ 🔄 🛠️ |
 
 **🛠️ Self-Hosted Configuration**:
 
@@ -457,13 +461,13 @@ export const memoryIntensiveAction = internalAction({
 
 **Trade-offs of Node.js Runtime**:
 
-| Aspect        | Convex Runtime        | Node.js Runtime        |
-| ------------- | --------------------- | ---------------------- |
-| Memory        | 64 MB                 | 512 MB                 |
-| Cold starts   | None                  | Possible               |
-| Argument size | 8 MiB                 | 5 MiB                  |
-| NPM packages  | Limited (fetch-based) | Full Node.js ecosystem |
-| Performance   | Faster startup        | Slower startup         |
+| Aspect | Convex Runtime | Node.js Runtime |
+| --- | --- | --- |
+| Memory | 64 MB | 512 MB |
+| Cold starts | None | Possible |
+| Argument size | 8 MiB | 5 MiB |
+| NPM packages | Limited (fetch-based) | Full Node.js ecosystem |
+| Performance | Faster startup | Slower startup |
 
 **Best Practice**: Start with Convex runtime (default) for simple actions.
 Switch to Node.js runtime only when you need:
@@ -479,11 +483,11 @@ Switch to Node.js runtime only when you need:
 These memory limits are **hard limits by default** but can be increased for Professional
 plan customers on a case-by-case basis:
 
-| Plan                             | Default Limits | Can Request Increase? |
-| -------------------------------- | -------------- | --------------------- |
-| **Starter** (Free)               | 64 MB / 512 MB | No                    |
-| **Professional** ($25/member/mo) | 64 MB / 512 MB | Yes, contact support  |
-| **Enterprise** (coming soon)     | TBD            | Likely customizable   |
+| Plan | Default Limits | Can Request Increase? |
+| --- | --- | --- |
+| **Starter** (Free) | 64 MB / 512 MB | No |
+| **Professional** ($25/member/mo) | 64 MB / 512 MB | Yes, contact support |
+| **Enterprise** (coming soon) | TBD | Likely customizable |
 
 To request a limit increase, Professional customers can send a support message through
 the Convex dashboard or email mailto:support@convex.dev.
@@ -506,26 +510,26 @@ basis … Usually this is only needed if your product has highly bursty traffic.
 
 ### 4. Storage and Bandwidth Quotas
 
-_Note: Storage quotas and pricing change periodically.
-Verify current values at [Convex Pricing](https://www.convex.dev/pricing)._
+*Note: Storage quotas and pricing change periodically.
+Verify current values at [Convex Pricing](https://www.convex.dev/pricing).*
 
 **Database Storage** ⚠️ 🔄:
 
-| Plan             | Included Storage              | Bandwidth/Month  | Status |
-| ---------------- | ----------------------------- | ---------------- | ------ |
-| **Starter**      | 0.5 GiB                       | 1 GiB            | ⚠️ 🔄  |
-| **Professional** | ~1 GiB+ (verify pricing page) | ~50 GiB (verify) | ⚠️ 🔄  |
+| Plan | Included Storage | Bandwidth/Month | Status |
+| --- | --- | --- | --- |
+| **Starter** | 0.5 GiB | 1 GiB | ⚠️ 🔄 |
+| **Professional** | ~1 GiB+ (verify pricing page) | ~50 GiB (verify) | ⚠️ 🔄 |
 
-_Recent changes (late 2025): Convex updated their pricing model.
+*Recent changes (late 2025): Convex updated their pricing model.
 Pro plan now includes 1 GB at $0.50/GB/month overage (down from previous $10/GB). Check
-official pricing._
+official pricing.*
 
 **File Storage** ⚠️ 🔄:
 
-| Plan             | Included Storage      | Bandwidth/Month | Status |
-| ---------------- | --------------------- | --------------- | ------ |
-| **Starter**      | 1 GiB                 | 1 GiB           | ⚠️ 🔄  |
-| **Professional** | (verify pricing page) | (verify)        | ⚠️ 🔄  |
+| Plan | Included Storage | Bandwidth/Month | Status |
+| --- | --- | --- | --- |
+| **Starter** | 1 GiB | 1 GiB | ⚠️ 🔄 |
+| **Professional** | (verify pricing page) | (verify) | ⚠️ 🔄 |
 
 **Key Constraints**:
 
@@ -551,11 +555,11 @@ official pricing._
 
 **Index Limits (per table)** ✅ 🔒:
 
-| Limit                         | Documented | Source Code | Source Location                                     | Status   |
-| ----------------------------- | ---------- | ----------- | --------------------------------------------------- | -------- |
-| **Maximum indexes per table** | 32         | **64**      | `crates/common/src/schemas/mod.rs:64`               | ✅ 🔒 🔍 |
-| **Maximum fields per index**  | 16         | 16          | `crates/common/src/bootstrap_model/index/mod.rs:42` | ✅ 🔒    |
-| **Maximum index name length** | 64 chars   | 64 chars    | `crates/sync_types/src/identifier.rs:10`            | ✅ 🔒    |
+| Limit | Documented | Source Code | Source Location | Status |
+| --- | --- | --- | --- | --- |
+| **Maximum indexes per table** | 32 | **64** | `crates/common/src/schemas/mod.rs:64` | ✅ 🔒 🔍 |
+| **Maximum fields per index** | 16 | 16 | `crates/common/src/bootstrap_model/index/mod.rs:42` | ✅ 🔒 |
+| **Maximum index name length** | 64 chars | 64 chars | `crates/sync_types/src/identifier.rs:10` | ✅ 🔒 |
 
 **🔍 Index Count Discrepancy**:
 
@@ -565,28 +569,28 @@ indexes).
 
 **Schema Limits (per deployment)** ✅ 🔒:
 
-| Limit                    | Value  | Source Location                                   | Status   |
-| ------------------------ | ------ | ------------------------------------------------- | -------- |
-| **Maximum tables**       | 10,000 | `crates/database/src/bootstrap_model/table.rs:62` | ✅ 🔒    |
-| **Maximum user modules** | 4,096  | `crates/common/src/knobs.rs:1329-1330`            | ✅ 🔒 🛠️ |
+| Limit | Value | Source Location | Status |
+| --- | --- | --- | --- |
+| **Maximum tables** | 10,000 | `crates/database/src/bootstrap_model/table.rs:62` | ✅ 🔒 |
+| **Maximum user modules** | 4,096 | `crates/common/src/knobs.rs:1329-1330` | ✅ 🔒 🛠️ |
 
 **Full-Text Search Indexes** ✅ 🔒:
 
-| Limit                                   | Value | Source Location                                     | Status |
-| --------------------------------------- | ----- | --------------------------------------------------- | ------ |
-| **Maximum full-text indexes per table** | 4     | Docs (within 64 total)                              | ✅ 🔒  |
-| **Maximum filters per full-text index** | 16    | `crates/common/src/bootstrap_model/index/mod.rs:43` | ✅ 🔒  |
-| **Maximum results per query**           | 1,024 | `crates/search/src/constants.rs:18`                 | ✅ 🔒  |
+| Limit | Value | Source Location | Status |
+| --- | --- | --- | --- |
+| **Maximum full-text indexes per table** | 4 | Docs (within 64 total) | ✅ 🔒 |
+| **Maximum filters per full-text index** | 16 | `crates/common/src/bootstrap_model/index/mod.rs:43` | ✅ 🔒 |
+| **Maximum results per query** | 1,024 | `crates/search/src/constants.rs:18` | ✅ 🔒 |
 
 **Vector Search Indexes** ✅ 🔒:
 
-| Limit                                | Value                    | Source Location                                                        | Status |
-| ------------------------------------ | ------------------------ | ---------------------------------------------------------------------- | ------ |
-| **Maximum vector indexes per table** | 4                        | Docs (within 64 total)                                                 | ✅ 🔒  |
-| **Maximum filters per vector index** | 16                       | `crates/common/src/bootstrap_model/index/mod.rs:44`                    | ✅ 🔒  |
-| **Maximum dimensions**               | 4,096                    | `crates/common/src/bootstrap_model/index/vector_index/dimensions.rs:6` | ✅ 🔒  |
-| **Maximum results per query**        | 256 (default 10)         | `crates/vector/src/lib.rs:64`                                          | ✅ 🔒  |
-| **Maximum indexed documents**        | 100,000 per vector index | Docs                                                                   | ✅ 🔒  |
+| Limit | Value | Source Location | Status |
+| --- | --- | --- | --- |
+| **Maximum vector indexes per table** | 4 | Docs (within 64 total) | ✅ 🔒 |
+| **Maximum filters per vector index** | 16 | `crates/common/src/bootstrap_model/index/mod.rs:44` | ✅ 🔒 |
+| **Maximum dimensions** | 4,096 | `crates/common/src/bootstrap_model/index/vector_index/dimensions.rs:6` | ✅ 🔒 |
+| **Maximum results per query** | 256 (default 10) | `crates/vector/src/lib.rs:64` | ✅ 🔒 |
+| **Maximum indexed documents** | 100,000 per vector index | Docs | ✅ 🔒 |
 
 **Key Constraints**:
 
@@ -609,10 +613,10 @@ indexes).
 
 **Function Invocation Limits** ✅ 🔄:
 
-| Resource                 | Starter Plan | Professional Plan | Status |
-| ------------------------ | ------------ | ----------------- | ------ |
-| **Function Calls/Month** | 1,000,000    | 25,000,000        | ✅ 🔄  |
-| **Action Execution**     | 20 GiB-hours | 250 GiB-hours     | ⚠️ 🔄  |
+| Resource | Starter Plan | Professional Plan | Status |
+| --- | --- | --- | --- |
+| **Function Calls/Month** | 1,000,000 | 25,000,000 | ✅ 🔄 |
+| **Action Execution** | 20 GiB-hours | 250 GiB-hours | ⚠️ 🔄 |
 
 **Code and Argument Limits** ⚠️ 🔒:
 
@@ -630,11 +634,11 @@ indexes).
 
 **Environment Variables** ✅ 🔒:
 
-| Limit                             | Documented | Source Code | Source Location                                       | Status      |
-| --------------------------------- | ---------- | ----------- | ----------------------------------------------------- | ----------- |
-| **Maximum environment variables** | 100        | **1,000**   | `crates/common/src/knobs.rs:1537-1538`                | ✅ 🔒 🔍 🛠️ |
-| **Maximum variable name length**  | 40 chars   | 40 chars    | `crates/common/src/types/environment_variables.rs:66` | ✅ 🔒       |
-| **Maximum variable value length** | N/A        | 8,192 bytes | `crates/common/src/types/environment_variables.rs:69` | ✅ 🔒       |
+| Limit | Documented | Source Code | Source Location | Status |
+| --- | --- | --- | --- | --- |
+| **Maximum environment variables** | 100 | **1,000** | `crates/common/src/knobs.rs:1537-1538` | ✅ 🔒 🔍 🛠️ |
+| **Maximum variable name length** | 40 chars | 40 chars | `crates/common/src/types/environment_variables.rs:66` | ✅ 🔒 |
+| **Maximum variable value length** | N/A | 8,192 bytes | `crates/common/src/types/environment_variables.rs:69` | ✅ 🔒 |
 
 **🔍 Env Var Count Discrepancy**:
 
@@ -677,11 +681,11 @@ create the Funrun service for horizontal scaling (see below).
 
 **Per-invocation isolation**:
 
-| Aspect                    | Behavior                                                                      | Status |
-| ------------------------- | ----------------------------------------------------------------------------- | ------ |
-| **Memory per invocation** | 64 MB (Convex Runtime) or 512 MB (Node.js)                                    | ✅     |
-| **Isolate reuse**         | Isolates reused only for same backend; contexts never reused between requests | ✅     |
-| **Security boundary**     | Fresh isolate context per request for security                                | ✅     |
+| Aspect | Behavior | Status |
+| --- | --- | --- |
+| **Memory per invocation** | 64 MB (Convex Runtime) or 512 MB (Node.js) | ✅ |
+| **Isolate reuse** | Isolates reused only for same backend; contexts never reused between requests | ✅ |
+| **Security boundary** | Fresh isolate context per request for security | ✅ |
 
 **What this means for concurrent experiments**:
 
@@ -740,11 +744,11 @@ After Funrun (March 2024+):
 
 #### 7.4 Local Development vs Cloud vs Self-Hosted ✅
 
-| Deployment Mode              | Architecture                                      | Memory Limits         | Scaling                                 |
-| ---------------------------- | ------------------------------------------------- | --------------------- | --------------------------------------- |
-| **Local (`npx convex dev`)** | Backend runs as subprocess, SQLite storage        | Same 64/512 MB limits | Single process, V8 threading limits     |
-| **Cloud (Convex Cloud)**     | Funrun service, managed infrastructure            | Same 64/512 MB limits | Horizontal scaling via Funrun           |
-| **Self-Hosted**              | Same OSS code as cloud, single machine by default | Same 64/512 MB limits | Single machine unless you modify Funrun |
+| Deployment Mode | Architecture | Memory Limits | Scaling |
+| --- | --- | --- | --- |
+| **Local (`npx convex dev`)** | Backend runs as subprocess, SQLite storage | Same 64/512 MB limits | Single process, V8 threading limits |
+| **Cloud (Convex Cloud)** | Funrun service, managed infrastructure | Same 64/512 MB limits | Horizontal scaling via Funrun |
+| **Self-Hosted** | Same OSS code as cloud, single machine by default | Same 64/512 MB limits | Single machine unless you modify Funrun |
 
 **Key insight**: Memory limits (64 MB / 512 MB) are enforced at the V8 isolate level, so
 they apply **identically** across all deployment modes.
@@ -812,7 +816,7 @@ memory. But they do compete for:
 
 - Function call quotas (monthly limit)
 
----
+* * *
 
 ## Function Calling Rules and Composition Patterns
 
@@ -822,32 +826,35 @@ Violating these rules leads to runtime errors or architectural issues.
 
 ### Function Type Call Matrix
 
-| Caller Type  | Can Call           | Method      | Use Case                          |
-| ------------ | ------------------ | ----------- | --------------------------------- |
-| **Query**    | Helper functions   | Direct call | Extract shared read logic         |
-| **Query**    | Other queries      | ❌ **NO**   | No `ctx.runQuery` in queries      |
-| **Query**    | Mutations          | ❌ **NO**   | Queries are read-only             |
-| **Mutation** | Helper functions   | Direct call | Extract shared write logic        |
-| **Mutation** | Other mutations    | ❌ **NO**   | No `ctx.runMutation` in mutations |
-| **Mutation** | Queries            | ❌ **NO**   | Use helper functions instead      |
-| **Action**   | Queries            | Yes         | `ctx.runQuery(internal.*)`        |
-| **Action**   | Mutations          | Yes         | `ctx.runMutation(internal.*)`     |
-| **Action**   | Other actions      | Yes         | `ctx.runAction(internal.*)`       |
-| **Action**   | Schedule functions | Yes         | `ctx.scheduler.runAfter(...)`     |
+| Caller Type | Can Call | Method | Use Case |
+| --- | --- | --- | --- |
+| **Query** | Helper functions | Direct call | Extract shared read logic |
+| **Query** | Other queries | ❌ **NO** | No `ctx.runQuery` in queries |
+| **Query** | Mutations | ❌ **NO** | Queries are read-only |
+| **Mutation** | Helper functions | Direct call | Extract shared write logic |
+| **Mutation** | Other mutations | ❌ **NO** | No `ctx.runMutation` in mutations |
+| **Mutation** | Queries | ❌ **NO** | Use helper functions instead |
+| **Action** | Queries | Yes | `ctx.runQuery(internal.*)` |
+| **Action** | Mutations | Yes | `ctx.runMutation(internal.*)` |
+| **Action** | Other actions | Yes | `ctx.runAction(internal.*)` |
+| **Action** | Schedule functions | Yes | `ctx.scheduler.runAfter(...)` |
 
 ### Key Principles
 
 1. **Queries and mutations cannot call other queries/mutations**
+
    - They can only call helper functions that take their context as an argument
 
    - This enforces single-transaction semantics
 
 2. **Actions are the orchestration layer**
+
    - Actions coordinate between queries and mutations
 
    - Multiple `runQuery`/`runMutation` calls execute in separate transactions
 
 3. **Transactional boundaries**
+
    - Each query/mutation is one transaction
 
    - Actions can compose multiple transactions
@@ -855,6 +862,7 @@ Violating these rules leads to runtime errors or architectural issues.
    - No guarantees of consistency across action-orchestrated calls
 
 4. **Avoid nested action calls within the same runtime** ✅
+
    - While `ctx.runAction()` is technically allowed, Convex officially recommends
      against calling actions from actions **in the same runtime**
 
@@ -968,7 +976,7 @@ export const incrementCounter = mutation({
 
 - [Mutation Functions](https://docs.convex.dev/functions/mutation-functions)
 
----
+* * *
 
 ## Common Pitfalls and Workarounds
 
@@ -1058,7 +1066,7 @@ const rows = await ctx.db
      contentSummary: v.string(), // Small snippet
      detailId: v.id('messageDetails'), // Link to full content
    }
-
+   
    // Store large content separately
    messageDetails: {
      fullContent: v.string(), // Large field
@@ -1114,13 +1122,13 @@ const errorCount = (
 
    ```typescript
    import { Aggregate } from '@convex-dev/aggregate';
-
+   
    // Define aggregate
    const eventAggregate = new Aggregate<typeof schema.events>(components.aggregate, {
      filterKey: (event) => event.parentId,
      sumFields: { tokenCount: 0 },
    });
-
+   
    // Query aggregates efficiently
    const stats = await eventAggregate.count(ctx, {
      prefix: parentId,
@@ -1271,7 +1279,7 @@ export const createSessionAndWorkflow = mutation({
    for (const config of configs) {
      await ctx.runMutation(internal.createEntity, config);
    }
-
+   
    // CORRECT: Single mutation creates all entities
    export const createEntities = internalMutation({
      handler: async (ctx, { configs }) => {
@@ -1326,7 +1334,7 @@ export const createSessionAndWorkflow = mutation({
    ```typescript
    // WIDE: Triggers reruns on any aggregate change
    const count = await aggregate.count(ctx, { prefix: entityId });
-
+   
    // BOUNDED: Only reruns when matching records change
    const count = await aggregate.count(ctx, {
      prefix: entityId,
@@ -1374,11 +1382,11 @@ requirements apply beyond OCC conflict handling:
 
 The OCC retry behavior is configurable via environment variables:
 
-| Setting         | Default | Env Var                               | Source             |
-| --------------- | ------- | ------------------------------------- | ------------------ |
-| Max retries     | 4       | `UDF_EXECUTOR_OCC_MAX_RETRIES`        | `knobs.rs:146-147` |
-| Initial backoff | 10ms    | `UDF_EXECUTOR_OCC_INITIAL_BACKOFF_MS` | `knobs.rs:150-151` |
-| Max backoff     | 2,000ms | `UDF_EXECUTOR_OCC_MAX_BACKOFF_MS`     | `knobs.rs:154-155` |
+| Setting | Default | Env Var | Source |
+| --- | --- | --- | --- |
+| Max retries | 4 | `UDF_EXECUTOR_OCC_MAX_RETRIES` | `knobs.rs:146-147` |
+| Initial backoff | 10ms | `UDF_EXECUTOR_OCC_INITIAL_BACKOFF_MS` | `knobs.rs:150-151` |
+| Max backoff | 2,000ms | `UDF_EXECUTOR_OCC_MAX_BACKOFF_MS` | `knobs.rs:154-155` |
 
 Self-hosted deployments with lower contention could reduce retries; high-contention
 scenarios might benefit from longer backoffs:
@@ -1424,7 +1432,7 @@ or high-frequency queries on large result sets.
        const oldRecords = await ctx.runQuery(internal.records.getCompleted, {
          beforeDate: Date.now() - 90 * 24 * 60 * 60 * 1000, // 90 days
        });
-
+   
        for (const record of oldRecords) {
          // Export to S3
          await exportRecordToS3(record);
@@ -1436,6 +1444,7 @@ or high-frequency queries on large result sets.
    ```
 
 2. **Monitor storage and bandwidth proactively**:
+
    - Set up alerts at 75-80% of quota limits
 
    - Review Convex dashboard metrics monthly
@@ -1443,6 +1452,7 @@ or high-frequency queries on large result sets.
    - Track growth trends to project future costs
 
 3. **Optimize indexes**:
+
    - Remove unused indexes
 
    - Consider whether all composite index combinations are necessary
@@ -1450,6 +1460,7 @@ or high-frequency queries on large result sets.
    - Index storage counts toward database storage quota
 
 4. **Reduce bandwidth consumption**:
+
    - Use pagination to limit result set sizes
 
    - Cache frequently-accessed read-only data on the client
@@ -1530,22 +1541,22 @@ export const countAllTurns = query({
      handler: async (ctx, args) => {
        let cursor = null;
        let totalProcessed = 0;
-
+   
        do {
          // Call mutation to process one batch
          const result = await ctx.runMutation(internal.processTurnsBatch, {
            cursor,
            numItems: 100,
          });
-
+   
          totalProcessed += result.processed;
          cursor = result.continueCursor;
        } while (cursor !== null);
-
+   
        return { totalProcessed };
      },
    });
-
+   
    // Mutation processes one batch
    export const processTurnsBatch = internalMutation({
      args: { cursor: v.union(v.string(), v.null()), numItems: v.number() },
@@ -1553,10 +1564,10 @@ export const countAllTurns = query({
        const page = await ctx.db
          .query('conversationTurns')
          .paginate({ cursor: args.cursor, numItems: args.numItems });
-
+   
        // Process page.page here
        const processed = page.page.length;
-
+   
        return {
          processed,
          continueCursor: page.continueCursor,
@@ -1573,17 +1584,17 @@ export const countAllTurns = query({
      handler: async (ctx, args) => {
        let cursor = null;
        let totalValidated = 0;
-
+   
        do {
          const batch = await ctx.runQuery(internal.validateBatch, {
            cursor,
            numItems: 500,
          });
-
+   
          totalValidated += batch.count;
          cursor = batch.continueCursor;
        } while (cursor !== null);
-
+   
        return { totalValidated };
      },
    });
@@ -1732,12 +1743,12 @@ export const processData = internalAction({
 
 **Key Patterns to Avoid**:
 
-| Pattern                          | Issue                                           | Fix                                      |
-| -------------------------------- | ----------------------------------------------- | ---------------------------------------- |
-| `void asyncFn()`                 | Promise not awaited                             | `await asyncFn()`                        |
-| `asyncFn().catch(...)`           | Promise not awaited (catch returns new Promise) | `await asyncFn()` with try/catch         |
-| `setTimeout(() => asyncFn(), 0)` | Promise escapes action scope                    | Use `ctx.scheduler.runAfter(0, ...)`     |
-| Returning before awaiting        | Promise orphaned                                | Ensure all awaits complete before return |
+| Pattern | Issue | Fix |
+| --- | --- | --- |
+| `void asyncFn()` | Promise not awaited | `await asyncFn()` |
+| `asyncFn().catch(...)` | Promise not awaited (catch returns new Promise) | `await asyncFn()` with try/catch |
+| `setTimeout(() => asyncFn(), 0)` | Promise escapes action scope | Use `ctx.scheduler.runAfter(0, ...)` |
+| Returning before awaiting | Promise orphaned | Ensure all awaits complete before return |
 
 **Common Affected Operations**:
 
@@ -1856,21 +1867,21 @@ export const childAction = internalAction({
 
 **When `ctx.runAction()` IS Appropriate**:
 
-| Scenario                              | Appropriate? | Reason                                  |
-| ------------------------------------- | ------------ | --------------------------------------- |
-| V8 action calling Node.js action      | ✅ Yes       | Cross-runtime call (different isolates) |
-| Node.js action calling V8 action      | ✅ Yes       | Cross-runtime call (different isolates) |
-| Node.js action calling Node.js action | ❌ No        | Same runtime - use helper function      |
-| V8 action calling V8 action           | ❌ No        | Same runtime - use helper function      |
-| Workflow `step.runAction()`           | ✅ Yes       | Workflow orchestration (V8 → Node)      |
+| Scenario | Appropriate? | Reason |
+| --- | --- | --- |
+| V8 action calling Node.js action | ✅ Yes | Cross-runtime call (different isolates) |
+| Node.js action calling V8 action | ✅ Yes | Cross-runtime call (different isolates) |
+| Node.js action calling Node.js action | ❌ No | Same runtime - use helper function |
+| V8 action calling V8 action | ❌ No | Same runtime - use helper function |
+| Workflow `step.runAction()` | ✅ Yes | Workflow orchestration (V8 → Node) |
 
 **Key Distinction**:
 
-| Aspect                      | Documented by Convex              | Observed in Production |
-| --------------------------- | --------------------------------- | ---------------------- |
-| **Reason to avoid**         | Efficiency (wasted resources)     | Silent ~5 min timeout  |
-| **Recommended alternative** | Plain TypeScript helper functions | Same                   |
-| **Valid use case**          | Cross-runtime calls only          | Same                   |
+| Aspect | Documented by Convex | Observed in Production |
+| --- | --- | --- |
+| **Reason to avoid** | Efficiency (wasted resources) | Silent ~5 min timeout |
+| **Recommended alternative** | Plain TypeScript helper functions | Same |
+| **Valid use case** | Cross-runtime calls only | Same |
 
 **Impact on Durable Workflows**:
 
@@ -1904,13 +1915,14 @@ problematic nested same-runtime pattern.
 
 - [Convex Best Practices](https://docs.convex.dev/understanding/best-practices/)
 
----
+* * *
 
 ## Best Practices Checklist
 
 ### Query Design
 
 1. **Never use `.collect()` on unbounded tables**
+
    - Use `.take(n)` for fixed-size results
 
    - Use `.paginate(paginationOpts)` for cursor-based pagination
@@ -1918,6 +1930,7 @@ problematic nested same-runtime pattern.
    - Use head+1 pattern (`.take(limit + 1)`) for “N+” labels
 
 2. **Use composite indexes over post-index filtering**
+
    - Design indexes to match query patterns
 
    - Include all filter fields in index definition
@@ -1925,6 +1938,7 @@ problematic nested same-runtime pattern.
    - Avoid `.withIndex()` followed by `.filter()`
 
 3. **Keep scanned documents small**
+
    - Separate large payloads (>10KB) into detail tables
 
    - Fetch detail documents only when needed (on-demand)
@@ -1932,6 +1946,7 @@ problematic nested same-runtime pattern.
    - Design listing/counting tables with minimal fields
 
 4. **Index fields in query order**
+
    - Match index field order to query equality/range conditions
 
    - Create separate indexes for different query orders if needed
@@ -1939,6 +1954,7 @@ problematic nested same-runtime pattern.
 ### Aggregation and Counting
 
 5. **Use Aggregate Component for statistics at scale**
+
    - Leverage official
      [Convex Aggregate Component](https://github.com/get-convex/aggregate) for
      counts/sums over large datasets
@@ -1948,6 +1964,7 @@ problematic nested same-runtime pattern.
    - Use batch operations (`countBatch`, `sumBatch`, `atBatch`) for efficiency
 
 6. **Bound all aggregate reads**
+
    - Always specify `bounds: { lower, upper }` to limit reactivity
 
    - Combine `prefix` with bounds for targeted queries
@@ -1955,6 +1972,7 @@ problematic nested same-runtime pattern.
    - Avoid reading entire namespace without bounds
 
 7. **Bucket timestamp keys**
+
    - Bucket `_creationTime` to appropriate granularity (minute/hour/day)
 
    - Avoid monotonically increasing first keys in aggregates
@@ -1964,6 +1982,7 @@ problematic nested same-runtime pattern.
 ### Concurrency and Performance
 
 8. **Namespace to avoid write contention**
+
    - Use per-entity namespacing (e.g., per-run, per-user)
 
    - Isolate unrelated writes to different documents
@@ -1971,6 +1990,7 @@ problematic nested same-runtime pattern.
    - Minimize shared write dependencies
 
 9. **Use actions for long-running operations**
+
    - Move data exports, backfills, and heavy processing to actions
 
    - Keep queries/mutations under 1-second execution time
@@ -1978,6 +1998,7 @@ problematic nested same-runtime pattern.
    - Break work into chunks that finish within 10-minute action limit
 
 10. **Await all promises in actions**
+
     - Never use `void asyncFn()` or `asyncFn().catch()` patterns
 
     - Use try/catch for non-critical operations that can fail
@@ -1985,6 +2006,7 @@ problematic nested same-runtime pattern.
     - Use `ctx.scheduler.runAfter` for truly independent operations
 
 11. **Limit scheduled job fan-out**
+
     - Schedule at most 1,000 functions per mutation
 
     - Keep total scheduled arguments under 8 MiB
@@ -1992,6 +2014,7 @@ problematic nested same-runtime pattern.
     - Use batch processing for larger workloads
 
 12. **Avoid nested action calls within same runtime** ✅
+
     - Use `ctx.runAction()` **only** for cross-runtime calls (V8 → Node.js)
 
     - Extract shared logic into plain TypeScript helper functions
@@ -2003,6 +2026,7 @@ problematic nested same-runtime pattern.
 ### Storage and Cost Management
 
 13. **Monitor storage and bandwidth proactively**
+
     - Set up alerts at 75-80% of quota limits
 
     - Review Convex dashboard metrics monthly
@@ -2010,6 +2034,7 @@ problematic nested same-runtime pattern.
     - Track growth trends to project costs
 
 14. **Implement data archival policies**
+
     - Export historical data to external storage (S3, etc.)
 
     - Delete archived data from Convex to free quota
@@ -2017,6 +2042,7 @@ problematic nested same-runtime pattern.
     - Define archival criteria before hitting limits
 
 15. **Optimize index usage**
+
     - Remove unused indexes
 
     - Evaluate whether all composite index combinations are necessary
@@ -2026,6 +2052,7 @@ problematic nested same-runtime pattern.
 ### Code Organization
 
 16. **Use proper function visibility**
+
     - Use `internalQuery`/`internalMutation`/`internalAction` for private functions
 
     - Use `query`/`mutation`/`action` only for public API
@@ -2033,13 +2060,14 @@ problematic nested same-runtime pattern.
     - Follow file-based routing conventions
 
 17. **Always include validators**
+
     - Add `args` and `returns` validators to all functions
 
     - Use `v.null()` for functions with no return value
 
     - Leverage TypeScript types generated from validators
 
----
+* * *
 
 ## References
 
@@ -2088,7 +2116,7 @@ problematic nested same-runtime pattern.
 - [Convex Helpers](https://github.com/get-convex/convex-helpers) — Utilities for
   pagination, filtering, and common patterns
 
----
+* * *
 
 ## Quick Reference Tables
 
@@ -2099,97 +2127,97 @@ problematic nested same-runtime pattern.
 Professional plan customers can request increases on a case-by-case basis by contacting
 mailto:support@convex.dev.
 
-| Category                  | Limit Type                    | Documented | Source Code       | Status      |
-| ------------------------- | ----------------------------- | ---------- | ----------------- | ----------- |
-| **Transaction Read**      | Maximum data read             | 8 MiB      | **16 MiB**        | ✅ 🔒 🔍 🛠️ |
-|                           | Maximum documents scanned     | 16,384     | **32,000**        | ✅ 🔒 🔍 🛠️ |
-|                           | Maximum db.get/db.query calls | 4,096      | 4,096             | ✅ 🔒 🛠️    |
-| **Transaction Write**     | Maximum data written          | 8 MiB      | **16 MiB**        | ✅ 🔒 🔍 🛠️ |
-|                           | Maximum documents written     | 8,192      | **16,000**        | ✅ 🔒 🔍 🛠️ |
-| **Document**              | Maximum size                  | 1 MiB      | 1 MiB             | ✅ 🔒       |
-|                           | Maximum fields                | 1,024      | 1,024             | ✅ 🔒       |
-|                           | Maximum nesting depth         | 16 levels  | 16 levels         | ✅ 🔒       |
-|                           | Maximum array elements        | 8,192      | 8,192             | ✅ 🔒       |
-|                           | Maximum field name length     | 64 chars   | **1,024 chars**   | ✅ 🔒 🔍    |
-| **Execution Time**        | Query/Mutation user timeout   | 1 second   | 1 second          | ✅ 🔒 🛠️    |
-|                           | Query/Mutation system timeout | N/A        | 15 seconds        | ✅ 🔒 🛠️    |
-|                           | Action execution              | 10 minutes | 10 minutes        | ✅ 🔒 🛠️    |
-| **Action Memory**         | Convex Runtime                | 64 MB      | 64 MB             | ✅ 🔄 🛠️    |
-|                           | Node.js Runtime               | 512 MB     | 512 MB            | ✅ 🔄 🛠️    |
-| **Function Arguments**    | Convex Runtime                | 8 MiB      | **16 MiB**        | ✅ 🔒 🔍 🛠️ |
-|                           | Node.js Runtime               | 5 MiB      | 5 MiB (error msg) | ✅ 🔒       |
-| **Scheduled Functions**   | Max functions per mutation    | 1,000      | 1,000             | ✅ 🔒 🛠️    |
-|                           | Total argument size           | 8 MiB      | **16 MiB**        | ✅ 🔒 🔍 🛠️ |
-| **Logging**               | Log lines per execution       | N/A        | 256               | ✅ 🔒 🔍    |
-| **Concurrency (default)** | Queries                       | 16         | 16                | ✅ 🔄 🛠️    |
-|                           | Mutations                     | 16         | 16                | ✅ 🔄 🛠️    |
-|                           | V8/Node/HTTP Actions          | 16         | 16                | ✅ 🔄 🛠️    |
-|                           | Scheduled Job Parallelism     | 10         | 10                | ✅ 🔄 🛠️    |
-| **Indexes**               | Indexes per table             | 32         | **64**            | ✅ 🔒 🔍    |
-|                           | Fields per index              | 16         | 16                | ✅ 🔒       |
-|                           | Full-text indexes per table   | 4          | 4                 | ✅ 🔒       |
-|                           | Vector indexes per table      | 4          | 4                 | ✅ 🔒       |
-|                           | Vector index max documents    | 100,000    | 100,000           | ✅ 🔒       |
-| **Search Results**        | Full-text search results      | 1,024      | 1,024             | ✅ 🔒       |
-|                           | Vector search results         | 256        | 256               | ✅ 🔒       |
-| **Environment Vars**      | Maximum count                 | 100        | **1,000**         | ✅ 🔒 🔍 🛠️ |
-|                           | Name length                   | 40 chars   | 40 chars          | ✅ 🔒       |
-|                           | Value length                  | N/A        | 8,192 bytes       | ✅ 🔒       |
+| Category | Limit Type | Documented | Source Code | Status |
+| --- | --- | --- | --- | --- |
+| **Transaction Read** | Maximum data read | 8 MiB | **16 MiB** | ✅ 🔒 🔍 🛠️ |
+|  | Maximum documents scanned | 16,384 | **32,000** | ✅ 🔒 🔍 🛠️ |
+|  | Maximum db.get/db.query calls | 4,096 | 4,096 | ✅ 🔒 🛠️ |
+| **Transaction Write** | Maximum data written | 8 MiB | **16 MiB** | ✅ 🔒 🔍 🛠️ |
+|  | Maximum documents written | 8,192 | **16,000** | ✅ 🔒 🔍 🛠️ |
+| **Document** | Maximum size | 1 MiB | 1 MiB | ✅ 🔒 |
+|  | Maximum fields | 1,024 | 1,024 | ✅ 🔒 |
+|  | Maximum nesting depth | 16 levels | 16 levels | ✅ 🔒 |
+|  | Maximum array elements | 8,192 | 8,192 | ✅ 🔒 |
+|  | Maximum field name length | 64 chars | **1,024 chars** | ✅ 🔒 🔍 |
+| **Execution Time** | Query/Mutation user timeout | 1 second | 1 second | ✅ 🔒 🛠️ |
+|  | Query/Mutation system timeout | N/A | 15 seconds | ✅ 🔒 🛠️ |
+|  | Action execution | 10 minutes | 10 minutes | ✅ 🔒 🛠️ |
+| **Action Memory** | Convex Runtime | 64 MB | 64 MB | ✅ 🔄 🛠️ |
+|  | Node.js Runtime | 512 MB | 512 MB | ✅ 🔄 🛠️ |
+| **Function Arguments** | Convex Runtime | 8 MiB | **16 MiB** | ✅ 🔒 🔍 🛠️ |
+|  | Node.js Runtime | 5 MiB | 5 MiB (error msg) | ✅ 🔒 |
+| **Scheduled Functions** | Max functions per mutation | 1,000 | 1,000 | ✅ 🔒 🛠️ |
+|  | Total argument size | 8 MiB | **16 MiB** | ✅ 🔒 🔍 🛠️ |
+| **Logging** | Log lines per execution | N/A | 256 | ✅ 🔒 🔍 |
+| **Concurrency (default)** | Queries | 16 | 16 | ✅ 🔄 🛠️ |
+|  | Mutations | 16 | 16 | ✅ 🔄 🛠️ |
+|  | V8/Node/HTTP Actions | 16 | 16 | ✅ 🔄 🛠️ |
+|  | Scheduled Job Parallelism | 10 | 10 | ✅ 🔄 🛠️ |
+| **Indexes** | Indexes per table | 32 | **64** | ✅ 🔒 🔍 |
+|  | Fields per index | 16 | 16 | ✅ 🔒 |
+|  | Full-text indexes per table | 4 | 4 | ✅ 🔒 |
+|  | Vector indexes per table | 4 | 4 | ✅ 🔒 |
+|  | Vector index max documents | 100,000 | 100,000 | ✅ 🔒 |
+| **Search Results** | Full-text search results | 1,024 | 1,024 | ✅ 🔒 |
+|  | Vector search results | 256 | 256 | ✅ 🔒 |
+| **Environment Vars** | Maximum count | 100 | **1,000** | ✅ 🔒 🔍 🛠️ |
+|  | Name length | 40 chars | 40 chars | ✅ 🔒 |
+|  | Value length | N/A | 8,192 bytes | ✅ 🔒 |
 
 **Key**: 🔍 = Source code differs from docs; 🛠️ = Configurable via env var for
 self-hosted
 
 ### Common Error Messages and Solutions
 
-| Error Message                                                            | Likely Cause                                           | Solution                                                                                         |
-| ------------------------------------------------------------------------ | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------ |
-| `"transaction exceeded resource limits"`                                 | Read limit (8 MiB) or document count (16,384) exceeded | Use `.take()` or `.paginate()` instead of `.collect()`; separate large fields into detail tables |
-| `"document too large"`                                                   | Document exceeds 1 MiB                                 | Split large fields into separate documents; compress or truncate large text                      |
-| `"JavaScript execution ran out of memory (maximum memory usage: 64 MB)"` | Action exceeded Convex Runtime 64 MB limit             | Add `"use node";` directive to file to switch to Node.js runtime (512 MB limit)                  |
-| Action timeout (no error, just stops)                                    | Action exceeded 600s limit                             | Use sampling strategy; implement resumable pattern; break into scheduled jobs                    |
-| Logs truncated silently                                                  | Exceeded 256 log lines                                 | Log less frequently (every 100 iterations instead of every 5); use external logging              |
-| High OCC retry rates                                                     | Write contention on shared documents                   | Use namespacing; avoid wide aggregate reads; isolate entity writes                               |
-| Slow query performance                                                   | Table scan without index                               | Create composite index matching query pattern; avoid post-index `.filter()`                      |
-| Storage overage charges                                                  | Data retention without archival                        | Implement archival policy; export historical data; delete old records                            |
-| `"1 unawaited operation"` warning                                        | Dangling promises from `void fn()` or `fn().catch()`   | Await all async operations; use try/catch for error handling                                     |
+| Error Message | Likely Cause | Solution |
+| --- | --- | --- |
+| `"transaction exceeded resource limits"` | Read limit (8 MiB) or document count (16,384) exceeded | Use `.take()` or `.paginate()` instead of `.collect()`; separate large fields into detail tables |
+| `"document too large"` | Document exceeds 1 MiB | Split large fields into separate documents; compress or truncate large text |
+| `"JavaScript execution ran out of memory (maximum memory usage: 64 MB)"` | Action exceeded Convex Runtime 64 MB limit | Add `"use node";` directive to file to switch to Node.js runtime (512 MB limit) |
+| Action timeout (no error, just stops) | Action exceeded 600s limit | Use sampling strategy; implement resumable pattern; break into scheduled jobs |
+| Logs truncated silently | Exceeded 256 log lines | Log less frequently (every 100 iterations instead of every 5); use external logging |
+| High OCC retry rates | Write contention on shared documents | Use namespacing; avoid wide aggregate reads; isolate entity writes |
+| Slow query performance | Table scan without index | Create composite index matching query pattern; avoid post-index `.filter()` |
+| Storage overage charges | Data retention without archival | Implement archival policy; export historical data; delete old records |
+| `"1 unawaited operation"` warning | Dangling promises from `void fn()` or `fn().catch()` | Await all async operations; use try/catch for error handling |
 
 ### Decision Matrix: When to Use Each Pattern
 
-| Use Case                               | Recommended Pattern                                 | Alternative                                  |
-| -------------------------------------- | --------------------------------------------------- | -------------------------------------------- |
-| **Count/sum over <100 records**        | Direct query with `.collect()`                      | N/A                                          |
-| **Count/sum over 100–1000 records**    | `.take(limit)` with head+1 pattern                  | Aggregate Component                          |
-| **Count/sum over >1000 records**       | Convex Aggregate Component                          | Pre-computed counters (limited flexibility)  |
-| **List 10–100 records**                | `.take(n)`                                          | `.paginate()` if client needs multiple pages |
-| **List unbounded records**             | `.paginate(paginationOpts)`                         | Never use `.collect()`                       |
-| **Large text fields (>10KB)**          | Separate detail table                               | Compression (if feasible)                    |
-| **High-frequency counters**            | Aggregate Component with namespaces                 | Write-time counters (OCC risk)               |
-| **Long-running processing (< 10 min)** | Action with progress logging (every 100 iterations) | Break into scheduled mutations               |
-| **Long-running processing (> 10 min)** | Resumable action pattern or scheduled jobs          | Sampling strategy for validation             |
-| **Historical data retention**          | Archive to S3/external storage                      | Accept storage costs                         |
+| Use Case | Recommended Pattern | Alternative |
+| --- | --- | --- |
+| **Count/sum over <100 records** | Direct query with `.collect()` | N/A |
+| **Count/sum over 100–1000 records** | `.take(limit)` with head+1 pattern | Aggregate Component |
+| **Count/sum over >1000 records** | Convex Aggregate Component | Pre-computed counters (limited flexibility) |
+| **List 10–100 records** | `.take(n)` | `.paginate()` if client needs multiple pages |
+| **List unbounded records** | `.paginate(paginationOpts)` | Never use `.collect()` |
+| **Large text fields (>10KB)** | Separate detail table | Compression (if feasible) |
+| **High-frequency counters** | Aggregate Component with namespaces | Write-time counters (OCC risk) |
+| **Long-running processing (< 10 min)** | Action with progress logging (every 100 iterations) | Break into scheduled mutations |
+| **Long-running processing (> 10 min)** | Resumable action pattern or scheduled jobs | Sampling strategy for validation |
+| **Historical data retention** | Archive to S3/external storage | Accept storage costs |
 
 ### Recommended Limit Values for Common Scenarios
 
 This table provides practical limit values based on real-world usage patterns and Convex
 constraints:
 
-| Scenario                          | Recommended Limit        | Rationale                                                    |
-| --------------------------------- | ------------------------ | ------------------------------------------------------------ |
-| **Log/event queries**             | 8,000 max return         | Stays under 8,192 array limit with formatting overhead       |
-| **Activity tracking scans**       | 10,000 max scan          | Prevents 8 MiB read with typical record sizes (0.5-1KB each) |
-| **Large text collection queries** | 1,000 per parent         | Combined with 900KB content limit prevents excessive reads   |
-| **Dashboard tab counts**          | 50-100 with head+1       | Balances UX clarity with query performance                   |
-| **Truncated text fields**         | 500 characters           | Prevents 8 MiB return limit with thousands of records        |
-| **Large content fields**          | 900 KB max               | Leaves 100KB+ headroom below 1 MiB document limit            |
-| **Relational data queries**       | 10,000-20,000            | Typical collection sizes stay well under limits              |
-| **File storage content**          | 50 KB before compression | Use Brotli compression (3:1 ratio) for larger content        |
+| Scenario | Recommended Limit | Rationale |
+| --- | --- | --- |
+| **Log/event queries** | 8,000 max return | Stays under 8,192 array limit with formatting overhead |
+| **Activity tracking scans** | 10,000 max scan | Prevents 8 MiB read with typical record sizes (0.5-1KB each) |
+| **Large text collection queries** | 1,000 per parent | Combined with 900KB content limit prevents excessive reads |
+| **Dashboard tab counts** | 50-100 with head+1 | Balances UX clarity with query performance |
+| **Truncated text fields** | 500 characters | Prevents 8 MiB return limit with thousands of records |
+| **Large content fields** | 900 KB max | Leaves 100KB+ headroom below 1 MiB document limit |
+| **Relational data queries** | 10,000-20,000 | Typical collection sizes stay well under limits |
+| **File storage content** | 50 KB before compression | Use Brotli compression (3:1 ratio) for larger content |
 
 ### When to Use File Storage vs. Document Fields
 
-| Content Size  | Strategy                                   | Implementation                               |
-| ------------- | ------------------------------------------ | -------------------------------------------- |
-| **<1 KB**     | Store in document field                    | Direct field storage                         |
-| **1-10 KB**   | Store in document field                    | Consider if used for listing/counting        |
-| **10-50 KB**  | Separate document or file storage          | Use detail tables for on-demand fetch        |
-| **50-900 KB** | **Must** use detail table or file storage  | Approaching 1 MiB document limit             |
-| **>900 KB**   | **Must** use file storage with compression | Brotli compression for HTML/text (3:1 ratio) |
+| Content Size | Strategy | Implementation |
+| --- | --- | --- |
+| **<1 KB** | Store in document field | Direct field storage |
+| **1-10 KB** | Store in document field | Consider if used for listing/counting |
+| **10-50 KB** | Separate document or file storage | Use detail tables for on-demand fetch |
+| **50-900 KB** | **Must** use detail table or file storage | Approaching 1 MiB document limit |
+| **>900 KB** | **Must** use file storage with compression | Brotli compression for HTML/text (3:1 ratio) |

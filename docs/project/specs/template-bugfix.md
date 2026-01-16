@@ -8,11 +8,11 @@ It should be updated during the bugfix process, then kept as a record for later 
 once implementation is complete.
 
 > AGENT INSTRUCTIONS:
->
+> 
 > This is a template. It has pre-filled sections you must fill in as you progress.
 > You will fill in the bug template and then the rest of this template based on user’s
 > instructions, proceeding one stage at a time:
->
+> 
 > - Stage 1: Clarifying the Bug
 > - Stage 2: Debugging Environment and Tools
 > - Stage 3: Investigation and Reproduction
@@ -24,14 +24,14 @@ once implementation is complete.
 ## Background
 
 > AGENT INSTRUCTIONS:
->
+> 
 > - Describe the relevant background on the product and why this bugfix is needed.
 > - Reference other documentation or previous specs.
 
 ## Bug Template
 
 > AGENT INSTRUCTIONS:
->
+> 
 > Fill in answers to the following questions, using user’s input as needed.
 
 1. In what scenarios does this bug apply?
@@ -53,7 +53,7 @@ once implementation is complete.
 ## Stage 1: Clarifying the Bug
 
 > AGENT INSTRUCTIONS:
->
+> 
 > Carefully describe each of the items below based on the answers to the bug template.
 > If information is incomplete, note explicit assumptions and list open questions to
 > resolve.
@@ -91,11 +91,11 @@ once implementation is complete.
 ## Stage 2: Debugging Environment and Tools
 
 > AGENT INSTRUCTIONS:
->
+> 
 > Identify where and how to reproduce, and what instrumentation is available.
 > Keep this generic; use the project’s standard tooling without naming specific
 > commands.
->
+> 
 > Be sure to read all project documentation for context on setup, environments, unit
 > tests, integration tests, end-to-end tests, linting, type-checking, and formatting.
 
@@ -118,7 +118,7 @@ once implementation is complete.
 ## Stage 3: Investigation and Reproduction
 
 > AGENT INSTRUCTIONS:
->
+> 
 > Build a minimal, reliable reproduction and gather evidence to understand scope and
 > root cause candidates.
 
@@ -154,13 +154,13 @@ once implementation is complete.
 ## Stage 4: Fix Planning
 
 > AGENT INSTRUCTIONS:
->
+> 
 > Compare viable fixes, weigh tradeoffs, and select a plan with clear mitigations.
 
 ### Candidate Fixes (Options)
 
 > Option A …
->
+> 
 > Option B …
 
 ### Decision and Rationale
@@ -186,7 +186,7 @@ once implementation is complete.
 ## Stage 5: Implementation (TDD)
 
 > AGENT INSTRUCTIONS:
->
+> 
 > Start by writing a failing test, implement the fix, then iterate until all checks pass
 > using the project’s standard testing, linting, and type-checking workflows.
 
@@ -220,7 +220,7 @@ once implementation is complete.
 ## Stage 6: Validation
 
 > AGENT INSTRUCTIONS:
->
+> 
 > Validate the fix end-to-end and ensure quality criteria are met.
 
 ### Validation Plan
@@ -240,7 +240,7 @@ once implementation is complete.
 ## Stage 7: Release
 
 > AGENT INSTRUCTIONS:
->
+> 
 > Plan rollout, monitor post-release, and ensure you can rollback safely.
 
 ### Release Plan

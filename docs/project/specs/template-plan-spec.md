@@ -9,9 +9,9 @@ It should be updated during the planning process, then kept as a record for late
 context once implementation is begun.
 
 > AGENT INSTRUCTIONS:
->
+> 
 > This is a template. It has pre-filled sections you must fill in as you progress.
->
+> 
 > - You will fill this in based on user’s instructions, proceeding one stage at a time:
 >   - Stage 1: Planning Stage
 >   - Stage 2: Architecture Stage
@@ -27,7 +27,7 @@ context once implementation is begun.
 ## Background
 
 > AGENT INSTRUCTIONS:
->
+> 
 > - Describe the relevant background on the product and why this task or feature is
 >   needed.
 > - Reference other documentation or previous specs.
@@ -35,13 +35,13 @@ context once implementation is begun.
 ## Summary of Task
 
 > AGENT INSTRUCTIONS:
->
+> 
 > - Give a concise and detailed description of the task or feature to be implemented.
 
 ## Backward Compatibility
 
 > AGENT INSTRUCTIONS:
->
+> 
 > - Fill out this section by reading `@backward-compatibility-rules.md` for the
 >   template, definitions, and guidance.
 > - Copy the template from that file and fill in the appropriate values for each area
@@ -50,9 +50,9 @@ context once implementation is begun.
 ## Stage 1: Planning Stage
 
 > AGENT INSTRUCTIONS:
->
+> 
 > Steps to plan this feature:
->
+> 
 > - Stage one context gathering and strategizing.
 > - Go through project and get an understanding of current state of the features at a
 >   product level
@@ -64,13 +64,13 @@ context once implementation is begun.
 >   Specifically around what are the feature requirements.
 >   Do not add extra features unless confirmed with user
 > - Output of this is a feature doc from product level
->
+> 
 > Add planning notes below.
 
 ## Stage 2: Architecture Stage
 
 > AGENT INSTRUCTIONS:
->
+> 
 > - Review codebase and current technical implementation.
 >   With goal of putting relevant technical context in one area either in memory or
 >   current doc
@@ -79,17 +79,17 @@ context once implementation is begun.
 > - Read through feature doc come up with architecture design
 > - Review with User on implementation and architecture
 > - Update feature doc with relevant context
->
+> 
 > Add architecture plans below.
 
 ## Stage 3: Refine Architecture
 
 > AGENT INSTRUCTIONS:
->
+> 
 > **Goal:** Find reuse opportunities to minimize new code before implementation.
->
+> 
 > **Steps:**
->
+> 
 > 1. **Find Reusable Components**
 >    - Search codebase for existing components, utilities, and APIs that solve similar
 >      problems

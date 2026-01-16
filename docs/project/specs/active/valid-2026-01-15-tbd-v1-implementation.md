@@ -2,27 +2,29 @@
 
 ## Purpose
 
-This validation spec documents all testing performed (automated and manual) and lists remaining
-items for human review before merging the tbd-cli implementation.
+This validation spec documents all testing performed (automated and manual) and lists
+remaining items for human review before merging the tbd-cli implementation.
 
-**Feature Plan:** [plan-2026-01-15-tbd-v1-implementation.md](plan-2026-01-15-tbd-v1-implementation.md)
+**Feature Plan:**
+[plan-2026-01-15-tbd-v1-implementation.md](plan-2026-01-15-tbd-v1-implementation.md)
 
 ## Implementation Summary
 
 Tbd V1 is a complete CLI implementation with 16 phases of development:
 
-| Phase | Description                       | Status      |
-| ----- | --------------------------------- | ----------- |
-| 1-11  | Core implementation (Phases 1-11) | ✅ Complete |
-| 12    | Polish & Documentation            | ⚠️ Partial  |
-| 13    | Tryscript Coverage Migration      | ✅ Complete |
-| 14    | Security Hardening                | ✅ Complete |
-| 15    | Import Validation & Benchmarks    | ✅ Complete |
-| 16    | Comprehensive Tryscript Coverage  | ✅ Complete |
+| Phase | Description | Status |
+| --- | --- | --- |
+| 1-11 | Core implementation (Phases 1-11) | ✅ Complete |
+| 12 | Polish & Documentation | ⚠️ Partial |
+| 13 | Tryscript Coverage Migration | ✅ Complete |
+| 14 | Security Hardening | ✅ Complete |
+| 15 | Import Validation & Benchmarks | ✅ Complete |
+| 16 | Comprehensive Tryscript Coverage | ✅ Complete |
 
-**Bead Tracking:** 120 beads tracked (including Phase 16 beads tbd-1700 through tbd-1706)
+**Bead Tracking:** 120 beads tracked (including Phase 16 beads tbd-1700 through
+tbd-1706)
 
----
+* * *
 
 ## Part 1: Automated Test Coverage
 
@@ -32,33 +34,33 @@ All items in this section are validated by automated tests that run in CI.
 
 **104 vitest unit tests** with **97.47% line coverage**:
 
-| Test File             | Tests | Coverage Description                                  |
-| --------------------- | ----- | ----------------------------------------------------- |
-| schemas.test.ts       | 11    | Zod schema validation for issues, config, metadata    |
-| ids.test.ts           | 16    | ULID generation, short ID resolution, ID validation   |
-| hash.test.ts          | 13    | Content hashing for conflict detection                |
-| parser.test.ts        | 8     | YAML frontmatter + markdown body parsing, round-trips |
-| storage.test.ts       | 13    | Atomic file writes, issue CRUD, listing, filtering    |
-| config.test.ts        | 5     | Config initialization, reading, writing, defaults     |
-| workflow.test.ts      | 6     | Ready, blocked, stale command logic                   |
-| close-reopen.test.ts  | 8     | Issue state transitions, timestamps                   |
-| label-depends.test.ts | 7     | Label add/remove, dependency management               |
-| doctor-sync.test.ts   | 4     | Orphan detection, sync status checks                  |
-| attic-import.test.ts  | 7     | Attic operations, import field mapping                |
-| golden.test.ts        | 6     | Full CLI golden tests via subprocess (YAML scenarios) |
+| Test File | Tests | Coverage Description |
+| --- | --- | --- |
+| schemas.test.ts | 11 | Zod schema validation for issues, config, metadata |
+| ids.test.ts | 16 | ULID generation, short ID resolution, ID validation |
+| hash.test.ts | 13 | Content hashing for conflict detection |
+| parser.test.ts | 8 | YAML frontmatter + markdown body parsing, round-trips |
+| storage.test.ts | 13 | Atomic file writes, issue CRUD, listing, filtering |
+| config.test.ts | 5 | Config initialization, reading, writing, defaults |
+| workflow.test.ts | 6 | Ready, blocked, stale command logic |
+| close-reopen.test.ts | 8 | Issue state transitions, timestamps |
+| label-depends.test.ts | 7 | Label add/remove, dependency management |
+| doctor-sync.test.ts | 4 | Orphan detection, sync status checks |
+| attic-import.test.ts | 7 | Attic operations, import field mapping |
+| golden.test.ts | 6 | Full CLI golden tests via subprocess (YAML scenarios) |
 
 ### 1.2 Tryscript Golden Tests (CLI Integration)
 
-**189 tryscript golden tests** across 5 test files, testing all CLI commands via subprocess
-execution in isolated sandbox environments:
+**189 tryscript golden tests** across 5 test files, testing all CLI commands via
+subprocess execution in isolated sandbox environments:
 
-| Test File                 | Tests | Commands Covered                           |
-| ------------------------- | ----- | ------------------------------------------ |
-| cli-setup.tryscript.md    | ~25   | --help, --version, init, info              |
-| cli-crud.tryscript.md     | ~60   | create, show, update, list, close, reopen  |
-| cli-workflow.tryscript.md | ~50   | ready, blocked, stale, label, depends      |
-| cli-advanced.tryscript.md | ~45   | search, sync, doctor, config, attic, stats |
-| cli-import.tryscript.md   | ~20   | import (beads, JSONL, --validate)          |
+| Test File | Tests | Commands Covered |
+| --- | --- | --- |
+| cli-setup.tryscript.md | ~25 | --help, --version, init, info |
+| cli-crud.tryscript.md | ~60 | create, show, update, list, close, reopen |
+| cli-workflow.tryscript.md | ~50 | ready, blocked, stale, label, depends |
+| cli-advanced.tryscript.md | ~45 | search, sync, doctor, config, attic, stats |
+| cli-import.tryscript.md | ~20 | import (beads, JSONL, --validate) |
 
 #### Tryscript Test Coverage Details
 
@@ -76,8 +78,8 @@ execution in isolated sandbox environments:
 
 **CRUD Commands (cli-crud.tryscript.md):**
 
-- `create` with all flags: `-t` (type), `-p` (priority), `-d` (description), `-l` (labels),
-  `--assignee`, `--due`, `--defer`
+- `create` with all flags: `-t` (type), `-p` (priority), `-d` (description), `-l`
+  (labels), `--assignee`, `--due`, `--defer`
 - `create --dry-run` preview mode
 - `create --json` output format
 - `show <id>` by full ID
@@ -175,17 +177,18 @@ execution in isolated sandbox environments:
 
 **Benchmark script tests 5,000 issues:**
 
-| Operation       | Target | Actual |
-| --------------- | ------ | ------ |
-| list (all)      | <500ms | ~330ms |
+| Operation | Target | Actual |
+| --- | --- | --- |
+| list (all) | <500ms | ~330ms |
 | list (filtered) | <500ms | ~335ms |
-| show            | <500ms | ~326ms |
-| search          | <500ms | ~339ms |
-| stats           | <500ms | ~330ms |
-| info            | <500ms | ~345ms |
-| doctor          | <500ms | ~336ms |
+| show | <500ms | ~326ms |
+| search | <500ms | ~339ms |
+| stats | <500ms | ~330ms |
+| info | <500ms | ~345ms |
+| doctor | <500ms | ~336ms |
 
-_Note: CLI times include ~300ms Node.js startup. In-process library calls are ~10-50ms._
+*Note: CLI times include ~~300ms Node.js startup.
+In-process library calls are ~~10-50ms.*
 
 ### 1.4 Security Testing
 
@@ -207,7 +210,7 @@ Cross-platform CI workflow configured in `.github/workflows/ci.yml`:
 - ✅ Coverage reporting job
 - ✅ Benchmark job
 
----
+* * *
 
 ## Part 2: Agent Manual Testing
 
@@ -229,7 +232,7 @@ Testing performed manually during development (not automated, but verified worki
 - ✅ Repository initialization creates `.tbd/` and `.tbd-sync/` directories
 - ✅ Issue files created in `.tbd-sync/issues/` with correct naming
 - ✅ Config file at `.tbd/config.yml` is valid YAML
-- ✅ Git operations don't interfere with user's working tree
+- ✅ Git operations don’t interfere with user’s working tree
 
 ### 2.3 Import from Beads
 
@@ -243,14 +246,14 @@ Testing performed manually during development (not automated, but verified worki
 - ✅ Invalid command shows helpful error and usage
 - ✅ Missing required arguments show clear error messages
 - ✅ Invalid issue ID format rejected with explanation
-- ✅ Non-existent issue shows "Issue not found" error
+- ✅ Non-existent issue shows “Issue not found” error
 
----
+* * *
 
 ## Part 3: User Review Required
 
-The following items require human review since they involve product decisions, UX judgment,
-or areas beyond what automated tests can verify.
+The following items require human review since they involve product decisions, UX
+judgment, or areas beyond what automated tests can verify.
 
 ### 3.1 Engineering Review
 
@@ -297,7 +300,8 @@ or areas beyond what automated tests can verify.
 
 ### 3.3 Import Validation (Production Data)
 
-The repository has `.beads/issues.jsonl` with 120 tracked issues. To validate import:
+The repository has `.beads/issues.jsonl` with 120 tracked issues.
+To validate import:
 
 ```bash
 # Initialize fresh tbd (remove existing)
@@ -333,35 +337,36 @@ If testing remote sync functionality:
 - [ ] Test `tbd sync --push` and `tbd sync --pull`
 - [ ] Test conflict resolution with concurrent edits
 
----
+* * *
 
 ## Part 4: Open Questions
 
 ### 4.1 Requiring User Decision
 
 1. **npm Registry Setup**: Release preparation (changesets, npm publish) requires user
-   action to configure npm credentials and initial publish. Should this happen before
-   or after merging to main?
+   action to configure npm credentials and initial publish.
+   Should this happen before or after merging to main?
 
-2. **GitHub Token for PR**: `GH_TOKEN` is not configured in this environment. User needs
-   to either:
+2. **GitHub Token for PR**: `GH_TOKEN` is not configured in this environment.
+   User needs to either:
    - Set up `GH_TOKEN` for automated PR creation
    - Create PR manually via GitHub web interface
 
 ### 4.2 Technical Clarifications Needed
 
-1. **CI Verification**: Cross-platform CI is configured but not yet run. First PR will
-   verify the matrix passes on all platforms. Should blocking issues be resolved before
-   merge?
+1. **CI Verification**: Cross-platform CI is configured but not yet run.
+   First PR will verify the matrix passes on all platforms.
+   Should blocking issues be resolved before merge?
 
 2. **Import `--validate` Scope**: Should `tbd import --validate` also run performance
    benchmarks automatically, or should benchmarks remain a separate script?
 
 3. **Sync Branch Permissions**: When pushing to remote sync branch, what happens if user
-   doesn't have push access? Is the error message clear enough?
+   doesn’t have push access?
+   Is the error message clear enough?
 
-4. **Windows Path Handling**: Tests run on Linux. Are there any known Windows-specific
-   path issues to watch for?
+4. **Windows Path Handling**: Tests run on Linux.
+   Are there any known Windows-specific path issues to watch for?
 
 ### 4.3 Future Enhancements (Out of Scope for V1)
 
@@ -374,26 +379,26 @@ These are documented for future consideration but not blocking for V1:
 - Additional dependency types (related, discovered-from)
 - Comments/Messages entity type
 
----
+* * *
 
 ## Validation Checklist Summary
 
-| Category          | Items                         | Status                |
-| ----------------- | ----------------------------- | --------------------- |
-| Unit Tests        | 104 tests, 97.47% coverage    | ✅ Automated          |
-| Tryscript Tests   | 189 CLI integration tests     | ✅ Automated          |
-| Performance       | 5K issue benchmark            | ✅ Automated          |
-| Security          | Code review + fixes           | ✅ Complete           |
-| CI Configuration  | Cross-platform workflow       | ✅ Configured         |
-| Build/Lint        | TypeScript, ESLint, Prettier  | ✅ Passing            |
-| Import            | --from-beads, --validate      | ✅ Tested             |
-| Local Workflow    | Dev commands, git hooks       | ✅ Agent verified     |
-| Engineering       | Architecture, types, security | ⏳ User review needed |
-| Product           | UX, help text, error messages | ⏳ User review needed |
-| Production Import | Beads → tbd validation        | ⏳ User verification  |
-| npm Publish       | Credentials, initial publish  | ⏳ User action needed |
+| Category | Items | Status |
+| --- | --- | --- |
+| Unit Tests | 104 tests, 97.47% coverage | ✅ Automated |
+| Tryscript Tests | 189 CLI integration tests | ✅ Automated |
+| Performance | 5K issue benchmark | ✅ Automated |
+| Security | Code review + fixes | ✅ Complete |
+| CI Configuration | Cross-platform workflow | ✅ Configured |
+| Build/Lint | TypeScript, ESLint, Prettier | ✅ Passing |
+| Import | --from-beads, --validate | ✅ Tested |
+| Local Workflow | Dev commands, git hooks | ✅ Agent verified |
+| Engineering | Architecture, types, security | ⏳ User review needed |
+| Product | UX, help text, error messages | ⏳ User review needed |
+| Production Import | Beads → tbd validation | ⏳ User verification |
+| npm Publish | Credentials, initial publish | ⏳ User action needed |
 
----
+* * *
 
 ## Next Steps
 

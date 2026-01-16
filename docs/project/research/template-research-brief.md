@@ -8,7 +8,7 @@
 
 - [Link to related feature specs, architecture docs, or other research]
 
----
+* * *
 
 ## Executive Summary
 
@@ -22,7 +22,7 @@
 
 3. [Additional questions...]
 
----
+* * *
 
 ## Research Methodology
 
@@ -34,7 +34,7 @@
 
 [List types of sources consulted - documentation, academic papers, blog posts, code repositories, etc.]
 
----
+* * *
 
 ## Research Findings
 
@@ -54,28 +54,28 @@
 
 **Assessment**: [Brief evaluation of this approach/technology/method]
 
----
+* * *
 
 #### [Subtopic 1.2]
 
 [Continue pattern...]
 
----
+* * *
 
 ### [Category 2]
 
 [Continue pattern...]
 
----
+* * *
 
 ## Comparative Analysis
 
 [If applicable: Compare different approaches, technologies, or solutions]
 
-| Criteria    | Option A | Option B | Option C |
-| ----------- | -------- | -------- | -------- |
-| [Criterion] | [Value]  | [Value]  | [Value]  |
-| [Criterion] | [Value]  | [Value]  | [Value]  |
+| Criteria | Option A | Option B | Option C |
+| --- | --- | --- | --- |
+| [Criterion] | [Value] | [Value] | [Value] |
+| [Criterion] | [Value] | [Value] | [Value] |
 
 **Strengths/Weaknesses Summary**:
 
@@ -85,7 +85,7 @@
 
 - **Option C**: [Brief assessment]
 
----
+* * *
 
 ## Best Practices
 
@@ -97,7 +97,7 @@
 
 3. [Continue...]
 
----
+* * *
 
 ## Open Research Questions
 
@@ -107,7 +107,7 @@
 
 2. **[Question]**: [Why this matters, next steps to answer]
 
----
+* * *
 
 ## Recommendations
 
@@ -131,7 +131,7 @@
 
 [Brief description of viable alternatives and when they might be appropriate]
 
----
+* * *
 
 ## References
 
@@ -143,7 +143,7 @@
 
 - [Source 3]
 
----
+* * *
 
 ## Appendices
 

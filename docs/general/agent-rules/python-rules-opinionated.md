@@ -3,11 +3,10 @@ description: Python Coding Guidelines - Oppinionated Additions
 globs: *.py, pyproject.toml
 alwaysApply: false
 ---
-
 # Python Coding Guidelines - Oppinionated Additions
 
 These are additional rules for a modern Python project using uv.
-Use these rules _in addition to_ all rules in @python-rules.md.
+Use these rules *in addition to* all rules in @python-rules.md.
 
 ## Always Use `uv`!
 

@@ -13,7 +13,7 @@ packaging/monorepo setup as described in the plan).
 I did **not** review an actual repository codebase beyond what’s described in the plan
 doc (since only the docs were provided).
 
----
+* * *
 
 ## Executive summary
 
@@ -47,15 +47,16 @@ If you address the P0 items below before coding, the implementation effort shoul
 significantly smoother and the resulting tool will be more reliable, testable, and
 agent-friendly.
 
----
+* * *
 
 ## P0 issues to resolve before implementation proceeds
 
-### P0-1: Decide and standardize "optional vs null" fields across schema + serialization + examples
+### P0-1: Decide and standardize “optional vs null” fields across schema + serialization + examples
 
 ✅ **COMPLETED** - Already addressed in skeleton implementation.
 
-**Resolution:** The current `schemas.ts` already uses `.nullable().optional()` for all conceptually nullable fields (lines 104-124). There's an explicit comment explaining:
+**Resolution:** The current `schemas.ts` already uses `.nullable().optional()` for all
+conceptually nullable fields (lines 104-124). There’s an explicit comment explaining:
 
 ```typescript
 // Note: Fields use .nullable() in addition to .optional() because
@@ -64,7 +65,8 @@ agent-friendly.
 
 Fields correctly using `.nullable().optional()`:
 
-- `description`, `notes`, `assignee`, `parent_id`, `due_date`, `deferred_until`, `created_by`, `closed_at`, `close_reason`
+- `description`, `notes`, `assignee`, `parent_id`, `due_date`, `deferred_until`,
+  `created_by`, `closed_at`, `close_reason`
 
 **Why it matters:** Your canonical serialization rules and examples emphasize **explicit
 nulls**, but the design’s Zod schemas use `.optional()` in multiple places (which
@@ -103,7 +105,7 @@ Given your canonicalization + hashing goals, the simplest consistent approach is
 - Hash is stable under round-trip.
 - Schema accepts all examples in docs.
 
----
+* * *
 
 ### P0-2: Fix ID collision probability math (and decide if 6-hex is still acceptable)
 
@@ -113,8 +115,10 @@ Given your canonicalization + hashing goals, the simplest consistent approach is
 
 - User-facing IDs start short (3-4 chars) and grow as needed to prevent collisions
 - Example: `bd-ab39x`, `bd-k7m2` (more human-friendly than pure hex)
-- IDs are **fixed once assigned** (critical for issue trackers where IDs are embedded everywhere)
-- Base36 gives ~46,656 possibilities with 3 chars, ~1.6M with 4 chars, ~60M with 5 chars
+- IDs are **fixed once assigned** (critical for issue trackers where IDs are embedded
+  everywhere)
+- Base36 gives ~~46,656 possibilities with 3 chars, ~~1.6M with 4 chars, ~60M with 5
+  chars
 - This matches Beads behavior which works well in practice
 
 **Action items:**
@@ -125,7 +129,7 @@ Given your canonicalization + hashing goals, the simplest consistent approach is
 - [ ] Start with 4 chars, extend to 5+ only when collision detected
 - [x] Collision retry is already in the design
 
-**Why it matters:** The design doc's collision probability numbers for 24-bit IDs are
+**Why it matters:** The design doc’s collision probability numbers for 24-bit IDs are
 incorrect by orders of magnitude.
 Even if you keep 6 hex chars, the doc should not mislead implementers/users.
 
@@ -136,24 +140,27 @@ For a uniform random 24-bit ID space (16,777,216 possibilities):
 - ~**99%** occurs around **12,431** generated IDs
 
 That does **not** mean collisions are common day-to-day (expected collisions at 5,000
-IDs is still < 1), but the stated "1% at 13,000" is backwards.
+IDs is still < 1), but the stated “1% at 13,000” is backwards.
 
 **Recommendation:**
 
 - Correct the math in the design doc.
-- Keep the implementation's collision handling (check existence + retry), and explicitly
+- Keep the implementation’s collision handling (check existence + retry), and explicitly
   document that **remote/dual-node collisions** are handled during sync by treating it
   as a create conflict and preserving the loser in attic.
-- Optionally consider 8 hex chars (32-bit) _later_ if compatibility allows (but note
-  your "stability contract" says 6 hex).
+- Optionally consider 8 hex chars (32-bit) *later* if compatibility allows (but note
+  your “stability contract” says 6 hex).
 
----
+* * *
 
 ### P0-3: Clarify and align the Git write strategy (worktree commit vs plumbing + isolated index)
 
 ☑️ **REVIEWED** - Design doc already specifies hidden worktree approach (Option A).
 
-**Assessment:** The design doc (§2.3 "Hidden Worktree Model", Decision 7) clearly endorses Option A - all sync-branch operations happen inside `.tbd/.worktree/`. The plan pseudocode may have mixed approaches that should be clarified to consistently use worktree commits.
+**Assessment:** The design doc (§2.3 “Hidden Worktree Model”, Decision 7) clearly
+endorses Option A - all sync-branch operations happen inside `.tbd/.worktree/`. The plan
+pseudocode may have mixed approaches that should be clarified to consistently use
+worktree commits.
 
 **Resolution:**
 
@@ -200,7 +207,7 @@ reason not to), then:
 - Update design doc invariants accordingly (or clarify that “isolated index” is only
   required if you’re writing from the main worktree context).
 
----
+* * *
 
 ### P0-4: Add missing CLI flags + fix option parsing bugs (quiet/no-sync/automation)
 
@@ -231,12 +238,12 @@ or incorrectly wired.
    does not define it.
 
 2. Commander negated option: `.option('--no-sync')` yields a property named **`sync`**,
-   not `noSync`. The plan reads `opts.noSync`, which means `--no-sync` likely won't
+   not `noSync`. The plan reads `opts.noSync`, which means `--no-sync` likely won’t
    work.
 
 3. OutputManager uses `ctx.quiet` but ctx.quiet depends on (1).
 
-4. Sync retry code calls `ctx.output.warn(...)`, but OutputManager in plan doesn't
+4. Sync retry code calls `ctx.output.warn(...)`, but OutputManager in plan doesn’t
    define `warn`.
 
 5. Env var name mismatch:
@@ -259,20 +266,22 @@ or incorrectly wired.
   - `TBD_ACTOR` (and optionally accept legacy `tbd_ACTOR` as fallback)
 
 - Add automation-friendly flags recommended in the CLI patterns doc:
-  - `--no-progress` (disables any spinners/progress output; even if you don't add
+  - `--no-progress` (disables any spinners/progress output; even if you don’t add
     spinners now, this protects future changes)
   - `--non-interactive` (ensures no prompts; default in CI)
   - `--yes` or `--force` where destructive-ish behavior exists (optional but helpful)
 
----
+* * *
 
 ### P0-5: Fix shell injection risk + portability issues in `search`
 
 ☑️ **REVIEWED** - Critical security consideration for implementation.
 
-**Assessment:** This is a valid security concern. The implementation MUST:
+**Assessment:** This is a valid security concern.
+The implementation MUST:
 
-1. Use `spawn`/`execFile` with args array (no shell) - aligns with CLI best practices doc
+1. Use `spawn`/`execFile` with args array (no shell) - aligns with CLI best practices
+   doc
 2. Use `rg --json` or `git grep` for cross-platform safety
 3. Never use `grep` on Windows (unavailable)
 
@@ -308,13 +317,15 @@ break searches with spaces/quotes.
 - Ensure output parsing works on Windows paths (drive letters contain `:` which breaks
   `path:line:match` parsing unless you use structured output).
 
----
+* * *
 
 ### P0-6: Atomic write must handle Windows replace semantics + temp cleanup
 
 ☑️ **REVIEWED** - Use `atomically` package (same as markform reference repo).
 
-**Resolution:** The markform reference repo uses the `atomically` package (v2.1.0) for cross-platform atomic writes. This handles:
+**Resolution:** The markform reference repo uses the `atomically` package (v2.1.0) for
+cross-platform atomic writes.
+This handles:
 
 - Windows replace semantics (destination exists case)
 - fsync for durability
@@ -335,7 +346,7 @@ await writeFile(path, content, { encoding: 'utf-8' });
 
 **Why it matters:** The design doc explicitly calls out that `rename()` may fail on
 Windows if the destination exists.
-The plan's atomicWrite snippet uses `fs.rename(tmp, path)` which is not cross-platform
+The plan’s atomicWrite snippet uses `fs.rename(tmp, path)` which is not cross-platform
 safe.
 
 **Recommendations:**
@@ -348,13 +359,14 @@ safe.
 - Add orphan temp cleanup (design suggests deleting stale `.tmp.*` files older than a
   threshold).
 
----
+* * *
 
 ### P0-7: Import plan is not aligned with design and contains correctness errors
 
 ☑️ **REVIEWED** - Valid concerns for implementation phase.
 
-**Assessment:** These are implementation-level issues in the plan pseudocode. The actual implementation should:
+**Assessment:** These are implementation-level issues in the plan pseudocode.
+The actual implementation should:
 
 1. Read JSONL only (no SQLite) - aligns with design goals
 2. Use correct Beads path: `.beads/issues.jsonl`
@@ -376,7 +388,7 @@ Key problems in the plan import section:
   references `beads-sync.jsonl`).
 - Async/await bugs: `generateUniqueId(storage)` is async but used synchronously.
 - Example IDs include non-hex values (`is-x7y8z9`) which violates IssueId format.
-- "Pending dependency targets" (`pending:...`) violate schema (`target` must be
+- “Pending dependency targets” (`pending:...`) violate schema (`target` must be
   IssueId).
 - Priority range is inconsistent (0–4 vs 0–5 appears in different places).
 
@@ -389,16 +401,16 @@ Key problems in the plan import section:
 4. Merge behavior: reuse same merge machinery as sync or define import-specific rules.
 5. Never persist invalid IDs to issue files.
 
----
+* * *
 
 ## P1 issues (important, but can be addressed shortly after P0)
 
-### P1-1: Dependencies merge strategy should be "merge_by_id", not "union"
+### P1-1: Dependencies merge strategy should be “merge_by_id”, not “union”
 
 ☑️ **REVIEWED** - Valid recommendation for implementation.
 
-The plan uses `union` for `dependencies`. This will not correctly handle "same
-target/type but updated metadata" and can lead to duplicates unless union logic is
+The plan uses `union` for `dependencies`. This will not correctly handle “same
+target/type but updated metadata” and can lead to duplicates unless union logic is
 specialized.
 
 Recommendation:
@@ -465,7 +477,7 @@ Recommendation:
 
 ☑️ **REVIEWED** - Minor clarification needed.
 
-- "No flow style" but examples include `extensions: {}` and `labels: []` (flow style).
+- “No flow style” but examples include `extensions: {}` and `labels: []` (flow style).
 
 Recommendation:
 
@@ -473,7 +485,7 @@ Recommendation:
   - Block style for non-empty collections
   - Flow style allowed for empty `{}` and `[]`
 
-### P1-6: `--dir` / `--db` must be threaded through _all_ path usage
+### P1-6: `--dir` / `--db` must be threaded through *all* path usage
 
 ☑️ **REVIEWED** - Good practice recommendation.
 
@@ -482,17 +494,20 @@ Recommendation:
 
 - Create a single `Paths` resolver and use it everywhere.
 
----
+* * *
 
 ## Alignment with CLI best practices (research-modern-typescript-cli-patterns)
 
 ✅ **VERIFIED** - Current skeleton already implements most best practices.
 
-What's aligned already (good):
+What’s aligned already (good):
 
-- BaseCommand + OutputManager concept is present. ✅
-- Dual output (text + JSON) is present. ✅
-- Exit code convention (0/1/2) is stated. ✅
+- BaseCommand + OutputManager concept is present.
+  ✅
+- Dual output (text + JSON) is present.
+  ✅
+- Exit code convention (0/1/2) is stated.
+  ✅
 - Golden tests focus on stable output (NO_COLOR). ✅
 - `--non-interactive` flag defined ✅
 - `--yes` flag defined ✅
@@ -518,13 +533,13 @@ Key best-practice gaps to close:
 4. **Avoid shell execution** ☑️ FOR IMPLEMENTATION
    - Use spawn/execFile for git and search (guidance provided in P0-5)
 
----
+* * *
 
 ## Alignment with monorepo best practices (research-modern-typescript-monorepo-patterns)
 
 ✅ **VERIFIED** - Current skeleton follows markform reference repo patterns.
 
-The plan's described setup is broadly aligned:
+The plan’s described setup is broadly aligned:
 
 - pnpm workspace, tsdown ESM-only build, exports map, changesets, CI/release workflows,
   publint checks (all implemented).
@@ -554,25 +569,26 @@ The plan's described setup is broadly aligned:
 - lefthook for git hooks ✅
 - publint validation ✅
 
----
+* * *
 
 ## Doc edits recommended for editors (design + plan)
 
 ### Design doc edits
 
-1. ☑️ **Update ID generation to base36** in "2.5 ID Generation" - use base36 IDs like Beads
-   for better UX (starts short, grows as needed)
+1. ☑️ **Update ID generation to base36** in “2.5 ID Generation” - use base36 IDs like
+   Beads for better UX (starts short, grows as needed)
 
 2. ✅ **Resolve optional vs null**: DONE in skeleton
    - Schemas already use `.nullable().optional()` for fields shown as `null` in examples
 
 3. ☑️ **Clarify the Git write path**: Design doc specifies hidden worktree (§2.3)
-   - V1 uses "commit inside hidden worktree" approach
+   - V1 uses “commit inside hidden worktree” approach
 
 4. ☑️ **Standardize env var name** to `TBD_ACTOR` (uppercase)
 
 5. ☑️ **Clarify dependency direction**:
-   - Document whether `dependencies: [{type:"blocks", target:X}]` means "X blocks this issue"
+   - Document whether `dependencies: [{type:"blocks", target:X}]` means “X blocks this
+     issue”
    - Ensure `dep add <id> <target-id>` wording reflects that direction
 
 6. ☑️ **Unify attic file format**:
@@ -592,7 +608,7 @@ The plan's described setup is broadly aligned:
 6. ☑️ Import section: remove SQLite, fix paths, use two-pass ID mapping
 7. ✅ Stats enums are complete in skeleton schema
 
----
+* * *
 
 ## Engineering backlog for agents (prioritized, actionable)
 
@@ -614,7 +630,8 @@ The plan's described setup is broadly aligned:
     CLI runs.
 
 - [x] **Fix CLI global flags**
-  - ✅ `--quiet`, `--non-interactive`, `--json`, `--color`, `--yes`, `--no-sync` all implemented
+  - ✅ `--quiet`, `--non-interactive`, `--json`, `--color`, `--yes`, `--no-sync` all
+    implemented
   - [ ] Add `--dir/--db`, `--actor` options
 
 - [ ] **Search backend**
@@ -635,13 +652,14 @@ The plan's described setup is broadly aligned:
 
 - [ ] Merge-by-id for dependencies; deterministic sort.
 - [ ] Tie-breakers for LWW conflicts (avoid oscillation).
-- [x] Stats includes all enums. ✅ Schema has complete enums
+- [x] Stats includes all enums.
+  ✅ Schema has complete enums
 - [ ] Config set parsing (typed): parse booleans/numbers/null via YAML parsing of the
-      value string.
+  value string.
 - [ ] Add `Clock` + `Random` injection for test determinism (env override for golden
-      tests).
+  tests).
 
----
+* * *
 
 ## Additional golden tests I strongly recommend adding (to prevent regressions)
 
@@ -654,7 +672,7 @@ The plan's described setup is broadly aligned:
 7. **Attic restore** creates new issue version and writes a new attic entry for
    displaced current value
 
----
+* * *
 
 ## Closing note
 

@@ -4,7 +4,7 @@ you can paste into the spec review doc or a GitHub issue.
 This review is based on the V2 Phase 1 spec, plus the earlier V1 spec and the V1 design
 review you referenced.
 
----
+* * *
 
 ## High-level review
 
@@ -38,7 +38,7 @@ This is the top thing to tighten, both in spec clarity and implementation strate
 If Phase 1 is aiming for “boring and reliable,” the Git write approach should be made
 **unambiguously safe** and ideally “hard to accidentally break a repo.”
 
----
+* * *
 
 ## Creative ideas: alternate approaches or scope adjustments
 
@@ -48,7 +48,7 @@ Pick what keeps Phase 1 simplest and safest.
 ### 1) Make sync writes “boring” by using an internal worktree (even if you avoid user-facing worktrees)
 
 V1 had an explicit hidden worktree for sync operations.
-V2 removed it (good for user mental model), but the _implementation_ still needs a safe
+V2 removed it (good for user mental model), but the *implementation* still needs a safe
 place to stage/commit sync branch changes.
 A hidden worktree is often the simplest correct way to ensure you never touch the user’s
 current index.
@@ -135,23 +135,23 @@ You can keep Phase 1 non-goals intact while reserving a clean seam for Phase 2:
 
 This was a big theme in the V1 review (“bridge runtime, not every agent integrates”).
 
----
+* * *
 
 ## Editor-ready issue list for V2 Phase 1 spec
 
-Format: **[V2-###] [Severity]** — _Title_ **Where:** section **Problem:** what’s
+Format: **[V2-###] [Severity]** — *Title* **Where:** section **Problem:** what’s
 wrong/unclear **Suggested change:** concrete fix
 
 You can copy/paste this as a checklist.
 
----
+* * *
 
 ### Git layer correctness and safety
 
 - **[V2-001] [BLOCKER] Git write flow can clobber user index / staged changes**
   **Where:** §3.3.2 “Writing to Sync Branch” **Problem:** The sequence
   `git read-tree tbd-sync; git add ...; git write-tree` as written operates on the
-  _current repo index_, which risks destroying/overwriting a developer’s staged changes
+  *current repo index*, which risks destroying/overwriting a developer’s staged changes
   (and generally assumes the index is “owned” by tbd).
   **Suggested change:** Specify that all plumbing operations MUST run with an isolated
   index/worktree (e.g., `GIT_INDEX_FILE=...` and `GIT_WORK_TREE=...`) or use an internal
@@ -165,6 +165,7 @@ You can copy/paste this as a checklist.
   Meanwhile main branch structure omits `.tbd-sync/` entirely.
   **Suggested change:** Add an explicit subsection: “Local storage model.”
   Choose one:
+
   1. `.tbd-sync/` exists locally (gitignored on main) and is used as a workspace, OR
 
   2. issues live under `.tbd/cache/...` locally and are written into git objects
@@ -178,6 +179,7 @@ You can copy/paste this as a checklist.
   used as a local workspace on main, it will show as untracked unless explicitly
   ignored. Current `.tbd/.gitignore` ignores only `cache/`. **Suggested change:** If
   `.tbd-sync/` exists on main working tree, specify how it is ignored:
+
   - recommend adding `.tbd-sync/` to top-level `.gitignore` OR
 
   - write to `.git/info/exclude` in `tbd init` OR
@@ -193,10 +195,11 @@ You can copy/paste this as a checklist.
   that consistently for reads after fetch, then merge into local.
 
 - **[V2-005] [MAJOR] Push retry strategy is underspecified** **Where:** §3.3.2 “If push
-  rejected…” **Problem:** “Pull, merge, retry (max 3 attempts)” doesn’t define _how_ you
+  rejected…” **Problem:** “Pull, merge, retry (max 3 attempts)” doesn’t define *how* you
   merge (merge base? re-run merge algorithm file-by-file?
   fast-forward only?), and what the failure mode is after 3 attempts.
   **Suggested change:** Specify the exact loop:
+
   - fetch remote head
 
   - compute diff between local prepared commit and remote
@@ -215,7 +218,7 @@ You can copy/paste this as a checklist.
   baseline as `state.json.last_successful_sync_commit` (local-only), and compute pending
   changes via `git diff --name-status <baseline>..origin/tbd-sync` plus local dirty set.
 
----
+* * *
 
 ### Conflict resolution semantics
 
@@ -233,6 +236,7 @@ You can copy/paste this as a checklist.
   timestamps are equal (common with coarse clocks, imports, or identical writes).
   Without one, you can get nondeterministic merges or oscillations.
   **Suggested change:** Define: if `updated_at` equal, prefer:
+
   1. remote over local (or vice versa), then
 
   2. if still equal, prefer lexical compare of content hash, then
@@ -244,6 +248,7 @@ You can copy/paste this as a checklist.
   `extensions.github` and remote has `extensions.my-tool`, LWW on the whole record will
   drop one side. That contradicts “preserve third-party data.”
   **Suggested change:** Make `extensions` a “merge_record_by_key” strategy:
+
   - union keys
 
   - per key, lww (with attic) or prefer remote
@@ -256,6 +261,7 @@ You can copy/paste this as a checklist.
   Union/merge operations can produce different orderings across implementations,
   changing hashes and causing spurious conflicts.
   **Suggested change:** Add ordering rules:
+
   - `labels`: always sorted lexicographically
 
   - `dependencies`: sorted by `target`
@@ -278,7 +284,7 @@ You can copy/paste this as a checklist.
   winners; attic preserves losers; optionally add a future HLC/monotonic timestamp
   enhancement.”
 
----
+* * *
 
 ### IDs and mapping
 
@@ -289,6 +295,7 @@ You can copy/paste this as a checklist.
   Collision probability statement “1 in 16 million at 4 hex chars” is incorrect (16
   million corresponds to 6 hex chars).
   **Suggested change:** Decide and state:
+
   - If you want 24-bit IDs, generate 3 bytes and use 6 hex chars.
 
   - If you want 32-bit IDs, use 8 hex chars.
@@ -298,7 +305,7 @@ You can copy/paste this as a checklist.
   §2.4 regex `^is-[a-f0-9]{4,6}$` **Problem:** Supporting 4-hex IDs implies only 65,536
   possibilities; collisions become plausible even with moderate concurrency and
   long-lived repos. **Suggested change:** Make minimum 6 (or 8) for stored IDs;
-  optionally allow user to _type_ short prefixes that resolve uniquely.
+  optionally allow user to *type* short prefixes that resolve uniquely.
 
 - **[V2-015] [MAJOR] Display-prefix compatibility vs import mapping is inconsistent**
   **Where:** §5.5 “IDs change” + §5.1.4 mapping file **Problem:** One part implies Beads
@@ -306,6 +313,7 @@ You can copy/paste this as a checklist.
   newly generated Tbd IDs (not necessarily same suffix).
   **Suggested change:** Make this consistent.
   Options:
+
   - Preserve suffix when importing (prefer `is-<same>` unless collision), OR
 
   - Clearly state that imported IDs change (and `display.id_prefix` only changes prefix,
@@ -317,7 +325,7 @@ You can copy/paste this as a checklist.
   **Suggested change:** Store per-beads-id mapping files (file-per-entity) or define
   merge semantics for `beads.json` as a “map union with conflict on key mismatch.”
 
----
+* * *
 
 ### File formats and normalization
 
@@ -349,7 +357,7 @@ You can copy/paste this as a checklist.
   **Suggested change:** Only cleanup temp files older than a threshold (e.g., >1h) or
   include unique prefixes and only remove ones matching current node_id.
 
----
+* * *
 
 ### Data model clarity
 
@@ -367,6 +375,7 @@ You can copy/paste this as a checklist.
   selection (git config?
   env var? hostname? agent name?), nor whether `created_by`/`updated_by` is recorded.
   **Suggested change:** Define:
+
   - actor resolution order (e.g., `--actor` > `tbd_ACTOR` > git user.email > hostname)
 
   - which fields are set on create/update/close/reopen.
@@ -375,6 +384,7 @@ You can copy/paste this as a checklist.
   merge rules **Problem:** If one side closes and other edits title, merge needs
   deterministic behavior for `closed_at` and `status`. **Suggested change:** Add
   explicit rules:
+
   - `status` LWW
 
   - if status becomes `closed`, ensure `closed_at` is set (and possibly LWW)
@@ -390,6 +400,7 @@ You can copy/paste this as a checklist.
   IssueSchema includes `notes`; CLI commands don’t expose it **Problem:** If notes are
   “Beads parity,” Phase 1 should support reading/updating notes.
   **Suggested change:** Add:
+
   - `tbd update <id> --notes <text>` and `--notes-file <path>`
 
   - `tbd show` should display notes separately from description.
@@ -401,7 +412,7 @@ You can copy/paste this as a checklist.
   input and convert to canonical UTC midnight, or require full RFC3339 but document
   loudly.
 
----
+* * *
 
 ### CLI compatibility and UX
 
@@ -411,6 +422,7 @@ You can copy/paste this as a checklist.
   Spec lists commands, but doesn’t define: output stability, exit codes, JSON schema
   stability, or error messages.
   **Suggested change:** Add a short “Compatibility Contract” section:
+
   - stable JSON keys for `--json`
 
   - stable exit codes
@@ -427,6 +439,7 @@ You can copy/paste this as a checklist.
   Attic sections vs CLI commands **Problem:** You can say “no data loss,” but without a
   way to list/restore attic entries, users can’t recover without manual file spelunking.
   **Suggested change:** Add at least:
+
   - `tbd attic list [<id>]`
 
   - `tbd attic show <id> [--field ...] [--latest]`
@@ -453,7 +466,7 @@ You can copy/paste this as a checklist.
   **Suggested change:** Add note: “ready uses index if enabled; otherwise loads
   dependency targets on demand.”
 
----
+* * *
 
 ### Import/migration specifics
 
@@ -482,7 +495,7 @@ You can copy/paste this as a checklist.
   **Suggested change:** Consolidate tombstone/deletion policy in one place and reference
   it.
 
----
+* * *
 
 ### Performance/indexing details
 
@@ -490,6 +503,7 @@ You can copy/paste this as a checklist.
   Query Index interface **Problem:** JSON can’t represent `Map`/`Set` directly; spec as
   written is not implementable without a defined encoding.
   **Suggested change:** Define JSON encoding explicitly:
+
   - `issues` as object `{ [id]: IssueSummary }`
 
   - `by_status` as `{ [status]: string[] }`
@@ -500,6 +514,7 @@ You can copy/paste this as a checklist.
   **Where:** §6.1 Index **Problem:** “Hash of issues directory” can mean many things;
   doing it naïvely is O(n) file reads and defeats the purpose.
   **Suggested change:** Define checksum as either:
+
   - git tree hash of `.tbd-sync/issues` at the synced commit, OR
 
   - a rolling hash of (filename, mtime, size) stored in state.json, OR
@@ -513,7 +528,7 @@ You can copy/paste this as a checklist.
   **Suggested change:** Add a normative expectation that common operations use the local
   index and/or diff-based incremental updates.
 
----
+* * *
 
 ### Editorial/consistency nits (easy wins)
 
@@ -534,7 +549,7 @@ You can copy/paste this as a checklist.
   **Suggested change:** Add an explicit note: “CLI `--type` maps to schema field
   `kind`.”
 
----
+* * *
 
 ## A suggested “tightened Phase 1” spec stance (optional)
 
