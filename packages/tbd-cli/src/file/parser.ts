@@ -114,7 +114,8 @@ export function serializeIssue(issue: Issue): string {
   });
 
   // Build the file content
-  const parts = ['---', yaml.trim(), '---', ''];
+  // Note: No blank line between closing --- and body content
+  const parts = ['---', yaml.trim(), '---'];
 
   if (description) {
     parts.push(description.trim());
