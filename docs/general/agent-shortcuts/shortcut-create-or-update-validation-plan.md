@@ -7,7 +7,7 @@ Create a to-do list with the following items then perform all of them:
 1. **Confirm the relevant spec docs:** Check if a Plan Spec and/or Implementation Spec
    are in scope or provided by the user.
    You should find them in @docs/project/specs/active/ with plan- and impl- prefixes
-   (e.g., plan-YYYY-MM-DD-*.md and impl-YYYY-MM-DD-*.md).
+   (e.g., plan-YYYY-MM-DD-_.md and impl-YYYY-MM-DD-_.md).
    If isn’t clear, stop and ask!
 
 2. **Find or create a new Validation Plan doc:** Check if there is a Validation Plan

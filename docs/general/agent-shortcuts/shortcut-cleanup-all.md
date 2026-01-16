@@ -22,7 +22,6 @@ issues.
    reduce duplication.
 
 4. **Use of any types**: Review types and use actual types over `any`.
-
    - Don’t create explicit TypeScript interfaces with `any` types—either use proper
      types from your data sources or let TypeScript infer types automatically.
 
@@ -57,7 +56,6 @@ issues.
 
 13. **Review query performance**: Look at all database queries and review.
     Look for and fix:
-
     - N+1 queries to be more efficient where possible and carefully test any refactors
 
     - Replace `for` loops with sequential `await` with `Promise.all` for parallel

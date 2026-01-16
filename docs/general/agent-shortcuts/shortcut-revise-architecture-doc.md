@@ -13,7 +13,6 @@ Create a to-do list with the following items then perform all of them:
    or inaccuracies or areas it is out of date
 
 4. Do additional web searches on any related information, in particular:
-
    - Best practices
 
    - Latest docs on the libraries or frameworks mentioned
@@ -24,7 +23,6 @@ Create a to-do list with the following items then perform all of them:
    portions.
 
 6. At the end include a “Future Considerations” section with the following subsections:
-
    - “Open Questions”: List any possible bugs, issues, or areas of uncertainty around
      the design
 

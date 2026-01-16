@@ -4,9 +4,9 @@ Instructions:
 
 Create a to-do list with the following items then perform all of them:
 
-1. Make a list of all active specs in @docs/project/specs/active/*.md
+1. Make a list of all active specs in @docs/project/specs/active/\*.md
 
-2. For each distinct effort, check there is an *spec bead* (that is, an umbrella bead
+2. For each distinct effort, check there is an _spec bead_ (that is, an umbrella bead
    that covers the whole spec), for it.
    If there is not, create one.
    Always put “Spec: ” as a prefix on the top-level spec bead title.

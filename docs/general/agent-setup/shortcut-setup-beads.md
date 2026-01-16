@@ -43,12 +43,14 @@ bd prime   # Get workflow context
 For troubleshooting, see: https://github.com/steveyegge/beads/releases
 
 **If bd says `Error: no beads database found`:**
+
 ```bash
 bd init
 bd prime
 ```
 
 **If you encounter other errors:**
+
 ```bash
 bd doctor       # Check installation health
 bd doctor --fix # Fix any setup issues
@@ -63,22 +65,26 @@ projects). This uses git worktrees internally.
 preventing normal `git checkout main`. Use a dedicated branch like `beads-sync`.
 
 **Check current config:**
+
 ```bash
 bd config get sync.branch
 ```
 
 **For new projects** - add to `.beads/config.yaml`:
+
 ```yaml
 sync-branch: 'beads-sync'
 ```
 
 **For existing projects with wrong sync branch:**
+
 ```bash
 bd config set sync.branch beads-sync
 bd daemon stop && bd daemon start
 ```
 
 **If you see “fatal: ‘main’ is already used by worktree”:**
+
 ```bash
 # Fix: remove beads worktrees and change sync branch
 rm -rf .git/beads-worktrees .git/worktrees/beads-*
@@ -145,7 +151,6 @@ Use `0-4` or `P0-P4` format (NOT "high"/"medium"/"low"):
 3. **Work on it**: Implement, test, document
 
 4. **Discover new work?** Create linked issue:
-
    - `bd create "Found bug" -p 1 --deps "discovered-from:<parent-id>"`
 
    - Dependencies format: `'type:id'` or `'id'` (e.g.,

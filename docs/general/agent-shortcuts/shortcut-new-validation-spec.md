@@ -6,7 +6,7 @@ Create a to-do list with the following items then perform all of them:
 
 1. Make sure it’s clear what Plan Spec and Implementation docs are being validated.
    The user should provide them and you should find them in @docs/project/specs/active/
-   with plan- and impl- prefixes (e.g., plan-YYYY-MM-DD-*.md and impl-YYYY-MM-DD-*.md).
+   with plan- and impl- prefixes (e.g., plan-YYYY-MM-DD-_.md and impl-YYYY-MM-DD-_.md).
    If isn’t clear, stop and ask!
 
 2. Copy @docs/project/specs/template-validation-spec.md to

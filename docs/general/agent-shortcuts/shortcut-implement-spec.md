@@ -10,7 +10,7 @@ Create a to-do list with the following items then perform all of them:
    spec and @docs/general/agent-guidelines/general-tdd-guidelines.md to understand all
    project and testing rules.
 
-3. IMPORTANT: *Track all work with beads.* See docs/general/agent-setup/beads-setup.md
+3. IMPORTANT: _Track all work with beads._ See docs/general/agent-setup/beads-setup.md
    if `bd` is not set up yet.
    Check if beads exist for the spec already.
    If not, create them according to

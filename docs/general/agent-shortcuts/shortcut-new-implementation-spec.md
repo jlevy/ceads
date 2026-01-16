@@ -4,7 +4,7 @@ Instructions:
 
 1. Make sure it’s clear what plan spec will be used for this implementation.
    The user should provide it and you should find it in @docs/project/specs/active/ with
-   a plan- prefix (e.g., plan-YYYY-MM-DD-*.md).
+   a plan- prefix (e.g., plan-YYYY-MM-DD-\*.md).
    If isn’t clear, stop and ask!
 
 2. Copy @docs/project/specs/template-implementation-spec.md to

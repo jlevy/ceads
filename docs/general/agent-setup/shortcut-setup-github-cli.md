@@ -74,6 +74,7 @@ workflows using `gh`, create an access token at https://github.com/settings/toke
   to avoid sometimes confusing warnings from `gh`)
 
 Then add env vars to agent setup:
+
 ```
 GH_TOKEN="github_pat_xxxxx"
 GH_PROMPT_DISABLED=1

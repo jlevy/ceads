@@ -3,6 +3,7 @@ description: Automatic Shortcut Triggers
 globs:
 alwaysApply: true
 ---
+
 # Automatic Shortcut Triggers
 
 Before responding to ANY coding or development request, you MUST check if a shortcut
@@ -23,57 +24,57 @@ instructions.
 
 ### Spec Creation and Management
 
-| If user request involves... | Use shortcut |
-| --- | --- |
-| Creating a new feature plan | @shortcut-new-plan-spec.md |
-| Creating an implementation spec | @shortcut-new-implementation-spec.md |
-| Creating a validation/test spec | @shortcut-new-validation-spec.md |
-| Refining or clarifying an existing spec | @shortcut-refine-spec.md |
-| Updating a spec with new information | @shortcut-update-spec.md |
-| Updating specs progress and beads | @shortcut-update-specs-status.md |
+| If user request involves...             | Use shortcut                         |
+| --------------------------------------- | ------------------------------------ |
+| Creating a new feature plan             | @shortcut-new-plan-spec.md           |
+| Creating an implementation spec         | @shortcut-new-implementation-spec.md |
+| Creating a validation/test spec         | @shortcut-new-validation-spec.md     |
+| Refining or clarifying an existing spec | @shortcut-refine-spec.md             |
+| Updating a spec with new information    | @shortcut-update-spec.md             |
+| Updating specs progress and beads       | @shortcut-update-specs-status.md     |
 
 ### Implementation
 
-| If user request involves... | Use shortcut |
-| --- | --- |
+| If user request involves...               | Use shortcut                                    |
+| ----------------------------------------- | ----------------------------------------------- |
 | Creating implementation beads from a spec | @shortcut-new-implementation-beads-from-spec.md |
-| Implementing beads | @shortcut-implement-beads.md |
-| Implementing a spec (legacy, no beads) | @shortcut-implement-spec.md |
-| Exploratory coding / prototype / spike | @shortcut-coding-spike.md |
+| Implementing beads                        | @shortcut-implement-beads.md                    |
+| Implementing a spec (legacy, no beads)    | @shortcut-implement-spec.md                     |
+| Exploratory coding / prototype / spike    | @shortcut-coding-spike.md                       |
 
 ### Commits and PRs
 
-| If user request involves... | Use shortcut |
-| --- | --- |
-| Committing code | @shortcut-precommit-process.md → @shortcut-commit-code.md |
-| Creating a validation plan | @shortcut-create-or-update-validation-plan.md |
-| Creating a PR with validation | @shortcut-create-or-update-pr-with-validation-plan.md |
-| Creating a PR (simple, no validation plan) | @shortcut-create-pr-simple.md |
+| If user request involves...                | Use shortcut                                              |
+| ------------------------------------------ | --------------------------------------------------------- |
+| Committing code                            | @shortcut-precommit-process.md → @shortcut-commit-code.md |
+| Creating a validation plan                 | @shortcut-create-or-update-validation-plan.md             |
+| Creating a PR with validation              | @shortcut-create-or-update-pr-with-validation-plan.md     |
+| Creating a PR (simple, no validation plan) | @shortcut-create-pr-simple.md                             |
 
 ### Code Review
 
-| If user request involves... | Use shortcut |
-| --- | --- |
-| Reviewing code, specs, docs | @shortcut-review-all-code-specs-docs-convex.md |
-| Reviewing a PR and commenting | @shortcut-review-pr.md |
-| Reviewing and fixing a PR with beads | @shortcut-review-pr-and-fix-with-beads.md |
+| If user request involves...          | Use shortcut                                   |
+| ------------------------------------ | ---------------------------------------------- |
+| Reviewing code, specs, docs          | @shortcut-review-all-code-specs-docs-convex.md |
+| Reviewing a PR and commenting        | @shortcut-review-pr.md                         |
+| Reviewing and fixing a PR with beads | @shortcut-review-pr-and-fix-with-beads.md      |
 
 ### Research and Architecture
 
-| If user request involves... | Use shortcut |
-| --- | --- |
-| Research or technical investigation | @shortcut-new-research-brief.md |
-| Creating architecture documentation | @shortcut-new-architecture-doc.md |
+| If user request involves...         | Use shortcut                         |
+| ----------------------------------- | ------------------------------------ |
+| Research or technical investigation | @shortcut-new-research-brief.md      |
+| Creating architecture documentation | @shortcut-new-architecture-doc.md    |
 | Updating/revising architecture docs | @shortcut-revise-architecture-doc.md |
 
 ### Cleanup and Maintenance
 
-| If user request involves... | Use shortcut |
-| --- | --- |
-| Code cleanup or refactoring | @shortcut-cleanup-all.md |
-| Removing trivial tests | @shortcut-cleanup-remove-trivial-tests.md |
-| Updating docstrings | @shortcut-cleanup-update-docstrings.md |
-| Merging from upstream | @shortcut-merge-upstream.md |
+| If user request involves... | Use shortcut                              |
+| --------------------------- | ----------------------------------------- |
+| Code cleanup or refactoring | @shortcut-cleanup-all.md                  |
+| Removing trivial tests      | @shortcut-cleanup-remove-trivial-tests.md |
+| Updating docstrings         | @shortcut-cleanup-update-docstrings.md    |
+| Merging from upstream       | @shortcut-merge-upstream.md               |
 
 ## Common Shortcut Chains (Combos)
 

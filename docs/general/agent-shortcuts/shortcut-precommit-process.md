@@ -31,9 +31,7 @@ Create a to-do list with the following items then perform all of them:
 
    Make a checklist for this review based on the following list, then go through the
    checklist one step at a time.
-
    - Step 3.1: Ensure code follows general rules:
-
      - @docs/general/agent-rules/general-eng-assistant-rules.md
 
      - @docs/general/agent-rules/general-coding-rules.md
@@ -45,15 +43,12 @@ Create a to-do list with the following items then perform all of them:
      - @docs/general/agent-rules/general-testing-rules.md
 
    - Step 3.2: Ensure code follows language-specific rules:
-
      - @docs/general/agent-rules/typescript-rules.md
 
    - Step 3.3: Ensure code follows framework-specific rules:
-
      - @docs/general/agent-rules/convex-rules.md
 
    - Step 3.4: Ensure code follows backward-compatibility rules:
-
      - @docs/general/agent-rules/backward-compatibility-rules.md
 
 4. **Unit testing and integration testing:**

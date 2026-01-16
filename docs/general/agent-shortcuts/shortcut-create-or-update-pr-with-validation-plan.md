@@ -12,7 +12,7 @@ Create a to-do list with the following items then perform all of them:
 2. **Update the the relevant spec docs:** Check if a Plan Spec and/or Implementation
    Spec are in scope or provided by the user.
    You should find them in @docs/project/specs/active/ with plan- and impl- prefixes
-   (e.g., plan-YYYY-MM-DD-*.md and impl-YYYY-MM-DD-*.md).
+   (e.g., plan-YYYY-MM-DD-_.md and impl-YYYY-MM-DD-_.md).
    If isn’t clear, stop and ask!
 
 3. **Create or update the Validation Plan:** Carefully follow
@@ -25,7 +25,6 @@ Create a to-do list with the following items then perform all of them:
 5. **Create or update PR:** Use the GitHub CLI (`gh`) to file or update an existing
    GitHub PR for the current branch.
    In the GitHub PR description be sure:
-
    - Give a full overview of changes, referencing the appropriate specs.
      Be complete but concise.
      The reviewer can click through to files and specs or architecture docs as needed
@@ -39,7 +38,6 @@ Create a to-do list with the following items then perform all of them:
      @docs/general/agent-setup/github-cli-setup.md
 
 6. **Validate CI:** Use the `gh` CLI to be sure the CI system runs and passes.
-
    - Use `gh pr checks <pr_number>` to check on the build checks.
 
    - If any are failing, try reproduce locally.
@@ -49,5 +47,5 @@ Create a to-do list with the following items then perform all of them:
 
    - Make a fix and confirm it works on the next GitHub PR.
 
-   - You *MUST* make the build pass.
+   - You _MUST_ make the build pass.
      If you cannot or don’t know how, tell the user and ask for help.

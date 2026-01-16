@@ -14,30 +14,30 @@
 
 - [publint Documentation](https://publint.dev/docs/)
 
-* * *
+---
 
 ## Updating This Document
 
 ### Last Researched Versions
 
-| Tool / Package | Version | Check For Updates |
-| --- | --- | --- |
-| **Node.js** | 24 (LTS "Krypton") | [nodejs.org/releases](https://nodejs.org/en/about/previous-releases) — Active LTS until Oct 2026 |
-| **pnpm** | 10.27.0 | [github.com/pnpm/pnpm/releases](https://github.com/pnpm/pnpm/releases) |
-| **TypeScript** | ^5.9.0 | [github.com/microsoft/TypeScript/releases](https://github.com/microsoft/TypeScript/releases) — 5.9 adds `import defer`, `--module node20` |
-| **tsdown** | ^0.18.0 | [github.com/rolldown/tsdown/releases](https://github.com/rolldown/tsdown/releases) — 0.19.x in beta |
-| **publint** | ^0.3.0 | [npmjs.com/package/publint](https://www.npmjs.com/package/publint) |
-| **@changesets/cli** | ^2.29.0 | [github.com/changesets/changesets/releases](https://github.com/changesets/changesets/releases) |
-| **@types/node** | ^24.0.0 | Should match Node.js major version (^25.0.0 also available) |
-| **actions/checkout** | v6 | [github.com/actions/checkout/releases](https://github.com/actions/checkout/releases) — Latest (v6.0.2), requires Runner v2.329.0+ |
-| **actions/setup-node** | v6 | [github.com/actions/setup-node/releases](https://github.com/actions/setup-node/releases) |
-| **pnpm/action-setup** | v4 | [github.com/pnpm/action-setup/releases](https://github.com/pnpm/action-setup/releases) |
-| **changesets/action** | v1 | [github.com/changesets/action](https://github.com/changesets/action) |
-| **lefthook** | ^2.0.0 | [github.com/evilmartians/lefthook/releases](https://github.com/evilmartians/lefthook/releases) |
-| **npm-check-updates** | ^19.0.0 | [npmjs.com/package/npm-check-updates](https://www.npmjs.com/package/npm-check-updates) |
-| **tsx** | ^4.21.0 | [github.com/privatenumber/tsx/releases](https://github.com/privatenumber/tsx/releases) |
-| **prettier** | ^3.0.0 | [github.com/prettier/prettier/releases](https://github.com/prettier/prettier/releases) |
-| **eslint-config-prettier** | ^10.0.0 | [github.com/prettier/eslint-config-prettier/releases](https://github.com/prettier/eslint-config-prettier/releases) |
+| Tool / Package             | Version            | Check For Updates                                                                                                                         |
+| -------------------------- | ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| **Node.js**                | 24 (LTS "Krypton") | [nodejs.org/releases](https://nodejs.org/en/about/previous-releases) — Active LTS until Oct 2026                                          |
+| **pnpm**                   | 10.27.0            | [github.com/pnpm/pnpm/releases](https://github.com/pnpm/pnpm/releases)                                                                    |
+| **TypeScript**             | ^5.9.0             | [github.com/microsoft/TypeScript/releases](https://github.com/microsoft/TypeScript/releases) — 5.9 adds `import defer`, `--module node20` |
+| **tsdown**                 | ^0.18.0            | [github.com/rolldown/tsdown/releases](https://github.com/rolldown/tsdown/releases) — 0.19.x in beta                                       |
+| **publint**                | ^0.3.0             | [npmjs.com/package/publint](https://www.npmjs.com/package/publint)                                                                        |
+| **@changesets/cli**        | ^2.29.0            | [github.com/changesets/changesets/releases](https://github.com/changesets/changesets/releases)                                            |
+| **@types/node**            | ^24.0.0            | Should match Node.js major version (^25.0.0 also available)                                                                               |
+| **actions/checkout**       | v6                 | [github.com/actions/checkout/releases](https://github.com/actions/checkout/releases) — Latest (v6.0.2), requires Runner v2.329.0+         |
+| **actions/setup-node**     | v6                 | [github.com/actions/setup-node/releases](https://github.com/actions/setup-node/releases)                                                  |
+| **pnpm/action-setup**      | v4                 | [github.com/pnpm/action-setup/releases](https://github.com/pnpm/action-setup/releases)                                                    |
+| **changesets/action**      | v1                 | [github.com/changesets/action](https://github.com/changesets/action)                                                                      |
+| **lefthook**               | ^2.0.0             | [github.com/evilmartians/lefthook/releases](https://github.com/evilmartians/lefthook/releases)                                            |
+| **npm-check-updates**      | ^19.0.0            | [npmjs.com/package/npm-check-updates](https://www.npmjs.com/package/npm-check-updates)                                                    |
+| **tsx**                    | ^4.21.0            | [github.com/privatenumber/tsx/releases](https://github.com/privatenumber/tsx/releases)                                                    |
+| **prettier**               | ^3.0.0             | [github.com/prettier/prettier/releases](https://github.com/prettier/prettier/releases)                                                    |
+| **eslint-config-prettier** | ^10.0.0            | [github.com/prettier/eslint-config-prettier/releases](https://github.com/prettier/eslint-config-prettier/releases)                        |
 
 ### Reminders When Updating
 
@@ -46,7 +46,6 @@
 2. **Update the table** with new versions and any relevant notes
 
 3. **Search and update code examples** — version numbers appear in:
-
    - GitHub Actions workflows (CI and Release sections)
 
    - `tsdown.config.ts` examples (`target: "node24"`)
@@ -64,7 +63,7 @@
 
 6. **Review “Open Research Questions”** section for any resolved items
 
-* * *
+---
 
 ## Executive Summary
 
@@ -94,7 +93,7 @@ installs, with a seamless transition to public npm publishing when ready.
 4. How can packages support optional peer dependencies (like AI SDKs or protocol
    integrations) without forcing them on users?
 
-* * *
+---
 
 ## Research Methodology
 
@@ -116,7 +115,7 @@ recommendations from the TypeScript and JavaScript ecosystem maintainers.
 
 - Real-world monorepo implementations (Effect-TS, TresJS)
 
-* * *
+---
 
 ## Research Findings
 
@@ -162,7 +161,7 @@ prefer-workspace-packages=true
 
 - [Complete Monorepo Guide 2025](https://jsdev.space/complete-monorepo-guide/)
 
-* * *
+---
 
 #### Monorepo Structure Strategy
 
@@ -214,7 +213,7 @@ Internal code organization (`core/`, `cli/`, `adapters/`) creates natural split 
 
 - [Wisp CMS: How to Bootstrap a Monorepo with PNPM](https://www.wisp.blog/blog/how-to-bootstrap-a-monorepo-with-pnpm-a-complete-guide)
 
-* * *
+---
 
 ### 2. TypeScript Configuration
 
@@ -270,7 +269,7 @@ well.
 
 - [Is nodenext right for libraries?](https://blog.andrewbran.ch/is-nodenext-right-for-libraries-that-dont-target-node-js/)
 
-* * *
+---
 
 #### moduleResolution: Bundler vs NodeNext
 
@@ -278,12 +277,12 @@ well.
 
 **Details**:
 
-| Aspect | `Bundler` | `NodeNext` |
-| --- | --- | --- |
-| File extensions | Not required in imports | Required (.js extension) |
-| Use case | When bundler handles output | Direct Node.js execution |
-| Library compatibility | Requires bundler-aware consumers | Works everywhere |
-| Type generation | Must ensure .d.ts aligns with output | Naturally aligned |
+| Aspect                | `Bundler`                            | `NodeNext`               |
+| --------------------- | ------------------------------------ | ------------------------ |
+| File extensions       | Not required in imports              | Required (.js extension) |
+| Use case              | When bundler handles output          | Direct Node.js execution |
+| Library compatibility | Requires bundler-aware consumers     | Works everywhere         |
+| Type generation       | Must ensure .d.ts aligns with output | Naturally aligned        |
 
 **Key insight**: `NodeNext` is “infectious” in a good way—code that works in Node.js
 typically works in bundlers too.
@@ -299,7 +298,7 @@ the final output. The bundler handles the complexity of module resolution.
 
 - [Live types in a TypeScript monorepo](https://colinhacks.com/essays/live-types-typescript-monorepo)
 
-* * *
+---
 
 ### 3. Build Tooling
 
@@ -374,7 +373,7 @@ The project recommends migrating to tsdown.
 
 - [Dual publish ESM and CJS with tsdown](https://dev.to/hacksore/dual-publish-esm-and-cjs-with-tsdown-2l75)
 
-* * *
+---
 
 ### 4. Package Exports & Dual Module Support
 
@@ -447,7 +446,7 @@ can remain stable even if internals move to `@scope/pkg-cli`.
 
 - [Building npm package compatible with ESM and CJS in 2024](https://snyk.io/blog/building-npm-package-compatible-with-esm-and-cjs-2024/)
 
-* * *
+---
 
 #### Separate Declaration Files for ESM/CJS
 
@@ -470,7 +469,7 @@ one of the module systems.
 
 - [Publishing dual ESM+CJS packages](https://mayank.co/blog/dual-packages/)
 
-* * *
+---
 
 ### 5. Optional Peer Dependencies
 
@@ -523,7 +522,7 @@ providing rich integrations for users who need them.
 
 - [npm peer dependencies documentation](https://docs.npmjs.com/cli/v10/configuring-npm/package-json#peerdependenciesmeta)
 
-* * *
+---
 
 ### 6. Package Validation
 
@@ -573,7 +572,7 @@ package. Essential for any published package.
 
 - [publint rules](https://publint.dev/rules)
 
-* * *
+---
 
 ### 7. Versioning & Release Automation
 
@@ -632,7 +631,6 @@ Changesets provides:
 2. PR includes the changeset file
 
 3. On merge to main, GitHub Action either:
-
    - Opens a “Version Packages” PR (accumulating changesets)
 
    - Publishes to npm when that PR is merged
@@ -648,7 +646,7 @@ It integrates seamlessly with pnpm and GitHub Actions.
 
 - [Frontend Handbook: Changesets](https://infinum.com/handbook/frontend/changesets)
 
-* * *
+---
 
 #### Dynamic Git-Based Versioning
 
@@ -662,17 +660,17 @@ This provides traceability during development without manual version bumps.
 
 **Format**: `X.Y.Z-dev.N.hash`
 
-| State | Format | Example |
-| --- | --- | --- |
-| On tag | `X.Y.Z` | `1.2.3` |
-| After tag | `X.Y.Z-dev.N.hash` | `1.2.4-dev.12.a1b2c3d` |
+| State             | Format                   | Example                      |
+| ----------------- | ------------------------ | ---------------------------- |
+| On tag            | `X.Y.Z`                  | `1.2.3`                      |
+| After tag         | `X.Y.Z-dev.N.hash`       | `1.2.4-dev.12.a1b2c3d`       |
 | Dirty working dir | `X.Y.Z-dev.N.hash-dirty` | `1.2.4-dev.12.a1b2c3d-dirty` |
-| No tags | `0.0.0-dev.0.hash` | `0.0.0-dev.0.a1b2c3d` |
+| No tags           | `0.0.0-dev.0.hash`       | `0.0.0-dev.0.a1b2c3d`        |
 
 **Key design decisions**:
 
 1. **Bump patch for dev versions**: Ensures correct semver sorting—dev versions sort
-   *before* the next release, not after the current one
+   _before_ the next release, not after the current one
 
 2. **Hash in pre-release, not metadata**: npm strips build metadata (`+hash`), so embed
    the hash in the pre-release identifier (`-dev.N.hash`)
@@ -735,18 +733,18 @@ export const VERSION: string = typeof __VERSION__ !== 'undefined' ? __VERSION__ 
 
 **Comparison with Python (uv-dynamic-versioning)**:
 
-| Aspect | npm (this approach) | Python (PEP 440) |
-| --- | --- | --- |
-| Format | `1.2.4-dev.12.a1b2c3d` | `1.2.4.dev12+a1b2c3d` |
+| Aspect            | npm (this approach)        | Python (PEP 440)                    |
+| ----------------- | -------------------------- | ----------------------------------- |
+| Format            | `1.2.4-dev.12.a1b2c3d`     | `1.2.4.dev12+a1b2c3d`               |
 | Metadata handling | In pre-release (preserved) | Local version `+` (may be stripped) |
-| Sorting | Standard semver | PEP 440 compliant |
-| Configuration | In bundler config | In `pyproject.toml` |
+| Sorting           | Standard semver            | PEP 440 compliant                   |
+| Configuration     | In bundler config          | In `pyproject.toml`                 |
 
 **Assessment**: Dynamic versioning complements Changesets—use Changesets for releases
 and git-based versioning for development builds.
 This provides full traceability without manual intervention.
 
-* * *
+---
 
 ### 8. CI/CD Configuration
 
@@ -807,7 +805,7 @@ jobs:
 
 - [pnpm Continuous Integration](https://pnpm.io/continuous-integration)
 
-* * *
+---
 
 #### GitHub Actions: Release Workflow
 
@@ -867,7 +865,7 @@ jobs:
 
 - [Using Changesets with pnpm](https://pnpm.io/using-changesets)
 
-* * *
+---
 
 ### 9. Code Formatting
 
@@ -914,12 +912,12 @@ coverage
 
 **Key configuration choices**:
 
-| Option | Recommended | Rationale |
-| --- | --- | --- |
-| `printWidth` | 100 | Wider than default 80; fits modern screens |
-| `singleQuote` | true | Common in JS ecosystem, less visual noise |
-| `trailingComma` | "all" | Cleaner diffs, easier reordering |
-| `semi` | true | Explicit; avoids ASI edge cases |
+| Option          | Recommended | Rationale                                  |
+| --------------- | ----------- | ------------------------------------------ |
+| `printWidth`    | 100         | Wider than default 80; fits modern screens |
+| `singleQuote`   | true        | Common in JS ecosystem, less visual noise  |
+| `trailingComma` | "all"       | Cleaner diffs, easier reordering           |
+| `semi`          | true        | Explicit; avoids ASI edge cases            |
 
 **Assessment**: Prettier eliminates formatting debates and ensures consistency.
 Use `eslint-config-prettier` to disable ESLint rules that conflict with Prettier.
@@ -930,7 +928,7 @@ Use `eslint-config-prettier` to disable ESLint rules that conflict with Prettier
 
 - [eslint-config-prettier](https://github.com/prettier/eslint-config-prettier)
 
-* * *
+---
 
 #### Format Scripts Pattern
 
@@ -957,13 +955,13 @@ Structure format and lint scripts to support both auto-fix and CI verification m
 
 **Script purposes**:
 
-| Script | Purpose | When to use |
-| --- | --- | --- |
-| `format` | Auto-format changed files (quiet for unchanged) | Local development |
-| `format:check` | Verify formatting (quiet for valid files) | CI |
-| `lint` | Lint with auto-fix, then verify zero warnings | Local development |
-| `lint:check` | Lint without fix, zero warnings | CI, pre-build |
-| `build` | Format, lint, then build | Production builds |
+| Script         | Purpose                                         | When to use       |
+| -------------- | ----------------------------------------------- | ----------------- |
+| `format`       | Auto-format changed files (quiet for unchanged) | Local development |
+| `format:check` | Verify formatting (quiet for valid files)       | CI                |
+| `lint`         | Lint with auto-fix, then verify zero warnings   | Local development |
+| `lint:check`   | Lint without fix, zero warnings                 | CI, pre-build     |
+| `build`        | Format, lint, then build                        | Production builds |
 
 **Key insight**: The `lint` script runs ESLint twice: first with `--fix` to auto-fix
 issues, then again with `--max-warnings 0` to catch any unfixable warnings.
@@ -981,7 +979,7 @@ lint check.
 **Assessment**: Separating `--fix` variants (for local use) from `--check` variants (for
 CI) provides the best developer experience while ensuring CI catches issues.
 
-* * *
+---
 
 ### 10. Git Hooks & Local Validation
 
@@ -997,13 +995,13 @@ and having no Node.js runtime dependency for the hook runner itself.
 
 **Why Lefthook over Husky + lint-staged**:
 
-| Aspect | Lefthook | Husky + lint-staged |
-| --- | --- | --- |
-| Runtime | Go binary (fast) | Node.js (slower startup) |
-| Configuration | Single YAML file | Multiple config files |
-| Parallel execution | Built-in | Requires configuration |
-| Staged files | Native support | Via lint-staged |
-| Monorepo support | Excellent (`root:` option) | Requires workarounds |
+| Aspect             | Lefthook                   | Husky + lint-staged      |
+| ------------------ | -------------------------- | ------------------------ |
+| Runtime            | Go binary (fast)           | Node.js (slower startup) |
+| Configuration      | Single YAML file           | Multiple config files    |
+| Parallel execution | Built-in                   | Requires configuration   |
+| Staged files       | Native support             | Via lint-staged          |
+| Monorepo support   | Excellent (`root:` option) | Requires workarounds     |
 
 **Installation**:
 
@@ -1018,7 +1016,7 @@ npx lefthook install
 
 - [Lefthook vs Husky](https://evilmartians.com/chronicles/lefthook-knock-your-teams-code-back-into-shape)
 
-* * *
+---
 
 #### Pre-commit Hooks Strategy
 
@@ -1087,7 +1085,7 @@ commands:
 **Assessment**: Fast pre-commit hooks catch issues early without slowing down commits.
 The auto-fix pattern reduces friction—developers don’t need to manually format code.
 
-* * *
+---
 
 #### Pre-push Hooks Strategy
 
@@ -1157,7 +1155,7 @@ pre-push:
 repeated push attempts instant.
 This is especially valuable when rebasing or when a push fails for non-test reasons.
 
-* * *
+---
 
 #### CI vs Local Hook Relationship
 
@@ -1167,15 +1165,15 @@ This is especially valuable when rebasing or when a push fails for non-test reas
 
 Local hooks and CI should complement each other:
 
-| Check | Pre-commit | Pre-push | CI |
-| --- | --- | --- | --- |
-| Format | ✅ Auto-fix | — | ✅ Verify |
-| Lint | ✅ Auto-fix | — | ✅ Verify |
-| Typecheck | ✅ Incremental | — | ✅ Full |
-| Unit tests | ⚠️ Changed only | ✅ Full | ✅ Full |
-| Integration tests | — | ⚠️ Optional | ✅ Full |
-| Build | — | — | ✅ Full |
-| publint | — | — | ✅ Full |
+| Check             | Pre-commit      | Pre-push    | CI        |
+| ----------------- | --------------- | ----------- | --------- |
+| Format            | ✅ Auto-fix     | —           | ✅ Verify |
+| Lint              | ✅ Auto-fix     | —           | ✅ Verify |
+| Typecheck         | ✅ Incremental  | —           | ✅ Full   |
+| Unit tests        | ⚠️ Changed only | ✅ Full     | ✅ Full   |
+| Integration tests | —               | ⚠️ Optional | ✅ Full   |
+| Build             | —               | —           | ✅ Full   |
+| publint           | —               | —           | ✅ Full   |
 
 **Key insight**: Pre-commit hooks fix issues, CI verifies correctness.
 Never skip CI because hooks passed—hooks can be bypassed with `--no-verify`.
@@ -1199,7 +1197,7 @@ Never skip CI because hooks passed—hooks can be bypassed with `--no-verify`.
 
 - [Git Hooks Best Practices](https://pre-commit.com/#introduction)
 
-* * *
+---
 
 ### 11. Dependency Upgrade Management
 
@@ -1222,14 +1220,14 @@ pnpm add -Dw npm-check-updates
 
 **Key flags**:
 
-| Flag | Description |
-| --- | --- |
-| `--target minor` | Only upgrade to latest minor/patch (safe) |
-| `--target patch` | Only upgrade to latest patch (safest) |
-| `--target latest` | Upgrade to latest version (includes major) |
-| `--format group` | Group output by update type (major/minor/patch) |
-| `--interactive` | Select which packages to upgrade |
-| `-u` | Update package.json (otherwise just reports) |
+| Flag              | Description                                     |
+| ----------------- | ----------------------------------------------- |
+| `--target minor`  | Only upgrade to latest minor/patch (safe)       |
+| `--target patch`  | Only upgrade to latest patch (safest)           |
+| `--target latest` | Upgrade to latest version (includes major)      |
+| `--format group`  | Group output by update type (major/minor/patch) |
+| `--interactive`   | Select which packages to upgrade                |
+| `-u`              | Update package.json (otherwise just reports)    |
 
 **Upgrade Targets Explained**:
 
@@ -1252,7 +1250,7 @@ potentially breaking changes (major), enabling a safer, more frequent upgrade ca
 
 - [ncu GitHub repository](https://github.com/raineorshine/npm-check-updates)
 
-* * *
+---
 
 #### Upgrade Scripts Pattern
 
@@ -1278,12 +1276,12 @@ workflow. This makes upgrades consistent and discoverable.
 
 **Script descriptions**:
 
-| Script | Purpose |
-| --- | --- |
-| `upgrade:check` | Show available updates grouped by type (no changes) |
-| `upgrade` | Safe upgrade: minor+patch versions, install, and test |
-| `upgrade:patch` | Conservative upgrade: patch versions only |
-| `upgrade:major` | Interactive selection for major version changes |
+| Script          | Purpose                                               |
+| --------------- | ----------------------------------------------------- |
+| `upgrade:check` | Show available updates grouped by type (no changes)   |
+| `upgrade`       | Safe upgrade: minor+patch versions, install, and test |
+| `upgrade:patch` | Conservative upgrade: patch versions only             |
+| `upgrade:major` | Interactive selection for major version changes       |
 
 **Workflow**:
 
@@ -1303,7 +1301,7 @@ rollback before investigating.
 **Assessment**: This pattern enables frequent, low-risk dependency updates while
 maintaining control over potentially breaking changes.
 
-* * *
+---
 
 #### Monorepo Considerations
 
@@ -1353,7 +1351,7 @@ upgrades. Options:
 
 - [pnpm overrides documentation](https://pnpm.io/package_json#pnpmoverrides)
 
-* * *
+---
 
 ### 12. CLI Development Workflow
 
@@ -1379,10 +1377,10 @@ frustration of debugging stale builds.
 }
 ```
 
-| Script | Purpose | When to use |
-| --- | --- | --- |
-| `cli-name` | Runs source via tsx | Development—always current, no build needed |
-| `cli-name:bin` | Runs built binary | Pre-release verification of published output |
+| Script         | Purpose             | When to use                                  |
+| -------------- | ------------------- | -------------------------------------------- |
+| `cli-name`     | Runs source via tsx | Development—always current, no build needed  |
+| `cli-name:bin` | Runs built binary   | Pre-release verification of published output |
 
 **Why this matters**:
 
@@ -1395,7 +1393,7 @@ frustration of debugging stale builds.
 
 4. **Still verifiable**: The `:bin` variant ensures the production build works correctly
 
-* * *
+---
 
 #### tsx vs vite-node vs ts-node
 
@@ -1405,13 +1403,13 @@ frustration of debugging stale builds.
 
 For running TypeScript CLI commands directly, **tsx** is the recommended choice:
 
-| Aspect | tsx | vite-node | ts-node |
-| --- | --- | --- | --- |
-| **Speed** | 5-10x faster than ts-node | Fast (esbuild) | Slow |
-| **Startup time** | Single-digit milliseconds | Fast | Noticeable delay |
-| **Configuration** | Zero-config | Requires Vite familiarity | Often needs config |
-| **Use case** | CLI and scripts | Vite ecosystem projects | Legacy projects |
-| **Maintenance** | Active | Active | Active but slower |
+| Aspect            | tsx                       | vite-node                 | ts-node            |
+| ----------------- | ------------------------- | ------------------------- | ------------------ |
+| **Speed**         | 5-10x faster than ts-node | Fast (esbuild)            | Slow               |
+| **Startup time**  | Single-digit milliseconds | Fast                      | Noticeable delay   |
+| **Configuration** | Zero-config               | Requires Vite familiarity | Often needs config |
+| **Use case**      | CLI and scripts           | Vite ecosystem projects   | Legacy projects    |
+| **Maintenance**   | Active                    | Active                    | Active but slower  |
 
 **When to choose each**:
 
@@ -1449,7 +1447,7 @@ Reserve vite-node for projects that specifically need Vite’s transformation pi
 
 - [ts-runtime-comparison benchmarks](https://github.com/privatenumber/ts-runtime-comparison)
 
-* * *
+---
 
 ### 13. Private Package Distribution
 
@@ -1493,7 +1491,7 @@ No build-on-install quirks.
 
 - [Publish NPM Package to GitHub Packages Registry](https://www.neteye-blog.com/2024/09/publish-npm-package-to-github-packages-registry-with-github-actions/)
 
-* * *
+---
 
 #### Option B: Direct GitHub Install (pnpm)
 
@@ -1523,7 +1521,7 @@ Use GitHub Packages or npm for production.
 
 - [pnpm discussion: Add dependency from git monorepo](https://github.com/orgs/pnpm/discussions/8194)
 
-* * *
+---
 
 #### Option C: Local Linking
 
@@ -1551,7 +1549,7 @@ pnpm link --global @scope/package-name
 **Assessment**: Essential for local development iteration.
 Not suitable for distribution.
 
-* * *
+---
 
 #### Bun Compatibility Note
 
@@ -1569,7 +1567,7 @@ experience.
 
 - [Bun issue: Support installing Git dependency from subdirectory](https://github.com/oven-sh/bun/issues/15506)
 
-* * *
+---
 
 ### 14. Library/CLI Hybrid Packages
 
@@ -1608,7 +1606,7 @@ src/
 The directory structure creates clear boundaries that are easy to enforce with automated
 tests.
 
-* * *
+---
 
 #### Pattern: Move Node.js Utilities to CLI
 
@@ -1648,7 +1646,7 @@ export function getOutputDir(override?: string): string {
 **Assessment**: This pattern keeps the core library portable while providing full
 Node.js functionality in CLI contexts.
 
-* * *
+---
 
 #### Pattern: Build-Time Constants
 
@@ -1679,7 +1677,7 @@ export const VERSION: string = typeof __VERSION__ !== 'undefined' ? __VERSION__ 
 that are constant at build time.
 This is cleaner than dynamic requires or filesystem reads.
 
-* * *
+---
 
 #### Guard Tests for Node-Free Core
 
@@ -1729,7 +1727,7 @@ describe('Node-free core library', () => {
 **Assessment**: Guard tests catch accidental node: imports during development rather
 than discovering them when users try to use the library in browser/edge contexts.
 
-* * *
+---
 
 #### Checklist for Library/CLI Packages
 
@@ -1754,39 +1752,39 @@ than discovering them when users try to use the library in browser/edge contexts
 - [CLI Tool Development Rules](../../agent-rules/typescript-cli-tool-rules.md) —
   CLI-specific patterns using Commander.js, picocolors, and @clack/prompts
 
-* * *
+---
 
 ## Comparative Analysis
 
 ### Build Tools Comparison
 
-| Criteria | tsdown | tsup | unbuild | Rollup |
-| --- | --- | --- | --- | --- |
-| Active maintenance | Yes | No (abandoned) | Yes | Yes |
-| ESM-first | Yes | No (CJS-first) | Yes | Yes |
-| DTS generation | Built-in | Built-in | Built-in | Plugin required |
-| Multi-entry | Yes | Yes | Yes | Yes |
-| Config simplicity | Excellent | Good | Good | Complex |
-| Speed | Fast (Rust) | Fast (esbuild) | Moderate | Moderate |
-| Plugin ecosystem | Rolldown/Rollup/Vite | esbuild | unbuild | Rollup |
+| Criteria           | tsdown               | tsup           | unbuild  | Rollup          |
+| ------------------ | -------------------- | -------------- | -------- | --------------- |
+| Active maintenance | Yes                  | No (abandoned) | Yes      | Yes             |
+| ESM-first          | Yes                  | No (CJS-first) | Yes      | Yes             |
+| DTS generation     | Built-in             | Built-in       | Built-in | Plugin required |
+| Multi-entry        | Yes                  | Yes            | Yes      | Yes             |
+| Config simplicity  | Excellent            | Good           | Good     | Complex         |
+| Speed              | Fast (Rust)          | Fast (esbuild) | Moderate | Moderate        |
+| Plugin ecosystem   | Rolldown/Rollup/Vite | esbuild        | unbuild  | Rollup          |
 
 **Recommendation**: tsdown for new projects; migrate from tsup if currently using it.
 
-* * *
+---
 
 ### Package Manager Comparison
 
-| Criteria | pnpm | npm | yarn |
-| --- | --- | --- | --- |
-| Disk efficiency | Excellent | Poor | Moderate |
-| Workspace support | Built-in | Built-in (v7+) | Built-in |
-| Strict mode | Yes (default) | No | Optional |
-| Speed | Fast | Moderate | Fast |
-| Monorepo tooling | Excellent | Basic | Good |
+| Criteria          | pnpm          | npm            | yarn     |
+| ----------------- | ------------- | -------------- | -------- |
+| Disk efficiency   | Excellent     | Poor           | Moderate |
+| Workspace support | Built-in      | Built-in (v7+) | Built-in |
+| Strict mode       | Yes (default) | No             | Optional |
+| Speed             | Fast          | Moderate       | Fast     |
+| Monorepo tooling  | Excellent     | Basic          | Good     |
 
 **Recommendation**: pnpm for monorepos.
 
-* * *
+---
 
 ## Best Practices
 
@@ -1857,7 +1855,7 @@ than discovering them when users try to use the library in browser/edge contexts
     This eliminates “did I forget to build?”
     confusion.
 
-* * *
+---
 
 ## Open Research Questions
 
@@ -1879,7 +1877,7 @@ than discovering them when users try to use the library in browser/edge contexts
    files in monorepos. Currently, a single root config is recommended but has
    limitations.
 
-* * *
+---
 
 ## Recommendations
 
@@ -1938,7 +1936,7 @@ ready for public release.
   non-monorepo structure is fine.
   However, the monorepo structure overhead is minimal and provides flexibility.
 
-* * *
+---
 
 ## References
 
@@ -1990,7 +1988,7 @@ ready for public release.
 
 - [changesets/action](https://github.com/changesets/action)
 
-* * *
+---
 
 ## Appendices
 
@@ -2269,13 +2267,13 @@ export default [
 
 **Type-Aware vs Basic Linting**:
 
-| Aspect | `recommended` | `recommendedTypeChecked` |
-| --- | --- | --- |
-| Setup complexity | Simple | Requires tsconfig |
-| Performance | Fast | Slower (type analysis) |
-| Bug detection | Basic | Comprehensive |
-| Promise safety | Limited | Full coverage |
-| Best for | Quick setup, small projects | Production code |
+| Aspect           | `recommended`               | `recommendedTypeChecked` |
+| ---------------- | --------------------------- | ------------------------ |
+| Setup complexity | Simple                      | Requires tsconfig        |
+| Performance      | Fast                        | Slower (type analysis)   |
+| Bug detection    | Basic                       | Comprehensive            |
+| Promise safety   | Limited                     | Full coverage            |
+| Best for         | Quick setup, small projects | Production code          |
 
 **Key Rules Explained**:
 

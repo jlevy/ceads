@@ -6,7 +6,7 @@ Instructions:
    spec and @docs/general/agent-guidelines/general-tdd-guidelines.md to understand all
    project and testing rules.
 
-2. IMPORTANT: *Track all work with beads.* See docs/general/agent-setup/beads-setup.md
+2. IMPORTANT: _Track all work with beads._ See docs/general/agent-setup/beads-setup.md
    if `bd` is not set up yet.
 
 3. Implement beads specified by the user, highest priority first.
