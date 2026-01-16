@@ -12,7 +12,7 @@ import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
 import { BaseCommand } from '../lib/baseCommand.js';
 import { readIssue, writeIssue, atomicWriteFile } from '../../file/storage.js';
 import { normalizeIssueId } from '../../lib/ids.js';
-import { DATA_SYNC_DIR, ATTIC_DIR } from '../../lib/paths.js';
+import { resolveDataSyncDir, resolveAtticDir } from '../../lib/paths.js';
 
 /**
  * Attic entry structure for storing lost values during conflicts.
@@ -60,7 +60,7 @@ function parseAtticFilename(
  * List all attic entries.
  */
 async function listAtticEntries(filterById?: string): Promise<AtticEntry[]> {
-  const atticPath = join(process.cwd(), ATTIC_DIR);
+  const atticPath = await resolveAtticDir();
   let files: string[];
 
   try {
@@ -100,7 +100,7 @@ async function listAtticEntries(filterById?: string): Promise<AtticEntry[]> {
  * Save an attic entry.
  */
 export async function saveAtticEntry(entry: AtticEntry): Promise<void> {
-  const atticPath = join(process.cwd(), ATTIC_DIR);
+  const atticPath = await resolveAtticDir();
   await mkdir(atticPath, { recursive: true });
 
   const filename = getAtticFilename(entry.entity_id, entry.timestamp, entry.field);
@@ -199,9 +199,10 @@ class AtticRestoreHandler extends BaseCommand {
     }
 
     // Load the current issue
+    const dataSyncDir = await resolveDataSyncDir();
     let issue;
     try {
-      issue = await readIssue(DATA_SYNC_DIR, normalizedId);
+      issue = await readIssue(dataSyncDir, normalizedId);
     } catch {
       this.output.error(`Issue not found: ${id}`);
       return;
@@ -220,7 +221,7 @@ class AtticRestoreHandler extends BaseCommand {
     issue.updated_at = new Date().toISOString();
 
     await this.execute(async () => {
-      await writeIssue(DATA_SYNC_DIR, issue);
+      await writeIssue(dataSyncDir, issue);
     }, 'Failed to restore from attic');
 
     const displayId = `bd-${normalizedId.slice(3)}`;

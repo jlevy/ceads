@@ -320,7 +320,83 @@ From the research docs, we will use:
 - **Single package**: Start with one package, split later if needed
 - **No daemon**: All operations are synchronous CLI calls
 - **Files as truth**: No SQLite, no caching required for correctness
-- **Standard git**: Use git CLI, no libgit2 binding
+- **Standard git**: Use git CLI, no libgit2 binding (see §3.4 below)
+
+### 3.4 Git Integration Architecture
+
+**Decision**: Use the Git CLI via Node.js `execFile` (not `exec`).
+
+This is a deliberate architectural choice with significant implications for security,
+portability, and maintainability.
+
+#### Alternatives Considered
+
+| Approach | Library | Verdict |
+| --- | --- | --- |
+| Git CLI via `execFile` | None (built-in) | ✅ **Chosen** |
+| Git CLI wrapper | simple-git | ❌ Rejected |
+| Native libgit2 bindings | nodegit | ❌ Rejected |
+| Pure JavaScript Git | isomorphic-git | ❌ Rejected |
+
+#### Why Git CLI via `execFile`?
+
+1. **Security**: `execFile` passes arguments as an array directly to the executable,
+   bypassing the shell entirely. This eliminates shell injection vulnerabilities that
+   have affected libraries like simple-git (CVE-2022-24066, CVE-2022-24433, CVE-2022-25912).
+
+2. **Worktree Support**: Tbd's architecture relies on Git worktrees for the sync branch.
+   Neither isomorphic-git nor simple-git fully support worktree operations.
+
+3. **Plumbing Commands**: The sync algorithm uses low-level Git plumbing commands
+   (`read-tree`, `write-tree`, `commit-tree`, `update-ref`) that libraries typically
+   don't expose.
+
+4. **User's Git**: As a "git-native" tool, using the user's installed Git ensures
+   compatibility with their hooks, authentication (SSH keys, credential helpers),
+   and configuration.
+
+5. **Zero Dependencies**: No native modules to compile (avoiding nodegit's notorious
+   installation issues) and no large JavaScript reimplementations.
+
+6. **Debugging**: Users can reproduce any command manually for troubleshooting.
+
+#### Why Not the Alternatives?
+
+**simple-git**: Just wraps the CLI anyway, but adds a dependency with a history of
+security vulnerabilities. No performance benefit, potential security liability.
+
+**nodegit (libgit2)**: Highest performance but impractical:
+- Requires native compilation on most platforms
+- Large dependency (~50MB)
+- Compilation fails frequently across Node.js versions
+- CI/CD complexity (different binaries per platform)
+
+**isomorphic-git**: Pure JavaScript is appealing, but:
+- Slower performance on large repositories
+- Missing worktree support
+- Reimplements Git (potential for subtle incompatibilities)
+- Browser support is irrelevant for a CLI tool
+
+#### Implementation Notes
+
+The git utilities in `src/file/git.ts` follow these security practices:
+
+```typescript
+// SECURE: Uses execFile with argument array (no shell)
+export async function git(...args: string[]): Promise<string> {
+  const { stdout } = await execFileAsync('git', args);
+  return stdout.trim();
+}
+
+// INSECURE (never do this): Shell interpolation
+// const { stdout } = await exec(`git ${args.join(' ')}`);  // ❌ Vulnerable
+```
+
+Key patterns:
+- All git operations go through the `git()` helper
+- Arguments passed as array, never string concatenation
+- Branch/remote names validated via Zod schemas before use
+- Isolated index (`GIT_INDEX_FILE`) protects user's staging area
 
 * * *
 
@@ -3195,6 +3271,18 @@ The following gaps in the existing test suite allowed these bugs to slip through
 
 * * *
 
+## Phase 19: Code Quality Improvements
+
+**Goal**: Align implementation with documented best practices and improve code maintainability.
+
+### 19.1 File Operations
+
+| Bead ID | Task | Priority | Notes |
+| --- | --- | --- | --- |
+| tbd-1853 | Replace custom atomicWriteFile with `atomically` library | P2 | Aligns with typescript-rules.md. Benefits: TypeScript-native, zero deps, built-in error retry (EMFILE/ENFILE/EAGAIN/EBUSY/EACCESS/EPERM), concurrent write queueing, symlink resolution. Changes: 1) Add `atomically` dependency, 2) Replace custom impl with re-export, 3) Keep same export name for backward compat. |
+
+* * *
+
 ## Open Questions
 
 ### Resolved
@@ -3221,3 +3309,4 @@ The following gaps in the existing test suite allowed these bugs to slip through
 | 2026-01-15 | Claude | Added README (tbd-1205), manual validation (tbd-1305), security review (tbd-1306) |
 | 2026-01-16 | Claude | Added Phase 18: Critical Bug Fixes (tbd-1809 through tbd-1818) - worktree usage, ID display, status mapping, serialization |
 | 2026-01-16 | Claude | Enhanced Phase 18 with systematic testing strategy: gap analysis, test infrastructure (tbd-1837→1840), new test files (tbd-1841→1846), broader coverage (tbd-1847→1852), TDD approach |
+| 2026-01-16 | Claude | Added Phase 19: Code Quality Improvements - tbd-1853 (replace custom atomicWriteFile with `atomically` library per typescript-rules.md) |

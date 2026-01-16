@@ -9,7 +9,7 @@ import { Command } from 'commander';
 import { BaseCommand } from '../lib/baseCommand.js';
 import { readIssue, writeIssue } from '../../file/storage.js';
 import { normalizeIssueId } from '../../lib/ids.js';
-import { DATA_SYNC_DIR } from '../../lib/paths.js';
+import { resolveDataSyncDir } from '../../lib/paths.js';
 
 interface CloseOptions {
   reason?: string;
@@ -18,11 +18,12 @@ interface CloseOptions {
 class CloseHandler extends BaseCommand {
   async run(id: string, options: CloseOptions): Promise<void> {
     const normalizedId = normalizeIssueId(id);
+    const dataSyncDir = await resolveDataSyncDir();
 
     // Load existing issue
     let issue;
     try {
-      issue = await readIssue(DATA_SYNC_DIR, normalizedId);
+      issue = await readIssue(dataSyncDir, normalizedId);
     } catch {
       this.output.error(`Issue not found: ${id}`);
       return;
@@ -47,7 +48,7 @@ class CloseHandler extends BaseCommand {
 
     // Save
     await this.execute(async () => {
-      await writeIssue(DATA_SYNC_DIR, issue);
+      await writeIssue(dataSyncDir, issue);
     }, 'Failed to close issue');
 
     const displayId = `bd-${issue.id.slice(3)}`;

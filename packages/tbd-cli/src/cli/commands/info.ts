@@ -11,7 +11,7 @@ import { VERSION } from '../../index.js';
 import { BaseCommand } from '../lib/baseCommand.js';
 import { readConfig, CONFIG_FILE_PATH } from '../../file/config.js';
 import { listIssues } from '../../file/storage.js';
-import { DATA_SYNC_DIR } from '../../lib/paths.js';
+import { resolveDataSyncDir } from '../../lib/paths.js';
 
 class InfoHandler extends BaseCommand {
   async run(): Promise<void> {
@@ -35,7 +35,8 @@ class InfoHandler extends BaseCommand {
     // Count issues
     let issueCount = 0;
     try {
-      const issues = await listIssues(DATA_SYNC_DIR);
+      const dataSyncDir = await resolveDataSyncDir();
+      const issues = await listIssues(dataSyncDir);
       issueCount = issues.length;
     } catch {
       issueCount = 0;

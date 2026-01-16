@@ -12,7 +12,8 @@ import { BaseCommand } from '../lib/baseCommand.js';
 import { VERSION } from '../../index.js';
 import { initConfig } from '../../file/config.js';
 import { atomicWriteFile } from '../../file/storage.js';
-import { TBD_DIR, CACHE_DIR, DATA_SYNC_DIR, ISSUES_DIR } from '../../lib/paths.js';
+import { TBD_DIR, CACHE_DIR, WORKTREE_DIR_NAME, DATA_SYNC_DIR_NAME } from '../../lib/paths.js';
+import { initWorktree } from '../../file/git.js';
 
 interface InitOptions {
   syncBranch?: string;
@@ -42,9 +43,16 @@ class InitHandler extends BaseCommand {
       this.output.debug(`Created ${TBD_DIR}/config.yml`);
 
       // 2. Create .tbd/.gitignore (uses atomicWriteFile for consistency)
+      // Per spec §2.3: Must ignore cache/, data-sync-worktree/, and data-sync/
       const gitignoreContent = [
         '# Local cache (not shared)',
         'cache/',
+        '',
+        '# Hidden worktree for tbd-sync branch',
+        `${WORKTREE_DIR_NAME}/`,
+        '',
+        '# Data sync directory (only exists in worktree)',
+        `${DATA_SYNC_DIR_NAME}/`,
         '',
         '# Temporary files',
         '*.tmp',
@@ -57,17 +65,30 @@ class InitHandler extends BaseCommand {
       await mkdir(join(cwd, CACHE_DIR), { recursive: true });
       this.output.debug(`Created ${CACHE_DIR}/`);
 
-      // 4. Create issues directory placeholder (uses atomicWriteFile for consistency)
-      await mkdir(join(cwd, ISSUES_DIR), { recursive: true });
-      await atomicWriteFile(join(cwd, DATA_SYNC_DIR, '.gitkeep'), '');
-      this.output.debug(`Created ${ISSUES_DIR}/`);
+      // 4. Initialize the hidden worktree for tbd-sync branch
+      // This creates .tbd/data-sync-worktree/ with the sync branch checkout
+      const remote = options.remote ?? 'origin';
+      const syncBranch = options.syncBranch ?? 'tbd-sync';
+      const worktreeResult = await initWorktree(cwd, remote, syncBranch);
+
+      if (worktreeResult.success) {
+        if (worktreeResult.created) {
+          this.output.debug(`Created hidden worktree at ${TBD_DIR}/${WORKTREE_DIR_NAME}/`);
+        } else {
+          this.output.debug(`Worktree already exists at ${TBD_DIR}/${WORKTREE_DIR_NAME}/`);
+        }
+      } else {
+        // Worktree creation failed - this is ok if not in a git repo
+        // Log warning but don't fail init (supports non-git usage)
+        this.output.debug(`Note: Worktree not created (${worktreeResult.error})`);
+      }
     }, 'Failed to initialize tbd');
 
     this.output.data({ initialized: true, version: VERSION }, () => {
       this.output.success('Initialized tbd repository');
       this.output.info('');
       this.output.info('To complete setup, commit the config files:');
-      this.output.info(`  git add ${TBD_DIR}/ ${DATA_SYNC_DIR}/`);
+      this.output.info(`  git add ${TBD_DIR}/`);
       this.output.info('  git commit -m "Initialize tbd"');
     });
   }

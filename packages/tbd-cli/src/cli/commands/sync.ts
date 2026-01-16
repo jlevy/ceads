@@ -17,7 +17,7 @@ import {
   type ConflictEntry,
   type PushResult,
 } from '../../file/git.js';
-import { DATA_SYNC_DIR } from '../../lib/paths.js';
+import { resolveDataSyncDir, DATA_SYNC_DIR } from '../../lib/paths.js';
 
 interface SyncOptions {
   push?: boolean;
@@ -37,7 +37,11 @@ interface SyncStatus {
 }
 
 class SyncHandler extends BaseCommand {
+  private dataSyncDir = '';
+
   async run(options: SyncOptions): Promise<void> {
+    this.dataSyncDir = await resolveDataSyncDir();
+
     // Load config to get sync branch
     let config;
     try {
@@ -116,7 +120,7 @@ class SyncHandler extends BaseCommand {
 
     // Check for local issues
     try {
-      const issues = await listIssues(DATA_SYNC_DIR);
+      const issues = await listIssues(this.dataSyncDir);
       // Check for uncommitted changes in the worktree
       if (issues.length > 0) {
         try {
@@ -246,7 +250,7 @@ class SyncHandler extends BaseCommand {
   private async pushChanges(syncBranch: string, remote: string): Promise<void> {
     try {
       // Check if we have any changes to push
-      const issues = await listIssues(DATA_SYNC_DIR);
+      const issues = await listIssues(this.dataSyncDir);
       if (issues.length === 0) {
         this.output.info('No issues to push');
         return;
@@ -275,11 +279,11 @@ class SyncHandler extends BaseCommand {
       const conflicts: ConflictEntry[] = [];
 
       // Get list of issues that need merging
-      const localIssues = await listIssues(DATA_SYNC_DIR);
+      const localIssues = await listIssues(this.dataSyncDir);
 
       for (const localIssue of localIssues) {
         try {
-          // Try to get the remote version
+          // Try to get the remote version (use relative path for git show)
           const remoteContent = await git(
             'show',
             `${remote}/${syncBranch}:${DATA_SYNC_DIR}/issues/${localIssue.id}.md`,
@@ -287,11 +291,11 @@ class SyncHandler extends BaseCommand {
 
           if (remoteContent) {
             // Parse remote issue and merge
-            const remoteIssue = await readIssue(DATA_SYNC_DIR, localIssue.id);
+            const remoteIssue = await readIssue(this.dataSyncDir, localIssue.id);
             const result = mergeIssues(null, localIssue, remoteIssue);
 
             // Write merged result
-            await writeIssue(DATA_SYNC_DIR, result.merged);
+            await writeIssue(this.dataSyncDir, result.merged);
             conflicts.push(...result.conflicts);
           }
         } catch {
@@ -338,7 +342,7 @@ class SyncHandler extends BaseCommand {
 
     // Check local changes
     try {
-      const issues = await listIssues(DATA_SYNC_DIR);
+      const issues = await listIssues(this.dataSyncDir);
       pushed = issues.length;
 
       if (pushed > 0) {

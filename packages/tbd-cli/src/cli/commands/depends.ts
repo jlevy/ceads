@@ -10,18 +10,19 @@ import { BaseCommand } from '../lib/baseCommand.js';
 import { readIssue, writeIssue, listIssues } from '../../file/storage.js';
 import { normalizeIssueId } from '../../lib/ids.js';
 import type { Issue } from '../../lib/types.js';
-import { DATA_SYNC_DIR } from '../../lib/paths.js';
+import { resolveDataSyncDir } from '../../lib/paths.js';
 
 // Add dependency
 class DependsAddHandler extends BaseCommand {
   async run(id: string, targetId: string): Promise<void> {
     const normalizedId = normalizeIssueId(id);
     const normalizedTarget = normalizeIssueId(targetId);
+    const dataSyncDir = await resolveDataSyncDir();
 
     // Load the blocking issue
     let issue;
     try {
-      issue = await readIssue(DATA_SYNC_DIR, normalizedId);
+      issue = await readIssue(dataSyncDir, normalizedId);
     } catch {
       this.output.error(`Issue not found: ${id}`);
       return;
@@ -29,7 +30,7 @@ class DependsAddHandler extends BaseCommand {
 
     // Verify target issue exists
     try {
-      await readIssue(DATA_SYNC_DIR, normalizedTarget);
+      await readIssue(dataSyncDir, normalizedTarget);
     } catch {
       this.output.error(`Target issue not found: ${targetId}`);
       return;
@@ -60,7 +61,7 @@ class DependsAddHandler extends BaseCommand {
     issue.updated_at = new Date().toISOString();
 
     await this.execute(async () => {
-      await writeIssue(DATA_SYNC_DIR, issue);
+      await writeIssue(dataSyncDir, issue);
     }, 'Failed to update issue');
 
     const displayId = `bd-${normalizedId.slice(3)}`;
@@ -76,11 +77,12 @@ class DependsRemoveHandler extends BaseCommand {
   async run(id: string, targetId: string): Promise<void> {
     const normalizedId = normalizeIssueId(id);
     const normalizedTarget = normalizeIssueId(targetId);
+    const dataSyncDir = await resolveDataSyncDir();
 
     // Load the blocking issue
     let issue;
     try {
-      issue = await readIssue(DATA_SYNC_DIR, normalizedId);
+      issue = await readIssue(dataSyncDir, normalizedId);
     } catch {
       this.output.error(`Issue not found: ${id}`);
       return;
@@ -107,7 +109,7 @@ class DependsRemoveHandler extends BaseCommand {
     issue.updated_at = new Date().toISOString();
 
     await this.execute(async () => {
-      await writeIssue(DATA_SYNC_DIR, issue);
+      await writeIssue(dataSyncDir, issue);
     }, 'Failed to update issue');
 
     const displayId = `bd-${normalizedId.slice(3)}`;
@@ -122,11 +124,12 @@ class DependsRemoveHandler extends BaseCommand {
 class DependsListHandler extends BaseCommand {
   async run(id: string): Promise<void> {
     const normalizedId = normalizeIssueId(id);
+    const dataSyncDir = await resolveDataSyncDir();
 
     // Load the issue
     let issue;
     try {
-      issue = await readIssue(DATA_SYNC_DIR, normalizedId);
+      issue = await readIssue(dataSyncDir, normalizedId);
     } catch {
       this.output.error(`Issue not found: ${id}`);
       return;
@@ -135,7 +138,7 @@ class DependsListHandler extends BaseCommand {
     // Load all issues to find reverse dependencies
     let allIssues: Issue[];
     try {
-      allIssues = await listIssues(DATA_SYNC_DIR);
+      allIssues = await listIssues(dataSyncDir);
     } catch {
       allIssues = [];
     }

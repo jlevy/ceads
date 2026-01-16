@@ -12,7 +12,7 @@ import type { Issue, IssueKindType, PriorityType } from '../../lib/types.js';
 import { generateInternalId } from '../../lib/ids.js';
 import { writeIssue } from '../../file/storage.js';
 import { IssueKind, Priority } from '../../lib/schemas.js';
-import { DATA_SYNC_DIR } from '../../lib/paths.js';
+import { resolveDataSyncDir } from '../../lib/paths.js';
 
 interface CreateOptions {
   fromFile?: string;
@@ -80,7 +80,8 @@ class CreateHandler extends BaseCommand {
     };
 
     await this.execute(async () => {
-      await writeIssue(DATA_SYNC_DIR, issue);
+      const dataSyncDir = await resolveDataSyncDir();
+      await writeIssue(dataSyncDir, issue);
     }, 'Failed to create issue');
 
     // Output with display ID (bd- prefix for Beads compatibility)

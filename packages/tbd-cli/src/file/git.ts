@@ -485,3 +485,267 @@ export async function getRemoteUrl(remote: string): Promise<string | null> {
     return null;
   }
 }
+
+// =============================================================================
+// Worktree Management
+// See: tbd-design-v3.md §2.3 Hidden Worktree Model
+// =============================================================================
+
+import { access, rm } from 'node:fs/promises';
+import { WORKTREE_DIR, TBD_DIR, DATA_SYNC_DIR_NAME, SYNC_BRANCH } from '../lib/paths.js';
+
+/**
+ * Check if the hidden worktree exists and is valid.
+ */
+export async function worktreeExists(baseDir: string): Promise<boolean> {
+  const worktreePath = join(baseDir, WORKTREE_DIR);
+  try {
+    await access(worktreePath);
+    // Also verify it's a valid git worktree by checking for .git file
+    await access(join(worktreePath, '.git'));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Worktree health status.
+ */
+export interface WorktreeHealth {
+  exists: boolean;
+  valid: boolean;
+  branch: string | null;
+  commit: string | null;
+  error?: string;
+}
+
+/**
+ * Check worktree health and return status.
+ * See: tbd-design-v3.md §2.3 Worktree Lifecycle
+ */
+export async function checkWorktreeHealth(baseDir: string): Promise<WorktreeHealth> {
+  const worktreePath = join(baseDir, WORKTREE_DIR);
+
+  // Check if worktree directory exists
+  try {
+    await access(worktreePath);
+  } catch {
+    return { exists: false, valid: false, branch: null, commit: null };
+  }
+
+  // Check if it's a valid git worktree
+  try {
+    await access(join(worktreePath, '.git'));
+  } catch {
+    return {
+      exists: true,
+      valid: false,
+      branch: null,
+      commit: null,
+      error: 'Worktree directory exists but is not a valid git worktree',
+    };
+  }
+
+  // Get current commit and branch info
+  try {
+    const commit = await git('-C', worktreePath, 'rev-parse', 'HEAD');
+    let branch: string | null = null;
+
+    try {
+      // Check if we're on detached HEAD pointing to tbd-sync
+      const refName = await git('-C', worktreePath, 'symbolic-ref', '-q', 'HEAD');
+      branch = refName.replace('refs/heads/', '');
+    } catch {
+      // Detached HEAD - expected state
+      branch = null;
+    }
+
+    return { exists: true, valid: true, branch, commit };
+  } catch (error) {
+    return {
+      exists: true,
+      valid: false,
+      branch: null,
+      commit: null,
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
+}
+
+/**
+ * Initialize the hidden worktree for the tbd-sync branch.
+ * Follows the decision tree from tbd-design-v3.md §2.3.
+ *
+ * @param baseDir - The base directory of the repository
+ * @param remote - The remote name (default: 'origin')
+ * @param syncBranch - The sync branch name (default: 'tbd-sync')
+ * @returns Path to the worktree or error message
+ */
+export async function initWorktree(
+  baseDir: string,
+  remote = 'origin',
+  syncBranch: string = SYNC_BRANCH,
+): Promise<{ success: boolean; path?: string; created?: boolean; error?: string }> {
+  const worktreePath = join(baseDir, WORKTREE_DIR);
+
+  // Check if worktree already exists and is valid
+  if (await worktreeExists(baseDir)) {
+    return { success: true, path: worktreePath, created: false };
+  }
+
+  // Remove any stale worktree directory
+  try {
+    await rm(worktreePath, { recursive: true, force: true });
+  } catch {
+    // Ignore errors - directory might not exist
+  }
+
+  try {
+    // Check if local branch exists
+    const localExists = await branchExists(syncBranch);
+    if (localExists) {
+      // Create worktree from local branch with detached HEAD
+      await git('-C', baseDir, 'worktree', 'add', worktreePath, syncBranch, '--detach');
+      return { success: true, path: worktreePath, created: true };
+    }
+
+    // Check if remote branch exists
+    const remoteExists = await remoteBranchExists(remote, syncBranch);
+    if (remoteExists) {
+      // Fetch and create worktree from remote branch
+      await git('-C', baseDir, 'fetch', remote, syncBranch);
+      await git(
+        '-C',
+        baseDir,
+        'worktree',
+        'add',
+        worktreePath,
+        `${remote}/${syncBranch}`,
+        '--detach',
+      );
+      return { success: true, path: worktreePath, created: true };
+    }
+
+    // No branch exists - create orphan worktree
+    // Note: --orphan creates a new branch with no history
+    await git('-C', baseDir, 'worktree', 'add', worktreePath, '--orphan', syncBranch);
+
+    // Initialize the data-sync directory structure in the worktree
+    const dataSyncPath = join(worktreePath, TBD_DIR, DATA_SYNC_DIR_NAME);
+    const { mkdir } = await import('node:fs/promises');
+    await mkdir(join(dataSyncPath, 'issues'), { recursive: true });
+    await mkdir(join(dataSyncPath, 'mappings'), { recursive: true });
+    await mkdir(join(dataSyncPath, 'attic', 'conflicts'), { recursive: true });
+
+    // Create initial commit in worktree
+    const { atomicWriteFile } = await import('./storage.js');
+    await atomicWriteFile(join(dataSyncPath, 'meta.yml'), 'schema_version: 1\n');
+    await atomicWriteFile(join(dataSyncPath, 'issues', '.gitkeep'), '');
+    await atomicWriteFile(join(dataSyncPath, 'mappings', '.gitkeep'), '');
+
+    // Stage and commit the initial structure
+    await git('-C', worktreePath, 'add', '.');
+    await git('-C', worktreePath, 'commit', '-m', 'Initialize tbd-sync branch');
+
+    return { success: true, path: worktreePath, created: true };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
+}
+
+/**
+ * Update the hidden worktree to latest sync branch state.
+ * Called after sync operations to ensure worktree reflects current state.
+ *
+ * @param baseDir - The base directory of the repository
+ * @param remote - The remote name (default: 'origin')
+ * @param syncBranch - The sync branch name (default: 'tbd-sync')
+ */
+export async function updateWorktree(
+  baseDir: string,
+  remote = 'origin',
+  syncBranch: string = SYNC_BRANCH,
+): Promise<{ success: boolean; error?: string }> {
+  const worktreePath = join(baseDir, WORKTREE_DIR);
+
+  // Ensure worktree exists
+  if (!(await worktreeExists(baseDir))) {
+    const initResult = await initWorktree(baseDir, remote, syncBranch);
+    if (!initResult.success) {
+      return { success: false, error: initResult.error };
+    }
+  }
+
+  try {
+    // Fetch latest from remote
+    try {
+      await git('-C', baseDir, 'fetch', remote, syncBranch);
+    } catch {
+      // Remote fetch may fail if offline - that's ok
+    }
+
+    // Get the latest commit on the sync branch
+    let targetCommit: string;
+    try {
+      // Try local branch first
+      targetCommit = await git('-C', baseDir, 'rev-parse', `refs/heads/${syncBranch}`);
+    } catch {
+      try {
+        // Fall back to remote tracking branch
+        targetCommit = await git(
+          '-C',
+          baseDir,
+          'rev-parse',
+          `refs/remotes/${remote}/${syncBranch}`,
+        );
+      } catch {
+        // No remote either - worktree is already at latest
+        return { success: true };
+      }
+    }
+
+    // Update worktree to that commit (detached HEAD)
+    await git('-C', worktreePath, 'checkout', '--detach', targetCommit);
+
+    return { success: true };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
+}
+
+/**
+ * Remove the hidden worktree.
+ * Used by doctor --fix when worktree is corrupted.
+ */
+export async function removeWorktree(
+  baseDir: string,
+): Promise<{ success: boolean; error?: string }> {
+  const worktreePath = join(baseDir, WORKTREE_DIR);
+
+  try {
+    // First try to properly remove via git
+    try {
+      await git('-C', baseDir, 'worktree', 'remove', worktreePath, '--force');
+    } catch {
+      // If git worktree remove fails, just delete the directory
+      await rm(worktreePath, { recursive: true, force: true });
+    }
+
+    // Prune stale worktree references
+    await git('-C', baseDir, 'worktree', 'prune');
+
+    return { success: true };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
+}

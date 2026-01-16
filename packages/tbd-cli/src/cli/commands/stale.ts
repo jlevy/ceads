@@ -10,7 +10,7 @@ import { BaseCommand } from '../lib/baseCommand.js';
 import { listIssues } from '../../file/storage.js';
 import { IssueStatus } from '../../lib/schemas.js';
 import type { Issue, IssueStatusType } from '../../lib/types.js';
-import { DATA_SYNC_DIR } from '../../lib/paths.js';
+import { resolveDataSyncDir } from '../../lib/paths.js';
 
 interface StaleOptions {
   days?: string;
@@ -23,7 +23,8 @@ class StaleHandler extends BaseCommand {
     // Load all issues
     let issues: Issue[];
     try {
-      issues = await listIssues(DATA_SYNC_DIR);
+      const dataSyncDir = await resolveDataSyncDir();
+      issues = await listIssues(dataSyncDir);
     } catch {
       this.output.error('No issue store found. Run `tbd init` first.');
       return;

@@ -14,7 +14,7 @@ import { writeIssue, listIssues, atomicWriteFile } from '../../file/storage.js';
 import { generateInternalId } from '../../lib/ids.js';
 import { IssueStatus, IssueKind } from '../../lib/schemas.js';
 import type { Issue, IssueStatusType, IssueKindType, DependencyType } from '../../lib/types.js';
-import { DATA_SYNC_DIR, MAPPINGS_DIR } from '../../lib/paths.js';
+import { resolveDataSyncDir, resolveMappingsDir } from '../../lib/paths.js';
 
 interface ImportOptions {
   fromBeads?: boolean;
@@ -64,7 +64,8 @@ type IdMapping = Record<string, string>;
  * Load existing ID mapping.
  */
 async function loadMapping(): Promise<IdMapping> {
-  const mappingPath = join(process.cwd(), MAPPINGS_DIR, 'beads.yml');
+  const mappingsDir = await resolveMappingsDir();
+  const mappingPath = join(mappingsDir, 'beads.yml');
   try {
     const content = await readFile(mappingPath, 'utf-8');
     return (parseYaml(content) as IdMapping) ?? {};
@@ -77,7 +78,7 @@ async function loadMapping(): Promise<IdMapping> {
  * Save ID mapping.
  */
 async function saveMapping(mapping: IdMapping): Promise<void> {
-  const mappingsDir = join(process.cwd(), MAPPINGS_DIR);
+  const mappingsDir = await resolveMappingsDir();
   await mkdir(mappingsDir, { recursive: true });
   const mappingPath = join(mappingsDir, 'beads.yml');
   const content = stringifyYaml(mapping, { sortMapEntries: true });
@@ -170,7 +171,11 @@ function convertIssue(beads: BeadsIssue, tbdId: string, depMapping: IdMapping): 
 }
 
 class ImportHandler extends BaseCommand {
+  private dataSyncDir = '';
+
   async run(file: string | undefined, options: ImportOptions): Promise<void> {
+    this.dataSyncDir = await resolveDataSyncDir();
+
     // Handle validation mode
     if (options.validate) {
       await this.validateImport(options);
@@ -472,7 +477,7 @@ class ImportHandler extends BaseCommand {
       }
 
       try {
-        await writeIssue(DATA_SYNC_DIR, issue);
+        await writeIssue(this.dataSyncDir, issue);
       } catch (error) {
         if (options.verbose) {
           this.output.warn(`Failed to write issue ${beads.id}: ${(error as Error).message}`);
@@ -510,7 +515,7 @@ class ImportHandler extends BaseCommand {
 
   private async loadExistingIssues(): Promise<Issue[]> {
     try {
-      return await listIssues(DATA_SYNC_DIR);
+      return await listIssues(this.dataSyncDir);
     } catch {
       return [];
     }

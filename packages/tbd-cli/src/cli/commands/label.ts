@@ -9,17 +9,18 @@ import { Command } from 'commander';
 import { BaseCommand } from '../lib/baseCommand.js';
 import { readIssue, writeIssue, listIssues } from '../../file/storage.js';
 import { normalizeIssueId } from '../../lib/ids.js';
-import { DATA_SYNC_DIR } from '../../lib/paths.js';
+import { resolveDataSyncDir } from '../../lib/paths.js';
 
 // Add label
 class LabelAddHandler extends BaseCommand {
   async run(id: string, labels: string[]): Promise<void> {
     const normalizedId = normalizeIssueId(id);
+    const dataSyncDir = await resolveDataSyncDir();
 
     // Load existing issue
     let issue;
     try {
-      issue = await readIssue(DATA_SYNC_DIR, normalizedId);
+      issue = await readIssue(dataSyncDir, normalizedId);
     } catch {
       this.output.error(`Issue not found: ${id}`);
       return;
@@ -49,7 +50,7 @@ class LabelAddHandler extends BaseCommand {
     issue.updated_at = new Date().toISOString();
 
     await this.execute(async () => {
-      await writeIssue(DATA_SYNC_DIR, issue);
+      await writeIssue(dataSyncDir, issue);
     }, 'Failed to update issue');
 
     const displayId = `bd-${issue.id.slice(3)}`;
@@ -63,11 +64,12 @@ class LabelAddHandler extends BaseCommand {
 class LabelRemoveHandler extends BaseCommand {
   async run(id: string, labels: string[]): Promise<void> {
     const normalizedId = normalizeIssueId(id);
+    const dataSyncDir = await resolveDataSyncDir();
 
     // Load existing issue
     let issue;
     try {
-      issue = await readIssue(DATA_SYNC_DIR, normalizedId);
+      issue = await readIssue(dataSyncDir, normalizedId);
     } catch {
       this.output.error(`Issue not found: ${id}`);
       return;
@@ -92,7 +94,7 @@ class LabelRemoveHandler extends BaseCommand {
     issue.updated_at = new Date().toISOString();
 
     await this.execute(async () => {
-      await writeIssue(DATA_SYNC_DIR, issue);
+      await writeIssue(dataSyncDir, issue);
     }, 'Failed to update issue');
 
     const displayId = `bd-${issue.id.slice(3)}`;
@@ -105,10 +107,12 @@ class LabelRemoveHandler extends BaseCommand {
 // List labels
 class LabelListHandler extends BaseCommand {
   async run(): Promise<void> {
+    const dataSyncDir = await resolveDataSyncDir();
+
     // Load all issues and collect unique labels
     let issues;
     try {
-      issues = await listIssues(DATA_SYNC_DIR);
+      issues = await listIssues(dataSyncDir);
     } catch {
       this.output.error('No issue store found. Run `tbd init` first.');
       return;

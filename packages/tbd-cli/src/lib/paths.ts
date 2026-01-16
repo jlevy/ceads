@@ -98,3 +98,85 @@ export function getMappingPath(name: string): string {
 export function getAtticPath(issueId: string, filename: string): string {
   return join(ATTIC_DIR, 'conflicts', issueId, filename);
 }
+
+// =============================================================================
+// Dynamic Path Resolution
+// =============================================================================
+
+import { access } from 'node:fs/promises';
+
+/**
+ * Cache for resolved data sync directory.
+ * Reset when baseDir changes.
+ */
+let _resolvedDataSyncDir: string | null = null;
+let _resolvedBaseDir: string | null = null;
+
+/**
+ * Resolve the actual data sync directory path.
+ *
+ * This function detects whether we're running with a git worktree
+ * (production) or in a test environment without worktree.
+ *
+ * Order of preference:
+ * 1. Worktree path if worktree exists: .tbd/data-sync-worktree/.tbd/data-sync/
+ * 2. Direct path as fallback: .tbd/data-sync/
+ *
+ * @param baseDir - The base directory of the repository (default: process.cwd())
+ * @returns Resolved data sync directory path
+ */
+export async function resolveDataSyncDir(baseDir: string = process.cwd()): Promise<string> {
+  // Return cached result if baseDir hasn't changed
+  if (_resolvedDataSyncDir && _resolvedBaseDir === baseDir) {
+    return _resolvedDataSyncDir;
+  }
+
+  const worktreePath = join(baseDir, DATA_SYNC_DIR_VIA_WORKTREE);
+  const directPath = join(baseDir, DATA_SYNC_DIR);
+
+  // Check if worktree path exists
+  try {
+    await access(worktreePath);
+    _resolvedDataSyncDir = worktreePath;
+    _resolvedBaseDir = baseDir;
+    return worktreePath;
+  } catch {
+    // Worktree doesn't exist, use direct path
+    _resolvedDataSyncDir = directPath;
+    _resolvedBaseDir = baseDir;
+    return directPath;
+  }
+}
+
+/**
+ * Resolve issues directory path.
+ */
+export async function resolveIssuesDir(baseDir: string = process.cwd()): Promise<string> {
+  const dataSyncDir = await resolveDataSyncDir(baseDir);
+  return join(dataSyncDir, 'issues');
+}
+
+/**
+ * Resolve mappings directory path.
+ */
+export async function resolveMappingsDir(baseDir: string = process.cwd()): Promise<string> {
+  const dataSyncDir = await resolveDataSyncDir(baseDir);
+  return join(dataSyncDir, 'mappings');
+}
+
+/**
+ * Resolve attic directory path.
+ */
+export async function resolveAtticDir(baseDir: string = process.cwd()): Promise<string> {
+  const dataSyncDir = await resolveDataSyncDir(baseDir);
+  return join(dataSyncDir, 'attic');
+}
+
+/**
+ * Clear the resolved path cache.
+ * Call this when the repository state changes (e.g., after init).
+ */
+export function clearPathCache(): void {
+  _resolvedDataSyncDir = null;
+  _resolvedBaseDir = null;
+}

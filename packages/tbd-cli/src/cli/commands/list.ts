@@ -12,7 +12,7 @@ import type { Issue, IssueStatusType, IssueKindType } from '../../lib/types.js';
 import { listIssues } from '../../file/storage.js';
 import { isInitialized } from '../../file/config.js';
 import { formatDisplayId } from '../../lib/ids.js';
-import { DATA_SYNC_DIR } from '../../lib/paths.js';
+import { resolveDataSyncDir } from '../../lib/paths.js';
 
 interface ListOptions {
   status?: IssueStatusType;
@@ -38,7 +38,9 @@ class ListHandler extends BaseCommand {
     let issues: Issue[];
 
     try {
-      issues = await listIssues(DATA_SYNC_DIR);
+      // Resolve the correct data sync directory (worktree or direct)
+      const dataSyncDir = await resolveDataSyncDir();
+      issues = await listIssues(dataSyncDir);
     } catch {
       this.output.error('Failed to read issues');
       return;

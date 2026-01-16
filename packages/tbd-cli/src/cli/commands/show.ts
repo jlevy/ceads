@@ -10,7 +10,7 @@ import { BaseCommand } from '../lib/baseCommand.js';
 import { readIssue } from '../../file/storage.js';
 import { serializeIssue } from '../../file/parser.js';
 import { normalizeIssueId } from '../../lib/ids.js';
-import { DATA_SYNC_DIR } from '../../lib/paths.js';
+import { resolveDataSyncDir } from '../../lib/paths.js';
 
 class ShowHandler extends BaseCommand {
   async run(id: string): Promise<void> {
@@ -19,7 +19,8 @@ class ShowHandler extends BaseCommand {
 
     let issue;
     try {
-      issue = await readIssue(DATA_SYNC_DIR, normalizedId);
+      const dataSyncDir = await resolveDataSyncDir();
+      issue = await readIssue(dataSyncDir, normalizedId);
     } catch {
       this.output.error(`Issue not found: ${id}`);
       return;
