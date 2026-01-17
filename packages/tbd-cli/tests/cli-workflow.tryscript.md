@@ -23,7 +23,7 @@ before: |
 ---
 # tbd CLI: Workflow Commands
 
-Tests for ready, blocked, stale, label, and depends commands.
+Tests for ready, blocked, stale, label, and dep commands.
 
 * * *
 
@@ -124,7 +124,7 @@ $ tbd create "Blocked by other" --type=task --json | node -e "d=JSON.parse(requi
 ```
 
 ```console
-$ tbd depends add $(cat /tmp/blocker.txt) $(cat /tmp/blocked_by.txt)
+$ tbd dep add $(cat /tmp/blocker.txt) $(cat /tmp/blocked_by.txt)
 ✓ bd-[SHORTID] now blocks bd-[SHORTID]
 ? 0
 ```
@@ -324,7 +324,7 @@ $ tbd label add is-00000000000000000000000000 test-label 2>&1
 
 * * *
 
-## Depends Commands
+## Dep Commands
 
 Create issues for dependency testing:
 
@@ -338,44 +338,44 @@ $ tbd create "Child task" --type=task --json | node -e "d=JSON.parse(require('fs
 ? 0
 ```
 
-# Test: Depends add (X blocks Y)
+# Test: Dep add (X blocks Y)
 
 ```console
-$ tbd depends add $(cat /tmp/dep_parent.txt) $(cat /tmp/dep_child.txt)
+$ tbd dep add $(cat /tmp/dep_parent.txt) $(cat /tmp/dep_child.txt)
 ✓ bd-[SHORTID] now blocks bd-[SHORTID]
 ? 0
 ```
 
-# Test: Depends list forward (what does X block)
+# Test: Dep list forward (what does X block)
 
 ```console
-$ tbd depends list $(cat /tmp/dep_parent.txt)
+$ tbd dep list $(cat /tmp/dep_parent.txt)
 Blocks: bd-[SHORTID]
 ? 0
 ```
 
-# Test: Depends list reverse (what blocks Y)
+# Test: Dep list reverse (what blocks Y)
 
 ```console
-$ tbd depends list $(cat /tmp/dep_child.txt)
+$ tbd dep list $(cat /tmp/dep_child.txt)
 Blocked by: bd-[SHORTID]
 ? 0
 ```
 
-# Test: Depends list as JSON
+# Test: Dep list as JSON
 
 ```console
-$ tbd depends list $(cat /tmp/dep_parent.txt) --json
+$ tbd dep list $(cat /tmp/dep_parent.txt) --json
 {
 ...
 }
 ? 0
 ```
 
-# Test: Depends remove
+# Test: Dep remove
 
 ```console
-$ tbd depends remove $(cat /tmp/dep_parent.txt) $(cat /tmp/dep_child.txt)
+$ tbd dep remove $(cat /tmp/dep_parent.txt) $(cat /tmp/dep_child.txt)
 ✓ Removed dependency[..]
 ? 0
 ```
@@ -383,31 +383,31 @@ $ tbd depends remove $(cat /tmp/dep_parent.txt) $(cat /tmp/dep_child.txt)
 # Test: Verify dependency removed
 
 ```console
-$ tbd depends list $(cat /tmp/dep_parent.txt) --json | node -e "d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log('blocks:', d.blocks.length)"
+$ tbd dep list $(cat /tmp/dep_parent.txt) --json | node -e "d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log('blocks:', d.blocks.length)"
 blocks: 0
 ? 0
 ```
 
-# Test: Depends add with dry-run
+# Test: Dep add with dry-run
 
 ```console
-$ tbd depends add $(cat /tmp/dep_parent.txt) $(cat /tmp/dep_child.txt) --dry-run
+$ tbd dep add $(cat /tmp/dep_parent.txt) $(cat /tmp/dep_child.txt) --dry-run
 [DRY-RUN] Would add dependency
 ? 0
 ```
 
-# Test: Depends add self-reference fails
+# Test: Dep add self-reference fails
 
 ```console
-$ tbd depends add $(cat /tmp/dep_parent.txt) $(cat /tmp/dep_parent.txt) 2>&1
+$ tbd dep add $(cat /tmp/dep_parent.txt) $(cat /tmp/dep_parent.txt) 2>&1
 ✗ Issue cannot block itself
 ? 0
 ```
 
-# Test: Depends add non-existent source
+# Test: Dep add non-existent source
 
 ```console
-$ tbd depends add is-00000000000000000000000000 $(cat /tmp/dep_child.txt) 2>&1
+$ tbd dep add is-00000000000000000000000000 $(cat /tmp/dep_child.txt) 2>&1
 ✗ [..]not found[..]
 ? 0
 ```
@@ -419,7 +419,7 @@ $ tbd depends add is-00000000000000000000000000 $(cat /tmp/dep_child.txt) 2>&1
 Add a dependency to make an issue blocked:
 
 ```console
-$ tbd depends add $(cat /tmp/blocker.txt) $(cat /tmp/ready1.txt)
+$ tbd dep add $(cat /tmp/blocker.txt) $(cat /tmp/ready1.txt)
 ✓ bd-[SHORTID] now blocks bd-[SHORTID]
 ? 0
 ```

@@ -174,7 +174,7 @@ $ tbd list --json | node -e "d=JSON.parse(require('fs').readFileSync(0,'utf8'));
 ```
 
 ```console
-$ ID=$(cat /tmp/self_id.txt) && tbd depends add $ID $ID 2>&1 | head -1
+$ ID=$(cat /tmp/self_id.txt) && tbd dep add $ID $ID 2>&1 | head -1
 ✗ Issue cannot block itself
 ? 0
 ```

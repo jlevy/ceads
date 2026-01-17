@@ -77,7 +77,7 @@ tbd sync                     # Sync with remote
 ### Dependencies
 
 ```bash
-tbd depends add bd-b3m9 bd-a7k2  # b3m9 is blocked by a7k2
+tbd dep add bd-b3m9 bd-a7k2  # b3m9 is blocked by a7k2
 tbd blocked                      # Show blocked issues
 ```
 

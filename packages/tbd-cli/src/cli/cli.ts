@@ -24,7 +24,7 @@ import { readyCommand } from './commands/ready.js';
 import { blockedCommand } from './commands/blocked.js';
 import { staleCommand } from './commands/stale.js';
 import { labelCommand } from './commands/label.js';
-import { dependsCommand } from './commands/depends.js';
+import { depCommand } from './commands/dep.js';
 import { syncCommand } from './commands/sync.js';
 import { searchCommand } from './commands/search.js';
 import { statusCommand } from './commands/status.js';
@@ -77,7 +77,7 @@ function createProgram(): Command {
   program.addCommand(blockedCommand);
   program.addCommand(staleCommand);
   program.addCommand(labelCommand);
-  program.addCommand(dependsCommand);
+  program.addCommand(depCommand);
   program.addCommand(syncCommand);
   program.addCommand(searchCommand);
   program.addCommand(statusCommand);

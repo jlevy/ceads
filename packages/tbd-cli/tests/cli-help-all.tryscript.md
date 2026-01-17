@@ -53,7 +53,7 @@ $ tbd init --help | grep -c "Options:"
 # Test: create --help shows type option
 
 ```console
-$ tbd create --help | grep -c "\-t, --type"
+$ tbd create --help | grep -c "\-\-type"
 1
 ? 0
 ```
@@ -138,10 +138,10 @@ $ tbd label --help | grep -c "add <id>"
 ? 0
 ```
 
-# Test: depends --help shows list subcommand
+# Test: dep --help shows list subcommand
 
 ```console
-$ tbd depends --help | grep -c "list <id>"
+$ tbd dep --help | grep -c "list <id>"
 1
 ? 0
 ```

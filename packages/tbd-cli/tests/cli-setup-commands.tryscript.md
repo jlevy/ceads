@@ -39,7 +39,7 @@ Options:
   -h, --help         display help for command
 
 Global Options:
-  -V, --version      Show version number
+  --version          Show version number
   --dry-run          Show what would be done without making changes
   --verbose          Enable verbose output
   --quiet            Suppress non-essential output
@@ -74,7 +74,7 @@ Options:
   -h, --help         display help for command
 
 Global Options:
-  -V, --version      Show version number
+  --version          Show version number
   --dry-run          Show what would be done without making changes
   --verbose          Enable verbose output
   --quiet            Suppress non-essential output
@@ -103,7 +103,7 @@ Options:
   -h, --help         display help for command
 
 Global Options:
-  -V, --version      Show version number
+  --version          Show version number
   --dry-run          Show what would be done without making changes
   --verbose          Enable verbose output
   --quiet            Suppress non-essential output
@@ -132,7 +132,7 @@ Options:
   -h, --help         display help for command
 
 Global Options:
-  -V, --version      Show version number
+  --version          Show version number
   --dry-run          Show what would be done without making changes
   --verbose          Enable verbose output
   --quiet            Suppress non-essential output

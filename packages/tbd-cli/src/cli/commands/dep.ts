@@ -1,5 +1,5 @@
 /**
- * `tbd depends` - Dependency management commands.
+ * `tbd dep` - Dependency management commands.
  *
  * See: tbd-design-v3.md §4.6 Dependency Commands
  */
@@ -272,7 +272,7 @@ const listDepsCommand = new Command('list')
     await handler.run(id);
   });
 
-export const dependsCommand = new Command('depends')
+export const depCommand = new Command('dep')
   .description('Manage issue dependencies')
   .addCommand(addCommand)
   .addCommand(removeCommand)

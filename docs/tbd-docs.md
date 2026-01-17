@@ -48,7 +48,7 @@ tbd create "Users can't reset password" --type=bug --priority=0 \
 
 ```bash
 tbd create "Write integration tests" --type=task
-tbd depends add bd-1850 bd-1847           # Tests blocked until 1847 done
+tbd dep add bd-1850 bd-1847           # Tests blocked until 1847 done
 tbd blocked                                # See what's waiting
 ```
 
@@ -310,19 +310,19 @@ Subcommands:
 
 * * *
 
-### depends
+### dep
 
 Manage issue dependencies (blocking relationships).
 
 ```bash
 # bd-a7k2 blocks bd-b3m9 (b3m9 depends on a7k2)
-tbd depends add bd-b3m9 bd-a7k2
+tbd dep add bd-b3m9 bd-a7k2
 
 # Remove dependency
-tbd depends remove bd-b3m9 bd-a7k2
+tbd dep remove bd-b3m9 bd-a7k2
 
 # List dependencies
-tbd depends list bd-a7k2
+tbd dep list bd-a7k2
 ```
 
 Subcommands:
@@ -671,7 +671,7 @@ tbd create "Set up database" --type=task
 tbd create "Implement API" --type=task
 
 # API depends on database (database blocks API)
-tbd depends add bd-api bd-database
+tbd dep add bd-api bd-database
 
 # Check what's blocked
 tbd blocked

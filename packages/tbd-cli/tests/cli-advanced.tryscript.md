@@ -437,7 +437,7 @@ Options:
   -h, --help               display help for command
 
 Global Options:
-  -V, --version            Show version number
+  --version                Show version number
   --dry-run                Show what would be done without making changes
   --verbose                Enable verbose output
   --quiet                  Suppress non-essential output
@@ -459,11 +459,11 @@ For more on tbd, see: https://github.com/jlevy/tbd
 ? 0
 ```
 
-# Test: Help for depends subcommand
+# Test: Help for dep subcommand
 
 ```console
-$ tbd depends --help
-Usage: tbd depends [options] [command]
+$ tbd dep --help
+Usage: tbd dep [options] [command]
 
 Manage issue dependencies
 
@@ -471,7 +471,7 @@ Options:
   -h, --help            display help for command
 
 Global Options:
-  -V, --version         Show version number
+  --version             Show version number
   --dry-run             Show what would be done without making changes
   --verbose             Enable verbose output
   --quiet               Suppress non-essential output
@@ -504,7 +504,7 @@ Options:
   -h, --help         display help for command
 
 Global Options:
-  -V, --version      Show version number
+  --version          Show version number
   --dry-run          Show what would be done without making changes
   --verbose          Enable verbose output
   --quiet            Suppress non-essential output
@@ -537,7 +537,7 @@ Options:
   -h, --help                display help for command
 
 Global Options:
-  -V, --version             Show version number
+  --version                 Show version number
   --dry-run                 Show what would be done without making changes
   --verbose                 Enable verbose output
   --quiet                   Suppress non-essential output
