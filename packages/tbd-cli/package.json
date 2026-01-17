@@ -47,8 +47,8 @@
     "markdown"
   ],
   "scripts": {
-    "prebuild": "node -e \"const fs=require('fs');const p=require('path');const d='src/docs';fs.mkdirSync(d,{recursive:true});fs.copyFileSync(p.join('..','..','docs','tbd-docs.md'),p.join(d,'tbd-docs.md'))\"",
-    "build": "tsdown && node -e \"const fs=require('fs');const p=require('path');fs.mkdirSync('dist/docs',{recursive:true});fs.copyFileSync(p.join('src','docs','tbd-docs.md'),p.join('dist','docs','tbd-docs.md'));fs.copyFileSync(p.join('dist','bin.mjs'),p.join('dist','tbd'))\"",
+    "prebuild": "node scripts/copy-docs.mjs prebuild",
+    "build": "tsdown && node scripts/copy-docs.mjs postbuild",
     "dev": "tsdown --watch",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
