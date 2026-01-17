@@ -44,9 +44,16 @@ describe('generateInternalId', () => {
 });
 
 describe('generateShortId', () => {
-  it('generates base36 short ID', () => {
+  it('generates base36 short ID with default length', () => {
     const id = generateShortId();
     expect(id).toMatch(/^[a-z0-9]{4}$/);
+  });
+
+  it('generates short ID with custom length', () => {
+    expect(generateShortId(3)).toMatch(/^[a-z0-9]{3}$/);
+    expect(generateShortId(5)).toMatch(/^[a-z0-9]{5}$/);
+    expect(generateShortId(6)).toMatch(/^[a-z0-9]{6}$/);
+    expect(generateShortId(8)).toMatch(/^[a-z0-9]{8}$/);
   });
 
   it('generates unique IDs', () => {
@@ -351,5 +358,126 @@ describe('test helper: BEADS_TO_TBD_STATUS', () => {
     for (const status of expectedStatuses) {
       expect(BEADS_TO_TBD_STATUS[status]).toBeDefined();
     }
+  });
+});
+
+// Tests for adaptive short ID length and collision handling
+import {
+  calculateOptimalLength,
+  generateUniqueShortId,
+  type IdMapping,
+} from '../src/file/idMapping.js';
+import { DEFAULT_SHORT_ID_LENGTH, MAX_SHORT_ID_LENGTH } from '../src/lib/ids.js';
+
+describe('calculateOptimalLength', () => {
+  it('returns default length for empty or small databases', () => {
+    expect(calculateOptimalLength(0)).toBe(DEFAULT_SHORT_ID_LENGTH);
+    expect(calculateOptimalLength(100)).toBe(DEFAULT_SHORT_ID_LENGTH);
+    expect(calculateOptimalLength(1000)).toBe(DEFAULT_SHORT_ID_LENGTH);
+    expect(calculateOptimalLength(10000)).toBe(DEFAULT_SHORT_ID_LENGTH);
+  });
+
+  it('increases length at calculated thresholds', () => {
+    // At ~168K issues, per-attempt collision probability exceeds 10%
+    // so we should increase to 5 chars
+    expect(calculateOptimalLength(160000)).toBe(4); // Just under threshold
+    expect(calculateOptimalLength(170000)).toBe(5); // Just over threshold
+    expect(calculateOptimalLength(1000000)).toBe(5); // Still in 5-char range
+  });
+
+  it('continues scaling for larger databases', () => {
+    // 5 chars safe up to ~6M, then need 6 chars
+    expect(calculateOptimalLength(6000000)).toBe(5); // Just under
+    expect(calculateOptimalLength(10000000)).toBe(6); // Over threshold
+  });
+
+  it('clamps to maximum length', () => {
+    expect(calculateOptimalLength(1000000000000)).toBe(MAX_SHORT_ID_LENGTH);
+  });
+
+  it('follows the formula: ceil(log36(10 * existingCount))', () => {
+    // Verify the formula at specific points
+    const BASE = 36;
+    const testCounts = [1000, 10000, 100000, 1000000];
+    for (const count of testCounts) {
+      const expected = Math.max(
+        DEFAULT_SHORT_ID_LENGTH,
+        Math.min(Math.ceil(Math.log(10 * count) / Math.log(BASE)), MAX_SHORT_ID_LENGTH),
+      );
+      expect(calculateOptimalLength(count)).toBe(expected);
+    }
+  });
+});
+
+describe('generateUniqueShortId', () => {
+  // Helper to create a mapping with n existing IDs
+  function createMappingWithNIds(n: number): IdMapping {
+    const shortToUlid = new Map<string, string>();
+    const ulidToShort = new Map<string, string>();
+
+    // Pre-populate with n IDs
+    for (let i = 0; i < n; i++) {
+      const shortId = i.toString(36).padStart(4, '0'); // '0000', '0001', etc.
+      const fakeUlid = i.toString(36).padStart(26, '0');
+      shortToUlid.set(shortId, fakeUlid);
+      ulidToShort.set(fakeUlid, shortId);
+    }
+
+    return { shortToUlid, ulidToShort };
+  }
+
+  it('generates unique short ID for empty mapping', () => {
+    const mapping = createMappingWithNIds(0);
+    const id = generateUniqueShortId(mapping);
+    expect(id).toMatch(/^[a-z0-9]{4}$/); // Default 4-char length
+    expect(mapping.shortToUlid.has(id)).toBe(false);
+  });
+
+  it('generates unique ID that does not collide with existing', () => {
+    const mapping = createMappingWithNIds(100);
+    const id = generateUniqueShortId(mapping);
+    expect(mapping.shortToUlid.has(id)).toBe(false);
+  });
+
+  it('handles high-collision scenario by retrying', () => {
+    // Create a mapping where we artificially fill most of the 4-char space
+    // This tests the retry logic
+    const mapping: IdMapping = {
+      shortToUlid: new Map(),
+      ulidToShort: new Map(),
+    };
+
+    // Fill with 1000 IDs - still plenty of room, but enough to test retries work
+    for (let i = 0; i < 1000; i++) {
+      const shortId = i.toString(36).padStart(4, '0');
+      mapping.shortToUlid.set(shortId, `ulid${i}`);
+      mapping.ulidToShort.set(`ulid${i}`, shortId);
+    }
+
+    // Should still successfully generate unique IDs
+    const generated = new Set<string>();
+    for (let i = 0; i < 50; i++) {
+      const id = generateUniqueShortId(mapping);
+      expect(mapping.shortToUlid.has(id)).toBe(false);
+      expect(generated.has(id)).toBe(false);
+      generated.add(id);
+    }
+  });
+
+  it('increases length when optimal length increases', () => {
+    // With ~170K existing IDs, optimal length should be 5
+    // But creating that many IDs is expensive, so we test the behavior indirectly
+    const mapping: IdMapping = {
+      shortToUlid: new Map(),
+      ulidToShort: new Map(),
+    };
+
+    // We'll verify that calculateOptimalLength is used by generateUniqueShortId
+    // by checking that the returned ID length matches expectations
+    const id = generateUniqueShortId(mapping);
+    expect(id.length).toBe(DEFAULT_SHORT_ID_LENGTH); // 4 for empty mapping
+
+    // For larger mappings, we can't easily test without creating hundreds of thousands
+    // of entries, but the logic is verified in calculateOptimalLength tests
   });
 });

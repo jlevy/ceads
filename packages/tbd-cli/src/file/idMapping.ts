@@ -18,6 +18,8 @@ import {
   makeInternalId,
   isInternalId,
   extractShortId,
+  DEFAULT_SHORT_ID_LENGTH,
+  MAX_SHORT_ID_LENGTH,
 } from '../lib/ids.js';
 import { naturalSort } from '../lib/sort.js';
 
@@ -92,21 +94,58 @@ export async function saveIdMapping(baseDir: string, mapping: IdMapping): Promis
 }
 
 /**
+ * Calculate the optimal short ID length based on existing ID count.
+ *
+ * To keep collision probability below ~10% per attempt:
+ *   36^n > 10 * existingCount
+ *   n > log36(10 * existingCount)
+ *
+ * Length thresholds:
+ *   - 4 chars (36^4 = 1.7M): up to ~160K IDs
+ *   - 5 chars (36^5 = 60M): up to ~6M IDs
+ *   - 6 chars (36^6 = 2.2B): up to ~220M IDs
+ *   - 7 chars (36^7 = 78B): up to ~7.8B IDs
+ *   - 8 chars (36^8 = 2.8T): up to ~280B IDs
+ */
+export function calculateOptimalLength(existingCount: number): number {
+  if (existingCount <= 0) {
+    return DEFAULT_SHORT_ID_LENGTH;
+  }
+
+  // n > log36(10 * existingCount) = log(10 * existingCount) / log(36)
+  const minLength = Math.ceil(Math.log(10 * existingCount) / Math.log(36));
+
+  // Clamp between DEFAULT and MAX
+  return Math.max(DEFAULT_SHORT_ID_LENGTH, Math.min(minLength, MAX_SHORT_ID_LENGTH));
+}
+
+/**
  * Generate a unique short ID that doesn't collide with existing ones.
+ *
+ * Calculates optimal length based on existing ID count to minimize collisions.
+ * Starts with calculated optimal length, increases if collisions still occur.
+ *
  * @returns The new short ID
- * @throws If unable to generate a unique ID after max attempts
+ * @throws If unable to generate a unique ID after max attempts at max length
  */
 export function generateUniqueShortId(mapping: IdMapping): string {
-  const MAX_ATTEMPTS = 20;
+  const ATTEMPTS_PER_LENGTH = 10;
+  const existingCount = mapping.shortToUlid.size;
+  const optimalLength = calculateOptimalLength(existingCount);
 
-  for (let i = 0; i < MAX_ATTEMPTS; i++) {
-    const shortId = generateShortId();
-    if (!mapping.shortToUlid.has(shortId)) {
-      return shortId;
+  for (let length = optimalLength; length <= MAX_SHORT_ID_LENGTH; length++) {
+    for (let attempt = 0; attempt < ATTEMPTS_PER_LENGTH; attempt++) {
+      const shortId = generateShortId(length);
+      if (!mapping.shortToUlid.has(shortId)) {
+        return shortId;
+      }
     }
   }
 
-  throw new Error('Failed to generate unique short ID after maximum attempts');
+  throw new Error(
+    `Failed to generate unique short ID after ${ATTEMPTS_PER_LENGTH * (MAX_SHORT_ID_LENGTH - optimalLength + 1)} attempts ` +
+      `with ${existingCount} existing IDs. This should be extremely rare - please report if you see this error.`,
+  );
 }
 
 /**

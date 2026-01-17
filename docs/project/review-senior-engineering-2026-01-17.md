@@ -31,14 +31,14 @@
 
 ## Bugs Summary
 
-| # | Bug | Severity | Location | Status |
-|---|-----|----------|----------|--------|
-| 1 | Exit codes return 0 on errors | **Critical** | `src/cli/commands/*.ts` | Open |
-| 2 | Dependency direction semantics confusing | Medium | `src/cli/commands/dep.ts` | Open |
-| 3 | Search outputs message with --quiet | Low | `src/cli/commands/search.ts` | Open |
-| 4 | Doctor warns on empty issues dir | Low | `src/cli/commands/doctor.ts` | Open |
-| 5 | Import changes ID prefix | Medium | `src/cli/commands/import.ts` | Open |
-| 6 | Errors not JSON with --json flag | Medium | `src/cli/lib/output.ts` | Open |
+| # | Issue | Bug | Severity | Location | Status |
+|---|-------|-----|----------|----------|--------|
+| 1 | `tbd-6ijk` | Exit codes return 0 on errors | **Critical** | `src/cli/commands/*.ts` | Open |
+| 2 | `tbd-ipm3` | Dependency direction semantics confusing | Medium | `src/cli/commands/dep.ts` | Open |
+| 3 | `tbd-21kp` | Search outputs message with --quiet | Low | `src/cli/commands/search.ts` | Open |
+| 4 | `tbd-sr6h` | Doctor warns on empty issues dir | Low | `src/cli/commands/doctor.ts` | Open |
+| 5 | `tbd-eczs` | Import changes ID prefix | Medium | `src/cli/commands/import.ts` | Open |
+| 6 | `tbd-zosy` | Errors not JSON with --json flag | Medium | `src/cli/lib/output.ts` | Open |
 
 ---
 
@@ -46,43 +46,43 @@
 
 ### Priority: Critical (Before Beta)
 
-| # | Enhancement | Category |
-|---|-------------|----------|
-| E1 | Fix exit codes (Bug #1) | Bug Fix |
-| E2 | Publish to npm | Release |
-| E3 | Add Git 2.42+ version check | Robustness |
+| # | Issue | Enhancement | Category |
+|---|-------|-------------|----------|
+| E1 | `tbd-6ijk` | Fix exit codes (Bug #1) | Bug Fix |
+| E2 | `tbd-cp7s` | Publish to npm | Release |
+| E3 | `tbd-l3rp` | Add Git 2.42+ version check | Robustness |
 
 ### Priority: High (Before 1.0)
 
-| # | Enhancement | Category |
-|---|-------------|----------|
-| E4 | Clarify dependency semantics (Bug #2) | UX |
-| E5 | Error JSON output with --json | Agent Support |
-| E6 | Integration tests with git remotes | Testing |
-| E7 | Document Git version requirement | Docs |
-| E8 | Auto-detect ID prefix on import | Migration |
+| # | Issue | Enhancement | Category |
+|---|-------|-------------|----------|
+| E4 | `tbd-ipm3` | Clarify dependency semantics (Bug #2) | UX |
+| E5 | `tbd-zosy` | Error JSON output with --json (Bug #6) | Agent Support |
+| E6 | `tbd-hnob` | Integration tests with git remotes | Testing |
+| E7 | `tbd-i3e3` | Document Git version requirement | Docs |
+| E8 | `tbd-ikuj` | Auto-detect ID prefix on import | Migration |
 
 ### Priority: Medium (Nice to Have)
 
-| # | Enhancement | Category |
-|---|-------------|----------|
-| E9 | Add `--brief` flag to prime | Agent Support |
-| E10 | Issue templates | UX |
-| E11 | Query DSL for list | UX |
-| E12 | Batch operations | Agent Support |
-| E13 | `--format` option (json/yaml/table/csv) | UX |
-| E14 | Architecture diagrams in docs | Docs |
-| E15 | Make close idempotent | Agent Support |
+| # | Issue | Enhancement | Category |
+|---|-------|-------------|----------|
+| E9 | `tbd-eflj` | Add `--brief` flag to prime | Agent Support |
+| E10 | `tbd-pcyh` | Issue templates | UX |
+| E11 | `tbd-5x6s` | Query DSL for list | UX |
+| E12 | `tbd-8ob8` | Batch operations | Agent Support |
+| E13 | `tbd-emug` | `--format` option (json/yaml/table/csv) | UX |
+| E14 | `tbd-jvvy` | Architecture diagrams in docs | Docs |
+| E15 | `tbd-8exe` | Make close idempotent | Agent Support |
 
 ### Priority: Low (Future)
 
-| # | Enhancement | Category |
-|---|-------------|----------|
-| E16 | Issue history/log command | Feature |
-| E17 | GitHub Issues sync | Feature |
-| E18 | Plugin architecture | Extensibility |
-| E19 | Optional SQLite index layer | Performance |
-| E20 | Auto-link issue references | UX |
+| # | Issue | Enhancement | Category |
+|---|-------|-------------|----------|
+| E16 | `tbd-jq95` | Issue history/log command | Feature |
+| E17 | `tbd-s00m` | GitHub Issues sync | Feature |
+| E18 | `tbd-5e7y` | Plugin architecture | Extensibility |
+| E19 | `tbd-j2lv` | Optional SQLite index layer | Performance |
+| E20 | `tbd-x469` | Auto-link issue references | UX |
 
 ---
 
