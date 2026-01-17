@@ -67,33 +67,49 @@ function createProgram(): Command {
     .option('--no-sync', 'Skip automatic sync after write operations')
     .option('--debug', 'Show internal IDs alongside public IDs for debugging');
 
-  // Add commands
+  // Add commands in logical groups
+  // Note: commandsGroup() sets the heading for all following addCommand() calls
+
+  program.commandsGroup('Documentation:');
+  program.addCommand(readmeCommand);
+  program.addCommand(primeCommand);
+  program.addCommand(docsCommand);
+  program.addCommand(designCommand);
+
+  program.commandsGroup('Setup & Configuration:');
   program.addCommand(initCommand);
+  program.addCommand(configCommand);
+  program.addCommand(setupCommand);
+
+  program.commandsGroup('Working With Issues:');
+
   program.addCommand(createCommand);
-  program.addCommand(listCommand);
   program.addCommand(showCommand);
   program.addCommand(updateCommand);
   program.addCommand(closeCommand);
   program.addCommand(reopenCommand);
+  program.addCommand(searchCommand);
+
+  program.commandsGroup('Views and Filtering:');
+  program.addCommand(listCommand);
   program.addCommand(readyCommand);
   program.addCommand(blockedCommand);
   program.addCommand(staleCommand);
-  program.addCommand(labelCommand);
+
+  program.commandsGroup('Labels and Dependencies:');
   program.addCommand(depCommand);
+  program.addCommand(labelCommand);
+
+  program.commandsGroup('Sync and Status:');
   program.addCommand(syncCommand);
-  program.addCommand(searchCommand);
   program.addCommand(statusCommand);
   program.addCommand(statsCommand);
+
+  program.commandsGroup('Maintenance:');
   program.addCommand(doctorCommand);
-  program.addCommand(configCommand);
   program.addCommand(atticCommand);
   program.addCommand(importCommand);
-  program.addCommand(docsCommand);
-  program.addCommand(designCommand);
-  program.addCommand(readmeCommand);
   program.addCommand(uninstallCommand);
-  program.addCommand(primeCommand);
-  program.addCommand(setupCommand);
 
   // Apply colored help to all commands recursively
   // Note: addCommand() does NOT inherit parent's configureHelp settings,
