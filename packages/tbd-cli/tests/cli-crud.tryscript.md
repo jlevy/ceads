@@ -534,3 +534,13 @@ $ tbd create "Bad type" -t invalid 2>&1
 ✗ Invalid type[..]
 ? 0
 ```
+
+# Test: Update with invalid option --title
+
+The update command does not support --title option.
+
+```console
+$ tbd update $(cat update_id.txt) --title "New title" 2>&1
+error: unknown option '--title'
+? 1
+```

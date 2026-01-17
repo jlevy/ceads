@@ -12,7 +12,8 @@ import { join, dirname } from 'node:path';
 import { writeFile } from 'atomically';
 import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
 
-import { generateShortId } from '../lib/ids.js';
+import { generateShortId, extractUlidFromInternalId } from '../lib/ids.js';
+import { naturalSort } from '../lib/sort.js';
 
 /**
  * ID mapping from short ID to ULID.
@@ -73,8 +74,9 @@ export async function saveIdMapping(baseDir: string, mapping: IdMapping): Promis
   await mkdir(dirname(filePath), { recursive: true });
 
   // Convert Map to sorted object for deterministic output
+  // Use natural sort so "1", "2", "10" sorts correctly (not "1", "10", "2")
   const data: Record<string, string> = {};
-  const sortedKeys = Array.from(mapping.shortToUlid.keys()).sort();
+  const sortedKeys = naturalSort(Array.from(mapping.shortToUlid.keys()));
   for (const key of sortedKeys) {
     data[key] = mapping.shortToUlid.get(key)!;
   }
@@ -145,8 +147,8 @@ export function hasShortId(mapping: IdMapping, shortId: string): boolean {
  * @returns The generated short ID
  */
 export function createShortIdMapping(internalId: string, mapping: IdMapping): string {
-  // Extract ULID from internal ID (remove is- prefix)
-  const ulid = internalId.replace(/^is-/, '');
+  // Extract ULID from internal ID (remove prefix)
+  const ulid = extractUlidFromInternalId(internalId);
 
   // Check if already mapped
   const existing = mapping.ulidToShort.get(ulid);

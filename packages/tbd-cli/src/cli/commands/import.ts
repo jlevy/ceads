@@ -12,7 +12,7 @@ import { writeFile } from 'atomically';
 import { BaseCommand } from '../lib/baseCommand.js';
 import { requireInit } from '../lib/errors.js';
 import { writeIssue, listIssues } from '../../file/storage.js';
-import { generateInternalId, extractShortId } from '../../lib/ids.js';
+import { generateInternalId, extractShortId, extractUlidFromInternalId } from '../../lib/ids.js';
 import {
   loadIdMapping,
   saveIdMapping,
@@ -451,7 +451,7 @@ class ImportHandler extends BaseCommand {
         existingByBeadsId.set(beadsExt.original_id, issue);
       }
       // Also track by short ID
-      const ulid = issue.id.replace(/^is-/, '');
+      const ulid = extractUlidFromInternalId(issue.id);
       const shortId = shortIdMapping.ulidToShort.get(ulid);
       if (shortId) {
         existingByShortId.set(shortId, issue);
@@ -492,14 +492,14 @@ class ImportHandler extends BaseCommand {
         const internalId = generateInternalId();
         beadsToTbd[beads.id] = internalId;
         // Generate a random short ID since the original is taken
-        const ulid = internalId.replace(/^is-/, '');
+        const ulid = extractUlidFromInternalId(internalId);
         const newShortId = this.generateUniqueShortId(shortIdMapping);
         addIdMapping(shortIdMapping, ulid, newShortId);
       } else {
         // Create new mapping, preserving the original short ID
         const internalId = generateInternalId();
         beadsToTbd[beads.id] = internalId;
-        const ulid = internalId.replace(/^is-/, '');
+        const ulid = extractUlidFromInternalId(internalId);
         addIdMapping(shortIdMapping, ulid, shortId);
       }
     }
