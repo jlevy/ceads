@@ -73,6 +73,7 @@ Commands:
                             Tip: Run "bd sync" and stop the beads daemon before
                             importing for best results.
   docs [options] [topic]    Display CLI documentation
+  design [options] [topic]  Display design documentation and Beads comparison
   readme                    Display the README (same as GitHub landing page)
   uninstall [options]       Remove tbd from this repository
   prime [options]           Output workflow context for AI agents
