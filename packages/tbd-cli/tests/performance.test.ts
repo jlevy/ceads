@@ -79,8 +79,8 @@ describe('performance tests', () => {
       const issue = generateTestIssue(1);
       const { ms } = await measureTime(() => writeIssue(tempDir, issue));
 
-      // Allow 100ms on Windows CI (slower file I/O), 50ms elsewhere
-      expect(ms).toBeLessThan(isWindows ? 100 : 50);
+      // Allow 500ms on Windows CI (slower file I/O, cold start), 50ms elsewhere
+      expect(ms).toBeLessThan(isWindows ? 500 : 50);
     });
 
     it('writes 100 issues in <3000ms (30ms avg)', async () => {
