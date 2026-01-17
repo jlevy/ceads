@@ -3,6 +3,8 @@ sandbox: true
 env:
   NO_COLOR: '1'
   FORCE_COLOR: '0'
+path:
+  - ../dist
 timeout: 30000
 patterns:
   ULID: '[0-9a-z]{26}'
@@ -31,7 +33,7 @@ These tests verify that helpful error messages are shown instead of confusing er
 Info command should work and tell user to run init.
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs info
+$ tbd info
 tbd version [..]
 
 Not initialized. Run tbd init to set up.
@@ -47,7 +49,7 @@ Not initialized. Run tbd init to set up.
 List command should fail with helpful error message when tbd is not initialized.
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs list 2>&1
+$ tbd list 2>&1
 Error: Not a tbd repository. Run "tbd init" first.
 ? 1
 ```
@@ -61,7 +63,7 @@ Error: Not a tbd repository. Run "tbd init" first.
 Show command fails gracefully since no .tbd directory exists.
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs show bd-1234 2>&1
+$ tbd show bd-1234 2>&1
 ✗ Issue not found: bd-1234
 ? 0
 ```
@@ -73,7 +75,7 @@ $ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs show bd-1234 2>&1
 # Test: Init works and provides success message
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs init
+$ tbd init
 ✓ Initialized tbd repository
 
 To complete setup, commit the config files:
@@ -112,7 +114,7 @@ meta.yml
 # Test: Create works after init
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs create "Test issue"
+$ tbd create "Test issue"
 ✓ Created bd-[SHORTID]: Test issue
 ? 0
 ```
@@ -120,7 +122,7 @@ $ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs create "Test issue"
 # Test: List shows the issue
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs list
+$ tbd list
 ...
 ? 0
 ```

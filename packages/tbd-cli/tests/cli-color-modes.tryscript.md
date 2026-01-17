@@ -1,5 +1,10 @@
 ---
 sandbox: true
+env:
+  NO_COLOR: '1'
+  FORCE_COLOR: '0'
+path:
+  - ../dist
 timeout: 30000
 patterns:
   ULID: '[0-9a-z]{26}'
@@ -28,7 +33,7 @@ would require a different test approach since tryscript compares text output.
 # Test: --color=never is recognized (no error)
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs --color=never --version
+$ tbd --color=never --version
 [..]
 ? 0
 ```
@@ -36,7 +41,7 @@ $ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs --color=never --version
 # Test: --color=always is recognized (no error)
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs --color=always --version
+$ tbd --color=always --version
 [..]
 ? 0
 ```
@@ -44,7 +49,7 @@ $ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs --color=always --version
 # Test: --color=auto is recognized (no error)
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs --color=auto --version
+$ tbd --color=auto --version
 [..]
 ? 0
 ```
@@ -52,7 +57,7 @@ $ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs --color=auto --version
 # Test: --color never (space separator) is recognized
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs --color never --version
+$ tbd --color never --version
 [..]
 ? 0
 ```
@@ -64,7 +69,7 @@ $ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs --color never --version
 # Test: Init with --color=never produces clean output
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs --color=never init
+$ tbd --color=never init
 [..] Initialized tbd repository
 
 To complete setup, commit the config files:
@@ -80,7 +85,7 @@ To complete setup, commit the config files:
 # Test: Create with --color=never produces clean output
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs --color=never create "Test issue" -t task
+$ tbd --color=never create "Test issue" -t task
 [..] Created bd-[..]: Test issue
 ? 0
 ```
@@ -88,7 +93,7 @@ $ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs --color=never create "Test issue" -t 
 # Test: Create with --color=always (output may contain ANSI codes)
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs --color=always create "Another issue" -t bug
+$ tbd --color=always create "Another issue" -t bug
 [..] Created bd-[..]: Another issue
 ? 0
 ```
@@ -100,7 +105,7 @@ $ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs --color=always create "Another issue"
 # Test: List with --color=never produces clean output
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs --color=never list
+$ tbd --color=never list
 ID[..]PRI[..]STATUS[..]TITLE
 bd-[..]2[..]open[..]Test issue
 bd-[..]2[..]open[..]Another issue
@@ -112,7 +117,7 @@ bd-[..]2[..]open[..]Another issue
 # Test: List JSON ignores color flag (JSON is always colorless)
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs --color=always list --json
+$ tbd --color=always list --json
 [
   {
     "id": "bd-[..]",
@@ -143,7 +148,7 @@ $ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs --color=always list --json
 # Test: Help with --color=never shows expected content
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs --color=never --help | head -5
+$ tbd --color=never --help | head -5
 Usage: tbd [options] [command]
 
 Git-native issue tracking for AI agents and humans
@@ -155,7 +160,7 @@ Options:
 # Test: Help with --color=always works without error
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs --color=always --help | head -3
+$ tbd --color=always --help | head -3
 Usage: tbd [options] [command]
 
 Git-native issue tracking for AI agents and humans
@@ -171,7 +176,7 @@ These tests verify NO_COLOR environment variable is respected.
 # Test: NO_COLOR=1 disables colors (baseline for deterministic testing)
 
 ```console
-$ NO_COLOR=1 node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs list
+$ NO_COLOR=1 tbd list
 ID[..]PRI[..]STATUS[..]TITLE
 bd-[..]2[..]open[..]Test issue
 bd-[..]2[..]open[..]Another issue
@@ -186,7 +191,7 @@ This should work - --color=always should force colors even with NO_COLOR set.
 (We can't verify ANSI codes in tryscript, but we verify it doesn't error)
 
 ```console
-$ NO_COLOR=1 node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs --color=always --version
+$ NO_COLOR=1 tbd --color=always --version
 [..]
 ? 0
 ```
@@ -198,7 +203,7 @@ $ NO_COLOR=1 node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs --color=always --version
 # Test: Error output with --color=never
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs --color=never show bd-nonexistent 2>&1
+$ tbd --color=never show bd-nonexistent 2>&1
 [..]Issue not found: bd-nonexistent
 ? 0
 ```
@@ -206,7 +211,7 @@ $ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs --color=never show bd-nonexistent 2>&
 # Test: Error output with --color=always (may have ANSI codes)
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs --color=always show bd-nonexistent 2>&1
+$ tbd --color=always show bd-nonexistent 2>&1
 [..]Issue not found: bd-nonexistent[..]
 ? 0
 ```
@@ -218,7 +223,7 @@ $ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs --color=always show bd-nonexistent 2>
 # Test: Invalid --color value is accepted (Commander passes through)
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs --color=invalid --version 2>&1
+$ tbd --color=invalid --version 2>&1
 [..]
 ? 0
 ```
