@@ -1,6 +1,6 @@
 ---
 close_reason: null
-closed_at: null
+closed_at: 2026-01-17T23:50:47.975Z
 created_at: 2026-01-15T10:00:00.000Z
 deferred_until: null
 dependencies: []
@@ -16,10 +16,10 @@ labels:
   - tbd-v1
 parent_id: null
 priority: 0
-status: in_progress
+status: closed
 title: tbd V1 Complete Implementation
 type: is
-updated_at: 2026-01-15T19:21:57.000Z
-version: 1
+updated_at: 2026-01-17T23:50:47.985Z
+version: 2
 ---
 Master epic for the full tbd V1 implementation - a Beads replacement CLI tool for git-native issue tracking.
