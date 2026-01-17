@@ -17,14 +17,14 @@
 This research investigates why the tbd CLI feels slower than native Rust/Go CLIs and
 identifies opportunities for startup performance optimization.
 Through CPU profiling and dependency timing analysis, we discovered that the CLI’s
-approx 55ms startup time is dominated by V8 initialization (approx 20ms) and dependency
-loading (~28ms), with the YAML library being the heaviest dependency at 13ms—not Zod as
+~~50-60ms startup time is dominated by V8 initialization (~~15ms) and dependency loading
+(~~23ms), with the YAML library being the heaviest dependency at ~~11ms—not Zod as
 initially hypothesized.
 
 The key finding is that **lazy command loading** is the only optimization worth
-pursuing, offering a potential 45% improvement (55ms → 30ms) for help/version commands.
-Other hypothesized optimizations (deferred schema creation, replacing Zod) showed
-negligible impact in profiling.
+pursuing, offering a potential ~~50% improvement (60ms → ~~25ms) for help/version
+commands. Other hypothesized optimizations (deferred schema creation, replacing Zod)
+showed negligible impact in profiling.
 
 **Research Questions**:
 
@@ -66,10 +66,10 @@ negligible impact in profiling.
 
 **Details**:
 
-- Empty Node.js script takes ~20ms to start (V8 initialization)
+- Empty Node.js script takes ~15ms to start (V8 initialization)
 - This is the **absolute floor** for any Node.js CLI
 - Rust/Go CLIs start in 1-5ms because they have no runtime initialization
-- The 20ms V8 overhead is unavoidable without changing runtimes
+- The ~15ms V8 overhead is unavoidable without changing runtimes
 
 **Assessment**: No optimization possible within Node.js.
 This is the baseline cost.
@@ -97,18 +97,17 @@ This is the baseline cost.
 
 **Status**: ✅ Complete
 
-**Measured load times** (unbundled, sequential imports):
+**Measured load times** (unbundled, sequential imports, verified 2026-01-17):
 
 ```
-commander-loaded       +  5.95ms  (total:  5.95ms)
-picocolors-loaded      +  2.88ms  (total:  8.82ms)
-program-created        +  0.32ms  (total:  9.14ms)
-zod-loaded             +  5.20ms  (total: 14.52ms)
-yaml-loaded            + 13.02ms  (total: 27.54ms)  ← HEAVIEST
-schemas-created        +  0.47ms  (total: 28.00ms)  ← NEGLIGIBLE
+commander              +  5.3ms  (total:  5.3ms)
+picocolors             +  2.0ms  (total:  7.3ms)
+zod                    +  4.4ms  (total: 11.7ms)
+yaml                   + 11.0ms  (total: 22.7ms)  ← HEAVIEST
+schema-creation        +  0.5ms  (total: 23.2ms)  ← NEGLIGIBLE
 ```
 
-**Key insight**: YAML (13ms) is the heaviest dependency, not Zod (5ms).
+**Key insight**: YAML (~11ms) is the heaviest dependency, not Zod (~4ms).
 
 * * *
 
@@ -162,8 +161,8 @@ would save ~5ms.
 
 **Original hypothesis**: Replacing Zod with lighter valibot would save ~10ms.
 
-**Actual finding**: Zod loads in **5.2ms**, YAML loads in **13ms**. Replacing Zod saves
-~3-4ms at best, but YAML is the bigger issue (and essential for the file format).
+**Actual finding**: Zod loads in **~4.4ms**, YAML loads in **~11ms**. Replacing Zod saves
+~3ms at best, but YAML is the bigger issue (and essential for the file format).
 
 **Conclusion**: ❌ Low ROI. Would save ~3-4ms with significant refactoring.
 
@@ -175,17 +174,17 @@ would save ~5ms.
 
 **Original hypothesis**: Lazy loading commands would reduce help/version time by ~20ms.
 
-**Actual finding**:
+**Actual finding** (verified 2026-01-17):
 
-- Current state: ~55ms for all commands (everything loads upfront)
-- With lazy loading: ~30ms for help/version (only commander+picocolors)
-- Savings: **~25ms (45% faster)**
+- Current state: ~50-60ms for all commands (everything loads upfront)
+- With lazy loading: ~23ms for help/version (only commander+picocolors)
+- Savings: **~35ms (~55% faster)**
 
 **Validation test**:
 ```
-Help/version could be: 9.3ms JS + 20ms V8 = ~29ms
-Full command load:     28.0ms JS + 20ms V8 = ~48ms
-Current CLI:           ~55ms
+Help/version could be: ~8ms JS + ~15ms V8 = ~23ms
+Full command load:     ~23ms JS + ~15ms V8 = ~38ms
+Current CLI:           ~50-60ms
 ```
 
 **Conclusion**: ✅ Best and only worthwhile optimization.
@@ -219,13 +218,13 @@ tsdown is doing its job.
 
 | Approach | Effort | Startup Time | Savings | Notes |
 | --- | --- | --- | --- | --- |
-| Current (baseline) | - | ~55ms | - | Acceptable for most use |
-| Lazy command loading | Medium | ~30ms | 25ms (45%) | Best ROI |
-| Replace Zod with valibot | Medium | ~52ms | 3ms (5%) | Not worth it |
-| Defer schema creation | Low | ~54.5ms | 0.5ms (1%) | Negligible |
-| V8 snapshots | Very High | ~25ms | 30ms (55%) | Complex, fragile |
-| Bun compile | Medium | ~15ms | 40ms (73%) | Different runtime |
-| Rust rewrite | Very High | ~3ms | 52ms (95%) | Nuclear option |
+| Current (baseline) | - | ~60ms | - | Acceptable for most use |
+| Lazy command loading | Medium | ~25ms | ~35ms (55%) | Best ROI |
+| Replace Zod with valibot | Medium | ~57ms | ~3ms (5%) | Not worth it |
+| Defer schema creation | Low | ~59.5ms | 0.5ms (1%) | Negligible |
+| V8 snapshots | Very High | ~25ms | ~35ms (55%) | Complex, fragile |
+| Bun compile | Medium | ~15ms | ~45ms (75%) | Different runtime |
+| Rust rewrite | Very High | ~3ms | ~57ms (95%) | Nuclear option |
 
 **Strengths/Weaknesses Summary**:
 
@@ -247,15 +246,15 @@ Discovered during research for Node.js CLI performance:
 1. **Profile before optimizing**: Initial hypotheses about Zod being slow were wrong.
    Always measure.
 
-2. **V8 baseline is ~20ms**: Don’t expect Node.js CLI to start faster than this.
+2. **V8 baseline is ~15ms**: Don't expect Node.js CLI to start faster than this.
 
 3. **Bundling helps but isn’t magic**: Eliminates module resolution but not
    parse/compile time.
 
-4. **YAML libraries are heavy**: 13ms for yaml package.
+4. **YAML libraries are heavy**: ~11ms for yaml package.
    Consider alternatives if not needed.
 
-5. **picocolors over chalk**: Already using the right choice (2.88ms vs ~15ms for
+5. **picocolors over chalk**: Already using the right choice (~2ms vs ~15ms for
    chalk).
 
 6. **Lazy loading for command dispatch**: Don’t load all commands for simple operations.
@@ -279,7 +278,7 @@ Discovered during research for Node.js CLI performance:
 
 ### Summary
 
-Implement lazy command loading to reduce help/version startup from ~~55ms to ~~30ms.
+Implement lazy command loading to reduce help/version startup from ~60ms to ~25ms.
 This is the only optimization with meaningful ROI based on profiling data.
 
 ### Recommended Approach
@@ -288,12 +287,12 @@ This is the only optimization with meaningful ROI based on profiling data.
 
 ```
 BEFORE (eager loading):
-bin.ts → cli.ts → [all 24 commands] → yaml, zod (~55ms)
+bin.ts → cli.ts → [all 24 commands] → yaml, zod (~60ms)
 
 AFTER (lazy loading):
-bin.ts → cli.ts → [metadata only] (~30ms)
+bin.ts → cli.ts → [metadata only] (~25ms)
                 ↓ (on command invocation)
-          [one command] → yaml, zod (+25ms)
+          [one command] → yaml, zod (+~15ms)
 ```
 
 **Implementation**:
@@ -304,7 +303,7 @@ bin.ts → cli.ts → [metadata only] (~30ms)
 
 **Rationale**:
 
-- 45% improvement for most common operations (help, version)
+- ~55% improvement for most common operations (help, version)
 - No change to actual command execution time
 - Maintains full help text functionality
 - Reversible if issues arise
@@ -314,8 +313,8 @@ bin.ts → cli.ts → [metadata only] (~30ms)
 1. **Bun compilation**: If ~15ms startup is required, consider `bun build --compile`.
    Tradeoff is different runtime behavior.
 
-2. **Do nothing**: 55ms is competitive for Node.js CLIs.
-   Focus engineering effort elsewhere if startup time isn’t a user complaint.
+2. **Do nothing**: ~60ms is competitive for Node.js CLIs.
+   Focus engineering effort elsewhere if startup time isn't a user complaint.
 
 * * *
 
