@@ -10,7 +10,7 @@
  * - Write single issue: <50ms
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, beforeAll, afterAll } from 'vitest';
 import { mkdtemp, rm, mkdir } from 'node:fs/promises';
 import { tmpdir, platform } from 'node:os';
 import { join } from 'node:path';
@@ -100,18 +100,32 @@ describe('performance tests', () => {
     });
   });
 
-  // These tests require writing 1000 files in beforeEach, which times out on Windows
+  // These tests require writing 1000 files, use beforeAll to do it once per describe block
   describeUnlessWindows('read performance', () => {
-    beforeEach(async () => {
-      // Pre-populate with issues for read tests
+    let readTestDir: string;
+
+    beforeAll(async () => {
+      // Create a dedicated temp directory for read tests
+      readTestDir = await mkdtemp(join(tmpdir(), 'tbd-perf-read-'));
+      await mkdir(join(readTestDir, 'issues'), { recursive: true });
+
+      // Pre-populate with issues for read tests (write in batches to avoid overwhelming I/O)
       const issues = Array.from({ length: ISSUE_COUNT }, (_, i) => generateTestIssue(i));
-      for (const issue of issues) {
-        await writeIssue(tempDir, issue);
+      const BATCH_SIZE = 50;
+      for (let i = 0; i < issues.length; i += BATCH_SIZE) {
+        const batch = issues.slice(i, i + BATCH_SIZE);
+        await Promise.all(batch.map((issue) => writeIssue(readTestDir, issue)));
+      }
+    }, 60000); // 60s timeout for setup
+
+    afterAll(async () => {
+      if (readTestDir) {
+        await rm(readTestDir, { recursive: true, force: true }).catch(() => undefined);
       }
     });
 
     it('lists 1000 issues in <2000ms', async () => {
-      const { result, ms } = await measureTime(() => listIssues(tempDir));
+      const { result, ms } = await measureTime(() => listIssues(readTestDir));
 
       expect(result).toHaveLength(ISSUE_COUNT);
       // Allow up to 2s for CI environments; local should be <500ms
@@ -121,7 +135,7 @@ describe('performance tests', () => {
 
     it('reads single issue in <10ms', async () => {
       const issueId = generateTestIssue(500).id;
-      const { ms } = await measureTime(() => readIssue(tempDir, issueId));
+      const { ms } = await measureTime(() => readIssue(readTestDir, issueId));
 
       expect(ms).toBeLessThan(10);
     });
@@ -132,7 +146,7 @@ describe('performance tests', () => {
 
       const { ms } = await measureTime(async () => {
         for (const id of issueIds) {
-          await readIssue(tempDir, id);
+          await readIssue(readTestDir, id);
         }
       });
 
@@ -141,19 +155,33 @@ describe('performance tests', () => {
     });
   });
 
-  // These tests require writing 1000 files in beforeEach, which times out on Windows
+  // These tests require writing 1000 files, use beforeAll to do it once per describe block
   describeUnlessWindows('listing with filtering', () => {
-    beforeEach(async () => {
-      // Pre-populate with issues
+    let filterTestDir: string;
+
+    beforeAll(async () => {
+      // Create a dedicated temp directory for filter tests
+      filterTestDir = await mkdtemp(join(tmpdir(), 'tbd-perf-filter-'));
+      await mkdir(join(filterTestDir, 'issues'), { recursive: true });
+
+      // Pre-populate with issues (write in batches to avoid overwhelming I/O)
       const issues = Array.from({ length: ISSUE_COUNT }, (_, i) => generateTestIssue(i));
-      for (const issue of issues) {
-        await writeIssue(tempDir, issue);
+      const BATCH_SIZE = 50;
+      for (let i = 0; i < issues.length; i += BATCH_SIZE) {
+        const batch = issues.slice(i, i + BATCH_SIZE);
+        await Promise.all(batch.map((issue) => writeIssue(filterTestDir, issue)));
+      }
+    }, 60000); // 60s timeout for setup
+
+    afterAll(async () => {
+      if (filterTestDir) {
+        await rm(filterTestDir, { recursive: true, force: true }).catch(() => undefined);
       }
     });
 
     it('filters 1000 issues by status in-memory in <50ms', async () => {
       // First list all issues
-      const allIssues = await listIssues(tempDir);
+      const allIssues = await listIssues(filterTestDir);
 
       // Then filter in memory (simulating what commands do)
       const { result, ms } = await measureTime(() => {
@@ -166,7 +194,7 @@ describe('performance tests', () => {
     });
 
     it('sorts 1000 issues by priority in <50ms', async () => {
-      const allIssues = await listIssues(tempDir);
+      const allIssues = await listIssues(filterTestDir);
 
       const { result, ms } = await measureTime(() => {
         return Promise.resolve([...allIssues].sort((a, b) => a.priority - b.priority));

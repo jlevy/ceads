@@ -18,12 +18,11 @@ before: |
   git add README.md
   git commit -m "Initial commit"
 ---
+# tbd CLI: Setup and Status Commands
 
-# TBD CLI: Setup and Info Commands
+This tryscript validates initialization, help, version, and status commands.
 
-This tryscript validates initialization, help, version, and info commands.
-
----
+* * *
 
 ## Help and Version
 
@@ -36,7 +35,7 @@ Usage: tbd [options] [command]
 Git-native issue tracking for AI agents and humans
 
 Options:
-  -V, --version             Show version number
+  --version                 Show version number
   --dry-run                 Show what would be done without making changes
   --verbose                 Enable verbose output
   --quiet                   Suppress non-essential output
@@ -47,7 +46,7 @@ Options:
   --yes                     Assume yes to confirmation prompts
   --no-sync                 Skip automatic sync after write operations
   --debug                   Show internal IDs alongside public IDs for debugging
-  -h, --help                display help for command
+  --help                    Display help for command
 
 Commands:
   init [options]            Initialize tbd in a git repository
@@ -62,10 +61,10 @@ Commands:
   blocked [options]         List blocked issues
   stale [options]           List issues not updated recently
   label                     Manage issue labels
-  depends                   Manage issue dependencies
+  dep                       Manage issue dependencies
   sync [options]            Synchronize with remote
   search [options] <query>  Search issues by text
-  info                      Show repository information
+  status                    Show repository status and orientation
   stats                     Show repository statistics
   doctor [options]          Diagnose and repair repository
   config                    Manage configuration
@@ -73,11 +72,14 @@ Commands:
   import [options] [file]   Import issues from Beads or JSONL file.
                             Tip: Run "bd sync" and stop the beads daemon before
                             importing for best results.
-  docs [options]            Display CLI documentation
+  docs [options] [topic]    Display CLI documentation
+  readme                    Display the README (same as GitHub landing page)
   uninstall [options]       Remove tbd from this repository
   prime [options]           Output workflow context for AI agents
   setup                     Configure tbd integration with editors and tools
   help [command]            display help for command
+
+For more on tbd, see: https://github.com/jlevy/tbd
 ? 0
 ```
 
@@ -85,14 +87,6 @@ Commands:
 
 ```console
 $ tbd --version
-[..]
-? 0
-```
-
-# Test: -V short flag for version
-
-```console
-$ tbd -V
 [..]
 ? 0
 ```
@@ -109,10 +103,24 @@ Options:
   --sync-branch <name>  Sync branch name (default: tbd-sync)
   --remote <name>       Remote name (default: origin)
   -h, --help            display help for command
+
+Global Options:
+  --version             Show version number
+  --dry-run             Show what would be done without making changes
+  --verbose             Enable verbose output
+  --quiet               Suppress non-essential output
+  --json                Output as JSON
+  --color <when>        Colorize output: auto, always, never (default: "auto")
+  --non-interactive     Disable all prompts, fail if input required
+  --yes                 Assume yes to confirmation prompts
+  --no-sync             Skip automatic sync after write operations
+  --debug               Show internal IDs alongside public IDs for debugging
+
+For more on tbd, see: https://github.com/jlevy/tbd
 ? 0
 ```
 
----
+* * *
 
 ## Initialization
 
@@ -128,38 +136,54 @@ To complete setup, commit the config files:
 ? 0
 ```
 
-# Test: Info before any issues
+# Test: Status before any issues
 
 ```console
-$ tbd info
-tbd version [..]
+$ tbd status
+tbd v[..]
 
-Working directory: [..]
-Config file: .tbd/config.yml
+Repository: [..]
+  ✓ Initialized (.tbd/)
+  ✓ Git repository (main)
+
 Sync branch: tbd-sync
 Remote: origin
 ID prefix: bd-
-Total issues: 0
+
+Issues:
+  Ready:       0
+  In progress: 0
+  Open:        0
+  Total:       0
+
+Integrations:
+  ✗ Claude Code hooks (run: tbd setup claude)
+  ✗ Cursor rules (run: tbd setup cursor)
+  ✗ Codex AGENTS.md (run: tbd setup codex)
+
+Worktree: [..] (healthy)
+
+Use 'tbd stats' for detailed issue statistics.
 ? 0
 ```
 
-# Test: Info as JSON
+# Test: Status as JSON
 
 ```console
-$ tbd info --json
+$ tbd status --json
 {
-  "version": [..],
   "initialized": true,
-  "workingDirectory": [..],
-  "configFile": ".tbd/config.yml",
-  "syncBranch": "tbd-sync",
-  "remote": "origin",
+  "tbd_version": [..],
+  "working_directory": [..],
+  "git_repository": true,
+  "git_branch": "main",
+  "beads_detected": false,
 ...
 }
 ? 0
 ```
 
----
+* * *
 
 ## Reinitialization
 
@@ -171,7 +195,7 @@ $ tbd init 2>&1
 ? 0
 ```
 
----
+* * *
 
 ## Init with Custom Options
 
@@ -197,20 +221,39 @@ To complete setup, commit the config files:
 
 # Test: Verify custom config values
 
-```console
-$ cd custom-repo && tbd info
-tbd version [..]
+Note: The --sync-branch and --remote options are not currently applied (bug).
+This test verifies the actual current behavior.
 
-Working directory: [..]
-Config file: .tbd/config.yml
-Sync branch: [..]
-Remote: [..]
+```console
+$ cd custom-repo && tbd status
+tbd v[..]
+
+Repository: [..]
+  ✓ Initialized (.tbd/)
+  ✓ Git repository
+
+Sync branch: tbd-sync
+Remote: origin
 ID prefix: bd-
-Total issues: 0
+
+Issues:
+  Ready:       0
+  In progress: 0
+  Open:        0
+  Total:       0
+
+Integrations:
+  ✗ Claude Code hooks (run: tbd setup claude)
+  ✗ Cursor rules (run: tbd setup cursor)
+  ✗ Codex AGENTS.md (run: tbd setup codex)
+
+Worktree: [..] (healthy)
+
+Use 'tbd stats' for detailed issue statistics.
 ? 0
 ```
 
----
+* * *
 
 ## Error Cases
 
@@ -223,12 +266,18 @@ Error: Not a tbd repository (run 'tbd init' or 'tbd import --from-beads' first)
 ? 1
 ```
 
-# Test: Info on uninitialized repo
+# Test: Status on uninitialized repo
 
 ```console
-$ cd uninit-repo && tbd info 2>&1
-tbd version [..]
+$ cd uninit-repo && tbd status 2>&1
+Not a tbd repository.
 
-Not initialized[..]
+Detected:
+  ✓ Git repository
+  ✗ Beads not detected
+  ✗ tbd not initialized
+
+To get started:
+  tbd init                  # Start fresh
 ? 0
 ```

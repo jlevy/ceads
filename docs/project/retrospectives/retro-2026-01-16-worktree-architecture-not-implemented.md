@@ -14,9 +14,9 @@
 
 The tbd implementation deviated significantly from the design specification.
 The spec called for a hidden git worktree architecture where issue files live on a
-separate `tbd-sync` branch, accessed locally via `.tbd/data-sync-worktree/`. Instead, the
-implementation writes files directly to `.tbd/data-sync/` on the main branch, completely
-bypassing the worktree model.
+separate `tbd-sync` branch, accessed locally via `.tbd/data-sync-worktree/`. Instead,
+the implementation writes files directly to `.tbd/data-sync/` on the main branch,
+completely bypassing the worktree model.
 
 This was discovered on 2026-01-16 when issue files appeared as untracked on main branch.
 
@@ -159,8 +159,8 @@ Test helpers `isCorrectWorktreePath()` and `isWrongMainBranchPath()` were added
 3. **Tests tested output, not behavior**: Golden tests verified CLI output but not
    filesystem state.
 
-4. **Simpler approach worked**: Writing directly to `.tbd/data-sync/` produces correct CLI
-   output, so functional tests passed.
+4. **Simpler approach worked**: Writing directly to `.tbd/data-sync/` produces correct
+   CLI output, so functional tests passed.
 
 5. **No integration test for architecture**: There was no test that verified the
    fundamental architectural decision (worktree vs direct).
@@ -192,7 +192,8 @@ Test helpers `isCorrectWorktreePath()` and `isWrongMainBranchPath()` were added
 ### Process Improvements
 
 1. **Add architectural verification tests** (tbd-1842): Create tryscript tests that
-   verify files are written to `.tbd/data-sync-worktree/.tbd/data-sync/`, not `.tbd/data-sync/`
+   verify files are written to `.tbd/data-sync-worktree/.tbd/data-sync/`, not
+   `.tbd/data-sync/`
 
 2. **Require bead acceptance criteria**: Implementation beads should list specific
    functions/files that must exist

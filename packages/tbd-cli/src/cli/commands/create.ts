@@ -10,7 +10,7 @@ import { readFile } from 'node:fs/promises';
 import { BaseCommand } from '../lib/baseCommand.js';
 import { requireInit } from '../lib/errors.js';
 import type { Issue, IssueKindType, PriorityType } from '../../lib/types.js';
-import { generateInternalId } from '../../lib/ids.js';
+import { generateInternalId, extractUlidFromInternalId } from '../../lib/ids.js';
 import { writeIssue } from '../../file/storage.js';
 import {
   loadIdMapping,
@@ -69,7 +69,7 @@ class CreateHandler extends BaseCommand {
 
     const timestamp = now();
     const id = generateInternalId();
-    const ulid = id.slice(3); // Remove 'is-' prefix
+    const ulid = extractUlidFromInternalId(id);
 
     const issue: Issue = {
       type: 'is',

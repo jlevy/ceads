@@ -21,12 +21,11 @@ before: |
   # Initialize tbd
   tbd init
 ---
-
-# TBD CLI: CRUD Operations
+# tbd CLI: CRUD Operations
 
 Comprehensive tests for create, show, update, list, close, and reopen commands.
 
----
+* * *
 
 ## Create Command
 
@@ -41,7 +40,7 @@ $ tbd create "Minimal task"
 # Test: Create with explicit type
 
 ```console
-$ tbd create "A bug report" -t bug
+$ tbd create "A bug report" --type=bug
 ✓ Created bd-[SHORTID]: A bug report
 ? 0
 ```
@@ -49,7 +48,7 @@ $ tbd create "A bug report" -t bug
 # Test: Create feature with priority
 
 ```console
-$ tbd create "High priority feature" -t feature -p 0
+$ tbd create "High priority feature" --type=feature --priority=0
 ✓ Created bd-[SHORTID]: High priority feature
 ? 0
 ```
@@ -57,7 +56,7 @@ $ tbd create "High priority feature" -t feature -p 0
 # Test: Create with description
 
 ```console
-$ tbd create "Task with desc" -d "This is a detailed description"
+$ tbd create "Task with desc" --description="This is a detailed description"
 ✓ Created bd-[SHORTID]: Task with desc
 ? 0
 ```
@@ -65,7 +64,7 @@ $ tbd create "Task with desc" -d "This is a detailed description"
 # Test: Create with assignee
 
 ```console
-$ tbd create "Assigned task" --assignee alice
+$ tbd create "Assigned task" --assignee=alice
 ✓ Created bd-[SHORTID]: Assigned task
 ? 0
 ```
@@ -73,7 +72,7 @@ $ tbd create "Assigned task" --assignee alice
 # Test: Create with multiple labels
 
 ```console
-$ tbd create "Labeled task" -l frontend -l urgent -l needs-review
+$ tbd create "Labeled task" --label=frontend --label=urgent --label=needs-review
 ✓ Created bd-[SHORTID]: Labeled task
 ? 0
 ```
@@ -81,7 +80,7 @@ $ tbd create "Labeled task" -l frontend -l urgent -l needs-review
 # Test: Create epic
 
 ```console
-$ tbd create "Epic project" -t epic -p 1
+$ tbd create "Epic project" --type=epic --priority=1
 ✓ Created bd-[SHORTID]: Epic project
 ? 0
 ```
@@ -89,7 +88,7 @@ $ tbd create "Epic project" -t epic -p 1
 # Test: Create chore
 
 ```console
-$ tbd create "Cleanup task" -t chore
+$ tbd create "Cleanup task" --type=chore
 ✓ Created bd-[SHORTID]: Cleanup task
 ? 0
 ```
@@ -97,7 +96,7 @@ $ tbd create "Cleanup task" -t chore
 # Test: Create with due date
 
 ```console
-$ tbd create "Due task" --due 2025-12-31T23:59:59Z
+$ tbd create "Due task" --due=2025-12-31T23:59:59Z
 ✓ Created bd-[SHORTID]: Due task
 ? 0
 ```
@@ -105,7 +104,7 @@ $ tbd create "Due task" --due 2025-12-31T23:59:59Z
 # Test: Create with defer date
 
 ```console
-$ tbd create "Deferred work" --defer 2025-06-01T00:00:00Z
+$ tbd create "Deferred work" --defer=2025-06-01T00:00:00Z
 ✓ Created bd-[SHORTID]: Deferred work
 ? 0
 ```
@@ -113,7 +112,7 @@ $ tbd create "Deferred work" --defer 2025-06-01T00:00:00Z
 # Test: Create with dry-run
 
 ```console
-$ tbd create "Dry run only" -t bug --dry-run
+$ tbd create "Dry run only" --type=bug --dry-run
 [DRY-RUN] Would create issue
 ? 0
 ```
@@ -121,7 +120,7 @@ $ tbd create "Dry run only" -t bug --dry-run
 # Test: Create with JSON output
 
 ```console
-$ tbd create "JSON test" -t task --json
+$ tbd create "JSON test" --type=task --json
 {
   "id": "bd-[SHORTID]",
   "internalId": "is-[ULID]",
@@ -130,14 +129,14 @@ $ tbd create "JSON test" -t task --json
 ? 0
 ```
 
----
+* * *
 
 ## Show Command
 
 First, create an issue to show and save its internal ID:
 
 ```console
-$ tbd create "Issue to show" -t bug -p 1 -d "Detailed description here" -l backend -l critical --json | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); require('fs').writeFileSync('show_id.txt', d.internalId); console.log('Created')"
+$ tbd create "Issue to show" --type=bug --priority=1 --description="Detailed description here" --label=backend --label=critical --json | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); require('fs').writeFileSync('show_id.txt', d.internalId); console.log('Created')"
 Created
 ? 0
 ```
@@ -168,7 +167,7 @@ $ tbd show is-00000000000000000000000000 2>&1
 ? 0
 ```
 
----
+* * *
 
 ## List Command
 
@@ -201,7 +200,7 @@ $ tbd list --json
 # Test: List filter by status
 
 ```console
-$ tbd list --status open
+$ tbd list --status=open
 ...
 ? 0
 ```
@@ -209,7 +208,7 @@ $ tbd list --status open
 # Test: List filter by type
 
 ```console
-$ tbd list --type bug
+$ tbd list --type=bug
 ...
 ? 0
 ```
@@ -217,7 +216,7 @@ $ tbd list --type bug
 # Test: List filter by priority
 
 ```console
-$ tbd list --priority 1
+$ tbd list --priority=1
 ...
 ? 0
 ```
@@ -225,7 +224,7 @@ $ tbd list --priority 1
 # Test: List filter by assignee
 
 ```console
-$ tbd list --assignee alice
+$ tbd list --assignee=alice
 ...
 ? 0
 ```
@@ -233,7 +232,7 @@ $ tbd list --assignee alice
 # Test: List filter by label
 
 ```console
-$ tbd list --label frontend
+$ tbd list --label=frontend
 ...
 ? 0
 ```
@@ -241,7 +240,7 @@ $ tbd list --label frontend
 # Test: List filter by multiple labels
 
 ```console
-$ tbd list --label urgent --label frontend
+$ tbd list --label=urgent --label=frontend
 ...
 ? 0
 ```
@@ -249,7 +248,7 @@ $ tbd list --label urgent --label frontend
 # Test: List with limit
 
 ```console
-$ tbd list --limit 3
+$ tbd list --limit=3
 ...
 ? 0
 ```
@@ -257,7 +256,7 @@ $ tbd list --limit 3
 # Test: List sorted by created
 
 ```console
-$ tbd list --sort created
+$ tbd list --sort=created
 ...
 ? 0
 ```
@@ -265,19 +264,19 @@ $ tbd list --sort created
 # Test: List sorted by updated
 
 ```console
-$ tbd list --sort updated
+$ tbd list --sort=updated
 ...
 ? 0
 ```
 
----
+* * *
 
 ## Update Command
 
 First, create an issue to update and save its ID in the sandbox:
 
 ```console
-$ tbd create "Update me" -t task -p 3 --json | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); require('fs').writeFileSync('update_id.txt', d.id); console.log('Created')"
+$ tbd create "Update me" --type=task --priority=3 --json | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); require('fs').writeFileSync('update_id.txt', d.id); console.log('Created')"
 Created
 ? 0
 ```
@@ -285,7 +284,7 @@ Created
 # Test: Update status
 
 ```console
-$ tbd update $(cat update_id.txt) --status in_progress
+$ tbd update $(cat update_id.txt) --status=in_progress
 ✓ Updated [..]
 ? 0
 ```
@@ -293,7 +292,7 @@ $ tbd update $(cat update_id.txt) --status in_progress
 # Test: Update priority
 
 ```console
-$ tbd update $(cat update_id.txt) --priority 0
+$ tbd update $(cat update_id.txt) --priority=0
 ✓ Updated [..]
 ? 0
 ```
@@ -301,7 +300,7 @@ $ tbd update $(cat update_id.txt) --priority 0
 # Test: Update type
 
 ```console
-$ tbd update $(cat update_id.txt) --type bug
+$ tbd update $(cat update_id.txt) --type=bug
 ✓ Updated [..]
 ? 0
 ```
@@ -309,7 +308,7 @@ $ tbd update $(cat update_id.txt) --type bug
 # Test: Update assignee
 
 ```console
-$ tbd update $(cat update_id.txt) --assignee bob
+$ tbd update $(cat update_id.txt) --assignee=bob
 ✓ Updated [..]
 ? 0
 ```
@@ -317,7 +316,7 @@ $ tbd update $(cat update_id.txt) --assignee bob
 # Test: Update description
 
 ```console
-$ tbd update $(cat update_id.txt) --description "New description text"
+$ tbd update $(cat update_id.txt) --description="New description text"
 ✓ Updated [..]
 ? 0
 ```
@@ -325,7 +324,7 @@ $ tbd update $(cat update_id.txt) --description "New description text"
 # Test: Update notes
 
 ```console
-$ tbd update $(cat update_id.txt) --notes "Working on this task"
+$ tbd update $(cat update_id.txt) --notes="Working on this task"
 ✓ Updated [..]
 ? 0
 ```
@@ -333,7 +332,7 @@ $ tbd update $(cat update_id.txt) --notes "Working on this task"
 # Test: Update add label
 
 ```console
-$ tbd update $(cat update_id.txt) --add-label wip
+$ tbd update $(cat update_id.txt) --add-label=wip
 ✓ Updated [..]
 ? 0
 ```
@@ -341,7 +340,7 @@ $ tbd update $(cat update_id.txt) --add-label wip
 # Test: Update remove label
 
 ```console
-$ tbd update $(cat update_id.txt) --remove-label wip
+$ tbd update $(cat update_id.txt) --remove-label=wip
 ✓ Updated [..]
 ? 0
 ```
@@ -349,7 +348,7 @@ $ tbd update $(cat update_id.txt) --remove-label wip
 # Test: Update due date
 
 ```console
-$ tbd update $(cat update_id.txt) --due 2025-12-31T00:00:00Z
+$ tbd update $(cat update_id.txt) --due=2025-12-31T00:00:00Z
 ✓ Updated [..]
 ? 0
 ```
@@ -357,7 +356,7 @@ $ tbd update $(cat update_id.txt) --due 2025-12-31T00:00:00Z
 # Test: Update defer date
 
 ```console
-$ tbd update $(cat update_id.txt) --defer 2025-06-15T00:00:00Z
+$ tbd update $(cat update_id.txt) --defer=2025-06-15T00:00:00Z
 ✓ Updated [..]
 ? 0
 ```
@@ -373,7 +372,7 @@ status: in_progress type: bug assignee: bob
 # Test: Update with dry-run
 
 ```console
-$ tbd update $(cat update_id.txt) --priority 4 --dry-run
+$ tbd update $(cat update_id.txt) --priority=4 --dry-run
 [DRY-RUN] Would update [..]
 ? 0
 ```
@@ -381,19 +380,19 @@ $ tbd update $(cat update_id.txt) --priority 4 --dry-run
 # Test: Update non-existent issue
 
 ```console
-$ tbd update is-00000000000000000000000000 --status closed 2>&1
+$ tbd update is-00000000000000000000000000 --status=closed 2>&1
 ✗ Issue not found: is-00000000000000000000000000
 ? 0
 ```
 
----
+* * *
 
 ## Close Command
 
 Create an issue to close:
 
 ```console
-$ tbd create "Close me" -t task --json | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); require('fs').writeFileSync('close_id.txt', d.id); console.log('Created')"
+$ tbd create "Close me" --type=task --json | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); require('fs').writeFileSync('close_id.txt', d.id); console.log('Created')"
 Created
 ? 0
 ```
@@ -419,13 +418,13 @@ status: closed
 Create another issue:
 
 ```console
-$ tbd create "Close with reason" -t bug --json | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); require('fs').writeFileSync('close2_id.txt', d.id); console.log('Created')"
+$ tbd create "Close with reason" --type=bug --json | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); require('fs').writeFileSync('close2_id.txt', d.id); console.log('Created')"
 Created
 ? 0
 ```
 
 ```console
-$ tbd close $(cat close2_id.txt) --reason "Fixed in commit abc123"
+$ tbd close $(cat close2_id.txt) --reason="Fixed in commit abc123"
 ✓ Closed [..]
 ? 0
 ```
@@ -451,7 +450,7 @@ $ tbd close $(cat close_id.txt) 2>&1
 ? 0
 ```
 
----
+* * *
 
 ## Reopen Command
 
@@ -482,7 +481,7 @@ $ tbd close $(cat close_id.txt)
 ```
 
 ```console
-$ tbd reopen $(cat close_id.txt) --reason "Fix was incomplete"
+$ tbd reopen $(cat close_id.txt) --reason="Fix was incomplete"
 ✓ Reopened [..]
 ? 0
 ```
@@ -507,7 +506,7 @@ $ tbd reopen $(cat close_id.txt) 2>/dev/null; tbd reopen $(cat close_id.txt) 2>&
 ? 0
 ```
 
----
+* * *
 
 ## Edge Cases
 
@@ -522,7 +521,7 @@ $ tbd create "" 2>&1
 # Test: Update with invalid priority
 
 ```console
-$ tbd update $(cat update_id.txt) --priority 10 2>&1
+$ tbd update $(cat update_id.txt) --priority=10 2>&1
 ✗ Invalid priority[..]
 ? 0
 ```
@@ -530,7 +529,17 @@ $ tbd update $(cat update_id.txt) --priority 10 2>&1
 # Test: Create with invalid type
 
 ```console
-$ tbd create "Bad type" -t invalid 2>&1
+$ tbd create "Bad type" --type=invalid 2>&1
 ✗ Invalid type[..]
 ? 0
+```
+
+# Test: Update with invalid option --title
+
+The update command does not support --title option.
+
+```console
+$ tbd update $(cat update_id.txt) --title "New title" 2>&1
+error: unknown option '--title'
+? 1
 ```

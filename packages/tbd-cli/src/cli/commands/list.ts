@@ -10,9 +10,10 @@ import { BaseCommand } from '../lib/baseCommand.js';
 import { requireInit } from '../lib/errors.js';
 import type { Issue, IssueStatusType, IssueKindType } from '../../lib/types.js';
 import { listIssues } from '../../file/storage.js';
-import { formatDisplayId, formatDebugId } from '../../lib/ids.js';
+import { formatDisplayId, formatDebugId, extractUlidFromInternalId } from '../../lib/ids.js';
 import { resolveDataSyncDir } from '../../lib/paths.js';
-import { loadIdMapping } from '../../file/idMapping.js';
+import { loadIdMapping, type IdMapping } from '../../file/idMapping.js';
+import { naturalCompare } from '../../lib/sort.js';
 
 interface ListOptions {
   status?: IssueStatusType;
@@ -35,11 +36,14 @@ class ListHandler extends BaseCommand {
 
     let issues: Issue[];
     let dataSyncDir: string;
+    let mapping: IdMapping;
 
     try {
       // Resolve the correct data sync directory (worktree or direct)
       dataSyncDir = await resolveDataSyncDir();
       issues = await listIssues(dataSyncDir);
+      // Load ID mapping early so we can use it for sorting
+      mapping = await loadIdMapping(dataSyncDir);
     } catch {
       this.output.error('Failed to read issues');
       return;
@@ -48,8 +52,8 @@ class ListHandler extends BaseCommand {
     // Apply filters
     issues = this.filterIssues(issues, options);
 
-    // Sort results
-    issues = this.sortIssues(issues, options.sort ?? 'priority');
+    // Sort results (with secondary sort by short ID for stable ordering)
+    issues = this.sortIssues(issues, options.sort ?? 'priority', mapping);
 
     // Apply limit
     if (options.limit) {
@@ -67,8 +71,6 @@ class ListHandler extends BaseCommand {
       return;
     }
 
-    // Load ID mapping for display
-    const mapping = await loadIdMapping(dataSyncDir);
     const showDebug = this.ctx.debug;
 
     // Format output - use short display IDs instead of internal ULIDs
@@ -156,18 +158,35 @@ class ListHandler extends BaseCommand {
     });
   }
 
-  private sortIssues(issues: Issue[], sortField: string): Issue[] {
+  private sortIssues(issues: Issue[], sortField: string, mapping: IdMapping): Issue[] {
+    // Helper to get short ID for secondary sort
+    const getShortId = (issue: Issue): string => {
+      const ulid = extractUlidFromInternalId(issue.id);
+      return mapping.ulidToShort.get(ulid) ?? ulid;
+    };
+
     return [...issues].sort((a, b) => {
+      let primaryCompare: number;
+
       switch (sortField) {
         case 'priority':
-          return a.priority - b.priority;
+          primaryCompare = a.priority - b.priority;
+          break;
         case 'created':
-          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+          primaryCompare = new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+          break;
         case 'updated':
-          return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+          primaryCompare = new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+          break;
         default:
-          return a.priority - b.priority;
+          primaryCompare = a.priority - b.priority;
       }
+
+      // Secondary sort by short ID using natural ordering for stable, intuitive results
+      if (primaryCompare !== 0) {
+        return primaryCompare;
+      }
+      return naturalCompare(getShortId(a), getShortId(b));
     });
   }
 

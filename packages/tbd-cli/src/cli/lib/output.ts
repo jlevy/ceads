@@ -6,6 +6,8 @@
 
 import pc from 'picocolors';
 import type { Command } from 'commander';
+import { marked } from 'marked';
+import { markedTerminal } from 'marked-terminal';
 
 import type { CommandContext, ColorOption } from './context.js';
 import { shouldColorize } from './context.js';
@@ -34,6 +36,12 @@ export function getColorOptionFromArgv(): ColorOption {
 }
 
 /**
+ * Maximum width for help text. We cap at 88 characters for readability,
+ * but use narrower if the terminal is smaller.
+ */
+export const MAX_HELP_WIDTH = 88;
+
+/**
  * Create colored help configuration for Commander.js.
  * Uses Commander's built-in configureHelp() style functions (requires v14+).
  *
@@ -44,11 +52,23 @@ export function createColoredHelpConfig(colorOption: ColorOption = 'auto') {
   const colors = pc.createColors(shouldColorize(colorOption));
 
   return {
+    helpWidth: Math.min(MAX_HELP_WIDTH, process.stdout.columns || 80),
     styleTitle: (str: string) => colors.bold(colors.cyan(str)),
     styleCommandText: (str: string) => colors.green(str),
     styleOptionText: (str: string) => colors.yellow(str),
     showGlobalOptions: true,
   };
+}
+
+/**
+ * Create the help epilog text with color.
+ *
+ * @param colorOption - Color option to determine if colors should be enabled
+ * @returns Colored epilog string
+ */
+export function createHelpEpilog(colorOption: ColorOption = 'auto'): string {
+  const colors = pc.createColors(shouldColorize(colorOption));
+  return colors.blue('For more on tbd, see: https://github.com/jlevy/tbd');
 }
 
 /**
@@ -92,6 +112,39 @@ export function createColors(colorOption: ColorOption) {
     label: colors.magenta,
     path: colors.blue,
   };
+}
+
+/**
+ * Render Markdown to colorized terminal output.
+ *
+ * Uses marked-terminal for colorized output when colors are enabled,
+ * falls back to plain Markdown when colors are disabled or piped.
+ * Respects the --color option and TTY detection.
+ *
+ * @param content - Markdown string to render
+ * @param colorOption - Color option to determine if colors should be enabled
+ * @returns Rendered string (colorized or plain)
+ */
+export function renderMarkdown(content: string, colorOption: ColorOption = 'auto'): string {
+  const useColors = shouldColorize(colorOption);
+
+  if (!useColors) {
+    // Return plain markdown when colors are disabled
+    return content;
+  }
+
+  // Configure marked with terminal renderer for this parse
+  // Note: @types/marked-terminal is outdated; markedTerminal returns MarkedExtension in v7+
+  // but types still claim it returns TerminalRenderer. Cast to work around this.
+  marked.use(
+    markedTerminal({
+      width: Math.min(MAX_HELP_WIDTH, process.stdout.columns || 80),
+      reflowText: true,
+    }) as unknown as Parameters<typeof marked.use>[0],
+  );
+
+  // marked.parse returns string with sync renderer
+  return marked.parse(content) as string;
 }
 
 /**

@@ -18,29 +18,34 @@ before: |
   git add README.md
   git commit -m "Initial commit"
 ---
-
-# TBD CLI: Uninitialized Repository
+# tbd CLI: Uninitialized Repository
 
 Tests for commands when tbd has not been initialized.
 These tests verify that helpful error messages are shown instead of confusing errors.
 
----
+* * *
 
-## Info Command Shows Helpful Message
+## Status Command Shows Helpful Message
 
-# Test: Info without init shows status
+# Test: Status without init shows orientation
 
-Info command should work and tell user to run init.
+Status command should work without init and show orientation info.
 
 ```console
-$ tbd info
-tbd version [..]
+$ tbd status
+Not a tbd repository.
 
-Not initialized. Run tbd init to set up.
+Detected:
+  ✓ Git repository (main branch)
+  ✗ Beads not detected
+  ✗ tbd not initialized
+
+To get started:
+  tbd init                  # Start fresh
 ? 0
 ```
 
----
+* * *
 
 ## List Command
 
@@ -54,7 +59,7 @@ Error: Not a tbd repository (run 'tbd init' or 'tbd import --from-beads' first)
 ? 1
 ```
 
----
+* * *
 
 ## Show Command
 
@@ -68,7 +73,7 @@ Error: Not a tbd repository (run 'tbd init' or 'tbd import --from-beads' first)
 ? 1
 ```
 
----
+* * *
 
 ## Init Command
 
@@ -84,7 +89,7 @@ To complete setup, commit the config files:
 ? 0
 ```
 
----
+* * *
 
 ## Verify Init Created Proper Structure
 
@@ -107,7 +112,7 @@ meta.yml
 ? 0
 ```
 
----
+* * *
 
 ## Commands Work After Init
 

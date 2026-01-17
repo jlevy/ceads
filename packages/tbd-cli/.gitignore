@@ -5,3 +5,6 @@
 # Coverage
 coverage/
 coverage-tryscript/
+
+# Build artifacts - docs copied from root during prebuild
+src/docs/

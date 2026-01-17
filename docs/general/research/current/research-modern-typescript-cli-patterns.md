@@ -741,7 +741,9 @@ program.configureHelp(createColoredHelpConfig(getColorOptionFromArgv()));
 - Requires Commander.js v14+ for `styleTitle`, `styleCommandText`, `styleOptionText`
 - Use `pc.createColors(enabled)` to respect `--color=always/never/auto`
 - Pre-parse argv since help output happens before Commander parses options
-- Apply `configureHelp()` once on root program (propagates to subcommands)
+- Apply `configureHelp()` on root program AND all commands added via `.addCommand()`
+  (they do NOT inherit parent settings).
+  Commands created inline with `.command()` inherit automatically.
 
 **Alternative: `--json` flag:**
 

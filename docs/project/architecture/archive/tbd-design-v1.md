@@ -1,4 +1,4 @@
-# Tbd: A Simple Git-Native Coordination System for AI Agents
+# tbd: A Simple Git-Native Coordination System for AI Agents
 
 **Author:** Joshua Levy (github.com/jlevy) and various LLMs
 
@@ -12,7 +12,7 @@
 
 1. [Introduction](#1-introduction)
 
-   - [What is Tbd?](#11-what-is-tbd)
+   - [What is tbd?](#11-what-is-tbd)
 
    - [Motivation](#12-motivation)
 
@@ -128,15 +128,15 @@
 
 ## 1. Introduction
 
-### 1.1 What is Tbd?
+### 1.1 What is tbd?
 
-> *The name “Tbd” follows “Beads” in the spirit of C following (and learning from) B.*
+> *The name “tbd” follows “Beads” in the spirit of C following (and learning from) B.*
 
-**Tbd** (pronounced “seeds”) is a git-native coordination layer for AI coding agents.
+**tbd** (pronounced “seeds”) is a git-native coordination layer for AI coding agents.
 It provides issue tracking, agent registry, claims, and messaging—all stored as JSON
 files in a git repository and synced using standard git commands.
 
-Tbd draws on several sources:
+tbd draws on several sources:
 
 - **[Beads](https://github.com/steveyegge/beads)**: Steve Yegge’s git-backed issue
   tracker for AI agents, which proved the concept valuable but accumulated architectural
@@ -189,7 +189,7 @@ Embedding coordination data in the same repository provides:
 
 - **Code-adjacent context**: Issues live next to the code they describe
 
-Tbd is designed around three core ideas:
+tbd is designed around three core ideas:
 
 1. **The file system is the database, git is the sync protocol.** Each entity is a file.
    Directories are collections.
@@ -257,7 +257,7 @@ These principles guide how we achieve the goals:
 
 ### 1.5 Comparison with Beads
 
-Tbd builds on lessons learned from [Beads](https://github.com/steveyegge/beads), an
+tbd builds on lessons learned from [Beads](https://github.com/steveyegge/beads), an
 earlier git-backed issue tracker for AI agents.
 While Beads proved the concept valuable, its architecture accumulated complexity:
 
@@ -273,7 +273,7 @@ While Beads proved the concept valuable, its architecture accumulated complexity
 
 - **Tight coupling**: Adding new entity types requires changes throughout the sync layer
 
-Tbd addresses these by simplifying the architecture: fewer data locations, no
+tbd addresses these by simplifying the architecture: fewer data locations, no
 skip-worktree hacks, no git worktrees required, an optional daemon, and schema-agnostic
 sync. See [Appendix 7.4](#74-comparison-with-beads) for a detailed comparison table.
 
@@ -314,7 +314,7 @@ If violated, the noted mitigations apply:
 
 ### 1.7 Layer Overview
 
-Tbd is organized into distinct layers, each with clear responsibilities:
+tbd is organized into distinct layers, each with clear responsibilities:
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -441,12 +441,13 @@ async function atomicWrite(path: string, content: string): Promise<void> {
 
 ### 2.2 Directory Structure
 
-Tbd uses two directories with a clear separation of concerns:
+tbd uses two directories with a clear separation of concerns:
 
 - **`.tbd/`** on the main branch (and all working branches): Configuration and local
   files
 
-- **`.tbd/data-sync/`** on the `tbd-sync` branch: Synced data (entities, attic, metadata)
+- **`.tbd/data-sync/`** on the `tbd-sync` branch: Synced data (entities, attic,
+  metadata)
 
 #### On Main Branch (all working branches)
 
@@ -510,7 +511,7 @@ Tbd uses two directories with a clear separation of concerns:
 
 ### 2.3 Entity Collection Pattern
 
-Tbd uses a uniform pattern for all node types.
+tbd uses a uniform pattern for all node types.
 Each collection is:
 
 1. **A directory** under `.tbd/data-sync/nodes/` (on the sync branch)
@@ -1428,13 +1429,13 @@ Key properties:
 
 - **Standard git CLI**: All operations expressible as git commands
 
-- **tbd-sync branch**: Dedicated branch for Tbd data, never pollutes main
+- **tbd-sync branch**: Dedicated branch for tbd data, never pollutes main
 
 - **Hash-based conflict detection**: Content hash comparison triggers merge
 
 ### 3.2 Sync Branch Architecture
 
-Tbd uses a split architecture with configuration on main and data on a sync branch:
+tbd uses a split architecture with configuration on main and data on a sync branch:
 
 ```
 main branch:                    tbd-sync branch:
@@ -2118,7 +2119,7 @@ This means **deletions don’t propagate reliably** without tombstones.
 Soft deletion (status change) propagates correctly because it’s a modification, not a
 removal.
 
-> **Design choice**: Tbd uses soft-delete as the primary deletion mechanism.
+> **Design choice**: tbd uses soft-delete as the primary deletion mechanism.
 > Hard deletion is available but creates consistency challenges in distributed systems.
 
 * * *
@@ -2128,7 +2129,7 @@ removal.
 ### 4.1 Overview
 
 The CLI Layer defines the **command interface** for users and agents.
-It wraps the File and Git layers, providing a consistent way to interact with Tbd.
+It wraps the File and Git layers, providing a consistent way to interact with tbd.
 
 Key properties:
 
@@ -2152,7 +2153,7 @@ tbd <command> [subcommand] [args] [options]
 ### 4.3 Initialization
 
 ```bash
-# Initialize Tbd in current repository
+# Initialize tbd in current repository
 tbd init
 
 # What it does:
@@ -2629,7 +2630,7 @@ Options:
 
 **Beads Status Mapping:**
 
-| Beads Status | Tbd Import Behavior |
+| Beads Status | tbd Import Behavior |
 | --- | --- |
 | `open` | → `open` |
 | `in_progress` | → `in_progress` |
@@ -2693,7 +2694,7 @@ cd-f14c     2025-01-08T09:15:00Z     full         (full entity backup)
 
 ### 4.9 Doctor Commands
 
-Health check and repair for the Tbd database:
+Health check and repair for the tbd database:
 
 ```bash
 # Run health checks
@@ -2811,7 +2812,7 @@ Key properties:
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                      Tbd Core (Git)                            │
+│                      tbd Core (Git)                            │
 │                      Source of truth                             │
 │   .tbd/data-sync/nodes/issues/is-a1b2.json                         │
 │     {                                                            │
@@ -2835,7 +2836,7 @@ Key properties:
 ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐
 │  GitHub Issues  │  │     Slack       │  │  Native Bridge  │
 │                 │  │                 │  │                 │
-│  Issue #42      │  │  #coordination  │  │  Hosted Tbd   │
+│  Issue #42      │  │  #coordination  │  │  Hosted tbd   │
 │  Labels, state  │  │  channel        │  │  service        │
 └─────────────────┘  └─────────────────┘  └─────────────────┘
 ```
@@ -2865,7 +2866,7 @@ Bridges provide eventually consistent views of Git state:
 | **Conflict Preservation** | No data ever lost; conflicts preserved in attic |
 | **Git is Truth** | On conflict, Git wins; Bridge changes go to attic |
 
-**Tbd does NOT provide:**
+**tbd does NOT provide:**
 
 - Linearizability (global ordering)
 
@@ -2927,7 +2928,7 @@ export TBD_SLACK_SIGNING_SECRET="..."
 
 ### 5.3 GitHub Issues Bridge
 
-Sync Tbd issues with [GitHub Issues](https://docs.github.com/en/rest/issues) for
+Sync tbd issues with [GitHub Issues](https://docs.github.com/en/rest/issues) for
 real-time coordination and human visibility.
 
 #### Use Cases
@@ -2954,16 +2955,16 @@ tbd github promote <issue-id> --labels "tbd-sync,priority:high"
 
 1. Creates GitHub Issue with mapped fields
 
-2. Adds `bridge.github` metadata to Tbd entity
+2. Adds `bridge.github` metadata to tbd entity
 
 3. Sets up bidirectional sync
 
 #### Field Mapping
 
-| Tbd Field | GitHub Field | Notes |
+| tbd Field | GitHub Field | Notes |
 | --- | --- | --- |
 | `title` | `title` | Direct mapping |
-| `description` | `body` | Includes Tbd metadata block |
+| `description` | `body` | Includes tbd metadata block |
 | `status` | Labels | `status:open`, `status:in_progress`, etc. |
 | `priority` | Labels | `priority:0`, `priority:1`, etc. |
 | `assignee` | Labels | `claimed:agent-id` |
@@ -2973,7 +2974,7 @@ tbd github promote <issue-id> --labels "tbd-sync,priority:high"
 
 On bidirectional sync conflicts:
 
-- **Tbd wins** for most fields (agent is authority)
+- **tbd wins** for most fields (agent is authority)
 
 - **Labels union** (both sources contribute)
 
@@ -2996,12 +2997,12 @@ Other agents see the label via GitHub webhooks or polling.
 #### Sync Flow
 
 ```
-Tbd → GitHub:
+tbd → GitHub:
   1. Detect local change (version increment)
   2. Update GitHub Issue via API
   3. Update synced_at timestamp
 
-GitHub → Tbd:
+GitHub → tbd:
   1. Webhook fires (or poll detects change)
   2. Update local entity
   3. Increment version
@@ -3010,13 +3011,13 @@ GitHub → Tbd:
 
 #### Conflict Resolution
 
-When Tbd and GitHub diverge:
+When tbd and GitHub diverge:
 
 - Compare `synced_at` with GitHub’s `updated_at`
 
 - Field-level merge where possible
 
-- On conflict, Tbd wins (configurable)
+- On conflict, tbd wins (configurable)
 
 - Log discrepancies for review
 
@@ -3081,7 +3082,7 @@ tbd message archive --days 7
 
 ### 5.5 Native Bridge
 
-A hosted Tbd coordination service for teams that want real-time without external
+A hosted tbd coordination service for teams that want real-time without external
 dependencies.
 
 #### Use Cases
@@ -3092,7 +3093,7 @@ dependencies.
 
 - Want a unified coordination layer
 
-- Self-hosted or Tbd-hosted options
+- Self-hosted or tbd-hosted options
 
 #### Architecture
 
@@ -3140,7 +3141,7 @@ dependencies.
 
 ### 5.6 Local UI Bridge
 
-A local desktop application that connects to Tbd and provides visual interfaces like
+A local desktop application that connects to tbd and provides visual interfaces like
 Kanban boards, dashboards, or agent activity monitors.
 The layered architecture supports diverse clients beyond CLI and remote bridges.
 
@@ -3580,7 +3581,7 @@ tbd daemon flush              # Force flush memory → files
 
 ### 6.2 Use Cases by Complexity
 
-Tbd supports a spectrum of usage patterns:
+tbd supports a spectrum of usage patterns:
 
 #### 1. Single Developer, Local Workflow
 
@@ -3836,7 +3837,7 @@ Model Context Protocol tools wrapping CLI for Claude, Cursor, etc.
 // Example MCP tool definition
 {
   name: "tbd_create_issue",
-  description: "Create a new issue in Tbd",
+  description: "Create a new issue in tbd",
   parameters: {
     title: { type: "string", required: true },
     priority: { type: "number", default: 2 },
@@ -3893,8 +3894,8 @@ exclusively on `tbd-sync` branch in `.tbd/data-sync/` directory.
 - Issues shared across all code branches (correct for multi-agent use case)
 
 **Tradeoff**: Two locations to understand (config on main, data on sync branch).
-Mitigated by clear naming (`.tbd/` for config/local, `.tbd/data-sync/` for synced data) and
-`tbd init` setting up both locations.
+Mitigated by clear naming (`.tbd/` for config/local, `.tbd/data-sync/` for synced data)
+and `tbd init` setting up both locations.
 
 #### Decision 2: File-Per-Entity
 
@@ -4174,7 +4175,7 @@ When two agents reorder the same parent’s `sequence` array concurrently?
 bd export -o beads-export.jsonl --format jsonl
 ```
 
-#### Import to Tbd
+#### Import to tbd
 
 ```bash
 # Initialize tbd
@@ -4207,7 +4208,7 @@ This allows references in commit messages to be traced to new IDs.
 
 ### 7.4 Comparison with Beads
 
-| Aspect | Beads | Tbd |
+| Aspect | Beads | tbd |
 | --- | --- | --- |
 | Data locations | 4 (SQLite, local JSONL, sync branch, main) | 3 (config on main, data on sync branch, local cache) |
 | File system compatibility | SQLite WAL fails on NFS/cloud | Works on any file system |
@@ -4313,7 +4314,7 @@ These live in `.tbd/local/` on main and are gitignored:
 **Config** (`.tbd/config.yml` on main branch):
 
 ```yaml
-# Tbd configuration
+# tbd configuration
 # See: https://github.com/[org]/tbd
 
 tbd_version: '0.1.0'
@@ -4808,8 +4809,8 @@ resolution rules are needed.
 ```typescript
 // Per-field sync direction
 const SyncDirection = z.enum([
-  'tbd_wins', // Tbd overwrites Bridge
-  'bridge_wins', // Bridge overwrites Tbd
+  'tbd_wins', // tbd overwrites Bridge
+  'bridge_wins', // Bridge overwrites tbd
   'lww', // Last-write-wins by timestamp
   'union', // Merge arrays
 ]);

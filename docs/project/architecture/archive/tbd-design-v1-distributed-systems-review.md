@@ -1,4 +1,4 @@
-# Tbd Design: Distributed Systems Review
+# tbd Design: Distributed Systems Review
 
 **Reviewer:** Claude (Opus 4.5)
 
@@ -13,7 +13,7 @@ Optional Enhancements appendix)
 
 ## Executive Summary
 
-The Tbd design makes a clear and correct choice: **Git is the source of truth**. This is
+The tbd design makes a clear and correct choice: **Git is the source of truth**. This is
 the right foundation.
 However, several areas need deeper specification, particularly around the Bridge Layer’s
 consistency model, clock synchronization, and claim coordination semantics.
@@ -304,7 +304,7 @@ from the same agent will reflect that write.
 **Eventual Consistency**: All agents will eventually see the same state.
 Convergence time depends on sync frequency and network conditions.
 
-**No Strong Consistency**: Tbd does NOT provide linearizability or
+**No Strong Consistency**: tbd does NOT provide linearizability or
 serializable transactions. Concurrent writes to the same entity may
 require conflict resolution.
 
@@ -333,13 +333,13 @@ Define expected latencies for different modes:
 
 ### Field Mapping Conflicts
 
-The document shows GitHub ↔ Tbd field mapping (section 5.3), but doesn’t address:
+The document shows GitHub ↔ tbd field mapping (section 5.3), but doesn’t address:
 
 **Problem:** GitHub Issues have their own versioning (`updated_at`, ETags).
 When both systems change:
 
 ```
-Tbd: status → in_progress (version 5)
+tbd: status → in_progress (version 5)
 GitHub: User adds comment, closes issue via GitHub UI
 Sync runs:
   → Which state wins?
@@ -630,7 +630,7 @@ considering for future evolution if merge conflicts become a pain point.
 
 ## Conclusion
 
-The Tbd design is well-thought-out and makes correct foundational choices:
+The tbd design is well-thought-out and makes correct foundational choices:
 
 - Git as source of truth ✓
 

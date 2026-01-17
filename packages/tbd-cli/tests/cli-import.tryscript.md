@@ -26,14 +26,14 @@ before: |
   # Initialize tbd
   tbd init
 ---
-
-# TBD CLI: Import Command
+# tbd CLI: Import Command
 
 Tests for importing issues from Beads and JSONL files.
 
-Note: This test uses actual beads data from the repository to validate import functionality.
+Note: This test uses actual beads data from the repository to validate import
+functionality.
 
----
+* * *
 
 ## Help
 
@@ -56,10 +56,24 @@ Options:
   --verbose           Show detailed import progress
   --validate          Validate existing import against Beads source
   -h, --help          display help for command
+
+Global Options:
+  --version           Show version number
+  --dry-run           Show what would be done without making changes
+  --verbose           Enable verbose output
+  --quiet             Suppress non-essential output
+  --json              Output as JSON
+  --color <when>      Colorize output: auto, always, never (default: "auto")
+  --non-interactive   Disable all prompts, fail if input required
+  --yes               Assume yes to confirmation prompts
+  --no-sync           Skip automatic sync after write operations
+  --debug             Show internal IDs alongside public IDs for debugging
+
+For more on tbd, see: https://github.com/jlevy/tbd
 ? 0
 ```
 
----
+* * *
 
 ## Import from Beads
 
@@ -68,6 +82,10 @@ Options:
 ```console
 $ tbd import --from-beads
 ...
+Tip: To disable Beads and prevent agent confusion:
+  bd hooks uninstall                 # Remove git hooks
+  bd setup claude --remove           # Remove Claude Code hooks
+  bd setup <editor> --remove         # cursor, codex, etc.
 ? 0
 ```
 
@@ -79,15 +97,56 @@ imported: [..]
 ? 0
 ```
 
+* * *
+
+## ID Preservation
+
+Import preserves the original short IDs from beads.
+When importing “test-001”, the display ID should be “bd-001” (preserving “001”) not a
+random ID like “bd-xxxx”.
+
+# Test: Imported IDs preserve original short IDs
+
+The beads issues have IDs “test-001”, “test-002”, “test-003”. After import, display IDs
+should be “bd-001”, “bd-002”, “bd-003”.
+
+```console
+$ tbd list --all --json | node -e "d=JSON.parse(require('fs').readFileSync(0,'utf8')); ids=d.map(i=>i.id).sort(); console.log(ids.join(','))"
+bd-001,bd-002,bd-003
+? 0
+```
+
+# Test: Show command displays preserved ID
+
+```console
+$ tbd show bd-001 | grep "^title:"
+title: Test issue one
+? 0
+```
+
+# Test: ID mapping file contains preserved short IDs
+
+```console
+$ cat .tbd/data-sync-worktree/.tbd/data-sync/mappings/ids.yml | grep -c '"00[123]"'
+3
+? 0
+```
+
+* * *
+
 # Test: Import with verbose output
 
 ```console
 $ tbd import --from-beads --verbose
 ...
+Tip: To disable Beads and prevent agent confusion:
+  bd hooks uninstall                 # Remove git hooks
+  bd setup claude --remove           # Remove Claude Code hooks
+  bd setup <editor> --remove         # cursor, codex, etc.
 ? 0
 ```
 
----
+* * *
 
 ## Import Validation
 
@@ -98,10 +157,6 @@ $ tbd import --validate
 Validating import...
 
 Validation Results
-...
-Total Beads issues:[..]
-Total TBD issues:[..]
-Valid imports:[..]
 ...
 ? 0
 ```
@@ -122,7 +177,7 @@ $ tbd import --validate --verbose
 ? 0
 ```
 
----
+* * *
 
 ## Import from Custom Directory
 
@@ -135,15 +190,20 @@ $ mkdir -p custom-beads && echo '{"id":"custom-1","title":"Custom issue","status
 ? 0
 ```
 
-Note: We already imported from .beads, so this would add duplicates. Testing the flag works:
+Note: We already imported from .beads, so this would add duplicates.
+Testing the flag works:
 
 ```console
-$ tbd import --from-beads --beads-dir custom-beads --verbose
+$ tbd import --from-beads --beads-dir=custom-beads --verbose
 ...
+Tip: To disable Beads and prevent agent confusion:
+  bd hooks uninstall                 # Remove git hooks
+  bd setup claude --remove           # Remove Claude Code hooks
+  bd setup <editor> --remove         # cursor, codex, etc.
 ? 0
 ```
 
----
+* * *
 
 ## Import from JSONL File
 
@@ -177,7 +237,7 @@ $ tbd import merge-import.jsonl --merge
 ? 0
 ```
 
----
+* * *
 
 ## Error Cases
 
@@ -192,7 +252,7 @@ $ tbd import nonexistent.jsonl 2>&1
 # Test: Import missing beads directory
 
 ```console
-$ tbd import --from-beads --beads-dir nonexistent-dir 2>&1
+$ tbd import --from-beads --beads-dir=nonexistent-dir 2>&1
 ✗ Beads database not found[..]
 ...
 ? 0
@@ -217,7 +277,7 @@ $ cd fresh-repo && tbd init && tbd import --validate 2>&1
 ? 0
 ```
 
----
+* * *
 
 ## Import Statistics
 
@@ -237,14 +297,14 @@ stats total: OK
 ? 0
 ```
 
----
+* * *
 
 ## Import Idempotency
 
 # Test: Re-import skips existing (no duplicates)
 
 ```console
-$ tbd import --from-beads 2>&1 | grep -i skip || echo "Import complete"
+$ tbd import --from-beads 2>&1 | grep -E "(skip|Tip:)" || echo "Import complete"
 ...
 ? 0
 ```
@@ -256,4 +316,3 @@ $ tbd list --all --json 2>/dev/null | node -e "d=JSON.parse(require('fs').readFi
 count after re-import: OK
 ? 0
 ```
-

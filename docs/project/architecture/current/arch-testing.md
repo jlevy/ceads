@@ -7,19 +7,20 @@ Maintenance: When revising this doc you must follow instructions in
 
 ## Overview
 
-This document describes the comprehensive testing architecture for tbd-cli, following the Golden
-Testing Philosophy for maximum coverage with minimal maintenance burden. The approach prioritizes
-**transparent box testing** - capturing every meaningful detail of execution so behavioral changes
-show up immediately in diffs.
+This document describes the comprehensive testing architecture for tbd-cli, following
+the Golden Testing Philosophy for maximum coverage with minimal maintenance burden.
+The approach prioritizes **transparent box testing** - capturing every meaningful detail
+of execution so behavioral changes show up immediately in diffs.
 
-**Scope**: Testing patterns, infrastructure, and guidelines for tbd-cli. Covers unit tests,
-integration tests, and golden tests. Does not cover manual validation procedures.
+**Scope**: Testing patterns, infrastructure, and guidelines for tbd-cli.
+Covers unit tests, integration tests, and golden tests.
+Does not cover manual validation procedures.
 
 **Related Documents:**
 
 - [Golden Testing Guidelines](../../general/agent-guidelines/golden-testing-guidelines.md)
 - [TDD Guidelines](../../general/agent-guidelines/general-tdd-guidelines.md)
-- [Tbd Design v3](tbd-design-v3.md)
+- [tbd Design v3](tbd-design-v3.md)
 
 ## Test Category Philosophy
 
@@ -35,8 +36,10 @@ Tests are organized by **what they require to run**:
 
 **Key distinctions:**
 
-- **CI-Safe tests** (unit, integration, tryscript, vitest golden): Fast, no external dependencies, run every commit
-- **Tryscript tests**: Primary golden testing via Markdown-based CLI traces with regex pattern matching
+- **CI-Safe tests** (unit, integration, tryscript, vitest golden): Fast, no external
+  dependencies, run every commit
+- **Tryscript tests**: Primary golden testing via Markdown-based CLI traces with regex
+  pattern matching
 - **Vitest Golden tests**: Supplementary YAML-based golden tests for specific scenarios
 - **Performance tests**: Validate <50ms operation targets with large datasets
 
@@ -63,13 +66,14 @@ Total: 172 vitest tests + 334 tryscript tests = 506 tests
 
 ## Terminology
 
-- **Golden Test**: A test that captures complete execution output and compares against committed
-  baseline files ("golden files")
-- **Stable Field**: A field value that is deterministic and must match exactly (command names,
-  counts, error messages)
-- **Unstable Field**: A field value that varies between runs and must be normalized (ULIDs,
-  timestamps, temp paths)
-- **Scenario**: A complete sequence of CLI commands with captured outputs in a golden test
+- **Golden Test**: A test that captures complete execution output and compares against
+  committed baseline files ("golden files")
+- **Stable Field**: A field value that is deterministic and must match exactly (command
+  names, counts, error messages)
+- **Unstable Field**: A field value that varies between runs and must be normalized
+  (ULIDs, timestamps, temp paths)
+- **Scenario**: A complete sequence of CLI commands with captured outputs in a golden
+  test
 
 ## Test Categories
 
@@ -109,8 +113,8 @@ They mock all external boundaries.
 
 **Timeout**: 30 seconds per test
 
-Integration tests use temp directories to verify file operations and multi-component flows.
-They verify that storage, config, and workflow layers work correctly together.
+Integration tests use temp directories to verify file operations and multi-component
+flows. They verify that storage, config, and workflow layers work correctly together.
 
 **Requirements**: None - uses temp directories for isolation
 
@@ -136,8 +140,9 @@ They verify that storage, config, and workflow layers work correctly together.
 
 **Timeout**: 30 seconds per file
 
-Tryscript is the **primary golden testing approach** for CLI behavior. Tests are written in Markdown
-with embedded console blocks that specify expected command output. Tryscript handles:
+Tryscript is the **primary golden testing approach** for CLI behavior.
+Tests are written in Markdown with embedded console blocks that specify expected command
+output. Tryscript handles:
 
 - Sandbox isolation with temp directories
 - Regex pattern matching for unstable values
@@ -198,8 +203,8 @@ $ tbd create "Test issue" -t task
 \`\`\`
 ```
 
-The `path` option (tryscript 0.1.5+) adds `../dist` to the PATH, enabling clean `tbd` commands
-instead of verbose `node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs` invocations.
+The `path` option (tryscript 0.1.5+) adds `../dist` to the PATH, enabling clean `tbd`
+commands instead of verbose `node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs` invocations.
 
 ### 4. Vitest Golden Tests (CI-Safe) — Supplementary
 
@@ -211,9 +216,10 @@ instead of verbose `node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs` invocations.
 
 **Timeout**: 60 seconds per scenario
 
-Vitest golden tests are a **supplementary golden testing approach** using YAML baseline files with
-exact output comparison. They complement Tryscript for scenarios that benefit from programmatic
-test setup or need additional assertions beyond output matching.
+Vitest golden tests are a **supplementary golden testing approach** using YAML baseline
+files with exact output comparison.
+They complement Tryscript for scenarios that benefit from programmatic test setup or
+need additional assertions beyond output matching.
 
 **Requirements**: None - uses temp directories and spawns subprocesses
 
@@ -322,8 +328,10 @@ tests/
 
 **Stable vs. Unstable Fields**: Every field in session output must be classified:
 
-- **Stable**: Deterministic values that must match exactly (actions, quantities, configuration)
-- **Unstable**: Non-deterministic values filtered before comparison (timestamps, IDs, paths)
+- **Stable**: Deterministic values that must match exactly (actions, quantities,
+  configuration)
+- **Unstable**: Non-deterministic values filtered before comparison (timestamps, IDs,
+  paths)
 
 ### Field Classification
 
@@ -559,7 +567,7 @@ const issue = createTestIssue({
 });
 ```
 
-### DON'T: Generate Random IDs in Tests
+### DON’T: Generate Random IDs in Tests
 
 ```typescript
 // ❌ WRONG: Non-deterministic tests
@@ -581,7 +589,7 @@ it('workflow test', async () => {
 });
 ```
 
-### DON'T: Skip Normalization
+### DON’T: Skip Normalization
 
 ```typescript
 // ❌ WRONG: Comparing raw output with timestamps
@@ -620,10 +628,12 @@ Data Flow for Golden Tests:
 
 ## References
 
-- [Golden Testing Guidelines](../../general/agent-guidelines/golden-testing-guidelines.md) - Core
-  methodology
-- [TDD Guidelines](../../general/agent-guidelines/general-tdd-guidelines.md) - Test-driven development
+- [Golden Testing Guidelines](../../general/agent-guidelines/golden-testing-guidelines.md)
+  \- Core methodology
+- [TDD Guidelines](../../general/agent-guidelines/general-tdd-guidelines.md) -
+  Test-driven development
 - [vitest](https://vitest.dev/) - Test runner for unit/integration/golden tests
 - [tryscript](https://github.com/jlevy/tryscript) - Markdown-based CLI test runner
-- [picocolors](https://github.com/alexeyraspopov/picocolors) - Color output (tested with NO_COLOR)
+- [picocolors](https://github.com/alexeyraspopov/picocolors) - Color output (tested with
+  NO_COLOR)
 - [commander.js](https://github.com/tj/commander.js) - CLI framework

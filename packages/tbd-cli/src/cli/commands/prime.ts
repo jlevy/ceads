@@ -10,37 +10,18 @@
 import { Command } from 'commander';
 import { readFile, access } from 'node:fs/promises';
 import { join } from 'node:path';
-import { homedir } from 'node:os';
 
 import { BaseCommand } from '../lib/baseCommand.js';
 import { isInitialized } from '../../file/config.js';
 
 interface PrimeOptions {
-  full?: boolean;
-  mcp?: boolean;
   export?: boolean;
 }
 
 /**
- * MCP mode output (~50 tokens, when MCP server detected)
+ * Prime output (~1-2k tokens, full command reference)
  */
-const MCP_MODE_OUTPUT = `# Tbd Issue Tracker Active
-
-# 🚨 SESSION CLOSE PROTOCOL 🚨
-
-Before saying "done": git status → git add → tbd sync → git commit → tbd sync → git push
-
-## Core Rules
-- Track strategic work in tbd (multi-session, dependencies, discovered work)
-- TodoWrite is fine for simple single-session linear tasks
-
-Start: Check \`tbd ready\` for available work.
-`;
-
-/**
- * CLI mode output (~1-2k tokens, full reference)
- */
-const CLI_MODE_OUTPUT = `# Tbd Workflow Context
+const PRIME_OUTPUT = `# tbd Workflow Context
 
 > **Context Recovery**: Run \`tbd prime\` after compaction, clear, or new session
 > Hooks auto-call this in Claude Code when .tbd/ detected
@@ -111,33 +92,6 @@ tbd create "Write tests for X" --type task
 tbd dep add <tests-id> <feature-id>  # Tests depend on feature
 `;
 
-/**
- * Check if MCP mode is enabled by looking for tbd in Claude settings.
- */
-async function isMcpEnabled(): Promise<boolean> {
-  try {
-    const settingsPath = join(homedir(), '.claude', 'settings.json');
-    const content = await readFile(settingsPath, 'utf-8');
-    const settings = JSON.parse(content) as Record<string, unknown>;
-
-    // Check if mcpServers contains a tbd-related server
-    const mcpServers = settings.mcpServers as Record<string, unknown> | undefined;
-    if (!mcpServers) return false;
-
-    // Look for any server with "tbd" in its name
-    for (const name of Object.keys(mcpServers)) {
-      if (name.toLowerCase().includes('tbd')) {
-        return true;
-      }
-    }
-
-    return false;
-  } catch {
-    // Settings file doesn't exist or is invalid
-    return false;
-  }
-}
-
 class PrimeHandler extends BaseCommand {
   async run(options: PrimeOptions): Promise<void> {
     const cwd = process.cwd();
@@ -163,28 +117,13 @@ class PrimeHandler extends BaseCommand {
       }
     }
 
-    // Determine output mode
-    let useMcpMode: boolean;
-
-    if (options.full) {
-      useMcpMode = false;
-    } else if (options.mcp) {
-      useMcpMode = true;
-    } else {
-      // Auto-detect: check if MCP server is configured
-      useMcpMode = await isMcpEnabled();
-    }
-
-    // Output appropriate content
-    const content = useMcpMode ? MCP_MODE_OUTPUT : CLI_MODE_OUTPUT;
-    console.log(content);
+    // Output default prime content
+    console.log(PRIME_OUTPUT);
   }
 }
 
 export const primeCommand = new Command('prime')
   .description('Output workflow context for AI agents')
-  .option('--full', 'Force full CLI output (ignore MCP detection)')
-  .option('--mcp', 'Force MCP mode (minimal output, ~50 tokens)')
   .option('--export', 'Output default content (ignores PRIME.md override)')
   .action(async (options, command) => {
     const handler = new PrimeHandler(command);

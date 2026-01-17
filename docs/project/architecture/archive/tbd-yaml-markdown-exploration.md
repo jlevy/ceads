@@ -1,4 +1,4 @@
-# Tbd YAML/Markdown Format Exploration
+# tbd YAML/Markdown Format Exploration
 
 **Status:** Exploration / RFC
 
@@ -11,7 +11,7 @@
 ## Executive Summary
 
 This document explores replacing JSON storage with **Markdown + YAML front matter** for
-Tbd issue files. This is the format used by static site generators (Jekyll, Hugo, Astro)
+tbd issue files. This is the format used by static site generators (Jekyll, Hugo, Astro)
 and is increasingly common for content management.
 
 **Key benefits:**
@@ -133,7 +133,7 @@ A fast, simple Beads replacement implemented as ~900 lines of bash.
 
 - Dependency tracking with `dep`, `undep`, tree visualization
 
-- `ready` and `blocked` commands (same semantics as Beads/Tbd)
+- `ready` and `blocked` commands (same semantics as Beads/tbd)
 
 - `query` outputs JSON for jq integration
 
@@ -145,7 +145,7 @@ A fast, simple Beads replacement implemented as ~900 lines of bash.
 
 - Assumes coordinated team workflows
 
-**Learnings for Tbd:**
+**Learnings for tbd:**
 
 - Markdown+YAML works well in production (~1,900 tickets)
 
@@ -193,7 +193,7 @@ Issue tracking with plain Markdown, designed for distributed/disconnected teams.
 
 - Single file means more manual conflict resolution
 
-**Learnings for Tbd:**
+**Learnings for tbd:**
 
 - Git hooks for commit integration is powerful
 
@@ -247,7 +247,7 @@ Decentralized issue management stored in Git.
 
 - Import tracking for incremental GitHub sync
 
-**Learnings for Tbd:**
+**Learnings for tbd:**
 
 - Multiple files per issue (metadata + content) is interesting but complex
 
@@ -287,7 +287,7 @@ Distributed, offline-first bug tracker embedded in Git.
 
 - `bridge` for GitHub integration
 
-**Learnings for Tbd:**
+**Learnings for tbd:**
 
 - Git object storage is clever but non-inspectable
 
@@ -332,7 +332,7 @@ Content goes here...
 
 - Numerous YAML front matter parsers in every language
 
-**Learnings for Tbd:**
+**Learnings for tbd:**
 
 - Format is battle-tested at scale
 
@@ -350,7 +350,7 @@ Content goes here...
 | git-bug | Git objects | No file clutter, CRDT-like | Not inspectable |
 | SSGs | MD+YAML, file-per-content | Universal, great tooling | No sync built-in |
 
-**Synthesis for Tbd:**
+**Synthesis for tbd:**
 
 1. **File-per-entity with Markdown+YAML is the right choice**
 
@@ -476,7 +476,7 @@ Found the issue in session.ts line 42. Working on fix.
 - **Option C**: `.tbd` (custom extension, clear ownership)
 
 **Recommendation**: `.md` for maximum compatibility.
-The YAML front matter and directory location already identify these as Tbd issues.
+The YAML front matter and directory location already identify these as tbd issues.
 
 #### File Naming
 
@@ -711,7 +711,7 @@ Minimal changes - just file extensions:
 
 #### Config Files Also YAML
 
-For consistency, all Tbd files use YAML:
+For consistency, all tbd files use YAML:
 
 ```
 .tbd/
@@ -823,7 +823,7 @@ tbd import beads-export.jsonl
 #### JSON to Markdown Conversion
 
 ```bash
-# If migrating existing Tbd JSON to Markdown
+# If migrating existing tbd JSON to Markdown
 tbd migrate --format markdown
 
 # Converts all .json files to .md

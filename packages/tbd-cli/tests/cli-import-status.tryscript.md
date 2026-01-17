@@ -31,13 +31,12 @@ before: |
   # Initialize tbd
   tbd init
 ---
-
-# TBD CLI: Import Status Mapping Tests
+# tbd CLI: Import Status Mapping Tests
 
 Tests for beads status → tbd status mapping during import.
 Bug: tbd-1813 (done → closed mapping was missing).
 
----
+* * *
 
 ## Import All Status Types
 
@@ -49,14 +48,14 @@ $ tbd import --from-beads
 ? 0
 ```
 
----
+* * *
 
 ## Verify Status Mappings
 
 # Test: Open status preserved
 
 ```console
-$ tbd list --status open --json | node -e "d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log(d.filter(i => i.title.includes('open status')).length > 0 ? 'found' : 'not found')"
+$ tbd list --status=open --json | node -e "d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log(d.filter(i => i.title.includes('open status')).length > 0 ? 'found' : 'not found')"
 found
 ? 0
 ```
@@ -64,7 +63,7 @@ found
 # Test: In_progress status preserved
 
 ```console
-$ tbd list --status in_progress --json | node -e "d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log(d.filter(i => i.title.includes('in_progress')).length > 0 ? 'found' : 'not found')"
+$ tbd list --status=in_progress --json | node -e "d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log(d.filter(i => i.title.includes('in_progress')).length > 0 ? 'found' : 'not found')"
 found
 ? 0
 ```
@@ -72,7 +71,7 @@ found
 # Test: Done status mapped to closed (tbd-1813 fix)
 
 ```console
-$ tbd list --all --status closed --json | node -e "d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log(d.filter(i => i.title.includes('done status')).length > 0 ? 'found' : 'not found')"
+$ tbd list --all --status=closed --json | node -e "d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log(d.filter(i => i.title.includes('done status')).length > 0 ? 'found' : 'not found')"
 found
 ? 0
 ```
@@ -80,7 +79,7 @@ found
 # Test: Closed status preserved
 
 ```console
-$ tbd list --all --status closed --json | node -e "d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log(d.filter(i => i.title.includes('closed status')).length > 0 ? 'found' : 'not found')"
+$ tbd list --all --status=closed --json | node -e "d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log(d.filter(i => i.title.includes('closed status')).length > 0 ? 'found' : 'not found')"
 found
 ? 0
 ```
@@ -88,7 +87,7 @@ found
 # Test: Blocked status preserved
 
 ```console
-$ tbd list --status blocked --json | node -e "d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log(d.filter(i => i.title.includes('blocked status')).length > 0 ? 'found' : 'not found')"
+$ tbd list --status=blocked --json | node -e "d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log(d.filter(i => i.title.includes('blocked status')).length > 0 ? 'found' : 'not found')"
 found
 ? 0
 ```
@@ -96,12 +95,12 @@ found
 # Test: Deferred status preserved
 
 ```console
-$ tbd list --status deferred --json | node -e "d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log(d.filter(i => i.title.includes('deferred status')).length > 0 ? 'found' : 'not found')"
+$ tbd list --status=deferred --json | node -e "d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log(d.filter(i => i.title.includes('deferred status')).length > 0 ? 'found' : 'not found')"
 found
 ? 0
 ```
 
----
+* * *
 
 ## Validate Import
 

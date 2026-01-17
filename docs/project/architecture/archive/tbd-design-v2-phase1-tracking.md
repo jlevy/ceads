@@ -1,4 +1,4 @@
-# Tbd V2 Phase 1 Design Review Tracking
+# tbd V2 Phase 1 Design Review Tracking
 
 **Review Source:** tbd-design-v2-review1-gpt-5-pro.md
 
@@ -158,7 +158,7 @@ These add missing details but don’t fundamentally change the design.
 
   - **Location:** §5.5 “IDs change” + §5.1.4
 
-  - **Fix:** Clarify that imported IDs get new Tbd IDs, display prefix only affects
+  - **Fix:** Clarify that imported IDs get new tbd IDs, display prefix only affects
     output
 
 * * *

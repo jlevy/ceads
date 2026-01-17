@@ -195,7 +195,7 @@ describe('import command logic', () => {
     expect(parsed[1]!.type).toBe('bug');
   });
 
-  it('maps Beads status to Tbd status correctly', () => {
+  it('maps Beads status to tbd status correctly', () => {
     const statusMap: Record<string, string> = {
       open: 'open',
       in_progress: 'in_progress',
@@ -210,7 +210,7 @@ describe('import command logic', () => {
     expect(statusMap.tombstone).toBe('closed');
   });
 
-  it('maps Beads type to Tbd kind correctly', () => {
+  it('maps Beads type to tbd kind correctly', () => {
     const kindMap: Record<string, string> = {
       bug: 'bug',
       feature: 'feature',

@@ -11,6 +11,13 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
 import { BaseCommand } from '../lib/baseCommand.js';
+import { renderMarkdown } from '../lib/output.js';
+import GithubSlugger from 'github-slugger';
+
+interface Section {
+  title: string;
+  slug: string;
+}
 
 /**
  * Get the path to the bundled docs file.
@@ -30,7 +37,7 @@ interface DocsOptions {
 }
 
 class DocsHandler extends BaseCommand {
-  async run(options: DocsOptions): Promise<void> {
+  async run(topic: string | undefined, options: DocsOptions): Promise<void> {
     let content: string;
     try {
       content = await readFile(getDocsPath(), 'utf-8');
@@ -57,27 +64,34 @@ class DocsHandler extends BaseCommand {
       }
     }
 
+    const sections = this.extractSections(content);
+
     // List available sections
     if (options.list) {
-      const sections = this.extractSections(content);
       this.output.data(sections, () => {
         const colors = this.output.getColors();
         console.log(colors.bold('Available documentation sections:'));
         console.log('');
+        // Calculate max slug length for alignment
+        const maxSlugLen = Math.max(...sections.map((s) => s.slug.length));
         for (const section of sections) {
-          console.log(`  ${section}`);
+          const paddedSlug = section.slug.padEnd(maxSlugLen);
+          console.log(`  ${colors.id(paddedSlug)}  ${section.title}`);
         }
         console.log('');
-        console.log(`Use ${colors.dim('tbd docs --section <name>')} to view a specific section.`);
+        console.log(`Use ${colors.dim('tbd docs <topic>')} to view a specific section.`);
       });
       return;
     }
 
+    // Determine which section to show (positional topic takes precedence)
+    const sectionQuery = topic ?? options.section;
+
     // Filter by section if specified
-    if (options.section) {
-      const sectionContent = this.extractSection(content, options.section);
+    if (sectionQuery) {
+      const sectionContent = this.extractSection(content, sections, sectionQuery);
       if (!sectionContent) {
-        this.output.error(`Section "${options.section}" not found.`);
+        this.output.error(`Section "${sectionQuery}" not found.`);
         console.log('');
         console.log('Use --list to see available sections.');
         return;
@@ -85,22 +99,25 @@ class DocsHandler extends BaseCommand {
       content = sectionContent;
     }
 
-    // Output the documentation
-    console.log(content);
+    // Output the documentation with Markdown colorization
+    console.log(renderMarkdown(content, this.ctx.color));
   }
 
   /**
-   * Extract section names from the documentation.
+   * Extract section metadata from the documentation.
    * Sections are top-level headers (## ).
+   * Returns title and slugified ID for each section.
    */
-  private extractSections(content: string): string[] {
-    const sections: string[] = [];
+  private extractSections(content: string): Section[] {
+    const sections: Section[] = [];
     const lines = content.split('\n');
+    const slugger = new GithubSlugger();
 
     for (const line of lines) {
       if (line.startsWith('## ')) {
-        const sectionName = line.slice(3).trim();
-        sections.push(sectionName);
+        const title = line.slice(3).trim();
+        const slug = slugger.slug(title);
+        sections.push({ title, slug });
       }
     }
 
@@ -109,12 +126,22 @@ class DocsHandler extends BaseCommand {
 
   /**
    * Extract a specific section from the documentation.
+   * Matches by slug or partial title match.
    * Returns content from the section header to the next section header.
    */
-  private extractSection(content: string, sectionName: string): string | null {
-    const lines = content.split('\n');
-    const lowerName = sectionName.toLowerCase();
+  private extractSection(content: string, sections: Section[], query: string): string | null {
+    const lowerQuery = query.toLowerCase();
 
+    // Find matching section - first try exact slug match, then partial title match
+    const matchedSection =
+      sections.find((s) => s.slug === lowerQuery) ??
+      sections.find((s) => s.title.toLowerCase().includes(lowerQuery));
+
+    if (!matchedSection) {
+      return null;
+    }
+
+    const lines = content.split('\n');
     let inSection = false;
     const sectionLines: string[] = [];
 
@@ -124,8 +151,8 @@ class DocsHandler extends BaseCommand {
           // End of our section
           break;
         }
-        const currentSection = line.slice(3).trim().toLowerCase();
-        if (currentSection.includes(lowerName)) {
+        const currentTitle = line.slice(3).trim();
+        if (currentTitle === matchedSection.title) {
           inSection = true;
           sectionLines.push(line);
         }
@@ -154,9 +181,10 @@ class DocsHandler extends BaseCommand {
 
 export const docsCommand = new Command('docs')
   .description('Display CLI documentation')
+  .argument('[topic]', 'Topic to display (e.g., "commands", "id-system")')
   .option('--section <name>', 'Show specific section (e.g., "commands", "workflows")')
   .option('--list', 'List available sections')
-  .action(async (options, command) => {
+  .action(async (topic: string | undefined, options: DocsOptions, command: Command) => {
     const handler = new DocsHandler(command);
-    await handler.run(options);
+    await handler.run(topic, options);
   });

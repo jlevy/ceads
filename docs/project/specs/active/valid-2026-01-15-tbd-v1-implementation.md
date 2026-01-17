@@ -1,4 +1,4 @@
-# Feature Validation: Tbd V1 CLI Implementation
+# Feature Validation: tbd V1 CLI Implementation
 
 ## Purpose
 
@@ -10,7 +10,7 @@ remaining items for human review before merging the tbd-cli implementation.
 
 ## Implementation Summary
 
-Tbd V1 is a complete CLI implementation with 24 phases of development:
+tbd V1 is a complete CLI implementation with 25 phases of development:
 
 | Phase | Description | Status |
 | --- | --- | --- |
@@ -28,16 +28,19 @@ Tbd V1 is a complete CLI implementation with 24 phases of development:
 | 22 | Beads Import with Short ID Preservation | ✅ Complete |
 | 23 | requireInit() Enforcement | ✅ Complete |
 | 24 | Agent Integration Commands | ✅ Complete |
+| 25 | Status Command & Test Expansion | ✅ Complete |
 
-**Bead Tracking:** 211 beads tracked, ~10 open (P3 polish + golden test items)
+**Bead Tracking:** 262 beads tracked, ~10 open (P3 polish items)
 
 **Latest Validation (2026-01-17):**
-- ✅ 176 vitest unit tests passing
-- ✅ 334 tryscript golden tests passing
+- ✅ 187 vitest unit tests passing
+- ✅ 420 tryscript golden tests passing
 - ✅ Import validated: preserves original short IDs
 - ✅ Worktree architecture correctly implemented
 - ✅ TypeScript and ESLint checks passing
-- ✅ Phase 22-24 agent integration commands working
+- ✅ Phase 22-25 agent integration and status commands working
+- ✅ CLI help now shows full option names (`--option=value` style)
+- ✅ Documentation updated to use consistent full option syntax
 
 * * *
 
@@ -47,7 +50,7 @@ All items in this section are validated by automated tests that run in CI.
 
 ### 1.1 Unit Tests (vitest)
 
-**165 vitest unit tests** with **97.47% line coverage**:
+**187 vitest unit tests** with comprehensive coverage:
 
 | Test File | Tests | Coverage Description |
 | --- | --- | --- |
@@ -60,22 +63,36 @@ All items in this section are validated by automated tests that run in CI.
 | workflow.test.ts | 6 | Ready, blocked, stale command logic |
 | close-reopen.test.ts | 8 | Issue state transitions, timestamps |
 | label-depends.test.ts | 7 | Label add/remove, dependency management |
-| doctor-sync.test.ts | 4 | Orphan detection, sync status checks |
-| attic-import.test.ts | 7 | Attic operations, import field mapping |
-| golden.test.ts | 6 | Full CLI golden tests via subprocess (YAML scenarios) |
+| errors.test.ts | 13 | Error handling and message formatting |
+| performance.test.ts | 7 | Startup, read/write, and filtering performance |
+| sort.test.ts | 143 | Natural sort ordering for issue IDs |
 
 ### 1.2 Tryscript Golden Tests (CLI Integration)
 
-**318 tryscript golden tests** across 12 test files, testing all CLI commands via
+**420 tryscript golden tests** across 19 test files, testing all CLI commands via
 subprocess execution in isolated sandbox environments:
 
 | Test File | Tests | Commands Covered |
 | --- | --- | --- |
-| cli-setup.tryscript.md | ~25 | --help, --version, init, info |
+| cli-setup.tryscript.md | ~25 | --help, --version, init |
+| cli-status.tryscript.md | ~15 | status (orientation command) |
 | cli-crud.tryscript.md | ~60 | create, show, update, list, close, reopen |
 | cli-workflow.tryscript.md | ~50 | ready, blocked, stale, label, depends |
 | cli-advanced.tryscript.md | ~45 | search, sync, doctor, config, attic, stats |
-| cli-import.tryscript.md | ~20 | import (beads, JSONL, --validate) |
+| cli-import.tryscript.md | ~35 | import (beads, JSONL, --validate) |
+| cli-import-autoinit.tryscript.md | ~15 | import auto-initialization |
+| cli-import-e2e.tryscript.md | ~10 | import end-to-end workflows |
+| cli-import-status.tryscript.md | ~10 | import status and validation |
+| cli-prime.tryscript.md | ~20 | prime (agent context output) |
+| cli-setup-commands.tryscript.md | ~50 | setup claude/cursor/codex |
+| cli-uninstall.tryscript.md | ~35 | uninstall --all and per-integration |
+| cli-sync.tryscript.md | ~25 | sync operations and status |
+| cli-help-all.tryscript.md | ~20 | help for all subcommands |
+| cli-color-modes.tryscript.md | ~15 | color output modes |
+| cli-edge-cases.tryscript.md | ~30 | edge cases and error handling |
+| cli-filesystem.tryscript.md | ~25 | filesystem operations |
+| cli-id-format.tryscript.md | ~15 | ID format validation |
+| cli-uninitialized.tryscript.md | ~10 | uninitialized state handling |
 
 #### Tryscript Test Coverage Details
 
@@ -263,24 +280,26 @@ Testing performed manually during development (not automated, but verified worki
 - ✅ Invalid issue ID format rejected with explanation
 - ✅ Non-existent issue shows “Issue not found” error
 
-### 2.5 Phase 22-24 Agent Integration (New)
+### 2.5 Phase 22-25 Agent Integration
 
 #### Phase 22: Beads Import with Short ID Preservation
+
 - ✅ `tbd import --from-beads` preserves original beads short IDs
 - ✅ `isShortId()` validates short ID format (1-16 chars, alphanumeric + dashes)
 - ✅ Imported issues accessible by their original beads IDs (e.g., `tbd-1234`)
 
 #### Phase 23: requireInit() Enforcement
+
 - ✅ All commands check for `.tbd/` directory before execution
-- ✅ Clear error message: "Not initialized. Run 'tbd init' first."
-- ✅ Auto-init during import when `.tbd/` doesn't exist
-- ✅ Commands that work without init: `init`, `info`, `prime`
+- ✅ Clear error message: “Not initialized.
+  Run ‘tbd init’ first.”
+- ✅ Auto-init during import when `.tbd/` doesn’t exist
+- ✅ Commands that work without init: `init`, `status`, `prime`
 
 #### Phase 24: Agent Integration Commands
 
 **`tbd prime` command:**
 - ✅ Outputs workflow context for AI agents
-- ✅ Auto-detects MCP mode from Claude settings
 - ✅ `--full` forces full CLI output (~100 lines)
 - ✅ `--mcp` forces minimal MCP output (~15 lines)
 - ✅ `--export` shows default content (ignores PRIME.md override)
@@ -298,9 +317,34 @@ Testing performed manually during development (not automated, but verified worki
 
 **`tbd setup codex` command:**
 - ✅ Creates/updates `AGENTS.md` with tbd section (HTML comment markers)
-- ✅ Section managed between `<!-- BEGIN TBD INTEGRATION -->` and `<!-- END TBD INTEGRATION -->`
+- ✅ Section managed between `<!-- BEGIN TBD INTEGRATION -->` and
+  `<!-- END TBD INTEGRATION -->`
 - ✅ `--check` verifies section exists
 - ✅ `--remove` removes tbd section (deletes file if empty)
+
+**`tbd uninstall` command:**
+- ✅ `tbd uninstall --all` removes all agent integrations
+- ✅ `tbd uninstall claude` removes Claude hooks
+- ✅ `tbd uninstall cursor` removes Cursor rules
+- ✅ `tbd uninstall codex` removes Codex AGENTS.md section
+- ✅ `--check` verifies removal status
+
+#### Phase 25: Status Command
+
+**`tbd status` command:**
+- ✅ Works regardless of initialization state (like `git status`)
+- ✅ Shows tbd version, working directory, git branch
+- ✅ Detects beads and offers import when uninitialized
+- ✅ Shows issue summary (total, open, in_progress, blocked, ready)
+- ✅ Detects agent integrations (Claude, Cursor, Codex)
+- ✅ Shows sync branch and remote configuration
+- ✅ `--json` format for machine consumption
+
+**Documentation Updates:**
+- ✅ All CLI documentation uses `--option=value` syntax consistently
+- ✅ All tryscript tests use full option names instead of short aliases
+- ✅ Help output shows `--option=value` format for clarity
+- ✅ GitHub link epilog added to all help output
 
 * * *
 
@@ -382,9 +426,33 @@ tbd show bd-<id>        # Spot check a few issues against beads originals
 - Titles, statuses, priorities, labels match exactly
 - Dependencies preserved (blocks relationships)
 
-### 3.4 Phase 22-24 Manual Validation (New)
+### 3.4 Phase 22-25 Manual Validation
 
-#### 3.4.1 Verify `tbd prime` Command
+#### 3.4.1 Verify `tbd status` Command (Phase 25)
+
+Test the orientation command:
+
+```bash
+# Test in uninitialized directory
+cd /tmp && mkdir status-test && cd status-test
+git init
+tbd status          # Should show not initialized, git info
+tbd status --json   # Machine-readable format
+
+# Create beads directory to test detection
+mkdir .beads && echo '{}' > .beads/issues.jsonl
+tbd status          # Should detect beads and suggest import
+
+# Initialize and test again
+tbd init
+tbd status          # Should show initialized state with issue summary
+
+# Test integration detection
+tbd setup claude
+tbd status          # Should show Claude integration detected
+```
+
+#### 3.4.2 Verify `tbd prime` Command
 
 Test the workflow context output:
 
@@ -393,7 +461,7 @@ Test the workflow context output:
 cd /tmp && mkdir tbd-test && cd tbd-test
 tbd init
 
-# Test prime output (should show CLI mode since no MCP configured)
+# Test prime output
 tbd prime
 
 # Test explicit modes
@@ -406,7 +474,7 @@ tbd prime  # Should show custom content
 tbd prime --export  # Should show default content
 ```
 
-#### 3.4.2 Verify `tbd setup claude` Command
+#### 3.4.3 Verify `tbd setup claude` Command
 
 ```bash
 # Test Claude Code setup
@@ -423,7 +491,7 @@ tbd setup claude --remove
 tbd setup claude --check  # Should show not installed
 ```
 
-#### 3.4.3 Verify `tbd setup cursor` Command
+#### 3.4.4 Verify `tbd setup cursor` Command
 
 ```bash
 # Test Cursor setup
@@ -437,7 +505,7 @@ tbd setup cursor --check
 tbd setup cursor --remove
 ```
 
-#### 3.4.4 Verify `tbd setup codex` Command
+#### 3.4.5 Verify `tbd setup codex` Command
 
 ```bash
 # Test Codex/AGENTS.md setup
@@ -452,7 +520,27 @@ tbd setup codex --remove
 cat AGENTS.md  # Section should be removed
 ```
 
-#### 3.4.5 Verify Beads Import with Short ID Preservation
+#### 3.4.6 Verify `tbd uninstall` Command
+
+```bash
+# Set up all integrations first
+tbd setup claude
+tbd setup cursor
+tbd setup codex
+
+# Test individual uninstall
+tbd uninstall claude
+tbd setup claude --check  # Should show not installed
+
+# Test uninstall all
+tbd setup claude  # Re-install
+tbd uninstall --all
+tbd setup claude --check  # All should show not installed
+tbd setup cursor --check
+tbd setup codex --check
+```
+
+#### 3.4.7 Verify Beads Import with Short ID Preservation
 
 ```bash
 # If you have a beads issues.jsonl file:
@@ -463,7 +551,7 @@ tbd list  # Should show original beads IDs (e.g., tbd-1234)
 tbd show tbd-1234  # Should work with original beads ID
 ```
 
-#### 3.4.6 Verify requireInit() Enforcement
+#### 3.4.8 Verify requireInit() Enforcement
 
 ```bash
 # Test in non-initialized directory
@@ -473,7 +561,7 @@ tbd create "Test"  # Should error
 tbd ready  # Should error
 
 # Commands that should work without init
-tbd info  # Should work (shows not initialized)
+tbd status  # Should work (shows not initialized)
 tbd init  # Should work (initializes)
 ```
 
@@ -534,14 +622,15 @@ These are documented for future consideration but not blocking for V1:
 
 | Category | Items | Status |
 | --- | --- | --- |
-| Unit Tests | 104 tests, 97.47% coverage | ✅ Automated |
-| Tryscript Tests | 189 CLI integration tests | ✅ Automated |
+| Unit Tests | 187 tests (vitest) | ✅ Automated |
+| Tryscript Tests | 420 CLI integration tests | ✅ Automated |
 | Performance | 5K issue benchmark | ✅ Automated |
 | Security | Code review + fixes | ✅ Complete |
 | CI Configuration | Cross-platform workflow | ✅ Configured |
 | Build/Lint | TypeScript, ESLint, Prettier | ✅ Passing |
 | Import | --from-beads, --validate | ✅ Tested |
 | Local Workflow | Dev commands, git hooks | ✅ Agent verified |
+| Phase 25 | Status command, uninstall, docs | ✅ Complete |
 | Engineering | Architecture, types, security | ⏳ User review needed |
 | Product | UX, help text, error messages | ⏳ User review needed |
 | Production Import | Beads → tbd validation | ⏳ User verification |

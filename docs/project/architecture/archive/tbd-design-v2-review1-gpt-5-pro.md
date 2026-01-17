@@ -1,4 +1,4 @@
-Below is a detailed design review of **Tbd V2 Phase 1 (Beads replacement)**, with (a) a
+Below is a detailed design review of **tbd V2 Phase 1 (Beads replacement)**, with (a) a
 set of creative alternatives / scope-shaping ideas, and (b) an editor-ready issue list
 you can paste into the spec review doc or a GitHub issue.
 This review is based on the V2 Phase 1 spec, plus the earlier V1 spec and the V1 design
@@ -78,8 +78,8 @@ non-event.
 
 ### 3) Apply “file-per-entity” to mapping files too
 
-`.tbd/data-sync/mappings/beads.json` is a potential conflict hotspot if more than one node
-imports concurrently (even if rare).
+`.tbd/data-sync/mappings/beads.json` is a potential conflict hotspot if more than one
+node imports concurrently (even if rare).
 If you’ve embraced file-per-entity, it’s consistent to do:
 
 - `.tbd/data-sync/mappings/beads/bd-x7y8.json` → `{ "tbd_id": "is-..." }`
@@ -161,12 +161,13 @@ You can copy/paste this as a checklist.
 - **[V2-002] [BLOCKER] Local working copy location for `.tbd/data-sync/` is undefined**
   **Where:** §2.2 Directory Structure + §3.3 Sync Operations **Problem:** The spec says
   `.tbd/data-sync/` exists on the `tbd-sync` branch, but then uses
-  `git add .tbd/data-sync/issues/` which requires those files to exist in the working tree.
-  Meanwhile main branch structure omits `.tbd/data-sync/` entirely.
+  `git add .tbd/data-sync/issues/` which requires those files to exist in the working
+  tree. Meanwhile main branch structure omits `.tbd/data-sync/` entirely.
   **Suggested change:** Add an explicit subsection: “Local storage model.”
   Choose one:
 
-  1. `.tbd/data-sync/` exists locally (gitignored on main) and is used as a workspace, OR
+  1. `.tbd/data-sync/` exists locally (gitignored on main) and is used as a workspace,
+     OR
 
   2. issues live under `.tbd/cache/...` locally and are written into git objects
      directly, OR
@@ -175,9 +176,10 @@ You can copy/paste this as a checklist.
      Make it normative so implementation + UX are aligned.
 
 - **[V2-003] [BLOCKER] Missing rule for not leaving untracked `.tbd/data-sync/` noise on
-  main** **Where:** §2.2 + §3.2 (tracked files on main) **Problem:** If `.tbd/data-sync/` is
-  used as a local workspace on main, it will show as untracked unless explicitly
-  ignored. Current `.tbd/.gitignore` ignores only `cache/`. **Suggested change:** If
+  main** **Where:** §2.2 + §3.2 (tracked files on main) **Problem:** If
+  `.tbd/data-sync/` is used as a local workspace on main, it will show as untracked
+  unless explicitly ignored.
+  Current `.tbd/.gitignore` ignores only `cache/`. **Suggested change:** If
   `.tbd/data-sync/` exists on main working tree, specify how it is ignored:
 
   - recommend adding `.tbd/data-sync/` to top-level `.gitignore` OR
@@ -310,7 +312,7 @@ You can copy/paste this as a checklist.
 - **[V2-015] [MAJOR] Display-prefix compatibility vs import mapping is inconsistent**
   **Where:** §5.5 “IDs change” + §5.1.4 mapping file **Problem:** One part implies Beads
   IDs become `is-a1b2` (same suffix), but import mapping explicitly maps Beads IDs to
-  newly generated Tbd IDs (not necessarily same suffix).
+  newly generated tbd IDs (not necessarily same suffix).
   **Suggested change:** Make this consistent.
   Options:
 
@@ -320,8 +322,8 @@ You can copy/paste this as a checklist.
     not suffix). Update examples accordingly.
 
 - **[V2-016] [MAJOR] Single mapping file on sync branch can become a conflict hotspot**
-  **Where:** §5.1.4 `.tbd/data-sync/mappings/beads.json` **Problem:** Concurrent imports or
-  partial migrations could cause merges on the same file.
+  **Where:** §5.1.4 `.tbd/data-sync/mappings/beads.json` **Problem:** Concurrent imports
+  or partial migrations could cause merges on the same file.
   **Suggested change:** Store per-beads-id mapping files (file-per-entity) or define
   merge semantics for `beads.json` as a “map union with conflict on key mismatch.”
 

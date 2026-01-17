@@ -14,6 +14,7 @@ import { listIssues } from '../../file/storage.js';
 import { readConfig } from '../../file/config.js';
 import type { Issue } from '../../lib/types.js';
 import { resolveDataSyncDir, TBD_DIR } from '../../lib/paths.js';
+import { validateIssueId } from '../../lib/ids.js';
 
 const CONFIG_DIR = TBD_DIR;
 
@@ -232,7 +233,7 @@ class DoctorHandler extends BaseCommand {
         invalid.push(issue.id ?? 'unknown');
       }
       // Check ID format
-      if (issue.id && !issue.id.startsWith('is-')) {
+      if (issue.id && !validateIssueId(issue.id)) {
         invalid.push(issue.id);
       }
       // Check priority range

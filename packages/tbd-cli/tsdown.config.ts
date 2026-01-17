@@ -76,10 +76,21 @@ export default defineConfig([
     },
     clean: true,
   },
-  // CLI binary (with shebang)
+  // CLI binary - ESM entry (used by bootstrap)
   {
     ...commonOptions,
     entry: { bin: 'src/cli/bin.ts' },
+    banner: '#!/usr/bin/env node',
+    clean: false,
+  },
+  // CLI bootstrap - CJS entry that enables compile cache before loading ESM
+  {
+    format: ['cjs'] as 'cjs'[],
+    platform: 'node' as const,
+    target: 'node20' as const,
+    sourcemap: true,
+    dts: false,
+    entry: { 'bin-bootstrap': 'src/cli/bin-bootstrap.cjs' },
     banner: '#!/usr/bin/env node',
     clean: false,
   },

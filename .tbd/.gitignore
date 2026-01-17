@@ -1,0 +1,11 @@
+# Local cache (not shared)
+cache/
+
+# Hidden worktree for tbd-sync branch
+data-sync-worktree/
+
+# Data sync directory (only exists in worktree)
+data-sync/
+
+# Temporary files
+*.tmp

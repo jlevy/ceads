@@ -3,6 +3,8 @@ sandbox: true
 env:
   NO_COLOR: '1'
   FORCE_COLOR: '0'
+path:
+  - ../dist
 timeout: 30000
 patterns:
   ULID: '[0-9a-z]{26}'
@@ -17,13 +19,12 @@ before: |
   git add README.md
   git commit -m "Initial commit"
   # Initialize tbd
-  node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs init
+  tbd init
 ---
+# tbd CLI: Filesystem and Storage Tests
 
-# TBD CLI: Filesystem and Storage Tests
-
-Validates that tbd stores files in the correct locations according to the
-architecture specification.
+Validates that tbd stores files in the correct locations according to the architecture
+specification.
 
 ## Reference: Directory Structure
 
@@ -40,7 +41,7 @@ Per the design spec, tbd uses this directory structure:
 - `.tbd/data-sync-worktree/.tbd/data-sync/mappings/` - ID mappings
 - `.tbd/data-sync-worktree/.tbd/data-sync/attic/` - Conflict archive
 
----
+* * *
 
 ## Config File Location
 
@@ -62,14 +63,14 @@ tbd_version: [..]
 ? 0
 ```
 
----
+* * *
 
 ## Issue Storage Location (Worktree Architecture)
 
 # Test: Create issue stores file in worktree data-sync directory
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs create "Test issue for location" --json | head -1
+$ tbd create "Test issue for location" --json | head -1
 {
 ? 0
 ```
@@ -106,14 +107,14 @@ version: 1
 ? 0
 ```
 
----
+* * *
 
 ## Mappings Directory
 
 # Test: Mappings directory exists in worktree
 
 ```console
-$ test -d .tbd/data-sync-worktree/.tbd/data-sync/mappings && echo "mappings dir exists"
+$ test --description.tbd/data-sync-worktree/.tbd/data-sync/mappings && echo "mappings dir exists"
 mappings dir exists
 ? 0
 ```
@@ -126,7 +127,7 @@ gitkeep exists
 ? 0
 ```
 
----
+* * *
 
 ## Multiple Issues
 
@@ -135,13 +136,13 @@ gitkeep exists
 Note: Create command shows full ULID in success message.
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs create "Second issue"
+$ tbd create "Second issue"
 ✓ Created bd-[SHORTID]: Second issue
 ? 0
 ```
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs create "Third issue"
+$ tbd create "Third issue"
 ✓ Created bd-[SHORTID]: Third issue
 ? 0
 ```
@@ -154,7 +155,7 @@ $ ls .tbd/data-sync-worktree/.tbd/data-sync/issues/*.md 2>/dev/null | wc -l | tr
 ? 0
 ```
 
----
+* * *
 
 ## Gitignore Verification
 
@@ -176,7 +177,7 @@ data-sync/
 ? 0
 ```
 
----
+* * *
 
 ## File Content Integrity
 
@@ -198,7 +199,44 @@ $ cat .tbd/data-sync-worktree/.tbd/data-sync/issues/*.md | grep -c "^---$"
 
 Note: 6 = 2 delimiters (open/close) x 3 issues.
 
----
+* * *
+
+## YAML Frontmatter Formatting
+
+The serializer must not add extra newlines between the closing `---` and the markdown
+body.
+
+# Test: No extra blank line after frontmatter closing delimiter
+
+Each issue file should end with `---` followed by either content or EOF, not a blank
+line. This test checks that no file has `---` followed by an empty line.
+
+```console
+$ for f in .tbd/data-sync-worktree/.tbd/data-sync/issues/*.md; do if grep -Pzo '\n---\n\n' "$f" >/dev/null 2>&1; then echo "FAIL: $f has extra newline"; exit 1; fi; done && echo "No extra newlines after frontmatter"
+No extra newlines after frontmatter
+? 0
+```
+
+# Test: Create issue with description and verify formatting
+
+```console
+$ tbd create "Issue with description" --description="This is the description body."
+✓ Created bd-[SHORTID]: Issue with description
+? 0
+```
+
+# Test: Description follows frontmatter without extra newline
+
+The line immediately after the closing `---` should be the description content, not
+blank.
+
+```console
+$ FILE=$(ls -t .tbd/data-sync-worktree/.tbd/data-sync/issues/*.md | head -1) && grep -A1 "^---$" "$FILE" | tail -1
+This is the description body.
+? 0
+```
+
+* * *
 
 ## Data Isolation from Main Branch
 
@@ -220,7 +258,7 @@ $ git status --porcelain | grep "^??" | head -5
 ? 0
 ```
 
----
+* * *
 
 ## Meta File
 

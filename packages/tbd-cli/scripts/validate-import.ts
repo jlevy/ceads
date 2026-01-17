@@ -61,7 +61,7 @@ async function runCommand(
 }
 
 async function main(): Promise<void> {
-  console.log('TBD Import Validation Test');
+  console.log('tbd Import Validation Test');
   console.log('='.repeat(60));
   console.log();
 
@@ -139,7 +139,7 @@ async function main(): Promise<void> {
       success: initResult.stdout.includes('Initialized') || initResult.stdout.includes('init'),
       duration: initResult.duration,
     });
-    console.log(`  ✓ TBD initialized (${initResult.duration.toFixed(0)}ms)`);
+    console.log(`  ✓ tbd initialized (${initResult.duration.toFixed(0)}ms)`);
 
     // Step 6: Import from beads
     console.log('\nStep 6: Importing from beads...');

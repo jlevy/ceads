@@ -1,4 +1,4 @@
-# Tbd Design V2 Phase 1: Beads Replacement
+# tbd Design V2 Phase 1: Beads Replacement
 
 **Author:** Joshua Levy (github.com/jlevy) and various LLMs
 
@@ -10,13 +10,13 @@
 
 ## Table of Contents
 
-- [Tbd Design V2 Phase 1: Beads Replacement](#tbd-design-v2-phase-1-beads-replacement)
+- [tbd Design V2 Phase 1: Beads Replacement](#tbd-design-v2-phase-1-beads-replacement)
 
   - [Table of Contents](#table-of-contents)
 
   - [1. Introduction](#1-introduction)
 
-    - [1.1 What is Tbd?](#11-what-is-tbd)
+    - [1.1 What is tbd?](#11-what-is-tbd)
 
     - [1.2 Why Replace Beads?](#12-why-replace-beads)
 
@@ -240,7 +240,7 @@
 
     - [7.3 File Structure Reference](#73-file-structure-reference)
 
-  - [Appendix A: Beads to Tbd Feature Mapping](#appendix-a-beads-to-tbd-feature-mapping)
+  - [Appendix A: Beads to tbd Feature Mapping](#appendix-a-beads-to-tbd-feature-mapping)
 
     - [A.1 Executive Summary](#a1-executive-summary)
 
@@ -304,13 +304,13 @@
 
 ## 1. Introduction
 
-### 1.1 What is Tbd?
+### 1.1 What is tbd?
 
-**Tbd** is an alternative to [Beads](https://github.com/steveyegge/beads) that
+**tbd** is an alternative to [Beads](https://github.com/steveyegge/beads) that
 eliminates some rough edges and architectural complexity while maintaining CLI
 compatibility.
 
-Tbd is pronounced “seeds” and follows Beads in the spirit of C following B.
+tbd is pronounced “seeds” and follows Beads in the spirit of C following B.
 
 **Key characteristics:**
 
@@ -349,7 +349,7 @@ architecture accumulated complexity:
 
 - **Network filesystem issues**: SQLite doesn’t work well on NFS/SMB
 
-**Tbd Solutions:**
+**tbd Solutions:**
 
 - **2-location data**: Config on main branch, entities on sync branch
 
@@ -365,7 +365,7 @@ architecture accumulated complexity:
 
 **Related Work:**
 
-Tbd builds on lessons from the git-native issue tracking ecosystem:
+tbd builds on lessons from the git-native issue tracking ecosystem:
 
 - **[ticket](https://github.com/wedow/ticket)**: A fast, simple Beads replacement
   implemented as a single bash script (about 900 lines) with Markdown + YAML frontmatter
@@ -374,7 +374,7 @@ Tbd builds on lessons from the git-native issue tracking ecosystem:
   Successfully manages about 1,900 tickets in production.
   Provides `migrate-beads` command for smooth transitions.
   Key insight: “You don’t need to index everything with SQLite when you have awk.”
-  Tbd shares this philosophy while adding TypeScript implementation, stronger conflict
+  tbd shares this philosophy while adding TypeScript implementation, stronger conflict
   resolution, and cross-platform reliability.
 
 - **[git-bug](https://github.com/git-bug/git-bug)**: Stores issues as git objects,
@@ -385,7 +385,7 @@ Tbd builds on lessons from the git-native issue tracking ecosystem:
 
 - **[beans](https://github.com/hmans/beans)**: Another minimalist git-friendly tracker
 
-The common thread: **simplicity, no background services, git for distribution**. Tbd
+The common thread: **simplicity, no background services, git for distribution**. tbd
 combines these proven patterns with multi-environment sync and conflict resolution.
 
 ### 1.3 Design Goals
@@ -449,7 +449,7 @@ Add complexity only when proven necessary.
 
 ### 1.6 Layer Overview
 
-Tbd V2 Phase 1 has three layers:
+tbd V2 Phase 1 has three layers:
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -590,7 +590,7 @@ current node’s prefix.
 
 ### 2.2 Directory Structure
 
-Tbd uses two directories:
+tbd uses two directories:
 
 - **`.tbd/`** on main branch: Configuration (tracked) + local cache (gitignored)
 
@@ -621,7 +621,7 @@ Tbd uses two directories:
 │       └── is-a1b2/
 │           └── 2025-01-07T10-30-00Z_description.json
 ├── mappings/               # Import ID mappings
-│   └── beads.json          # Beads ID → Tbd ID mapping
+│   └── beads.json          # Beads ID → tbd ID mapping
 └── meta.json               # Metadata (schema version)
 ```
 
@@ -667,8 +667,8 @@ not explicitly covered in the directory structure above.
 
 4. **Matches mental model**: “Sync branch has entities, main branch has config”
 
-**Invariant:** The `.tbd/data-sync/` directory should NEVER exist on a developer’s working
-tree when on main or feature branches.
+**Invariant:** The `.tbd/data-sync/` directory should NEVER exist on a developer’s
+working tree when on main or feature branches.
 It only exists as content on the `tbd-sync` branch, accessed via git plumbing commands.
 
 ### 2.3 Entity Collection Pattern
@@ -885,7 +885,7 @@ type Issue = z.infer<typeof IssueSchema>;
 **Notes on tombstone status:**
 
 Beads has a `tombstone` status for soft-deleted issues.
-In Tbd, we handle deletion differently:
+In tbd, we handle deletion differently:
 
 - Closed issues remain in `issues/` directory with `status: closed`
 
@@ -1029,7 +1029,7 @@ merging.
 
 - **Hash-based conflict detection**: Content hash comparison triggers merge
 
-**Critical Invariant:** Tbd MUST NEVER modify the user’s git index or staging area.
+**Critical Invariant:** tbd MUST NEVER modify the user’s git index or staging area.
 All git plumbing operations that write to the sync branch MUST use an isolated index
 file via `GIT_INDEX_FILE` environment variable.
 This ensures that a developer’s staged changes are never corrupted by tbd operations.
@@ -1969,7 +1969,7 @@ tbd attic restore 2025-01-07T10-30-00Z_description
 The import command is designed to be **idempotent and safe to re-run**. This enables
 workflows where:
 
-- Initial migration from Beads to Tbd
+- Initial migration from Beads to tbd
 
 - Ongoing sync if some agents still use Beads temporarily
 
@@ -2024,7 +2024,7 @@ tbd import --from-beads --branch beads-sync
 
 #### 5.1.2 Multi-Source Import (--from-beads)
 
-When using `--from-beads`, Tbd reads directly from the Beads repository structure
+When using `--from-beads`, tbd reads directly from the Beads repository structure
 instead of an exported file.
 This is useful when you want to import without running `bd export` first, or when you
 need to capture changes from both main and sync branches.
@@ -2196,7 +2196,7 @@ Import complete.
 #### 5.1.4 ID Mapping
 
 The key to idempotent import is **stable ID mapping**. The same Beads issue must always
-map to the same Tbd issue, even across multiple imports on different machines.
+map to the same tbd issue, even across multiple imports on different machines.
 
 **Mapping storage:**
 
@@ -2235,7 +2235,7 @@ To enable O(1) lookups on large issue sets, import also maintains a mapping file
 
 This file:
 
-- Is synced with other Tbd data on the sync branch
+- Is synced with other tbd data on the sync branch
 
 - Enables instant lookup of existing mappings
 
@@ -2258,39 +2258,39 @@ IMPORT_BEADS(jsonl_file):
 
      c. Look up beads_id in mapping:
         - If found: tbd_id = mapping[beads_id]
-          Load existing Tbd issue for merge
+          Load existing tbd issue for merge
         - If not found: tbd_id = generate_new_id("is-")
           Add mapping[beads_id] = tbd_id
 
-     d. Convert Beads fields to Tbd format (see Field Mapping)
+     d. Convert Beads fields to tbd format (see Field Mapping)
 
      e. Set extensions.beads.original_id = beads_id
         Set extensions.beads.imported_at = now()
 
-     f. If existing Tbd issue:
+     f. If existing tbd issue:
         - Compare updated_at timestamps
         - If Beads is newer: apply merge using standard rules
-        - If Tbd is newer: skip (Tbd changes preserved)
+        - If tbd is newer: skip (tbd changes preserved)
         - If same: no-op (already imported)
      g. If new issue:
-        - Write new Tbd issue file
+        - Write new tbd issue file
 
   3. Save updated mapping file
 
-  4. Report: N new, M updated, K unchanged, J skipped (Tbd newer)
+  4. Report: N new, M updated, K unchanged, J skipped (tbd newer)
 
   5. Sync (unless --no-sync)
 ```
 
 #### 5.1.6 Merge Behavior on Re-Import
 
-When re-importing an issue that already exists in Tbd:
+When re-importing an issue that already exists in tbd:
 
 | Scenario | Behavior |
 | --- | --- |
-| Beads unchanged, Tbd unchanged | No-op |
-| Beads updated, Tbd unchanged | Update Tbd with Beads changes |
-| Beads unchanged, Tbd updated | Keep Tbd changes (skip) |
+| Beads unchanged, tbd unchanged | No-op |
+| Beads updated, tbd unchanged | Update tbd with Beads changes |
+| Beads unchanged, tbd updated | Keep tbd changes (skip) |
 | Both updated | Merge using LWW rules, loser to attic |
 
 **Merge uses standard issue merge rules:**
@@ -2306,12 +2306,12 @@ When re-importing an issue that already exists in Tbd:
 ```
 Time 0: Import bd-a1b2 → is-x1y2 (initial import)
 Time 1: Agent updates bd-a1b2 in Beads (adds label "urgent")
-Time 2: Human updates is-x1y2 in Tbd (changes priority to 1)
+Time 2: Human updates is-x1y2 in tbd (changes priority to 1)
 Time 3: Re-import bd-a1b2
 
 Result: is-x1y2 has both changes:
   - Label "urgent" (from Beads, union merge)
-  - Priority 1 (from Tbd, more recent updated_at wins)
+  - Priority 1 (from tbd, more recent updated_at wins)
 ```
 
 #### 5.1.7 Handling Deletions and Tombstones
@@ -2324,7 +2324,7 @@ Result: is-x1y2 has both changes:
 Beads uses `tombstone` status for soft-deleted issues.
 On import:
 
-| Beads Status | Tbd Behavior | Rationale |
+| Beads Status | tbd Behavior | Rationale |
 | --- | --- | --- |
 | `tombstone` (first import) | Skip by default | Don't import deleted issues |
 | `tombstone` (re-import) | Set `status: closed`, add label `deleted-in-beads` | Preserve history |
@@ -2343,7 +2343,7 @@ On import, these must be translated:
 
 ```
 Beads: { "type": "blocks", "target": "bd-m5n6" }
-Tbd: { "type": "blocks", "target": "is-d4e5f6" }  # Looked up from mapping
+tbd: { "type": "blocks", "target": "is-d4e5f6" }  # Looked up from mapping
 ```
 
 **Algorithm:**
@@ -2390,7 +2390,7 @@ Would import from beads-export.jsonl:
     ...
   Unchanged:       142
   Would skip:      2
-    bd-p1q2 (is-g7h8) - Tbd newer by 1 day
+    bd-p1q2 (is-g7h8) - tbd newer by 1 day
 ```
 
 #### 5.1.10 Migration Workflow
@@ -2416,7 +2416,7 @@ tbd sync
 bd export > beads-export.jsonl
 tbd import beads-export.jsonl  # Safe to re-run
 
-# After import, Tbd is authoritative
+# After import, tbd is authoritative
 # New work should use tbd commands
 ```
 
@@ -2424,16 +2424,16 @@ tbd import beads-export.jsonl  # Safe to re-run
 
 ```bash
 # Agent accidentally used Beads commands
-# Recover that work into Tbd
+# Recover that work into tbd
 bd export > beads-export.jsonl
 tbd import beads-export.jsonl
 tbd sync
-# Agent's work is now in Tbd
+# Agent's work is now in tbd
 ```
 
 ### 5.2 Command Mapping
 
-| Beads Command | Tbd Equivalent | Status | Notes |
+| Beads Command | tbd Equivalent | Status | Notes |
 | --- | --- | --- | --- |
 | `bd init` | `tbd init` | ✅ Full | Identical behavior |
 | `bd create` | `tbd create` | ✅ Full | All options supported |
@@ -2470,7 +2470,7 @@ tbd sync
 
 ### 5.3 Field Mapping
 
-| Beads Field | Tbd Field | Notes |
+| Beads Field | tbd Field | Notes |
 | --- | --- | --- |
 | `id` | `id` | New format: `is-xxxx` vs `bd-xxxx` |
 | `title` | `title` | Identical |
@@ -2492,7 +2492,7 @@ tbd sync
 
 ### 5.4 Status Mapping
 
-| Beads Status | Tbd Status | Migration Behavior |
+| Beads Status | tbd Status | Migration Behavior |
 | --- | --- | --- |
 | `open` | `open` | Direct mapping |
 | `in_progress` | `in_progress` | Direct mapping |
@@ -2504,7 +2504,7 @@ tbd sync
 **Tombstone handling:**
 
 Beads uses `tombstone` for soft-deleted issues.
-Tbd options:
+tbd options:
 
 1. **Skip on import**: Don’t import tombstoned issues (default)
 
@@ -2534,42 +2534,42 @@ Tbd options:
 
 - Beads: Single `issues.jsonl` file
 
-- Tbd: File-per-issue in `.tbd/data-sync/issues/`
+- tbd: File-per-issue in `.tbd/data-sync/issues/`
 
 **Database:**
 
 - Beads: SQLite cache
 
-- Tbd: Optional index, rebuildable from files
+- tbd: Optional index, rebuildable from files
 
 **Daemon:**
 
 - Beads: Required background daemon
 
-- Tbd: No daemon (optional background sync in Phase 2)
+- tbd: No daemon (optional background sync in Phase 2)
 
 **Git integration:**
 
 - Beads: Complex worktree setup
 
-- Tbd: Simple sync branch
+- tbd: Simple sync branch
 
 **Conflict handling:**
 
 - Beads: JSONL merge conflicts
 
-- Tbd: Field-level merge with attic
+- tbd: Field-level merge with attic
 
 **ID format:**
 
 - Beads: `bd-xxxx` (4-6 hex chars)
 
-- Tbd: `is-xxxx` (4-6 hex chars)
+- tbd: `is-xxxx` (4-6 hex chars)
   - Display as `bd-xxxx` via `display.id_prefix` config
 
 ### 5.6 Compatibility Contract
 
-This section defines the stability guarantees for scripts and tooling that depend on Tbd
+This section defines the stability guarantees for scripts and tooling that depend on tbd
 CLI output.
 
 **Stable (will not change without major version bump):**
@@ -2610,7 +2610,7 @@ These flags/behaviors are maintained for Beads script compatibility:
 
 #### Migration Gotchas
 
-1. **IDs change**: Beads `bd-a1b2` becomes Tbd `is-a1b2` internally
+1. **IDs change**: Beads `bd-a1b2` becomes tbd `is-a1b2` internally
 
    - Set `display.id_prefix: bd` to show as `bd-a1b2`
 
@@ -2619,7 +2619,7 @@ These flags/behaviors are maintained for Beads script compatibility:
 2. **No daemon**: Background sync must be manual or cron-based
 
 3. **No auto-flush**: Beads auto-syncs on write
-   - Tbd syncs on `tbd sync` or with `settings.auto_sync: true` in config
+   - tbd syncs on `tbd sync` or with `settings.auto_sync: true` in config
 
 4. **Tombstone issues**: Decide import behavior (skip/convert/attic)
 
@@ -2747,11 +2747,11 @@ even at scale.
 
 ### 6.3 Migration Path
 
-**Beads → Tbd migration checklist:**
+**Beads → tbd migration checklist:**
 
 1. ✅ Export Beads data: `bd export > backup.jsonl`
 
-2. ✅ Initialize Tbd: `tbd init`
+2. ✅ Initialize tbd: `tbd init`
 
 3. ✅ Import: `tbd import backup.jsonl`
 
@@ -2769,7 +2769,7 @@ even at scale.
 
 **Gradual rollout:**
 
-- Keep Beads running alongside Tbd initially
+- Keep Beads running alongside tbd initially
 
 - Compare outputs (`bd list` vs `tbd list`)
 
@@ -2923,7 +2923,7 @@ frontmatter, which offers:
 - Future: `tbd edit <id>` opens in $EDITOR with Markdown preview
 
 **Credit**: ticket’s Markdown approach is elegant for simple workflows.
-Tbd chooses JSON for multi-environment sync robustness, but we may add Markdown
+tbd chooses JSON for multi-environment sync robustness, but we may add Markdown
 export/import in Phase 2 for best of both worlds.
 
 ### 7.2 Future Enhancements (Phase 2+)
@@ -3073,17 +3073,17 @@ repo/
 
 * * *
 
-## Appendix A: Beads to Tbd Feature Mapping
+## Appendix A: Beads to tbd Feature Mapping
 
-This appendix provides a comprehensive mapping between Beads and Tbd V2 Phase 1 for
+This appendix provides a comprehensive mapping between Beads and tbd V2 Phase 1 for
 migration planning and compatibility reference.
 
 ### A.1 Executive Summary
 
-Tbd V2 Phase 1 provides CLI-level compatibility with Beads for core issue tracking while
+tbd V2 Phase 1 provides CLI-level compatibility with Beads for core issue tracking while
 simplifying the architecture:
 
-| Aspect | Beads | Tbd V2 Phase 1 |
+| Aspect | Beads | tbd V2 Phase 1 |
 | --- | --- | --- |
 | Data locations | 4 (SQLite, local JSONL, sync branch, main) | 2 (files on sync branch, config on main) |
 | Storage | SQLite + JSONL | JSON files (file-per-entity) |
@@ -3093,14 +3093,14 @@ simplifying the architecture:
 | Conflict resolution | 3-way merge | Content hash LWW + attic |
 
 **Core Finding:** All essential issue tracking workflows in Beads have direct CLI
-equivalents in Tbd V2 Phase 1. Advanced features (agent coordination, templates,
+equivalents in tbd V2 Phase 1. Advanced features (agent coordination, templates,
 real-time sync) are explicitly deferred.
 
 ### A.2 CLI Command Mapping
 
 #### A.2.1 Issue Commands (Full Parity)
 
-| Beads Command | Tbd Command | Status | Notes |
+| Beads Command | tbd Command | Status | Notes |
 | --- | --- | --- | --- |
 | `bd create "Title"` | `tbd create "Title"` | ✅ Full | Identical |
 | `bd create "Title" -t type` | `tbd create "Title" -t type` | ✅ Full | Same flag |
@@ -3140,7 +3140,7 @@ real-time sync) are explicitly deferred.
 
 #### A.2.2 Label Commands (Full Parity)
 
-| Beads Command | Tbd Command | Status | Notes |
+| Beads Command | tbd Command | Status | Notes |
 | --- | --- | --- | --- |
 | `bd label add <id> <label>` | `tbd label add <id> <label>` | ✅ Full | Identical |
 | `bd label remove <id> <label>` | `tbd label remove <id> <label>` | ✅ Full | Identical |
@@ -3150,7 +3150,7 @@ Also available via update: `tbd update <id> --add-label X` and `--remove-label X
 
 #### A.2.3 Dependency Commands (Partial - blocks only)
 
-| Beads Command | Tbd Command | Status | Notes |
+| Beads Command | tbd Command | Status | Notes |
 | --- | --- | --- | --- |
 | `bd dep add <a> <b>` | `tbd dep add <id> <target>` | ✅ Full | Default: blocks |
 | `bd dep add <a> <b> --type blocks` | `tbd dep add <id> <target> --type blocks` | ✅ Full | Identical |
@@ -3165,7 +3165,7 @@ This is sufficient for the `ready` command algorithm.
 
 #### A.2.4 Sync Commands (Full Parity)
 
-| Beads Command | Tbd Command | Status | Notes |
+| Beads Command | tbd Command | Status | Notes |
 | --- | --- | --- | --- |
 | `bd sync` | `tbd sync` | ✅ Full | Pull then push |
 | `bd sync --pull` | `tbd sync --pull` | ✅ Full | Pull only |
@@ -3174,7 +3174,7 @@ This is sufficient for the `ready` command algorithm.
 
 #### A.2.5 Maintenance Commands (Full Parity)
 
-| Beads Command | Tbd Command | Status | Notes |
+| Beads Command | tbd Command | Status | Notes |
 | --- | --- | --- | --- |
 | `bd init` | `tbd init` | ✅ Full | Identical |
 | `bd doctor` | `tbd doctor` | ✅ Full | Health checks |
@@ -3187,7 +3187,7 @@ This is sufficient for the `ready` command algorithm.
 
 #### A.2.6 Global Options (Full Parity)
 
-| Beads Option | Tbd Option | Status | Notes |
+| Beads Option | tbd Option | Status | Notes |
 | --- | --- | --- | --- |
 | `--json` | `--json` | ✅ Full | JSON output |
 | `--help` | `--help` | ✅ Full | Help text |
@@ -3200,7 +3200,7 @@ This is sufficient for the `ready` command algorithm.
 
 #### A.3.1 Issue Schema
 
-| Beads Field | Tbd Field | Status | Notes |
+| Beads Field | tbd Field | Status | Notes |
 | --- | --- | --- | --- |
 | `id` | `id` | ✅ | `bd-xxxx` → display prefix configurable |
 | `title` | `title` | ✅ | Identical |
@@ -3226,7 +3226,7 @@ This is sufficient for the `ready` command algorithm.
 
 #### A.3.2 Status Values
 
-| Beads Status | Tbd Status | Migration |
+| Beads Status | tbd Status | Migration |
 | --- | --- | --- |
 | `open` | `open` | ✅ Direct |
 | `in_progress` | `in_progress` | ✅ Direct |
@@ -3239,7 +3239,7 @@ This is sufficient for the `ready` command algorithm.
 
 #### A.3.3 Issue Types/Kinds
 
-| Beads Type | Tbd Kind | Status |
+| Beads Type | tbd Kind | Status |
 | --- | --- | --- |
 | `bug` | `bug` | ✅ |
 | `feature` | `feature` | ✅ |
@@ -3251,7 +3251,7 @@ This is sufficient for the `ready` command algorithm.
 
 #### A.3.4 Dependency Types
 
-| Beads Type | Tbd Type | Status |
+| Beads Type | tbd Type | Status |
 | --- | --- | --- |
 | `blocks` | `blocks` | ✅ Phase 1 |
 | `related` | `related` | ⏳ Phase 2 |
@@ -3262,7 +3262,7 @@ This is sufficient for the `ready` command algorithm.
 
 #### A.4.1 Storage
 
-| Aspect | Beads | Tbd V2 Phase 1 |
+| Aspect | Beads | tbd V2 Phase 1 |
 | --- | --- | --- |
 | Primary store | SQLite | JSON files |
 | Sync format | JSONL | JSON files (same as primary) |
@@ -3272,7 +3272,7 @@ This is sufficient for the `ready` command algorithm.
 
 #### A.4.2 Sync
 
-| Aspect | Beads | Tbd V2 Phase 1 |
+| Aspect | Beads | tbd V2 Phase 1 |
 | --- | --- | --- |
 | Mechanism | SQLite ↔ JSONL ↔ git | Files ↔ git |
 | Branch | Main or sync branch | Sync branch only |
@@ -3295,7 +3295,7 @@ bd close <id> --reason "Done"  # Complete
 bd sync                       # Sync
 ```
 
-**Tbd V2 Phase 1:**
+**tbd V2 Phase 1:**
 
 ```bash
 tbd ready --json            # Find work
@@ -3316,7 +3316,7 @@ Claims are advisory in both (no enforcement).
 bd create "Found bug" -t bug -p 1 --deps discovered-from:<id> --json
 ```
 
-**Tbd V2 Phase 1:**
+**tbd V2 Phase 1:**
 
 ```bash
 # Only blocks dependency supported in Phase 1
@@ -3378,7 +3378,7 @@ tbd config display.id_prefix bd
 
 - **Behavior:** Advisory claims, manual sync (no daemon)
 
-**Overall Assessment:** Tbd V2 Phase 1 provides sufficient feature parity for LLM agents
+**Overall Assessment:** tbd V2 Phase 1 provides sufficient feature parity for LLM agents
 to migrate from Beads for basic issue tracking workflows.
 The simpler architecture (no SQLite, no daemon, file-per-entity) addresses the key pain
 points identified in the Beads experience.
@@ -3467,4 +3467,4 @@ future bridge runtime use?
 
 * * *
 
-**End of Tbd V2 Phase 1 Design Specification**
+**End of tbd V2 Phase 1 Design Specification**

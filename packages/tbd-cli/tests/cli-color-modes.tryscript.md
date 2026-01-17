@@ -18,15 +18,15 @@ before: |
   git add README.md
   git commit -m "Initial commit"
 ---
-
-# TBD CLI: Color Mode Handling
+# tbd CLI: Color Mode Handling
 
 This tryscript validates that the --color flag is properly recognized and respected.
 
-Note: We test that the option is accepted without error. Actual ANSI code verification
-would require a different test approach since tryscript compares text output.
+Note: We test that the option is accepted without error.
+Actual ANSI code verification would require a different test approach since tryscript
+compares text output.
 
----
+* * *
 
 ## Color Flag Recognition
 
@@ -54,15 +54,15 @@ $ tbd --color=auto --version
 ? 0
 ```
 
-# Test: --color never (space separator) is recognized
+# Test: --color=never (space separator) is recognized
 
 ```console
-$ tbd --color never --version
+$ tbd --color=never --version
 [..]
 ? 0
 ```
 
----
+* * *
 
 ## Initialize with Color Modes
 
@@ -78,14 +78,14 @@ To complete setup, commit the config files:
 ? 0
 ```
 
----
+* * *
 
 ## Create Issues with Color Modes
 
 # Test: Create with --color=never produces clean output
 
 ```console
-$ tbd --color=never create "Test issue" -t task
+$ tbd --color=never create "Test issue" --type=task
 [..] Created bd-[..]: Test issue
 ? 0
 ```
@@ -93,22 +93,24 @@ $ tbd --color=never create "Test issue" -t task
 # Test: Create with --color=always (output may contain ANSI codes)
 
 ```console
-$ tbd --color=always create "Another issue" -t bug
+$ tbd --color=always create "Another issue" --type=bug
 [..] Created bd-[..]: Another issue
 ? 0
 ```
 
----
+* * *
 
 ## List Issues with Color Modes
 
 # Test: List with --color=never produces clean output
 
+Note: --sort=created sorts by newest first (descending).
+
 ```console
-$ tbd --color=never list
-ID[..]PRI[..]STATUS[..]TITLE
-bd-[..]2[..]open[..]Test issue
-bd-[..]2[..]open[..]Another issue
+$ tbd --color=never list --sort=created
+ID          PRI  STATUS        TITLE
+bd-[..]     2    open          Another issue
+bd-[..]     2    open          Test issue
 
 2 issue(s)
 ? 0
@@ -117,17 +119,8 @@ bd-[..]2[..]open[..]Another issue
 # Test: List JSON ignores color flag (JSON is always colorless)
 
 ```console
-$ tbd --color=always list --json
+$ tbd --color=always list --json --sort=created
 [
-  {
-    "id": "bd-[..]",
-    "internalId": "is-[..]",
-    "priority": 2,
-    "status": "open",
-    "kind": "task",
-    "title": "Test issue",
-    "labels": []
-  },
   {
     "id": "bd-[..]",
     "internalId": "is-[..]",
@@ -136,12 +129,21 @@ $ tbd --color=always list --json
     "kind": "bug",
     "title": "Another issue",
     "labels": []
+  },
+  {
+    "id": "bd-[..]",
+    "internalId": "is-[..]",
+    "priority": 2,
+    "status": "open",
+    "kind": "task",
+    "title": "Test issue",
+    "labels": []
   }
 ]
 ? 0
 ```
 
----
+* * *
 
 ## Help with Color Modes
 
@@ -167,7 +169,7 @@ Git-native issue tracking for AI agents and humans
 ? 0
 ```
 
----
+* * *
 
 ## NO_COLOR Environment Variable
 
@@ -176,10 +178,10 @@ These tests verify NO_COLOR environment variable is respected.
 # Test: NO_COLOR=1 disables colors (baseline for deterministic testing)
 
 ```console
-$ NO_COLOR=1 tbd list
-ID[..]PRI[..]STATUS[..]TITLE
-bd-[..]2[..]open[..]Test issue
-bd-[..]2[..]open[..]Another issue
+$ NO_COLOR=1 tbd list --sort=created
+ID          PRI  STATUS        TITLE
+bd-[..]     2    open          Another issue
+bd-[..]     2    open          Test issue
 
 2 issue(s)
 ? 0
@@ -188,7 +190,7 @@ bd-[..]2[..]open[..]Another issue
 # Test: --color=always overrides NO_COLOR
 
 This should work - --color=always should force colors even with NO_COLOR set.
-(We can't verify ANSI codes in tryscript, but we verify it doesn't error)
+(We can’t verify ANSI codes in tryscript, but we verify it doesn’t error)
 
 ```console
 $ NO_COLOR=1 tbd --color=always --version
@@ -196,7 +198,7 @@ $ NO_COLOR=1 tbd --color=always --version
 ? 0
 ```
 
----
+* * *
 
 ## Error Messages with Color
 
@@ -216,7 +218,7 @@ $ tbd --color=always show bd-nonexistent 2>&1
 ? 0
 ```
 
----
+* * *
 
 ## Invalid Color Option
 

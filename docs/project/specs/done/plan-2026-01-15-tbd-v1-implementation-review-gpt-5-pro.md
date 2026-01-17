@@ -1,4 +1,4 @@
-# Tbd V1 Design + Plan Review
+# tbd V1 Design + Plan Review
 
 Reviewed documents:
 
@@ -158,9 +158,9 @@ IDs is still < 1), but the stated “1% at 13,000” is backwards.
 ☑️ **REVIEWED** - Design doc already specifies hidden worktree approach (Option A).
 
 **Assessment:** The design doc (§2.3 “Hidden Worktree Model”, Decision 7) clearly
-endorses Option A - all sync-branch operations happen inside `.tbd/data-sync-worktree/`. The plan
-pseudocode may have mixed approaches that should be clarified to consistently use
-worktree commits.
+endorses Option A - all sync-branch operations happen inside `.tbd/data-sync-worktree/`.
+The plan pseudocode may have mixed approaches that should be clarified to consistently
+use worktree commits.
 
 **Resolution:**
 
@@ -173,8 +173,8 @@ work:
 
 - It sets `GIT_INDEX_FILE` (isolated index), does `git read-tree tbd-sync`, then runs
   `git add .tbd/data-sync/`.
-- But `.tbd/data-sync/` is **not present** on main branch worktree; it’s on `tbd-sync` branch
-  (and your hidden worktree holds that).
+- But `.tbd/data-sync/` is **not present** on main branch worktree; it’s on `tbd-sync`
+  branch (and your hidden worktree holds that).
 - `git add` is a porcelain command that depends on a working tree containing the files.
 
 You need to pick one canonical approach and reflect it consistently in both design and
@@ -396,7 +396,7 @@ Key problems in the plan import section:
 
 1. Read JSONL only (from provided file and/or `.beads/issues.jsonl` sources).
 2. First pass: parse all lines, build a complete mapping for all Beads IDs found.
-3. Second pass: create all Tbd issues with dependencies translated using the full
+3. Second pass: create all tbd issues with dependencies translated using the full
    mapping.
 4. Merge behavior: reuse same merge machinery as sync or define import-specific rules.
 5. Never persist invalid IDs to issue files.
@@ -466,7 +466,8 @@ Recommendation:
 
 ☑️ **REVIEWED** - Update design doc for consistency.
 
-In one place it ignores only `cache/`, elsewhere it ignores `cache/` and `sync-worktree/`.
+In one place it ignores only `cache/`, elsewhere it ignores `cache/` and
+`sync-worktree/`.
 
 Recommendation:
 

@@ -1,0 +1,9 @@
+display:
+  id_prefix: bd
+settings:
+  auto_sync: false
+  index_enabled: true
+sync:
+  branch: tbd-sync
+  remote: origin
+tbd_version: 0.1.0

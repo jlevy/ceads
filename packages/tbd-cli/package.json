@@ -20,7 +20,7 @@
     "./package.json": "./package.json"
   },
   "bin": {
-    "tbd": "./dist/bin.mjs"
+    "tbd": "./dist/bin-bootstrap.cjs"
   },
   "files": [
     "dist"
@@ -53,9 +53,9 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "tryscript coverage --monocart --reports-dir coverage --reporters text,json,json-summary,lcov,html \"vitest run\" \"tryscript run 'tests/**/*.tryscript.md'\"",
+    "test:coverage": "vitest run --coverage && tryscript run 'tests/**/*.tryscript.md'",
     "test:coverage:vitest": "vitest run --coverage",
-    "test:coverage:cli": "tryscript run 'tests/**/*.tryscript.md' --coverage --coverage-dir coverage --coverage-monocart",
+    "test:coverage:cli": "tryscript run 'tests/**/*.tryscript.md' --coverage --coverage-dir coverage-tryscript",
     "test:tryscript": "tryscript run 'tests/**/*.tryscript.md'",
     "test:tryscript:update": "tryscript run --update 'tests/**/*.tryscript.md'",
     "bench": "tsx scripts/benchmark.ts",
@@ -66,12 +66,16 @@
   "dependencies": {
     "atomically": "^2.1.0",
     "commander": "^14.0.2",
+    "github-slugger": "^2.0.0",
+    "marked": "^15.0.12",
+    "marked-terminal": "^7.3.0",
     "picocolors": "^1.1.1",
     "ulid": "^3.0.2",
     "yaml": "^2.8.2",
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@types/marked-terminal": "^6.1.1",
     "@types/node": "^22.19.7",
     "@vitest/coverage-v8": "^2.1.9",
     "c8": "^10.1.3",

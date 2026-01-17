@@ -1,4 +1,4 @@
-# Tbd Design: Operational Edit Plan
+# tbd Design: Operational Edit Plan
 
 **Source:** [tbd-distributed-systems-review.md](tbd-distributed-systems-review.md)
 
@@ -161,7 +161,7 @@ Bridges provide eventually consistent views of Git state. The following guarante
 | **Monotonic Reads**       | Once version N seen, never see version < N (same session)       |
 | **Conflict Preservation** | No data ever lost; conflicts preserved in attic                 |
 
-**Tbd does NOT provide:**
+**tbd does NOT provide:**
 
 - Linearizability (global ordering)
 - Serializable transactions
@@ -364,11 +364,11 @@ Each field can have a sync direction policy:
 
 ```typescript
 const GitHubSyncDirection = z.enum([
-  'tbd_wins', // Tbd overwrites GitHub
-  'github_wins', // GitHub overwrites Tbd
+  'tbd_wins', // tbd overwrites GitHub
+  'github_wins', // GitHub overwrites tbd
   'lww', // Last-write-wins by timestamp
   'union', // Merge both (for arrays)
-  'readonly', // Tbd reads from GitHub, never writes
+  'readonly', // tbd reads from GitHub, never writes
 ]);
 
 const GitHubBridgeConfig = z.object({
@@ -401,7 +401,7 @@ const GitHubBridgeConfig = z.object({
 **Default behavior:**
 
 - `title`, `status`, `assignee`: LWW (collaborative editing)
-- `description`, `priority`: Tbd wins (agent is authority)
+- `description`, `priority`: tbd wins (agent is authority)
 - `labels`: Union (both sources contribute)
 - `comments`: Always merged, never deleted
 

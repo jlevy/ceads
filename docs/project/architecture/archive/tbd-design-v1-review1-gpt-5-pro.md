@@ -1,4 +1,4 @@
-# Tbd research & design brief
+# tbd research & design brief
 
 *(Broad architecture + product design review; with an incremental strategy for “replace
 Beads now” + “level up coordination later”)*
@@ -16,7 +16,7 @@ You’re solving two problems at once:
    Claude Code Cloud), coordinating on GitHub repos—eventually with more real-time needs
    and more external tools.
 
-Your draft (“Tbd”) is already pointed in the right direction: *git-native, layered,
+Your draft (“tbd”) is already pointed in the right direction: *git-native, layered,
 offline-first, and progressive enhancement.* The key question is how to **keep v1
 extremely shippable** while defining the right seams for later “bridge / real-time /
 tool broker” layers.
@@ -237,7 +237,7 @@ sandboxes, “files as truth + atomic rename writes” remains a very robust bas
 
 * * *
 
-## 3. Broad review of the Tbd draft architecture
+## 3. Broad review of the tbd draft architecture
 
 Your layered framing is the right move: **File → Git → CLI → Bridge**. This is a real
 “escape hatch” architecture: when you need complexity, you add layers; when you don’t,
@@ -364,7 +364,7 @@ Today, agents are:
 
 **Broad recommendation:** treat “agent identity” as a first-class but *soft* concept:
 
-- stable `agent_id` inside Tbd
+- stable `agent_id` inside tbd
 
 - optional mapping to external identities (GitHub user, Slack user, etc.)
 
@@ -449,7 +449,7 @@ Two repo-level artifacts are becoming common for agents:
 
 So a strong product move is:
 
-- document Tbd usage in AGENTS.md (“how agents should claim work, where to write notes”)
+- document tbd usage in AGENTS.md (“how agents should claim work, where to write notes”)
 
 - ship an MCP server wrapper early (`tbd-mcp`) that exposes the CLI as tools
 
@@ -462,7 +462,7 @@ environments.”
 
 Here’s a concrete way to ship fast without painting yourself into a corner.
 
-### 5.1 Tbd Core v1: the Beads replacement you can ship quickly
+### 5.1 tbd Core v1: the Beads replacement you can ship quickly
 
 **Non-negotiable goals**
 
@@ -532,7 +532,7 @@ A GitHub bridge is valuable, but it should be optional and minimal:
 - design around rate limits and secondary limits
   ([GitHub Docs](https://docs.github.com/en/rest/using-the-rest-api/rate-limits-for-the-rest-api "Rate limits for the REST API - GitHub Docs"))
 
-**Product framing:** “GitHub is where humans notice things; Tbd is where agents
+**Product framing:** “GitHub is where humans notice things; tbd is where agents
 coordinate durably.”
 
 ### 5.3 A key idea to reduce integration pain: “Bridge bots” instead of “every agent integrates”
@@ -596,10 +596,10 @@ These are “maybe” layers that can sit above the core without forcing early c
 
 ### 6.1 A “tool broker” layer: one integration surface for many external tools
 
-Instead of Tbd having native code for GitHub + Slack + Linear + …, define a broker
+Instead of tbd having native code for GitHub + Slack + Linear + …, define a broker
 interface:
 
-- Tbd Core produces normalized “intents”:
+- tbd Core produces normalized “intents”:
 
   - `create_issue`
 
@@ -651,7 +651,7 @@ Some teams already use:
 
 - labels/projects for status
 
-Tbd could optionally support a mode where:
+tbd could optionally support a mode where:
 
 - an “issue” is backed by a PR branch or draft PR
 
@@ -675,7 +675,7 @@ systemic risk.
 
 ## 7. Concrete recommendations (what I would do if shipping this)
 
-### Recommendation 1: Ship a *small, boring* Tbd Core first
+### Recommendation 1: Ship a *small, boring* tbd Core first
 
 - Keep the v1 scope so small you can test it brutally (cross-platform, NFS, sandbox).
 

@@ -55,7 +55,7 @@ const CLAUDE_HOOKS = {
 /**
  * Cursor IDE rules content
  */
-const CURSOR_RULES_CONTENT = `# Tbd Issue Tracker Integration
+const CURSOR_RULES_CONTENT = `# tbd Issue Tracker Integration
 
 This project uses tbd for git-native issue tracking.
 
@@ -400,11 +400,11 @@ class SetupCodexHandler extends BaseCommand {
 
       if (content.includes(CODEX_BEGIN_MARKER)) {
         this.output.success('AGENTS.md with tbd section found');
-        this.output.data({ installed: true, path: agentsPath, hasTbdSection: true });
+        this.output.data({ installed: true, path: agentsPath, hastbdSection: true });
       } else {
         this.output.warn('AGENTS.md exists but no tbd section found');
         this.output.info('  Run: tbd setup codex (to add tbd section)');
-        this.output.data({ installed: false, path: agentsPath, hasTbdSection: false });
+        this.output.data({ installed: false, path: agentsPath, hastbdSection: false });
       }
     } catch {
       this.output.info('AGENTS.md not found');
@@ -423,7 +423,7 @@ class SetupCodexHandler extends BaseCommand {
         return;
       }
 
-      const newContent = this.removeTbdSection(content);
+      const newContent = this.removetbdSection(content);
       const trimmed = newContent.trim();
 
       if (trimmed === '' || trimmed === '# Project Instructions for AI Agents') {
@@ -458,7 +458,7 @@ class SetupCodexHandler extends BaseCommand {
       if (existingContent) {
         if (existingContent.includes(CODEX_BEGIN_MARKER)) {
           // Update existing section
-          newContent = this.updateTbdSection(existingContent);
+          newContent = this.updatetbdSection(existingContent);
           await writeFile(agentsPath, newContent);
           this.output.success('Updated existing tbd section in AGENTS.md');
         } else {
@@ -484,7 +484,7 @@ class SetupCodexHandler extends BaseCommand {
     }
   }
 
-  private updateTbdSection(content: string): string {
+  private updatetbdSection(content: string): string {
     const startIdx = content.indexOf(CODEX_BEGIN_MARKER);
     const endIdx = content.indexOf(CODEX_END_MARKER);
 
@@ -503,7 +503,7 @@ class SetupCodexHandler extends BaseCommand {
     return content.slice(0, startIdx) + CODEX_TBD_SECTION + content.slice(endOfEndMarker);
   }
 
-  private removeTbdSection(content: string): string {
+  private removetbdSection(content: string): string {
     const startIdx = content.indexOf(CODEX_BEGIN_MARKER);
     const endIdx = content.indexOf(CODEX_END_MARKER);
 

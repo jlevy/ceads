@@ -2,7 +2,9 @@
 
 Git-native issue tracking for AI agents and humans.
 
-**Tbd** (To Be Done) is a CLI tool for tracking issues in git repositories. It's designed as a simpler alternative to [Beads](https://github.com/steveyegge/beads) with full CLI compatibility.
+**tbd** (To Be Done) is a CLI tool for tracking issues in git repositories.
+It’s designed as a simpler alternative to [Beads](https://github.com/steveyegge/beads)
+with full CLI compatibility.
 
 ## Features
 
@@ -50,76 +52,76 @@ tbd sync
 
 ### Issue Management
 
-| Command              | Description           |
-| -------------------- | --------------------- |
-| `tbd create <title>` | Create a new issue    |
-| `tbd list`           | List all issues       |
-| `tbd show <id>`      | Show issue details    |
-| `tbd update <id>`    | Update an issue       |
-| `tbd close <id>`     | Close an issue        |
-| `tbd reopen <id>`    | Reopen a closed issue |
+| Command | Description |
+| --- | --- |
+| `tbd create <title>` | Create a new issue |
+| `tbd list` | List all issues |
+| `tbd show <id>` | Show issue details |
+| `tbd update <id>` | Update an issue |
+| `tbd close <id>` | Close an issue |
+| `tbd reopen <id>` | Reopen a closed issue |
 
 ### Workflow
 
-| Command       | Description                  |
-| ------------- | ---------------------------- |
-| `tbd ready`   | List issues ready to work on |
-| `tbd blocked` | List blocked issues          |
-| `tbd stale`   | List stale issues            |
+| Command | Description |
+| --- | --- |
+| `tbd ready` | List issues ready to work on |
+| `tbd blocked` | List blocked issues |
+| `tbd stale` | List stale issues |
 
 ### Labels & Dependencies
 
-| Command                            | Description          |
-| ---------------------------------- | -------------------- |
-| `tbd label add <id> <label>`       | Add a label          |
-| `tbd label remove <id> <label>`    | Remove a label       |
-| `tbd label list`                   | List all labels      |
-| `tbd dep add <id> <blocker-id>`    | Add a dependency     |
-| `tbd dep remove <id> <blocker-id>` | Remove a dependency  |
-| `tbd dep tree [id]`                | Show dependency tree |
+| Command | Description |
+| --- | --- |
+| `tbd label add <id> <label>` | Add a label |
+| `tbd label remove <id> <label>` | Remove a label |
+| `tbd label list` | List all labels |
+| `tbd dep add <id> <blocker-id>` | Add a dependency |
+| `tbd dep remove <id> <blocker-id>` | Remove a dependency |
+| `tbd dep tree [id]` | Show dependency tree |
 
 ### Sync & Search
 
-| Command              | Description              |
-| -------------------- | ------------------------ |
-| `tbd sync`           | Sync with remote         |
-| `tbd sync --push`    | Push local changes only  |
-| `tbd sync --pull`    | Pull remote changes only |
-| `tbd sync --status`  | Show sync status         |
-| `tbd search <query>` | Search issues            |
+| Command | Description |
+| --- | --- |
+| `tbd sync` | Sync with remote |
+| `tbd sync --push` | Push local changes only |
+| `tbd sync --pull` | Pull remote changes only |
+| `tbd sync --status` | Show sync status |
+| `tbd search <query>` | Search issues |
 
 ### Maintenance
 
-| Command                    | Description             |
-| -------------------------- | ----------------------- |
-| `tbd info`                 | Show repository info    |
-| `tbd stats`                | Show issue statistics   |
-| `tbd doctor`               | Check repository health |
-| `tbd config [key] [value]` | Get/set configuration   |
+| Command | Description |
+| --- | --- |
+| `tbd status` | Show repository status |
+| `tbd stats` | Show issue statistics |
+| `tbd doctor` | Check repository health |
+| `tbd config [key] [value]` | Get/set configuration |
 
 ### Import
 
-| Command                   | Description                |
-| ------------------------- | -------------------------- |
-| `tbd import <file>`       | Import from JSONL file     |
+| Command | Description |
+| --- | --- |
+| `tbd import <file>` | Import from JSONL file |
 | `tbd import --from-beads` | Import from Beads database |
 
 ### Attic
 
-| Command                     | Description        |
-| --------------------------- | ------------------ |
-| `tbd attic list`            | List attic entries |
-| `tbd attic show <entry>`    | Show attic entry   |
+| Command | Description |
+| --- | --- |
+| `tbd attic list` | List attic entries |
+| `tbd attic show <entry>` | Show attic entry |
 | `tbd attic restore <entry>` | Restore from attic |
 
 ## Global Options
 
-| Option      | Description                   |
-| ----------- | ----------------------------- |
-| `--json`    | Output as JSON                |
-| `--dry-run` | Show what would be done       |
-| `--quiet`   | Suppress non-essential output |
-| `--verbose` | Show detailed output          |
+| Option | Description |
+| --- | --- |
+| `--json` | Output as JSON |
+| `--dry-run` | Show what would be done |
+| `--quiet` | Suppress non-essential output |
+| `--verbose` | Show detailed output |
 
 ## Configuration
 
@@ -136,11 +138,11 @@ display:
 
 ### Configuration Options
 
-| Key                 | Default    | Description            |
-| ------------------- | ---------- | ---------------------- |
-| `sync.branch`       | `tbd-sync` | Branch used for sync   |
-| `sync.remote`       | `origin`   | Git remote for sync    |
-| `display.id_prefix` | `bd`       | Prefix for display IDs |
+| Key | Default | Description |
+| --- | --- | --- |
+| `sync.branch` | `tbd-sync` | Branch used for sync |
+| `sync.remote` | `origin` | Git remote for sync |
+| `display.id_prefix` | `bd` | Prefix for display IDs |
 
 ## Issue File Format
 
@@ -172,30 +174,30 @@ Investigation shows the session TTL is hardcoded.
 
 ## Migration from Beads
 
-Tbd is designed as a drop-in replacement for core Beads functionality:
+tbd is designed as a drop-in replacement for core Beads functionality:
 
 ```bash
 # Export from Beads
 beads export > beads-export.jsonl
 
-# Import to Tbd
+# Import to tbd
 tbd import beads-export.jsonl
 ```
 
 ### Command Mapping
 
-| Beads       | Tbd          |
-| ----------- | ------------ |
+| Beads | tbd |
+| --- | --- |
 | `bd create` | `tbd create` |
-| `bd list`   | `tbd list`   |
-| `bd show`   | `tbd show`   |
+| `bd list` | `tbd list` |
+| `bd show` | `tbd show` |
 | `bd update` | `tbd update` |
-| `bd close`  | `tbd close`  |
-| `bd sync`   | `tbd sync`   |
+| `bd close` | `tbd close` |
+| `bd sync` | `tbd sync` |
 
 ## For AI Agents
 
-Tbd is optimized for AI agent workflows:
+tbd is optimized for AI agent workflows:
 
 ```bash
 # Get ready issues in JSON format

@@ -14,6 +14,27 @@ import { ulid } from 'ulid';
 import { randomBytes } from 'node:crypto';
 
 /**
+ * Prefix for internal IDs (ULID-based).
+ * All internal IDs are formatted as: {INTERNAL_ID_PREFIX}-{ulid}
+ */
+export const INTERNAL_ID_PREFIX = 'is';
+
+/**
+ * Length of internal ID prefix including the hyphen (e.g., "is-" = 3).
+ */
+export const INTERNAL_ID_PREFIX_LENGTH = INTERNAL_ID_PREFIX.length + 1;
+
+/**
+ * Construct an internal ID from a ULID.
+ *
+ * @param ulidValue - The ULID (26 chars)
+ * @returns Internal ID in format {prefix}-{ulid}
+ */
+export function makeInternalId(ulidValue: string): string {
+  return `${INTERNAL_ID_PREFIX}-${ulidValue.toLowerCase()}`;
+}
+
+/**
  * Generate a unique internal ID using ULID.
  * Format: is-{ulid} (26 lowercase alphanumeric chars)
  * Example: is-01hx5zzkbkactav9wevgemmvrz
@@ -24,7 +45,7 @@ import { randomBytes } from 'node:crypto';
  * - Lexicographic sort = chronological order
  */
 export function generateInternalId(): string {
-  return `is-${ulid().toLowerCase()}`;
+  return makeInternalId(ulid());
 }
 
 /**
@@ -44,12 +65,18 @@ export function generateShortId(): string {
   return result;
 }
 
+// Regex pattern for validating internal IDs - built from prefix constant
+const INTERNAL_ID_PATTERN = new RegExp(`^${INTERNAL_ID_PREFIX}-[0-9a-z]{26}$`);
+
+// Expected length of a full internal ID (prefix + hyphen + 26-char ULID)
+const INTERNAL_ID_LENGTH = INTERNAL_ID_PREFIX_LENGTH + 26;
+
 /**
  * Validate an internal issue ID matches the ULID format.
- * Format: is-{26 lowercase alphanumeric chars}
+ * Format: {prefix}-{26 lowercase alphanumeric chars}
  */
 export function validateIssueId(id: string): boolean {
-  return /^is-[0-9a-z]{26}$/.test(id);
+  return INTERNAL_ID_PATTERN.test(id);
 }
 
 /**
@@ -65,9 +92,10 @@ export function validateShortId(id: string): boolean {
  */
 export function isInternalId(input: string): boolean {
   const lower = input.toLowerCase();
-  // Check if it starts with is- and has 26+ chars after
-  if (lower.startsWith('is-') && lower.length === 29) {
-    return /^is-[0-9a-z]{26}$/.test(lower);
+  // Check if it starts with the internal prefix and has correct length
+  const prefixWithHyphen = `${INTERNAL_ID_PREFIX}-`;
+  if (lower.startsWith(prefixWithHyphen) && lower.length === INTERNAL_ID_LENGTH) {
+    return INTERNAL_ID_PATTERN.test(lower);
   }
   return false;
 }
@@ -98,34 +126,58 @@ export function extractShortId(externalId: string): string {
 }
 
 /**
+ * Extract the ULID portion from an internal ID.
+ *
+ * Internal IDs have the format: {prefix}-{ulid}
+ * This function strips any prefix to return just the ULID.
+ *
+ * Examples:
+ *   "is-01hx5zzkbkactav9wevgemmvrz" -> "01hx5zzkbkactav9wevgemmvrz"
+ *   "01hx5zzkbkactav9wevgemmvrz" -> "01hx5zzkbkactav9wevgemmvrz" (no prefix)
+ *
+ * @param internalId - The internal ID (with or without prefix)
+ * @returns The ULID portion without any prefix
+ */
+export function extractUlidFromInternalId(internalId: string): string {
+  // Strip any prefix in format {letters}- (e.g., "is-", "bd-")
+  return internalId.toLowerCase().replace(/^[a-z]+-/, '');
+}
+
+/** Prefix used in Beads for compatibility */
+const BEADS_COMPAT_PREFIX = 'bd';
+
+/**
  * Normalize an internal issue ID.
  *
- * This function expects a full internal ID (is-{ulid}).
+ * This function expects a full internal ID ({prefix}-{ulid}).
  * If given a short ID, it won't be able to resolve it without
  * access to the ID mapping.
  *
  * Handles:
  * - Uppercase (converts to lowercase)
- * - Ensures is- prefix
+ * - Ensures internal ID prefix
+ * - Beads compatibility (bd- prefix)
  */
 export function normalizeIssueId(input: string): string {
   const lower = input.toLowerCase();
+  const internalPrefixWithHyphen = `${INTERNAL_ID_PREFIX}-`;
+  const beadsPrefixWithHyphen = `${BEADS_COMPAT_PREFIX}-`;
 
   // If already a valid internal ID, return as-is
   if (validateIssueId(lower)) {
     return lower;
   }
 
-  // If it starts with is- but wrong length, might be corrupted
-  if (lower.startsWith('is-')) {
+  // If it starts with internal prefix but wrong length, might be corrupted
+  if (lower.startsWith(internalPrefixWithHyphen)) {
     return lower; // Return as-is, let validation fail later
   }
 
   // If it starts with bd- (Beads compat), convert prefix
-  if (lower.startsWith('bd-')) {
-    const rest = lower.slice(3);
+  if (lower.startsWith(beadsPrefixWithHyphen)) {
+    const rest = lower.slice(beadsPrefixWithHyphen.length);
     if (rest.length === 26) {
-      return `is-${rest}`;
+      return makeInternalId(rest);
     }
     // Short ID - can't resolve without mapping
     return lower;
@@ -133,7 +185,7 @@ export function normalizeIssueId(input: string): string {
 
   // Bare ID without prefix
   if (lower.length === 26 && /^[0-9a-z]{26}$/.test(lower)) {
-    return `is-${lower}`;
+    return makeInternalId(lower);
   }
 
   // Can't normalize - return as-is
@@ -158,7 +210,7 @@ import type { IdMapping } from '../file/idMapping.js';
  */
 export function formatDisplayId(internalId: string, mapping: IdMapping, prefix = 'bd'): string {
   // Extract the ULID portion
-  const ulidPart = internalId.replace(/^is-/, '');
+  const ulidPart = extractUlidFromInternalId(internalId);
 
   // Get short ID from mapping
   const shortId = mapping.ulidToShort.get(ulidPart);

@@ -1,17 +1,17 @@
-# Plan Spec: Tbd V1 Complete Implementation
+# Plan Spec: tbd V1 Complete Implementation
 
 ## Purpose
 
-This is the master implementation plan for Tbd V1, a Beads replacement CLI tool for
+This is the master implementation plan for tbd V1, a Beads replacement CLI tool for
 git-native issue tracking.
 This plan covers the complete implementation from initial project setup through a fully
 functional CLI with comprehensive golden test coverage.
 
 ## Background
 
-**What is Tbd?**
+**What is tbd?**
 
-Tbd is an alternative to [Beads](https://github.com/steveyegge/beads) that eliminates
+tbd is an alternative to [Beads](https://github.com/steveyegge/beads) that eliminates
 architectural complexity while maintaining CLI compatibility.
 Key characteristics:
 
@@ -33,7 +33,7 @@ Key characteristics:
 
 ## Summary of Task
 
-Implement Tbd V1 as a TypeScript CLI application following the design specification in
+Implement tbd V1 as a TypeScript CLI application following the design specification in
 `tbd-design-v3.md`. The implementation includes:
 
 1. **Project Setup**: pnpm monorepo with tsdown, Changesets, and proper package exports
@@ -59,7 +59,7 @@ Implement Tbd V1 as a TypeScript CLI application following the design specificat
 | Area | Compatibility Level | Notes |
 | --- | --- | --- |
 | Beads import | Full | Import from JSONL export or `--from-beads` |
-| Issue fields | Full | All Beads fields mapped to Tbd equivalents |
+| Issue fields | Full | All Beads fields mapped to tbd equivalents |
 | Status values | Full | Direct mapping except `tombstone` (skip/convert) |
 | Dependencies | Partial | Only `blocks` type in V1 |
 
@@ -173,7 +173,7 @@ tbd/
 │       │   │   │   ├── dep.ts
 │       │   │   │   ├── sync.ts
 │       │   │   │   ├── search.ts
-│       │   │   │   ├── maintenance.ts # info, stats, doctor, config
+│       │   │   │   ├── maintenance.ts # status, stats, doctor, config
 │       │   │   │   ├── attic.ts
 │       │   │   │   └── import.ts
 │       │   │   └── lib/
@@ -342,21 +342,22 @@ portability, and maintainability.
 #### Why Git CLI via `execFile`?
 
 1. **Security**: `execFile` passes arguments as an array directly to the executable,
-   bypassing the shell entirely. This eliminates shell injection vulnerabilities that
-   have affected libraries like simple-git (CVE-2022-24066, CVE-2022-24433, CVE-2022-25912).
+   bypassing the shell entirely.
+   This eliminates shell injection vulnerabilities that have affected libraries like
+   simple-git (CVE-2022-24066, CVE-2022-24433, CVE-2022-25912).
 
-2. **Worktree Support**: Tbd's architecture relies on Git worktrees for the sync branch.
+2. **Worktree Support**: tbd’s architecture relies on Git worktrees for the sync branch.
    Neither isomorphic-git nor simple-git fully support worktree operations.
 
 3. **Plumbing Commands**: The sync algorithm uses low-level Git plumbing commands
    (`read-tree`, `write-tree`, `commit-tree`, `update-ref`) that libraries typically
-   don't expose.
+   don’t expose.
 
-4. **User's Git**: As a "git-native" tool, using the user's installed Git ensures
-   compatibility with their hooks, authentication (SSH keys, credential helpers),
-   and configuration.
+4. **User’s Git**: As a “git-native” tool, using the user’s installed Git ensures
+   compatibility with their hooks, authentication (SSH keys, credential helpers), and
+   configuration.
 
-5. **Zero Dependencies**: No native modules to compile (avoiding nodegit's notorious
+5. **Zero Dependencies**: No native modules to compile (avoiding nodegit’s notorious
    installation issues) and no large JavaScript reimplementations.
 
 6. **Debugging**: Users can reproduce any command manually for troubleshooting.
@@ -364,7 +365,8 @@ portability, and maintainability.
 #### Why Not the Alternatives?
 
 **simple-git**: Just wraps the CLI anyway, but adds a dependency with a history of
-security vulnerabilities. No performance benefit, potential security liability.
+security vulnerabilities.
+No performance benefit, potential security liability.
 
 **nodegit (libgit2)**: Highest performance but impractical:
 - Requires native compilation on most platforms
@@ -397,19 +399,20 @@ Key patterns:
 - All git operations go through the `git()` helper
 - Arguments passed as array, never string concatenation
 - Branch/remote names validated via Zod schemas before use
-- Isolated index (`GIT_INDEX_FILE`) protects user's staging area
+- Isolated index (`GIT_INDEX_FILE`) protects user’s staging area
 
 ### 3.5 Git Version Requirements
 
 **Required Version**: Git 2.42.0+ (August 2023)
 
-tbd requires Git 2.42+ for `git worktree add --orphan` support. This version is
-2.5+ years old and available on all major platforms via package managers.
+tbd requires Git 2.42+ for `git worktree add --orphan` support.
+This version is 2.5+ years old and available on all major platforms via package
+managers.
 
 #### Version Check
 
-On startup, tbd checks the Git version via `requireGitVersion()`. If the version
-is too old, it errors with a clear message and upgrade link:
+On startup, tbd checks the Git version via `requireGitVersion()`. If the version is too
+old, it errors with a clear message and upgrade link:
 
 ```
 Error: Git 2.34.1 detected. Git 2.42.0+ required.
@@ -463,6 +466,7 @@ The master epic is **tbd-100**.
 | 22 | tbd-1868 | Import ID Preservation | tbd-1869 through tbd-1873 | 🔴 New |
 | 23 | tbd-1874 | Initialization Behavior | tbd-1874.1 through tbd-1874.5 | 🔴 New |
 | 24 | tbd-1875 | Installation and Agent Integration | tbd-1876 through tbd-1881 | 🔴 New |
+| 25 | tbd-1890 | Status Command (replaces info) | tbd-1891 through tbd-1895 | 🔴 New |
 | Validation | tbd-1300 | Stage 5 Validation | tbd-1301 through tbd-1306 | ⚠️ Partial |
 
 **Status Legend:** ✅ Complete | ⚠️ Partial (needs review) | 🔲 Pending | 🔴 New
@@ -479,14 +483,16 @@ The master epic is **tbd-100**.
 - README documentation complete (Phase 12)
 - **Phase 18: Critical bugs mostly fixed** - worktree usage fixed, ID display fixed
 - **Phase 19: Worktree architecture fix** ✅ - `initWorktree()`, `updateWorktree()`,
-  `checkWorktreeHealth()` implemented in git.ts, `resolveDataSyncDir()` in paths.ts
-  for dynamic resolution
+  `checkWorktreeHealth()` implemented in git.ts, `resolveDataSyncDir()` in paths.ts for
+  dynamic resolution
 - **Phase 20: Directory naming refactor** ✅ - renamed `.tbd-sync` to `.tbd/data-sync`,
   created centralized `paths.ts`, refactored all commands
-- **Phase 21: Consistent Atomic File Operations** ✅ - all file writes use atomically library
+- **Phase 21: Consistent Atomic File Operations** ✅ - all file writes use atomically
+  library
 - **Phase 22: Tryscript path refactor** ✅ - cleaner test commands with path option
 - **Import validation**: 194 issues imported from beads, 0 errors, 100% validation pass
-- **Phase 18 Testing Strategy** ✅ - arch-testing.md, TESTING.md, color mode tests, perf tests
+- **Phase 18 Testing Strategy** ✅ - arch-testing.md, TESTING.md, color mode tests, perf
+  tests
 - Remaining: 11 open beads (mostly P3 polish items: color consistency, topic docs)
 
 **Bead Tracking Summary (2026-01-17):**
@@ -567,8 +573,9 @@ The master epic is **tbd-100**.
 
 **Phase 19: Worktree Architecture Fix (✅ Complete)**
 
-tbd-208 was initially incorrectly marked as done without implementing worktree functions.
-After discovery (see [postmortem](../../retrospectives/retro-2026-01-16-worktree-architecture-not-implemented.md)),
+tbd-208 was initially incorrectly marked as done without implementing worktree
+functions. After discovery (see
+[postmortem](../../retrospectives/retro-2026-01-16-worktree-architecture-not-implemented.md)),
 the architecture was properly implemented.
 
 **Verified 2026-01-17:** Worktree architecture working correctly:
@@ -590,11 +597,12 @@ the architecture was properly implemented.
 
 **Phase 20: Directory Naming Refactor (✅ Complete)**
 
-Renamed directories for clarity and consistency. Changed `.tbd-sync/` to `.tbd/data-sync/`
-and `sync-worktree/` to `data-sync-worktree/`. This naming:
+Renamed directories for clarity and consistency.
+Changed `.tbd-sync/` to `.tbd/data-sync/` and `sync-worktree/` to `data-sync-worktree/`.
+This naming:
 - Eliminates confusion between `.tbd` and `.tbd-sync`
 - Groups all tbd data under `.tbd/`
-- Enables future "simple mode" where `data-sync/` could be tracked on main
+- Enables future “simple mode” where `data-sync/` could be tracked on main
 
 | Bead ID | Task | Status | Notes |
 | --- | --- | --- | --- |
@@ -621,14 +629,14 @@ directory structures like `.tbd/data-sync/issues/`.
 
 **Motivation:**
 - Prevents partial file writes on crashes or interrupts
-- Eliminates "directory does not exist" errors from race conditions
+- Eliminates “directory does not exist” errors from race conditions
 - Standard pattern: temp file + rename is atomic on POSIX systems
 - Critical for data integrity in git-synced files
 
-**Solution:**
-The existing `atomicWriteFile()` in [storage.ts](packages/tbd-cli/src/file/storage.ts:21-43)
-already implements both atomic write AND parent directory creation. The fix was to ensure
-all file writes use this utility consistently.
+**Solution:** The existing `atomicWriteFile()` in
+[storage.ts](packages/tbd-cli/src/file/storage.ts:21-43) already implements both atomic
+write AND parent directory creation.
+The fix was to ensure all file writes use this utility consistently.
 
 | Bead ID | Task | Status | Notes |
 | --- | --- | --- | --- |
@@ -652,7 +660,7 @@ Preserve original Beads short IDs during import instead of generating random new
 This ensures `tbd-100` becomes `bd-100` (same short ID!) rather than `bd-3ykw` (random).
 
 **Motivation:**
-- Users don't need to learn new IDs after migration
+- Users don’t need to learn new IDs after migration
 - Commit messages, documentation, and external references remain valid
 - Eliminates need for separate `beads.yml` mapping file
 
@@ -754,14 +762,16 @@ export function requireInit(cwd: string = process.cwd()): void {
 - `src/cli/commands/dep.ts` - Add requireInit() call
 - `src/cli/commands/sync.ts` - Add requireInit() call
 - `src/cli/commands/search.ts` - Add requireInit() call
-- `src/cli/commands/maintenance.ts` - Add requireInit() to info, stats, doctor, config
+- `src/cli/commands/maintenance.ts` - Add requireInit() to stats, doctor, config (status
+  doesn’t need it)
 - `src/cli/commands/attic.ts` - Add requireInit() call
 - `src/cli/commands/import.ts` - Add auto-init logic for --from-beads
 - `tests/cli-*.tryscript.md` - Add init error tests
 
 **Phase 24: Installation and Agent Integration (✅ Complete)**
 
-Implement agent integration commands: `tbd prime` and `tbd setup` commands for various editors.
+Implement agent integration commands: `tbd prime` and `tbd setup` commands for various
+editors.
 
 **Motivation:**
 - Agents lose workflow instructions after context compaction
@@ -778,7 +788,7 @@ Implement agent integration commands: `tbd prime` and `tbd setup` commands for v
 | Bead ID | Task | Status | Notes |
 | --- | --- | --- | --- |
 | tbd-1875 | Phase 24 Epic | ✅ Done | Installation and Agent Integration |
-| tbd-1876 | Implement tbd prime command | ✅ Done | Core priming command with MCP detection |
+| tbd-1876 | Implement tbd prime command | ✅ Done | Core priming command |
 | tbd-1877 | Implement tbd setup claude command | ✅ Done | Claude Code hooks configuration |
 | tbd-1878 | Implement tbd setup cursor command | ✅ Done | Cursor IDE rules file |
 | tbd-1882 | Implement tbd setup codex command | ✅ Done | Codex AGENTS.md file |
@@ -788,8 +798,6 @@ Implement agent integration commands: `tbd prime` and `tbd setup` commands for v
 **Key Commands:**
 
 1. `tbd prime` - Output workflow context for AI agents
-   - `--full` - Force full CLI output
-   - `--mcp` - Force MCP mode (minimal output)
    - `--export` - Output default (ignores `.tbd/PRIME.md` override)
 
 2. `tbd setup claude` - Configure Claude Code hooks
@@ -811,7 +819,59 @@ Implement agent integration commands: `tbd prime` and `tbd setup` commands for v
 - `tests/cli-prime.tryscript.md` - Prime golden tests
 - `tests/cli-setup.tryscript.md` - Setup golden tests
 
----
+**Phase 25: Status Command (replaces info) (🔴 New)**
+
+Replace `tbd info` with `tbd status` - a git-like orientation command that works without
+initialization. Unlike Beads where `bd status` is an alias for `bd stats`, `tbd status`
+is a distinct orientation command.
+
+| Bead ID | Task | Status | Notes |
+| --- | --- | --- | --- |
+| tbd-1890 | Phase 25 Epic | Open | Status command implementation |
+| tbd-1891 | Implement tbd status command | Open | Core command, works pre-init |
+| tbd-1892 | Add beads detection | Open | Detect .beads/ and issue count |
+| tbd-1893 | Add integration detection | Open | Claude, Cursor, Codex detection |
+| tbd-1894 | Remove info command | Open | Replace with status |
+| tbd-1895 | Golden tests for status | Open | Pre-init and post-init tests |
+
+**Pre-init output:**
+```
+$ tbd status
+Not a tbd repository.
+
+Detected:
+  ✓ Git repository (main branch)
+  ✓ Beads repository (.beads/ with 142 issues)
+  ✗ tbd not initialized
+
+To get started:
+  tbd import --from-beads   # Migrate from Beads (recommended)
+  tbd init                  # Start fresh
+```
+
+**Post-init output:**
+```
+$ tbd status
+tbd v1.0.0
+
+Repository: /path/to/repo
+  ✓ Initialized (.tbd/)
+  ✓ Git repository (feature-branch)
+
+Integrations:
+  ✓ Claude Code hooks (.claude/settings.local.json)
+  ✗ Cursor rules (not installed)
+  ✗ Codex AGENTS.md (not installed)
+
+Use 'tbd stats' for issue statistics.
+Use 'tbd setup <target>' to configure integrations.
+```
+
+**Files to Create/Update:**
+- `src/cli/commands/maintenance.ts` - Replace info with status command
+- `tests/cli-status.tryscript.md` - Status golden tests
+
+* * *
 
 **Current Validation & Coverage Status**
 
@@ -876,7 +936,7 @@ pnpm test:tryscript:update
 - All commands tested: init, create, list, show, update, close, stats, label, ready,
   doctor
 
-**Test Coverage Gap Analysis (2026-01-17):**
+**Test Coverage Gap Analysis (2026-01-17 - Updated):**
 
 The following table tracks ALL subcommands with their golden test coverage status:
 
@@ -899,10 +959,10 @@ The following table tracks ALL subcommands with their golden test coverage statu
 | **depends** | remove | cli-workflow.tryscript.md | ⚠️ Partial | Implicit | - |
 | **depends** | list | cli-workflow.tryscript.md | ⚠️ Partial | Implicit | - |
 | **depends** | tree | cli-workflow.tryscript.md | ⚠️ Partial | Implicit | - |
-| **sync** | --status | cli-advanced.tryscript.md | ✅ Full | No | - |
-| **sync** | (git commit) | - | ❌ None | **CRITICAL** | tbd-1885 |
-| **sync** | --push | cli-advanced.tryscript.md | ⚠️ Error only | Yes | tbd-1885 |
-| **sync** | --pull | cli-advanced.tryscript.md | ⚠️ Error only | Yes | tbd-1885 |
+| **sync** | --status | cli-sync.tryscript.md | ✅ Full | No | - |
+| **sync** | (git commit) | cli-sync.tryscript.md | ✅ Full | No | ~~tbd-1885~~ |
+| **sync** | --push | cli-sync.tryscript.md | ✅ Full | No | - |
+| **sync** | --pull | cli-sync.tryscript.md | ✅ Full | No | - |
 | **search** | - | cli-advanced.tryscript.md | ✅ Full | No | - |
 | **info** | - | cli-workflow.tryscript.md | ✅ Full | No | - |
 | **stats** | - | cli-advanced.tryscript.md | ✅ Full | No | - |
@@ -918,14 +978,13 @@ The following table tracks ALL subcommands with their golden test coverage statu
 | **docs** | - | cli-advanced.tryscript.md | ✅ Full | No | - |
 | **docs** | --list | cli-advanced.tryscript.md | ✅ Full | No | - |
 | **docs** | --section | cli-advanced.tryscript.md | ✅ Full | No | - |
-| **uninstall** | (success) | - | ❌ None | Yes | tbd-1883 |
+| **uninstall** | (success) | cli-uninstall.tryscript.md | ✅ Full | No | ~~tbd-1883~~ |
 | **uninstall** | (error) | cli-uninitialized.tryscript.md | ✅ Full | No | - |
-| **prime** | - | - | ❌ None | Yes | tbd-1880 |
-| **prime** | --full | - | ❌ None | Yes | tbd-1880 |
-| **prime** | --mcp | - | ❌ None | Yes | tbd-1880 |
-| **setup** | claude | - | ❌ None | Yes | tbd-1881 |
-| **setup** | cursor | - | ❌ None | Yes | tbd-1881 |
-| **setup** | codex | - | ❌ None | Yes | tbd-1881 |
+| **prime** | - | cli-prime.tryscript.md | ✅ Full | No | ~~tbd-1880~~ |
+| **prime** | --export | cli-prime.tryscript.md | ✅ Full | No | - |
+| **setup** | claude | cli-setup-commands.tryscript.md | ✅ Full | No | ~~tbd-1881~~ |
+| **setup** | cursor | cli-setup-commands.tryscript.md | ✅ Full | No | - |
+| **setup** | codex | cli-setup-commands.tryscript.md | ✅ Full | No | - |
 
 **Additional Test Files:**
 - cli-filesystem.tryscript.md - File/directory structure validation
@@ -933,28 +992,28 @@ The following table tracks ALL subcommands with their golden test coverage statu
 - cli-color-modes.tryscript.md - Color/ANSI output tests
 - cli-edge-cases.tryscript.md - Edge cases and error handling
 - cli-help-all.tryscript.md - All --help subcommand tests
+- cli-sync.tryscript.md - Sync commit behavior and git operations
+- cli-prime.tryscript.md - Prime command and custom PRIME.md override
+- cli-uninstall.tryscript.md - Uninstall with all options
+- cli-setup-commands.tryscript.md - Setup for claude/cursor/codex
 - golden/golden.test.ts - Vitest golden snapshot tests
 
-**Critical Gap: Sync Git Operations (tbd-1885, tbd-1884)**
+**Sync Tests Now Complete (tbd-1885 DONE):**
 
-The sync command has a **P0 bug** (tbd-1884): files are written to the worktree but
-never committed to git before push. The `commitToSyncBranch()` function in
-[git.ts](packages/tbd-cli/src/file/git.ts:177-220) exists but is never called.
+The sync command now has comprehensive golden tests in `cli-sync.tryscript.md` that
+verify:
+1. After `tbd sync`, files are committed to the `tbd-sync` branch
+2. `git -C .tbd/data-sync-worktree log` shows commits with issue files
+3. No uncommitted changes remain after sync
+4. Commit message includes file count
+5. Error handling for missing remotes
 
-Tests must be written first (tbd-1885 blocks tbd-1884) to verify:
-1. After `tbd sync`, files are committed to the `tbd-sync` branch (not just written)
-2. `git log tbd-sync` shows commits with issue files
-3. Push actually sends committed data to remote
-
-**Other Test Gaps:**
+**Remaining Test Gaps:**
 
 | Bead | Priority | Task | Notes |
 | --- | --- | --- | --- |
-| tbd-1885 | P0 | Sync git commit verification | **CRITICAL** - blocks tbd-1884 |
-| tbd-1884 | P0 | Fix sync not committing | Depends on tbd-1885 |
-| tbd-1883 | P2 | Uninstall golden tests | Success path untested |
-| tbd-1880 | P1 | Prime command golden tests | All modes and edge cases |
-| tbd-1881 | P2 | Setup command golden tests | claude/cursor/codex |
+| tbd-1817 | P3 | YAML frontmatter formatting test | Minor formatting verification |
+| tbd-1823-1834 | P3 | Color consistency tests | Color usage audit and testing |
 
 **Reference:** See `npx tryscript docs` for detailed coverage documentation.
 
@@ -1237,7 +1296,7 @@ program.addCommand(labelCommands);
 program.addCommand(depCommands);
 program.addCommand(syncCommand);
 program.addCommand(searchCommand);
-program.addCommand(maintenanceCommands); // info, stats, doctor, config
+program.addCommand(maintenanceCommands); // status, stats, doctor, config
 program.addCommand(atticCommands);
 program.addCommand(importCommand);
 ```
@@ -1367,7 +1426,7 @@ $ ls -la .tbd/
 
 ```console
 $ tbd info
-Tbd Version: [..]
+tbd Version: [..]
 Sync Branch: tbd-sync
 [..]
 ? 0
@@ -1408,7 +1467,7 @@ $ tbd info --json
 
 **Dual ID Generation** (ULID internal + base36 external):
 
-Tbd uses a dual ID system:
+tbd uses a dual ID system:
 
 - **Internal IDs**: `is-{ulid}` - 26 char ULID for storage, sorting, dependencies
 - **External IDs**: `{prefix}-{short}` - 4-5 char base36 for CLI, docs, commits
@@ -3049,7 +3108,7 @@ interface BeadsExportLine {
 }
 ```
 
-**Field Mapping** (Beads → Tbd):
+**Field Mapping** (Beads → tbd):
 
 ```typescript
 const FIELD_MAP: Record<string, string> = {
@@ -3069,9 +3128,9 @@ const FIELD_MAP: Record<string, string> = {
   deferred_until: 'deferred_until',
 
   // Renamed fields
-  type: 'kind', // Beads "type" → Tbd "kind"
-  due: 'due_date', // Beads "due" → Tbd "due_date"
-  parent: 'parent_id', // Beads "parent" → Tbd "parent_id"
+  type: 'kind', // Beads "type" → tbd "kind"
+  due: 'due_date', // Beads "due" → tbd "due_date"
+  parent: 'parent_id', // Beads "parent" → tbd "parent_id"
   blocks: 'dependencies', // Transformed to dependency array
 };
 
@@ -3086,7 +3145,7 @@ const STATUS_MAP: Record<string, string> = {
 **ID Mapping File** (`.tbd/data-sync/mappings/beads.yml`):
 
 ```yaml
-# Maps Beads IDs to Tbd IDs for re-import support
+# Maps Beads IDs to tbd IDs for re-import support
 # Format: beads_id: tbd_id
 bd-a1b2c3: is-x7y8z9
 bd-d4e5f6: is-a1b2c3
@@ -3097,7 +3156,7 @@ bd-parent: is-parent1
 
 ```typescript
 interface IdMapping {
-  beadsToTbd: Map<string, string>;
+  beadsTotbd: Map<string, string>;
   tbdToBeads: Map<string, string>;
 }
 
@@ -3106,20 +3165,20 @@ async function loadIdMapping(storage: Storage): Promise<IdMapping> {
   const content = await storage.readFile(mappingPath).catch(() => '');
   const data = (yaml.load(content) as Record<string, string>) || {};
 
-  const beadsToTbd = new Map(Object.entries(data));
+  const beadsTotbd = new Map(Object.entries(data));
   const tbdToBeads = new Map(Object.entries(data).map(([k, v]) => [v, k]));
 
-  return { beadsToTbd, tbdToBeads };
+  return { beadsTotbd, tbdToBeads };
 }
 
-function getOrCreateTbdId(beadsId: string, mapping: IdMapping, storage: Storage): string {
+function getOrCreatetbdId(beadsId: string, mapping: IdMapping, storage: Storage): string {
   // Check existing mapping
-  const existing = mapping.beadsToTbd.get(beadsId);
+  const existing = mapping.beadsTotbd.get(beadsId);
   if (existing) return existing;
 
   // Generate new ID
   const newId = generateUniqueId(storage);
-  mapping.beadsToTbd.set(beadsId, newId);
+  mapping.beadsTotbd.set(beadsId, newId);
   mapping.tbdToBeads.set(newId, beadsId);
 
   return newId;
@@ -3133,7 +3192,7 @@ function translateDependencies(beadsIssue: BeadsExportLine, mapping: IdMapping):
   if (!beadsIssue.blocks?.length) return [];
 
   return beadsIssue.blocks.map((beadsTargetId) => {
-    const tbdTargetId = mapping.beadsToTbd.get(beadsTargetId);
+    const tbdTargetId = mapping.beadsTotbd.get(beadsTargetId);
     if (!tbdTargetId) {
       // Target not imported yet - will be resolved on second pass
       return { target: `pending:${beadsTargetId}`, type: 'blocks' };
@@ -3149,7 +3208,7 @@ async function resolvePendingDependencies(issues: Issue[], mapping: IdMapping): 
       .map((dep) => {
         if (dep.target.startsWith('pending:')) {
           const beadsId = dep.target.replace('pending:', '');
-          const tbdId = mapping.beadsToTbd.get(beadsId);
+          const tbdId = mapping.beadsTotbd.get(beadsId);
           if (tbdId) {
             return { ...dep, target: tbdId };
           }
@@ -3203,10 +3262,10 @@ async function importFromJsonl(filePath: string, options: ImportOptions): Promis
       continue;
     }
 
-    const tbdId = getOrCreateTbdId(beadsIssue.id, mapping, storage);
+    const tbdId = getOrCreatetbdId(beadsIssue.id, mapping, storage);
     const existing = await storage.readIssue(tbdId).catch(() => null);
 
-    const issue = mapBeadsToTbd(beadsIssue, tbdId, mapping);
+    const issue = mapBeadsTotbd(beadsIssue, tbdId, mapping);
 
     if (!existing) {
       // New issue
@@ -3388,7 +3447,7 @@ tests/golden/
 ├── 04-deps.md           # Dependency management
 ├── 05-sync.md           # Sync operations
 ├── 06-search.md         # Search functionality
-├── 07-maintenance.md    # info, stats, doctor, config
+├── 07-maintenance.md    # status, stats, doctor, config
 ├── 08-attic.md          # Attic operations
 ├── 09-import.md         # Beads import
 └── fixtures/
@@ -3455,9 +3514,10 @@ jobs:
 
 **Epic:** tbd-1836 - Phase 18 Testing Strategy Enhancement
 
-**Goal**: Fix critical bugs discovered during initial testing AND systematically enhance testing
-to prevent similar bugs in the future. Uses **test-first (TDD) approach**: write failing tests
-that reproduce bugs BEFORE implementing fixes.
+**Goal**: Fix critical bugs discovered during initial testing AND systematically enhance
+testing to prevent similar bugs in the future.
+Uses **test-first (TDD) approach**: write failing tests that reproduce bugs BEFORE
+implementing fixes.
 
 ### Testing Gap Analysis
 
@@ -3536,13 +3596,13 @@ The following gaps in the existing test suite allowed these bugs to slip through
   Run `tbd init` first."
 
 **tbd-1810: Files written to wrong location** (CRITICAL)
-- The import command (and all storage operations) write directly to `.tbd/data-sync/` in the
-  current working directory
+- The import command (and all storage operations) write directly to `.tbd/data-sync/` in
+  the current working directory
 - According to design, issues should be stored on tbd-sync branch accessed via hidden
   worktree at `.tbd/data-sync-worktree/.tbd/data-sync/`
 - Current behavior: `.tbd/data-sync/` appears as untracked directory on main branch
-- Root cause: `ISSUES_BASE_DIR = '.tbd/data-sync'` in multiple command files instead of using
-  worktree path
+- Root cause: `ISSUES_BASE_DIR = '.tbd/data-sync'` in multiple command files instead of
+  using worktree path
 
 **tbd-1811: Wrong ID format displayed** (CRITICAL)
 - List command shows internal ULID-based IDs like `bd-01kf2sp62c0dhqcwahs6ah5k92`
@@ -3569,7 +3629,8 @@ The following gaps in the existing test suite allowed these bugs to slip through
 
 ### Phase 20: Code Quality Improvements
 
-**Goal**: Align implementation with documented best practices and improve code maintainability.
+**Goal**: Align implementation with documented best practices and improve code
+maintainability.
 
 ### 20.1 File Operations
 
