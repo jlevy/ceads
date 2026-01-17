@@ -3,6 +3,8 @@ sandbox: true
 env:
   NO_COLOR: '1'
   FORCE_COLOR: '0'
+path:
+  - ../dist
 timeout: 30000
 patterns:
   ULID: '[0-9a-z]{26}'
@@ -17,7 +19,7 @@ before: |
   git add README.md
   git commit -m "Initial commit"
   # Initialize tbd
-  node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs init
+  tbd init
 ---
 
 # TBD CLI: Workflow Commands
@@ -31,27 +33,27 @@ Tests for ready, blocked, stale, label, and depends commands.
 Set up issues for workflow testing:
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs create "Ready task 1" -t task --json | node -e "d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log(d.id)" > /tmp/ready1.txt
+$ tbd create "Ready task 1" -t task --json | node -e "d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log(d.id)" > /tmp/ready1.txt
 ? 0
 ```
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs create "Ready task 2" -t bug -p 0 --json | node -e "d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log(d.id)" > /tmp/ready2.txt
+$ tbd create "Ready task 2" -t bug -p 0 --json | node -e "d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log(d.id)" > /tmp/ready2.txt
 ? 0
 ```
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs create "Assigned task" -t task --assignee alice --json | node -e "d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log(d.id)" > /tmp/assigned.txt
+$ tbd create "Assigned task" -t task --assignee alice --json | node -e "d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log(d.id)" > /tmp/assigned.txt
 ? 0
 ```
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs create "In progress task" -t task --json | node -e "d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log(d.id)" > /tmp/inprogress.txt
+$ tbd create "In progress task" -t task --json | node -e "d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log(d.id)" > /tmp/inprogress.txt
 ? 0
 ```
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs update $(cat /tmp/inprogress.txt) --status in_progress
+$ tbd update $(cat /tmp/inprogress.txt) --status in_progress
 ✓ Updated [..]
 ? 0
 ```
@@ -59,7 +61,7 @@ $ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs update $(cat /tmp/inprogress.txt) --s
 # Test: Ready shows unassigned open issues
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs ready
+$ tbd ready
 ...
 ? 0
 ```
@@ -67,7 +69,7 @@ $ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs ready
 # Test: Ready as JSON
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs ready --json
+$ tbd ready --json
 [
 ...
 ]
@@ -77,7 +79,7 @@ $ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs ready --json
 # Test: Ready filter by type
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs ready --type bug
+$ tbd ready --type bug
 ...
 ? 0
 ```
@@ -85,7 +87,7 @@ $ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs ready --type bug
 # Test: Ready with limit
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs ready --limit 1
+$ tbd ready --limit 1
 ...
 ? 0
 ```
@@ -93,7 +95,7 @@ $ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs ready --limit 1
 # Test: Ready excludes assigned issues
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs ready --json | node -e "d=JSON.parse(require('fs').readFileSync(0,'utf8')); found=d.some(i=>i.assignee==='alice'); console.log(found?'FAIL: found assigned':'OK: no assigned')"
+$ tbd ready --json | node -e "d=JSON.parse(require('fs').readFileSync(0,'utf8')); found=d.some(i=>i.assignee==='alice'); console.log(found?'FAIL: found assigned':'OK: no assigned')"
 OK: no assigned
 ? 0
 ```
@@ -101,7 +103,7 @@ OK: no assigned
 # Test: Ready excludes in_progress issues
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs ready --json | node -e "d=JSON.parse(require('fs').readFileSync(0,'utf8')); found=d.some(i=>i.status==='in_progress'); console.log(found?'FAIL: found in_progress':'OK: no in_progress')"
+$ tbd ready --json | node -e "d=JSON.parse(require('fs').readFileSync(0,'utf8')); found=d.some(i=>i.status==='in_progress'); console.log(found?'FAIL: found in_progress':'OK: no in_progress')"
 OK: no in_progress
 ? 0
 ```
@@ -113,28 +115,28 @@ OK: no in_progress
 Set up blocking relationship:
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs create "Blocker issue" -t task --json | node -e "d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log(d.id)" > /tmp/blocker.txt
+$ tbd create "Blocker issue" -t task --json | node -e "d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log(d.id)" > /tmp/blocker.txt
 ? 0
 ```
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs create "Blocked by other" -t task --json | node -e "d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log(d.id)" > /tmp/blocked_by.txt
+$ tbd create "Blocked by other" -t task --json | node -e "d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log(d.id)" > /tmp/blocked_by.txt
 ? 0
 ```
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs depends add $(cat /tmp/blocker.txt) $(cat /tmp/blocked_by.txt)
+$ tbd depends add $(cat /tmp/blocker.txt) $(cat /tmp/blocked_by.txt)
 ✓ bd-[SHORTID] now blocks bd-[SHORTID]
 ? 0
 ```
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs create "Explicitly blocked" -t task --json | node -e "d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log(d.id)" > /tmp/explicit_blocked.txt
+$ tbd create "Explicitly blocked" -t task --json | node -e "d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log(d.id)" > /tmp/explicit_blocked.txt
 ? 0
 ```
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs update $(cat /tmp/explicit_blocked.txt) --status blocked
+$ tbd update $(cat /tmp/explicit_blocked.txt) --status blocked
 ✓ Updated [..]
 ? 0
 ```
@@ -142,7 +144,7 @@ $ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs update $(cat /tmp/explicit_blocked.tx
 # Test: Blocked shows blocked status issues
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs blocked
+$ tbd blocked
 ...
 ? 0
 ```
@@ -150,7 +152,7 @@ $ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs blocked
 # Test: Blocked as JSON
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs blocked --json
+$ tbd blocked --json
 [
 ...
 ]
@@ -160,7 +162,7 @@ $ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs blocked --json
 # Test: Blocked with limit
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs blocked --limit 1
+$ tbd blocked --limit 1
 ...
 ? 0
 ```
@@ -170,7 +172,7 @@ $ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs blocked --limit 1
 The blocked command should show issues that have blocking relationships where the blocker is not closed.
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs blocked --json | node -e "d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log('blocked count:', d.length)"
+$ tbd blocked --json | node -e "d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log('blocked count:', d.length)"
 blocked count: [..]
 ? 0
 ```
@@ -184,7 +186,7 @@ Create some old issues (we can't actually backdate, so stale may show recent):
 # Test: Stale shows not recently updated
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs stale
+$ tbd stale
 ...
 ? 0
 ```
@@ -192,7 +194,7 @@ $ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs stale
 # Test: Stale with custom days
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs stale --days 0
+$ tbd stale --days 0
 ...
 ? 0
 ```
@@ -200,7 +202,7 @@ $ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs stale --days 0
 # Test: Stale as JSON
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs stale --json
+$ tbd stale --json
 ...
 ? 0
 ```
@@ -208,7 +210,7 @@ $ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs stale --json
 # Test: Stale filter by status
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs stale --status in_progress
+$ tbd stale --status in_progress
 ...
 ? 0
 ```
@@ -216,7 +218,7 @@ $ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs stale --status in_progress
 # Test: Stale with limit
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs stale --limit 2
+$ tbd stale --limit 2
 ...
 ? 0
 ```
@@ -228,14 +230,14 @@ $ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs stale --limit 2
 Create an issue for label testing:
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs create "Label test issue" -t task --json | node -e "d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log(d.id)" > /tmp/label_issue.txt
+$ tbd create "Label test issue" -t task --json | node -e "d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log(d.id)" > /tmp/label_issue.txt
 ? 0
 ```
 
 # Test: Label add single
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs label add $(cat /tmp/label_issue.txt) frontend
+$ tbd label add $(cat /tmp/label_issue.txt) frontend
 ✓ Added labels to bd-[SHORTID]: frontend
 ? 0
 ```
@@ -243,7 +245,7 @@ $ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs label add $(cat /tmp/label_issue.txt)
 # Test: Label add multiple
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs label add $(cat /tmp/label_issue.txt) backend urgent
+$ tbd label add $(cat /tmp/label_issue.txt) backend urgent
 ✓ Added labels to bd-[SHORTID]: backend, urgent
 ? 0
 ```
@@ -251,7 +253,7 @@ $ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs label add $(cat /tmp/label_issue.txt)
 # Test: Verify labels added
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs show $(cat /tmp/label_issue.txt) --json | node -e "d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log('labels:', d.labels.sort().join(','))"
+$ tbd show $(cat /tmp/label_issue.txt) --json | node -e "d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log('labels:', d.labels.sort().join(','))"
 labels: backend,frontend,urgent
 ? 0
 ```
@@ -259,7 +261,7 @@ labels: backend,frontend,urgent
 # Test: Label add duplicate (idempotent)
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs label add $(cat /tmp/label_issue.txt) frontend
+$ tbd label add $(cat /tmp/label_issue.txt) frontend
 All labels already present
 ? 0
 ```
@@ -267,7 +269,7 @@ All labels already present
 # Test: Label remove single
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs label remove $(cat /tmp/label_issue.txt) urgent
+$ tbd label remove $(cat /tmp/label_issue.txt) urgent
 ✓ Removed labels from bd-[SHORTID]: urgent
 ? 0
 ```
@@ -275,7 +277,7 @@ $ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs label remove $(cat /tmp/label_issue.t
 # Test: Verify label removed
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs show $(cat /tmp/label_issue.txt) --json | node -e "d=JSON.parse(require('fs').readFileSync(0,'utf8')); has=d.labels.includes('urgent'); console.log(has?'FAIL: still has urgent':'OK: urgent removed')"
+$ tbd show $(cat /tmp/label_issue.txt) --json | node -e "d=JSON.parse(require('fs').readFileSync(0,'utf8')); has=d.labels.includes('urgent'); console.log(has?'FAIL: still has urgent':'OK: urgent removed')"
 OK: urgent removed
 ? 0
 ```
@@ -283,7 +285,7 @@ OK: urgent removed
 # Test: Label remove multiple
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs label remove $(cat /tmp/label_issue.txt) frontend backend
+$ tbd label remove $(cat /tmp/label_issue.txt) frontend backend
 ✓ Removed labels from bd-[SHORTID]: frontend, backend
 ? 0
 ```
@@ -291,7 +293,7 @@ $ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs label remove $(cat /tmp/label_issue.t
 # Test: Label list all
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs label list
+$ tbd label list
 ...
 ? 0
 ```
@@ -299,7 +301,7 @@ $ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs label list
 # Test: Label list as JSON
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs label list --json
+$ tbd label list --json
 ...
 ? 0
 ```
@@ -307,7 +309,7 @@ $ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs label list --json
 # Test: Label add with dry-run
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs label add $(cat /tmp/label_issue.txt) test-label --dry-run
+$ tbd label add $(cat /tmp/label_issue.txt) test-label --dry-run
 [DRY-RUN] Would add labels
 ? 0
 ```
@@ -315,7 +317,7 @@ $ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs label add $(cat /tmp/label_issue.txt)
 # Test: Label add to non-existent issue
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs label add is-00000000000000000000000000 test-label 2>&1
+$ tbd label add is-00000000000000000000000000 test-label 2>&1
 ✗ Issue not found[..]
 ? 0
 ```
@@ -327,19 +329,19 @@ $ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs label add is-000000000000000000000000
 Create issues for dependency testing:
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs create "Parent feature" -t feature --json | node -e "d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log(d.id)" > /tmp/dep_parent.txt
+$ tbd create "Parent feature" -t feature --json | node -e "d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log(d.id)" > /tmp/dep_parent.txt
 ? 0
 ```
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs create "Child task" -t task --json | node -e "d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log(d.id)" > /tmp/dep_child.txt
+$ tbd create "Child task" -t task --json | node -e "d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log(d.id)" > /tmp/dep_child.txt
 ? 0
 ```
 
 # Test: Depends add (X blocks Y)
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs depends add $(cat /tmp/dep_parent.txt) $(cat /tmp/dep_child.txt)
+$ tbd depends add $(cat /tmp/dep_parent.txt) $(cat /tmp/dep_child.txt)
 ✓ bd-[SHORTID] now blocks bd-[SHORTID]
 ? 0
 ```
@@ -347,7 +349,7 @@ $ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs depends add $(cat /tmp/dep_parent.txt
 # Test: Depends list forward (what does X block)
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs depends list $(cat /tmp/dep_parent.txt)
+$ tbd depends list $(cat /tmp/dep_parent.txt)
 Blocks: bd-[SHORTID]
 ? 0
 ```
@@ -355,7 +357,7 @@ Blocks: bd-[SHORTID]
 # Test: Depends list reverse (what blocks Y)
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs depends list $(cat /tmp/dep_child.txt)
+$ tbd depends list $(cat /tmp/dep_child.txt)
 Blocked by: bd-[SHORTID]
 ? 0
 ```
@@ -363,7 +365,7 @@ Blocked by: bd-[SHORTID]
 # Test: Depends list as JSON
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs depends list $(cat /tmp/dep_parent.txt) --json
+$ tbd depends list $(cat /tmp/dep_parent.txt) --json
 {
 ...
 }
@@ -373,7 +375,7 @@ $ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs depends list $(cat /tmp/dep_parent.tx
 # Test: Depends remove
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs depends remove $(cat /tmp/dep_parent.txt) $(cat /tmp/dep_child.txt)
+$ tbd depends remove $(cat /tmp/dep_parent.txt) $(cat /tmp/dep_child.txt)
 ✓ Removed dependency[..]
 ? 0
 ```
@@ -381,7 +383,7 @@ $ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs depends remove $(cat /tmp/dep_parent.
 # Test: Verify dependency removed
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs depends list $(cat /tmp/dep_parent.txt) --json | node -e "d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log('blocks:', d.blocks.length)"
+$ tbd depends list $(cat /tmp/dep_parent.txt) --json | node -e "d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log('blocks:', d.blocks.length)"
 blocks: 0
 ? 0
 ```
@@ -389,7 +391,7 @@ blocks: 0
 # Test: Depends add with dry-run
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs depends add $(cat /tmp/dep_parent.txt) $(cat /tmp/dep_child.txt) --dry-run
+$ tbd depends add $(cat /tmp/dep_parent.txt) $(cat /tmp/dep_child.txt) --dry-run
 [DRY-RUN] Would add dependency
 ? 0
 ```
@@ -397,7 +399,7 @@ $ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs depends add $(cat /tmp/dep_parent.txt
 # Test: Depends add self-reference fails
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs depends add $(cat /tmp/dep_parent.txt) $(cat /tmp/dep_parent.txt) 2>&1
+$ tbd depends add $(cat /tmp/dep_parent.txt) $(cat /tmp/dep_parent.txt) 2>&1
 ✗ Issue cannot block itself
 ? 0
 ```
@@ -405,7 +407,7 @@ $ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs depends add $(cat /tmp/dep_parent.txt
 # Test: Depends add non-existent source
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs depends add is-00000000000000000000000000 $(cat /tmp/dep_child.txt) 2>&1
+$ tbd depends add is-00000000000000000000000000 $(cat /tmp/dep_child.txt) 2>&1
 ✗ [..]not found[..]
 ? 0
 ```
@@ -417,7 +419,7 @@ $ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs depends add is-0000000000000000000000
 Add a dependency to make an issue blocked:
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs depends add $(cat /tmp/blocker.txt) $(cat /tmp/ready1.txt)
+$ tbd depends add $(cat /tmp/blocker.txt) $(cat /tmp/ready1.txt)
 ✓ bd-[SHORTID] now blocks bd-[SHORTID]
 ? 0
 ```
@@ -425,7 +427,7 @@ $ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs depends add $(cat /tmp/blocker.txt) $
 # Test: Ready excludes issues blocked by open blockers
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs ready --json | node -e "d=JSON.parse(require('fs').readFileSync(0,'utf8')); id='$(cat /tmp/ready1.txt)'; found=d.some(i=>i.id===id); console.log(found?'FAIL: blocked issue in ready':'OK: blocked excluded')"
+$ tbd ready --json | node -e "d=JSON.parse(require('fs').readFileSync(0,'utf8')); id='$(cat /tmp/ready1.txt)'; found=d.some(i=>i.id===id); console.log(found?'FAIL: blocked issue in ready':'OK: blocked excluded')"
 OK: blocked excluded
 ? 0
 ```
@@ -433,13 +435,13 @@ OK: blocked excluded
 # Test: Closing blocker makes blocked issue ready
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs close $(cat /tmp/blocker.txt)
+$ tbd close $(cat /tmp/blocker.txt)
 ✓ Closed [..]
 ? 0
 ```
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs ready --json | node -e "d=JSON.parse(require('fs').readFileSync(0,'utf8')); id='$(cat /tmp/ready1.txt)'; found=d.some(i=>i.id===id); console.log(found?'OK: now ready':'FAIL: should be ready now')"
+$ tbd ready --json | node -e "d=JSON.parse(require('fs').readFileSync(0,'utf8')); id='$(cat /tmp/ready1.txt)'; found=d.some(i=>i.id===id); console.log(found?'OK: now ready':'FAIL: should be ready now')"
 OK: now ready
 ? 0
 ```

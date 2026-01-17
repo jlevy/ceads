@@ -459,6 +459,8 @@ The master epic is **tbd-100**.
 | 19 | tbd-208 | Worktree Architecture Fix | tbd-208.1 through tbd-208.6 | 🔴 New |
 | 20 | tbd-2000 | Directory Naming Refactor | tbd-2001 through tbd-2005 | ✅ Complete |
 | 21 | tbd-2100 | Consistent Atomic File Operations | tbd-2101 through tbd-2103 | ✅ Complete |
+| 22 | tbd-1868 | Import ID Preservation | tbd-1869 through tbd-1873 | 🔴 New |
+| 23 | tbd-1874 | Initialization Behavior | tbd-1874.1 through tbd-1874.5 | 🔴 New |
 | Validation | tbd-1300 | Stage 5 Validation | tbd-1301 through tbd-1306 | ⚠️ Partial |
 
 **Status Legend:** ✅ Complete | ⚠️ Partial (needs review) | 🔲 Pending | 🔴 New
@@ -478,7 +480,9 @@ The master epic is **tbd-100**.
   (see [postmortem](../../retrospectives/retro-2026-01-16-worktree-architecture-not-implemented.md))
 - **Phase 20: Directory naming refactor** ✅ - renamed `.tbd-sync` to `.tbd/data-sync`,
   created centralized `paths.ts`, refactored all commands
-- Remaining: CI validation (tbd-1805), npm publish (tbd-1206), Phase 18 & 19 bug fixes
+- **Phase 23: Initialization behavior** 🔴 - enforce init requirements per design §4.1.1,
+  auto-init for `import --from-beads`
+- Remaining: CI validation (tbd-1805), npm publish (tbd-1206), Phase 18 & 19 & 23 tasks
 
 **Bead Tracking Summary:**
 
@@ -486,7 +490,7 @@ The master epic is **tbd-100**.
 | --- | --- | --- |
 | ✅ Done | 122 | tbd-101→tbd-111, tbd-200→tbd-207, tbd-209, tbd-300→tbd-309, tbd-400→tbd-409, tbd-500→tbd-504, tbd-600→tbd-607, tbd-700→tbd-708, tbd-800→tbd-804, tbd-900→tbd-904, tbd-1000→tbd-1004, tbd-1100→tbd-1105, tbd-1201, tbd-1202, tbd-1205, tbd-1301, tbd-1302, tbd-1305, tbd-1306, tbd-1400→tbd-1405, tbd-1500→tbd-1502, tbd-1600→tbd-1604, tbd-1700→tbd-1706, tbd-1800→tbd-1804, tbd-2000→tbd-2005 |
 | 🔄 In Progress | 1 | tbd-100 (master epic) |
-| 🔲 Open | 15 | tbd-208, tbd-208.1→tbd-208.6, tbd-1200, tbd-1203, tbd-1204, tbd-1206, tbd-1300, tbd-1303, tbd-1304, tbd-1805, tbd-1810 |
+| 🔲 Open | 21 | tbd-208, tbd-208.1→tbd-208.6, tbd-1200, tbd-1203, tbd-1204, tbd-1206, tbd-1300, tbd-1303, tbd-1304, tbd-1805, tbd-1810, tbd-1874→tbd-1874.5 |
 
 **Phase 13: Tryscript Coverage Migration (✅ Complete)**
 
@@ -623,6 +627,119 @@ all file writes use this utility consistently.
 **Verification:**
 - Grepped for `writeFile(` in src/ - only occurrence is inside atomicWriteFile itself
 - All 164 tests pass
+
+**Phase 22: Import ID Preservation (🔴 New)**
+
+Preserve original Beads short IDs during import instead of generating random new ones.
+This ensures `tbd-100` becomes `bd-100` (same short ID!) rather than `bd-3ykw` (random).
+
+**Motivation:**
+- Users don't need to learn new IDs after migration
+- Commit messages, documentation, and external references remain valid
+- Eliminates need for separate `beads.yml` mapping file
+
+**Design Changes (already updated in tbd-design-v3.md):**
+- Short IDs can be 1+ alphanumeric chars (not just 4-5)
+- Import preserves original short ID (e.g., `100` from `tbd-100`)
+- New issues still get random 4-char base36 IDs
+- Single `ids.yml` handles all mappings (no separate `beads.yml`)
+
+| Bead ID | Task | Status | Notes |
+| --- | --- | --- | --- |
+| tbd-1868 | Phase 22 Epic | Open | Import ID preservation |
+| tbd-1869 | Update ShortId schema validation | Open | Allow 1+ chars instead of 4-5 |
+| tbd-1870 | Update import.ts to preserve IDs | Open | Extract short from beads ID, use directly |
+| tbd-1871 | Remove beads.yml creation | Open | No longer needed with ID preservation |
+| tbd-1872 | Update tests for new ID behavior | Open | Update tryscript and unit tests |
+| tbd-1873 | Re-import existing beads data | Open | Fresh import with preserved IDs |
+
+**Implementation Details:**
+
+```typescript
+// Extract short ID from beads ID
+function extractShortId(beadsId: string): string {
+  // "tbd-100" → "100"
+  // "bd-a1b2" → "a1b2"
+  return beadsId.replace(/^[a-z]+-/, '');
+}
+
+// In import: use extracted short ID directly in ids.yml
+const shortId = extractShortId(beadsIssue.id);  // "100"
+idMapping.set(shortId, ulidPart);  // 100 → 01kf58672...
+```
+
+**Files to Update:**
+- `src/lib/ids.ts` - Update `validateShortId()` regex to allow 1+ chars
+- `src/file/idMapping.ts` - Update `ShortId` type and validation
+- `src/cli/commands/import.ts` - Extract and preserve short IDs
+- Remove `beads.yml` creation and loading
+- `tests/` - Update test expectations
+
+**Phase 23: Initialization Behavior (🔴 New)**
+
+Enforce consistent initialization requirements: all commands except `init` and
+`import --from-beads` must fail with a clear error if tbd is not initialized.
+
+**Motivation:**
+- Current behavior is inconsistent - some commands work, some fail confusingly
+- Users need clear guidance on how to get started
+- Design spec §4.1.1 now defines the exact behavior
+- `import --from-beads` should auto-initialize for one-step migration
+
+**Design Changes (already updated in tbd-design-v3.md):**
+- Added §4.1.1 Initialization Requirements with command table
+- Updated §5.1.1 Import Command with auto-initialization note
+- Updated §5.1.10 Migration Workflow with one-step option
+- Updated §5.6 Compatibility Contract with stable error message
+
+**Behavior Summary:**
+- Commands needing init → exit code 1, message:
+  `Error: Not a tbd repository (run 'tbd init' or 'tbd import --from-beads' first)`
+- `import --from-beads` in uninitialized repo → auto-run init first
+- Detection: check for `.tbd/config.yml` existence and validity
+
+| Bead ID | Task | Status | Notes |
+| --- | --- | --- | --- |
+| tbd-1874 | Phase 23 Epic | Open | Initialization behavior |
+| tbd-1874.1 | Add requireInit() helper | Open | Centralized init check with error |
+| tbd-1874.2 | Add requireInit() to all commands | Open | ~18 command files need the check |
+| tbd-1874.3 | Implement auto-init in import --from-beads | Open | Call init logic before import |
+| tbd-1874.4 | Add tryscript tests for init errors | Open | Test each command without init |
+| tbd-1874.5 | Add tryscript tests for auto-init import | Open | Test import --from-beads auto-init |
+
+**Implementation Details:**
+
+```typescript
+// src/cli/lib/requireInit.ts
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
+import { CLIError } from './errors.js';
+
+export function requireInit(cwd: string = process.cwd()): void {
+  const configPath = join(cwd, '.tbd', 'config.yml');
+
+  if (!existsSync(configPath)) {
+    throw new CLIError(
+      'Not a tbd repository (run \'tbd init\' or \'tbd import --from-beads\' first)'
+    );
+  }
+
+  // Optionally validate tbd_version field here
+}
+```
+
+**Files to Update:**
+- `src/cli/lib/requireInit.ts` - New file with init check helper
+- `src/cli/commands/issue.ts` - Add requireInit() call
+- `src/cli/commands/workflow.ts` - Add requireInit() call
+- `src/cli/commands/label.ts` - Add requireInit() call
+- `src/cli/commands/dep.ts` - Add requireInit() call
+- `src/cli/commands/sync.ts` - Add requireInit() call
+- `src/cli/commands/search.ts` - Add requireInit() call
+- `src/cli/commands/maintenance.ts` - Add requireInit() to info, stats, doctor, config
+- `src/cli/commands/attic.ts` - Add requireInit() call
+- `src/cli/commands/import.ts` - Add auto-init logic for --from-beads
+- `tests/cli-*.tryscript.md` - Add init error tests
 
 **Stage 5 Validation Status (⚠️ Partial):**
 

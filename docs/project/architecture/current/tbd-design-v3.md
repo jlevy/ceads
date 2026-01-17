@@ -72,6 +72,7 @@
     - [3.6 Attic Structure](#36-attic-structure)
   - [4. CLI Layer](#4-cli-layer)
     - [4.1 Overview](#41-overview)
+    - [4.1.1 Initialization Requirements](#411-initialization-requirements)
     - [4.2 Command Structure](#42-command-structure)
     - [4.3 Initialization](#43-initialization)
     - [4.4 Issue Commands](#44-issue-commands)
@@ -103,7 +104,7 @@
       - [5.1.1 Import Command](#511-import-command)
       - [5.1.2 Multi-Source Import (--from-beads)](#512-multi-source-import---from-beads)
       - [5.1.3 Multi-Source Merge Algorithm](#513-multi-source-merge-algorithm)
-      - [5.1.4 ID Mapping](#514-id-mapping)
+      - [5.1.4 ID Mapping and Preservation](#514-id-mapping-and-preservation)
       - [5.1.5 Import Algorithm](#515-import-algorithm)
       - [5.1.6 Merge Behavior on Re-Import](#516-merge-behavior-on-re-import)
       - [5.1.7 Handling Deletions and Tombstones](#517-handling-deletions-and-tombstones)
@@ -594,7 +595,8 @@ Tbd uses three directory locations:
 
 - **`.tbd/`** on main branch: Configuration (tracked) + local cache (gitignored)
 
-- **`.tbd/data-sync-worktree/`** hidden worktree: Checkout of `tbd-sync` branch for search
+- **`.tbd/data-sync-worktree/`** hidden worktree: Checkout of `tbd-sync` branch for
+  search
 
 - **`.tbd/data-sync/`** on `tbd-sync` branch: Synced entities and attic
 
@@ -633,13 +635,12 @@ Tbd uses three directory locations:
     │       └── is-01hx5zzkbkactav9wevgemmvrz/
     │           └── 2025-01-07T10-30-00Z_description.md
     ├── mappings/               # ID mappings
-    │   ├── ids.yml            # Short ID → ULID mapping (e.g., a7k2 → 01hx5zzk...)
-    │   └── beads.yml          # Beads ID → ULID mapping (for imports)
+    │   └── ids.yml            # Short ID → ULID mapping (includes preserved import IDs)
     └── meta.yml               # Metadata (schema version)
 ```
 
-> **Future: Simple Mode** — For users who don't need multi-machine sync, tbd could
-> support a "simple mode" where `data-sync/` is committed directly to main instead of
+> **Future: Simple Mode** — For users who don’t need multi-machine sync, tbd could
+> support a “simple mode” where `data-sync/` is committed directly to main instead of
 > using a worktree. This would be enabled by removing `data-sync` from `.tbd/.gitignore`.
 > Not implemented in V1, but the naming structure supports this future option.
 
@@ -657,14 +658,15 @@ Tbd uses three directory locations:
 
 ### 2.3 Hidden Worktree Model
 
-Tbd maintains a **hidden git worktree** at `.tbd/data-sync-worktree/` that checks out the
-`tbd-sync` branch. This provides:
+Tbd maintains a **hidden git worktree** at `.tbd/data-sync-worktree/` that checks out
+the `tbd-sync` branch.
+This provides:
 
 1. **Fast search**: ripgrep can search all issues without git plumbing commands
 
 2. **Direct file access**: Read issues without `git show` overhead
 
-3. **Isolated from main**: Doesn't pollute working directory or affect main branch
+3. **Isolated from main**: Doesn’t pollute working directory or affect main branch
 
 4. **Automatic updates**: Updated on `tbd sync` operations
 
@@ -698,9 +700,9 @@ data-sync-worktree/
 data-sync/
 ```
 
-> **Note:** `data-sync/` is gitignored to support potential future "simple mode" where
-> issues could be stored directly on main without a worktree. In normal operation,
-> `data-sync/` only exists inside the worktree checkout.
+> **Note:** `data-sync/` is gitignored to support potential future “simple mode” where
+> issues could be stored directly on main without a worktree.
+> In normal operation, `data-sync/` only exists inside the worktree checkout.
 
 #### Accessing Issues via Worktree
 
@@ -725,8 +727,8 @@ ls .tbd/data-sync-worktree/.tbd/data-sync/issues/
 | `tbd doctor` | Verify worktree health, repair if needed |
 | Repo clone | Worktree created on first tbd command |
 
-**Invariant:** The hidden worktree at `.tbd/data-sync-worktree/` always reflects the current
-state of the `tbd-sync` branch after sync operations.
+**Invariant:** The hidden worktree at `.tbd/data-sync-worktree/` always reflects the
+current state of the `tbd-sync` branch after sync operations.
 
 #### Worktree Initialization Decision Tree
 
@@ -810,10 +812,12 @@ Lexicographically Sortable Identifier):
 - **Lexicographic sorting**: IDs sort chronologically by creation time
 - **No collisions**: Monotonic generation within millisecond prevents duplicates
 
-**External IDs** use short base36 codes mapped to internal IDs:
+**External IDs** use short alphanumeric codes mapped to internal IDs:
 
 - **Configurable prefix**: Project-specific (`bd`, `proj`, `tk`) via `display.id_prefix`
-- **Short code**: 4-5 base36 characters (a-z, 0-9)
+- **Short code**: 1+ alphanumeric characters (a-z, 0-9)
+  - Imported issues: Preserve original short ID (e.g., `100` from `tbd-100`)
+  - New issues: Generate random 4-char base36
 - **Immutable mapping**: Once assigned, never changes
 - **No prefix matching**: Users type the full short ID, always
 
@@ -849,22 +853,31 @@ function generateShortId(): string {
 
 #### ID Mapping
 
-The mapping between external and internal IDs is stored in `.tbd/data-sync/mappings/ids.yml`:
+The mapping between external and internal IDs is stored in
+`.tbd/data-sync/mappings/ids.yml`:
 
 ```yaml
 # .tbd/data-sync/mappings/ids.yml
 # short_id: ulid (without prefix)
-a7k2: 01hx5zzkbkactav9wevgemmvrz
-b3m9: 01hx5zzkbkbctav9wevgemmvrz
-c4p1: 01hx5zzkbkcdtav9wevgemmvrz
+#
+# Imported issues preserve their original short IDs:
+100: 01hx5zzkbkactav9wevgemmvrz    # from tbd-100
+101: 01hx5zzkbkbctav9wevgemmvrz    # from tbd-101
+1823: 01hx5zzkbkcdtav9wevgemmvrz   # from tbd-1823
+#
+# New issues get random 4-char base36 IDs:
+a7k2: 01hx5zzkbkdetav9wevgemmvrz
+b3m9: 01hx5zzkbkeetav9wevgemmvrz
 ```
 
 **Mapping properties:**
 
 - **Synced**: File lives on sync branch, shared across all machines
 - **Immutable entries**: Once a mapping exists, it never changes
+- **ID preservation**: Imports preserve original short IDs (no separate beads.yml
+  needed)
 - **Merge strategy**: Union (no conflicts since short IDs are unique)
-- **Collision handling**: On short ID collision, regenerate and retry
+- **Collision handling**: On short ID collision (rare for imports), regenerate and retry
 
 #### ID Resolution (CLI)
 
@@ -917,13 +930,23 @@ function formatDisplayId(internalId: string, config: Config): string {
 }
 ```
 
-**CLI flow example:**
+**CLI flow example (imported issue):**
+
+```
+User types:     bd-100 (or tbd-100)
+Lookup:         100 → 01hx5zzkbkactav9wevgemmvrz
+Internal ID:    is-01hx5zzkbkactav9wevgemmvrz
+File path:      .tbd/data-sync/issues/is-01hx5zzkbkactav9wevgemmvrz.md
+Display back:   bd-100
+```
+
+**CLI flow example (new issue):**
 
 ```
 User types:     bd-a7k2
-Lookup:         a7k2 → 01hx5zzkbkactav9wevgemmvrz
-Internal ID:    is-01hx5zzkbkactav9wevgemmvrz
-File path:      .tbd/data-sync/issues/is-01hx5zzkbkactav9wevgemmvrz.md
+Lookup:         a7k2 → 01hx5zzkbkdetav9wevgemmvrz
+Internal ID:    is-01hx5zzkbkdetav9wevgemmvrz
+File path:      .tbd/data-sync/issues/is-01hx5zzkbkdetav9wevgemmvrz.md
 Display back:   bd-a7k2
 ```
 
@@ -944,13 +967,14 @@ const Timestamp = z.string().datetime();
 // Example: is-01hx5zzkbkactav9wevgemmvrz
 const InternalIssueId = z.string().regex(/^is-[0-9a-z]{26}$/);
 
-// Short ID: 4-5 base36 chars (used in external/display IDs)
-// Example: a7k2, b3m9
-const ShortId = z.string().regex(/^[0-9a-z]{4,5}$/);
+// Short ID: 1+ alphanumeric chars (used in external/display IDs)
+// For imports: preserved from source (e.g., "100" from "tbd-100")
+// For new issues: random 4-char base36 (e.g., "a7k2")
+const ShortId = z.string().regex(/^[0-9a-z]+$/);
 
 // External Issue ID input: accepts {prefix}-{short} or just {short}
-// Example: bd-a7k2, a7k2
-const ExternalIssueIdInput = z.string().regex(/^([a-z]+-)?[0-9a-z]{4,5}$/);
+// Example: bd-100, bd-a7k2, 100, a7k2
+const ExternalIssueIdInput = z.string().regex(/^([a-z]+-)?[0-9a-z]+$/);
 
 // Edit counter - incremented on every local change
 // IMPORTANT: Version is NOT used for conflict detection (content hash is used instead).
@@ -1568,6 +1592,58 @@ The CLI Layer provides a Beads-compatible command interface.
 - **Dual output**: Human-readable by default, JSON for scripting
 
 - **Exit codes**: 0 for success, non-zero for errors
+
+### 4.1.1 Initialization Requirements
+
+All tbd commands require the repository to be initialized, except:
+
+- `tbd init` — Creates a new tbd repository
+- `tbd import --from-beads` — Can initialize and import in one step (auto-runs init if
+  needed)
+
+**Behavior when not initialized:**
+
+If `.tbd/config.yml` does not exist or is invalid, commands exit with an error:
+
+- **Exit code**: 1
+- **Error message**:
+  `Error: Not a tbd repository (run 'tbd init' or 'tbd import --from-beads' first)`
+
+**Detection logic:**
+
+1. Check for `.tbd/config.yml` existence
+2. Validate `tbd_version` field is present and compatible
+3. If either check fails → error with initialization instructions
+
+**Commands and their initialization requirements:**
+
+| Command | Requires Init | Behavior if Not Initialized |
+| --- | --- | --- |
+| `init` | No | Creates `.tbd/` directory and sync branch |
+| `import --from-beads` | No | Auto-initializes, then imports |
+| `import <file>` | Yes | Error: "Not a tbd repository" |
+| `list`, `show`, `info`, `stats` | Yes | Error: "Not a tbd repository" |
+| `create`, `update`, `close`, `reopen` | Yes | Error: "Not a tbd repository" |
+| `ready`, `blocked`, `stale` | Yes | Error: "Not a tbd repository" |
+| `label`, `dep` | Yes | Error: "Not a tbd repository" |
+| `sync`, `search`, `doctor`, `config` | Yes | Error: "Not a tbd repository" |
+| `attic list/show/restore` | Yes | Error: "Not a tbd repository" |
+| All other commands | Yes | Error: "Not a tbd repository" |
+
+**`import --from-beads` auto-initialization:**
+
+When `--from-beads` is used and `.tbd/` doesn’t exist:
+
+1. Auto-run equivalent of `tbd init` silently
+2. Proceed with import from Beads repository
+3. Report: “Initialized tbd and imported N issues from Beads”
+
+This enables a one-step migration workflow:
+
+```bash
+# In a repo with .beads/ directory
+tbd import --from-beads    # Initializes AND imports in one command
+```
 
 ### 4.2 Command Structure
 
@@ -2557,6 +2633,22 @@ tbd import --from-beads --branch main
 tbd import --from-beads --branch beads-sync
 ```
 
+**Auto-initialization with `--from-beads`:**
+
+When using `--from-beads` in a repository that has not been initialized with `tbd init`,
+the import command will automatically initialize tbd first.
+This enables a one-step migration workflow:
+
+```bash
+# One-step migration (no prior tbd init needed)
+tbd import --from-beads
+# Output: "Initialized tbd and imported 142 issues from Beads"
+```
+
+This auto-initialization only applies to `--from-beads` mode.
+Explicit file import (`tbd import <file>`) still requires prior initialization with
+`tbd init`. See §4.1.1 for full initialization requirements.
+
 #### 5.1.2 Multi-Source Import (--from-beads)
 
 When using `--from-beads`, Tbd reads directly from the Beads repository structure
@@ -2728,93 +2820,109 @@ Importing merged issues...
 Import complete.
 ```
 
-#### 5.1.4 ID Mapping
+#### 5.1.4 ID Mapping and Preservation
 
-The key to idempotent import is **stable ID mapping**. The same Beads issue must always
-map to the same Tbd issue, even across multiple imports on different machines.
+The key to idempotent import is **stable ID mapping with ID preservation**. Imported
+issues retain their original short IDs, ensuring:
+
+- The same Beads issue always maps to the same Tbd issue
+- Users don’t need to learn new IDs after migration
+- Commit messages, documentation, and external references remain valid
+
+**ID preservation algorithm:**
+
+When importing `tbd-100`, extract the short part (`100`) and use it directly:
+
+```
+Beads ID:       tbd-100
+Short ID:       100        (extracted, preserved)
+Internal ID:    is-01hx5zzkbkactav9wevgemmvrz  (generated ULID)
+Display ID:     bd-100     (or tbd-100 with display.id_prefix: tbd)
+```
 
 **Mapping storage:**
 
-Each imported issue stores its original Beads ID in the `extensions` field:
+All short IDs (imported and new) are stored in the unified mapping file:
 
-```json
-{
-  "type": "is",
-  "id": "is-a1b2c3",
-  "title": "Fix authentication bug",
-  "extensions": {
-    "beads": {
-      "original_id": "bd-x7y8",
-      "imported_at": "2025-01-10T10:00:00Z",
-      "source_file": "beads-export.jsonl"
-    }
-  }
-}
+```yaml
+# .tbd/data-sync/mappings/ids.yml
+# Imported issues preserve original short IDs:
+100: 01hx5zzkbkactav9wevgemmvrz    # was tbd-100
+101: 01hx5zzkbkbctav9wevgemmvrz    # was tbd-101
+1823: 01hx5zzkbkcdtav9wevgemmvrz   # was tbd-1823
+# New issues get random 4-char base36:
+a7k2: 01hx5zzkbkdetav9wevgemmvrz
 ```
 
-**Mapping file (for performance):**
+**No separate beads.yml needed:** Since the original short ID is preserved in `ids.yml`,
+there’s no need for a separate mapping file.
+The `extensions.beads` field stores metadata about the import for debugging:
 
-To enable O(1) lookups on large issue sets, import also maintains a mapping file:
-
-```
-.tbd/data-sync/mappings/beads.yml
-```
-
-```json
-{
-  "bd-x7y8": "is-a1b2c3",
-  "bd-m5n6": "is-d4e5f6",
-  "bd-p1q2": "is-g7h8i9"
-}
+```yaml
+extensions:
+  beads:
+    original_id: tbd-100           # Full original ID (for reference)
+    imported_at: 2025-01-10T10:00:00Z
 ```
 
-This file:
+**Properties:**
 
-- Is synced with other Tbd data on the sync branch
+- **ID preserved**: `tbd-100` becomes `bd-100` (same short ID, configurable prefix)
+- **Synced**: Mapping file lives on sync branch, shared across all machines
+- **Immutable entries**: Once a short ID is mapped, it never changes
+- **Collision handling**: If a short ID already exists (rare), skip import of that issue
+  and warn—this indicates the issue was already imported
 
-- Enables instant lookup of existing mappings
-
-- Is authoritative (extensions field is for reference/debugging)
-
-**Mapping recovery:** If the mapping file is corrupted or lost, it can be reconstructed
-by scanning all issues and reading `extensions.beads.original_id`. Run:
-`tbd doctor --fix` to rebuild mappings from extensions data.
+**Mapping recovery:** If `ids.yml` is corrupted or lost, it can be reconstructed by
+scanning all issue files.
+Each issue’s internal ID provides the ULID, and the `extensions.beads.original_id`
+provides the short ID for imported issues.
+Run `tbd doctor --fix` to rebuild.
 
 #### 5.1.5 Import Algorithm
 
 ```
 IMPORT_BEADS(jsonl_file):
-  1. Load existing mapping from .tbd/data-sync/mappings/beads.yml
+  1. Load existing ID mapping from .tbd/data-sync/mappings/ids.yml
      (create empty {} if not exists)
 
   2. For each line in jsonl_file:
      a. Parse Beads issue JSON
-     b. beads_id = issue.id (e.g., "bd-x7y8")
+     b. beads_id = issue.id (e.g., "tbd-100")
+     c. short_id = extract_short_id(beads_id)  # "100" from "tbd-100"
 
-     c. Look up beads_id in mapping:
-        - If found: tbd_id = mapping[beads_id]
+     d. Look up short_id in id_mapping:
+        - If found: This issue was already imported
+          tbd_id = "is-" + id_mapping[short_id]
           Load existing Tbd issue for merge
-        - If not found: tbd_id = generate_new_id("is-")
-          Add mapping[beads_id] = tbd_id
+        - If not found: New import
+          tbd_id = generate_new_ulid("is-")
+          Add id_mapping[short_id] = tbd_id.ulid_part
+          # Preserves original short ID!
 
-     d. Convert Beads fields to Tbd format (see Field Mapping)
+     e. Convert Beads fields to Tbd format (see Field Mapping)
 
-     e. Set extensions.beads.original_id = beads_id
+     f. Set extensions.beads.original_id = beads_id
         Set extensions.beads.imported_at = now()
 
-     f. If existing Tbd issue:
+     g. If existing Tbd issue:
         - Compare updated_at timestamps
         - If Beads is newer: apply merge using standard rules
         - If Tbd is newer: skip (Tbd changes preserved)
         - If same: no-op (already imported)
-     g. If new issue:
+     h. If new issue:
         - Write new Tbd issue file
 
-  3. Save updated mapping file
+  3. Save updated ids.yml mapping file
 
   4. Report: N new, M updated, K unchanged, J skipped (Tbd newer)
 
   5. Sync (unless --no-sync)
+
+extract_short_id(beads_id):
+  # "tbd-100" → "100"
+  # "bd-a1b2" → "a1b2"
+  return beads_id.replace(/^[a-z]+-/, "")
 ```
 
 #### 5.1.6 Merge Behavior on Re-Import
@@ -2930,7 +3038,19 @@ Would import from beads-export.jsonl:
 
 #### 5.1.10 Migration Workflow
 
-**Initial migration (one-time):**
+**One-step migration (recommended):**
+
+```bash
+# In a repo with .beads/ directory - simplest approach
+tbd import --from-beads
+git add .tbd/
+git commit -m "Initialize tbd and import from beads"
+tbd sync
+```
+
+This auto-initializes tbd and imports all issues in a single command.
+
+**Two-step migration (explicit file):**
 
 ```bash
 # In Beads repo
@@ -3116,6 +3236,9 @@ CLI output.
 
 - Exit codes: 0 = success, 1 = error, 2 = usage error
 
+- Initialization error: Commands in uninitialized repos exit with code 1 and message
+  `Error: Not a tbd repository (run 'tbd init' or 'tbd import --from-beads' first)`
+
 - Command names and primary flags listed in this spec
 
 - External ID format: `{prefix}-{4-5 base36 chars}` (e.g., `bd-a7k2`)
@@ -3150,11 +3273,11 @@ These flags/behaviors are maintained for Beads script compatibility:
 
 #### Migration Gotchas
 
-1. **IDs change**: Beads `bd-a1b2` becomes a new short ID (e.g., `bd-x7k2`)
+1. **IDs are preserved**: Beads `tbd-100` becomes `bd-100` (same short ID!)
    - Internal ID is ULID-based: `is-01hx5zzkbk...`
-   - Set `display.id_prefix: bd` to keep `bd-` prefix familiar
-   - Old Beads IDs in commit messages won’t auto-link to new IDs
-   - Mapping file `.tbd/data-sync/mappings/beads.yml` preserves the relationship
+   - Short ID is preserved: `100`
+   - Set `display.id_prefix: tbd` to keep exact same display format
+   - Commit messages and documentation references remain valid
 
 2. **No daemon**: Background sync must be manual or cron-based
 
@@ -3684,8 +3807,7 @@ repo/
             │   ├── is-01hx5zzkbkactav9wevgemmvrz.md
             │   └── is-01hx5zzkbkbctav9wevgemmvrz.md
             ├── mappings/               # ID mappings
-            │   ├── ids.yml            # short → ULID (e.g., a7k2 → 01hx5zzk...)
-            │   └── beads.yml          # Beads imports
+            │   └── ids.yml            # short → ULID (preserves import IDs)
             ├── attic/                  # Conflict archive
             │   └── conflicts/
             │       └── is-01hx5zzkbkactav9wevgemmvrz/
@@ -4200,16 +4322,13 @@ The attic preserves losers, but UX may suffer if the “wrong” version consist
 
 **V2-016: Single mapping file as potential conflict hotspot**
 
-`.tbd/data-sync/mappings/beads.yml` could see conflicts if multiple nodes import concurrently
-(though this is rare).
+**RESOLVED**: The unified `.tbd/data-sync/mappings/ids.yml` file handles all short ID
+mappings (both imported and newly created).
+Conflicts are resolved via union merge—since short IDs are unique, adding new mappings
+never conflicts with existing ones.
 
-**Options:**
-
-1. Accept single file (low risk, concurrent imports are rare)
-
-2. File-per-beads-id mappings (consistent with file-per-entity pattern)
-
-3. Define merge semantics for mapping file (union of keys)
+Concurrent imports with the same source would produce identical mappings (idempotent).
+Concurrent imports from different sources have distinct short IDs (no conflict).
 
 ### 8.4 ID Length
 

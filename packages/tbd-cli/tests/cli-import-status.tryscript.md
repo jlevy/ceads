@@ -3,6 +3,8 @@ sandbox: true
 env:
   NO_COLOR: '1'
   FORCE_COLOR: '0'
+path:
+  - ../dist
 timeout: 60000
 patterns:
   ULID: '[0-9a-z]{26}'
@@ -27,7 +29,7 @@ before: |
   echo '{"id":"stat-deferred","title":"Issue with deferred status","status":"deferred","issue_type":"task","priority":3,"created_at":"2025-01-01T00:00:05Z","updated_at":"2025-01-01T00:00:05Z"}' >> .beads/issues.jsonl
 
   # Initialize tbd
-  node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs init
+  tbd init
 ---
 
 # TBD CLI: Import Status Mapping Tests
@@ -42,7 +44,7 @@ Bug: tbd-1813 (done → closed mapping was missing).
 # Test: Import from beads with all status values
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs import --from-beads
+$ tbd import --from-beads
 ...
 ? 0
 ```
@@ -54,7 +56,7 @@ $ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs import --from-beads
 # Test: Open status preserved
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs list --status open --json | node -e "d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log(d.filter(i => i.title.includes('open status')).length > 0 ? 'found' : 'not found')"
+$ tbd list --status open --json | node -e "d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log(d.filter(i => i.title.includes('open status')).length > 0 ? 'found' : 'not found')"
 found
 ? 0
 ```
@@ -62,7 +64,7 @@ found
 # Test: In_progress status preserved
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs list --status in_progress --json | node -e "d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log(d.filter(i => i.title.includes('in_progress')).length > 0 ? 'found' : 'not found')"
+$ tbd list --status in_progress --json | node -e "d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log(d.filter(i => i.title.includes('in_progress')).length > 0 ? 'found' : 'not found')"
 found
 ? 0
 ```
@@ -70,7 +72,7 @@ found
 # Test: Done status mapped to closed (tbd-1813 fix)
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs list --all --status closed --json | node -e "d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log(d.filter(i => i.title.includes('done status')).length > 0 ? 'found' : 'not found')"
+$ tbd list --all --status closed --json | node -e "d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log(d.filter(i => i.title.includes('done status')).length > 0 ? 'found' : 'not found')"
 found
 ? 0
 ```
@@ -78,7 +80,7 @@ found
 # Test: Closed status preserved
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs list --all --status closed --json | node -e "d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log(d.filter(i => i.title.includes('closed status')).length > 0 ? 'found' : 'not found')"
+$ tbd list --all --status closed --json | node -e "d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log(d.filter(i => i.title.includes('closed status')).length > 0 ? 'found' : 'not found')"
 found
 ? 0
 ```
@@ -86,7 +88,7 @@ found
 # Test: Blocked status preserved
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs list --status blocked --json | node -e "d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log(d.filter(i => i.title.includes('blocked status')).length > 0 ? 'found' : 'not found')"
+$ tbd list --status blocked --json | node -e "d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log(d.filter(i => i.title.includes('blocked status')).length > 0 ? 'found' : 'not found')"
 found
 ? 0
 ```
@@ -94,7 +96,7 @@ found
 # Test: Deferred status preserved
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs list --status deferred --json | node -e "d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log(d.filter(i => i.title.includes('deferred status')).length > 0 ? 'found' : 'not found')"
+$ tbd list --status deferred --json | node -e "d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log(d.filter(i => i.title.includes('deferred status')).length > 0 ? 'found' : 'not found')"
 found
 ? 0
 ```
@@ -106,7 +108,7 @@ found
 # Test: Validate shows no errors
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs import --validate
+$ tbd import --validate
 ...
 Errors:                0
 ...

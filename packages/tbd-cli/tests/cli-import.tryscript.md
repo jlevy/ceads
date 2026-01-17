@@ -3,6 +3,8 @@ sandbox: true
 env:
   NO_COLOR: '1'
   FORCE_COLOR: '0'
+path:
+  - ../dist
 timeout: 60000
 patterns:
   ULID: '[0-9a-z]{26}'
@@ -22,7 +24,7 @@ before: |
   echo '{"id":"test-002","title":"Bug to fix","status":"open","issue_type":"bug","priority":1,"labels":["urgent","backend"],"created_at":"2025-01-02T00:00:00Z","updated_at":"2025-01-02T00:00:00Z"}' >> .beads/issues.jsonl
   echo '{"id":"test-003","title":"Feature request","status":"closed","issue_type":"feature","priority":3,"created_at":"2025-01-03T00:00:00Z","updated_at":"2025-01-03T00:00:00Z"}' >> .beads/issues.jsonl
   # Initialize tbd
-  node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs init
+  tbd init
 ---
 
 # TBD CLI: Import Command
@@ -38,7 +40,7 @@ Note: This test uses actual beads data from the repository to validate import fu
 # Test: Import help
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs import --help
+$ tbd import --help
 Usage: tbd import [options] [file]
 
 Import issues from Beads or JSONL file.
@@ -64,7 +66,7 @@ Options:
 # Test: Import from beads directory
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs import --from-beads
+$ tbd import --from-beads
 ...
 ? 0
 ```
@@ -72,7 +74,7 @@ $ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs import --from-beads
 # Test: Verify issues were imported
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs list --all --json | node -e "d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log('imported:', d.length)"
+$ tbd list --all --json | node -e "d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log('imported:', d.length)"
 imported: [..]
 ? 0
 ```
@@ -80,7 +82,7 @@ imported: [..]
 # Test: Import with verbose output
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs import --from-beads --verbose
+$ tbd import --from-beads --verbose
 ...
 ? 0
 ```
@@ -92,7 +94,7 @@ $ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs import --from-beads --verbose
 # Test: Validate import
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs import --validate
+$ tbd import --validate
 Validating import...
 
 Validation Results
@@ -107,7 +109,7 @@ Valid imports:[..]
 # Test: Validate import as JSON
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs import --validate --json 2>&1 | tail -10
+$ tbd import --validate --json 2>&1 | tail -10
 ...
 ? 0
 ```
@@ -115,7 +117,7 @@ $ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs import --validate --json 2>&1 | tail 
 # Test: Validate with verbose shows warnings
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs import --validate --verbose
+$ tbd import --validate --verbose
 ...
 ? 0
 ```
@@ -136,7 +138,7 @@ $ mkdir -p custom-beads && echo '{"id":"custom-1","title":"Custom issue","status
 Note: We already imported from .beads, so this would add duplicates. Testing the flag works:
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs import --from-beads --beads-dir custom-beads --verbose
+$ tbd import --from-beads --beads-dir custom-beads --verbose
 ...
 ? 0
 ```
@@ -155,7 +157,7 @@ $ echo '{"id":"file-001","title":"File import test","status":"open","issue_type"
 ```
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs import test-import.jsonl
+$ tbd import test-import.jsonl
 ...
 ? 0
 ```
@@ -170,7 +172,7 @@ $ echo '{"id":"merge-001","title":"Merge test","status":"open","issue_type":"tas
 ```
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs import merge-import.jsonl --merge
+$ tbd import merge-import.jsonl --merge
 ...
 ? 0
 ```
@@ -182,7 +184,7 @@ $ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs import merge-import.jsonl --merge
 # Test: Import missing file
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs import nonexistent.jsonl 2>&1
+$ tbd import nonexistent.jsonl 2>&1
 ✗ File not found: nonexistent.jsonl
 ? 0
 ```
@@ -190,7 +192,7 @@ $ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs import nonexistent.jsonl 2>&1
 # Test: Import missing beads directory
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs import --from-beads --beads-dir nonexistent-dir 2>&1
+$ tbd import --from-beads --beads-dir nonexistent-dir 2>&1
 ✗ Beads database not found[..]
 ...
 ? 0
@@ -207,7 +209,7 @@ Initialized empty Git repository in [..]
 ```
 
 ```console
-$ cd fresh-repo && node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs init && node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs import --validate 2>&1
+$ cd fresh-repo && tbd init && tbd import --validate 2>&1
 ✓ Initialized tbd repository
 ...
 ✗ Beads database not found[..]
@@ -222,7 +224,7 @@ $ cd fresh-repo && node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs init && node $TRYSCR
 # Test: Stats after import
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs list --all --json 2>/dev/null | node -e "d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log('issues after import:', d.length >= 3 ? 'OK' : 'FAIL')"
+$ tbd list --all --json 2>/dev/null | node -e "d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log('issues after import:', d.length >= 3 ? 'OK' : 'FAIL')"
 issues after import: OK
 ? 0
 ```
@@ -230,7 +232,7 @@ issues after import: OK
 # Test: Stats command works
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs stats --json 2>/dev/null | node -e "d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log('stats total:', d.total >= 3 ? 'OK' : 'FAIL')"
+$ tbd stats --json 2>/dev/null | node -e "d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log('stats total:', d.total >= 3 ? 'OK' : 'FAIL')"
 stats total: OK
 ? 0
 ```
@@ -242,7 +244,7 @@ stats total: OK
 # Test: Re-import skips existing (no duplicates)
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs import --from-beads 2>&1 | grep -i skip || echo "Import complete"
+$ tbd import --from-beads 2>&1 | grep -i skip || echo "Import complete"
 ...
 ? 0
 ```
@@ -250,7 +252,7 @@ $ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs import --from-beads 2>&1 | grep -i sk
 # Test: Count unchanged after re-import
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs list --all --json 2>/dev/null | node -e "d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log('count after re-import:', d.length >= 3 ? 'OK' : 'FAIL')"
+$ tbd list --all --json 2>/dev/null | node -e "d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log('count after re-import:', d.length >= 3 ? 'OK' : 'FAIL')"
 count after re-import: OK
 ? 0
 ```

@@ -3,6 +3,8 @@ sandbox: true
 env:
   NO_COLOR: '1'
   FORCE_COLOR: '0'
+path:
+  - ../dist
 timeout: 30000
 patterns:
   ULID: '[0-9a-z]{26}'
@@ -28,7 +30,7 @@ This tryscript validates initialization, help, version, and info commands.
 # Test: --help shows usage with all commands
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs --help
+$ tbd --help
 Usage: tbd [options] [command]
 
 Git-native issue tracking for AI agents and humans
@@ -80,7 +82,7 @@ Commands:
 # Test: --version shows semantic version
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs --version
+$ tbd --version
 [..]
 ? 0
 ```
@@ -88,7 +90,7 @@ $ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs --version
 # Test: -V short flag for version
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs -V
+$ tbd -V
 [..]
 ? 0
 ```
@@ -96,7 +98,7 @@ $ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs -V
 # Test: help command for init
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs help init
+$ tbd help init
 Usage: tbd init [options]
 
 Initialize tbd in a git repository
@@ -115,7 +117,7 @@ Options:
 # Test: Initialize tbd with defaults
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs init
+$ tbd init
 ✓ Initialized tbd repository
 
 To complete setup, commit the config files:
@@ -127,7 +129,7 @@ To complete setup, commit the config files:
 # Test: Info before any issues
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs info
+$ tbd info
 tbd version [..]
 
 Working directory: [..]
@@ -142,7 +144,7 @@ Total issues: 0
 # Test: Info as JSON
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs info --json
+$ tbd info --json
 {
   "version": [..],
   "initialized": true,
@@ -162,7 +164,7 @@ $ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs info --json
 # Test: Reinit on already initialized repo shows warning
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs init 2>&1
+$ tbd init 2>&1
 ✗ tbd is already initialized[..]
 ? 0
 ```
@@ -182,7 +184,7 @@ Initialized empty Git repository in [..]
 # Test: Init with custom sync branch
 
 ```console
-$ cd custom-repo && node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs init --sync-branch custom-sync --remote upstream
+$ cd custom-repo && tbd init --sync-branch custom-sync --remote upstream
 ✓ Initialized tbd repository
 
 To complete setup, commit the config files:
@@ -194,7 +196,7 @@ To complete setup, commit the config files:
 # Test: Verify custom config values
 
 ```console
-$ cd custom-repo && node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs info
+$ cd custom-repo && tbd info
 tbd version [..]
 
 Working directory: [..]
@@ -213,7 +215,7 @@ Total issues: 0
 # Test: Commands require init first
 
 ```console
-$ mkdir uninit-repo && cd uninit-repo && git init --initial-branch=main && git config user.email "test@example.com" && git config user.name "Test" && node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs list 2>&1
+$ mkdir uninit-repo && cd uninit-repo && git init --initial-branch=main && git config user.email "test@example.com" && git config user.name "Test" && tbd list 2>&1
 Initialized empty Git repository in [..]
 Error: Not a tbd repository. Run "tbd init" first.
 ? 1
@@ -222,7 +224,7 @@ Error: Not a tbd repository. Run "tbd init" first.
 # Test: Info on uninitialized repo
 
 ```console
-$ cd uninit-repo && node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs info 2>&1
+$ cd uninit-repo && tbd info 2>&1
 tbd version [..]
 
 Not initialized[..]
