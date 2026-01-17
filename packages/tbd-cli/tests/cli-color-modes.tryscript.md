@@ -104,11 +104,13 @@ $ tbd --color=always create "Another issue" -t bug
 
 # Test: List with --color=never produces clean output
 
+Note: --sort=created sorts by newest first (descending).
+
 ```console
-$ tbd --color=never list
-ID[..]PRI[..]STATUS[..]TITLE
-bd-[..]2[..]open[..]Test issue
-bd-[..]2[..]open[..]Another issue
+$ tbd --color=never list --sort=created
+ID          PRI  STATUS        TITLE
+bd-[..]     2    open          Another issue
+bd-[..]     2    open          Test issue
 
 2 issue(s)
 ? 0
@@ -117,17 +119,8 @@ bd-[..]2[..]open[..]Another issue
 # Test: List JSON ignores color flag (JSON is always colorless)
 
 ```console
-$ tbd --color=always list --json
+$ tbd --color=always list --json --sort=created
 [
-  {
-    "id": "bd-[..]",
-    "internalId": "is-[..]",
-    "priority": 2,
-    "status": "open",
-    "kind": "task",
-    "title": "Test issue",
-    "labels": []
-  },
   {
     "id": "bd-[..]",
     "internalId": "is-[..]",
@@ -135,6 +128,15 @@ $ tbd --color=always list --json
     "status": "open",
     "kind": "bug",
     "title": "Another issue",
+    "labels": []
+  },
+  {
+    "id": "bd-[..]",
+    "internalId": "is-[..]",
+    "priority": 2,
+    "status": "open",
+    "kind": "task",
+    "title": "Test issue",
     "labels": []
   }
 ]
@@ -176,10 +178,10 @@ These tests verify NO_COLOR environment variable is respected.
 # Test: NO_COLOR=1 disables colors (baseline for deterministic testing)
 
 ```console
-$ NO_COLOR=1 tbd list
-ID[..]PRI[..]STATUS[..]TITLE
-bd-[..]2[..]open[..]Test issue
-bd-[..]2[..]open[..]Another issue
+$ NO_COLOR=1 tbd list --sort=created
+ID          PRI  STATUS        TITLE
+bd-[..]     2    open          Another issue
+bd-[..]     2    open          Test issue
 
 2 issue(s)
 ? 0
