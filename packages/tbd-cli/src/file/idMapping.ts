@@ -12,7 +12,13 @@ import { join, dirname } from 'node:path';
 import { writeFile } from 'atomically';
 import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
 
-import { generateShortId, extractUlidFromInternalId } from '../lib/ids.js';
+import {
+  generateShortId,
+  extractUlidFromInternalId,
+  makeInternalId,
+  isInternalId,
+  extractShortId,
+} from '../lib/ids.js';
 import { naturalSort } from '../lib/sort.js';
 
 /**
@@ -166,38 +172,32 @@ export function createShortIdMapping(internalId: string, mapping: IdMapping): st
 }
 
 /**
- * Resolve any ID input to an internal ID (is-{ulid}).
+ * Resolve any ID input to an internal ID ({prefix}-{ulid}).
  *
  * Handles:
- * - Internal IDs: is-{ulid} -> is-{ulid}
- * - Short IDs: a7k2 -> is-{ulid from mapping}
- * - Prefixed short IDs: bd-a7k2 -> is-{ulid from mapping}
+ * - Internal IDs: {prefix}-{ulid} -> {prefix}-{ulid}
+ * - Short IDs: a7k2 -> {prefix}-{ulid from mapping}
+ * - Prefixed short IDs: bd-a7k2 -> {prefix}-{ulid from mapping}
  *
  * @param input - The ID input (short ID, prefixed short ID, or internal ID)
  * @param mapping - The ID mapping for short ID resolution
- * @returns The internal ID (is-{ulid})
+ * @returns The internal ID ({prefix}-{ulid})
  * @throws If the short ID is not found in the mapping
  */
 export function resolveToInternalId(input: string, mapping: IdMapping): string {
   const lower = input.toLowerCase();
 
   // If it's already an internal ID, return it
-  if (lower.startsWith('is-') && lower.length === 29) {
+  if (isInternalId(lower)) {
     return lower;
   }
 
-  // Extract short ID from input
-  let shortId: string;
-  if (lower.startsWith('bd-') || lower.startsWith('is-')) {
-    // Remove prefix
-    shortId = lower.slice(3);
-  } else {
-    shortId = lower;
-  }
+  // Extract the short ID portion (strips any prefix like "bd-" or "is-")
+  const shortId = extractShortId(lower);
 
   // If it's a full ULID (26 chars), it might be a bare internal ID
   if (shortId.length === 26 && /^[0-9a-z]{26}$/.test(shortId)) {
-    return `is-${shortId}`;
+    return makeInternalId(shortId);
   }
 
   // Must be a short ID - look it up in the mapping
@@ -206,5 +206,5 @@ export function resolveToInternalId(input: string, mapping: IdMapping): string {
     throw new Error(`Unknown issue ID: ${input}. ` + `Short ID "${shortId}" not found in mapping.`);
   }
 
-  return `is-${ulid}`;
+  return makeInternalId(ulid);
 }
