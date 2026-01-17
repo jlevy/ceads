@@ -162,6 +162,30 @@ This is not actually a problem - it's expected for a fresh repo with no issues.
 
 ---
 
+### Bug #5: Import Changes ID Prefix (Migration UX Issue)
+
+**Severity**: Medium
+**Location**: `src/cli/commands/import.ts`
+
+When importing from Beads, the ID prefix changes based on local config rather than preserving the original:
+
+```bash
+# Original Beads ID
+tbd-100
+
+# After import with config `display.id_prefix: "bd"`
+bd-100
+```
+
+The numeric short ID ("100") is preserved, but users who had muscle memory for `tbd-100` now need to use `bd-100`. The original ID is stored in `extensions.beads.original_id` but this doesn't help day-to-day usage.
+
+**Recommendation**: Either:
+1. Auto-detect prefix from Beads IDs during import and set config accordingly
+2. Add `--preserve-prefix` flag to import command
+3. Document this clearly as expected behavior in migration guide
+
+---
+
 ## Design Improvement Ideas
 
 ### Short-term Improvements
@@ -354,15 +378,17 @@ $ tbd import --from-beads --verbose
 ```
 
 **Import Works Well:**
-- Preserves issue IDs (tbd-100 → bd-100)
+- Preserves short ID numeric portion (100 from tbd-100 → bd-100)
 - Maps status values correctly
 - Handles tombstoned issues
-- Stores original Beads ID in extensions
+- Stores original Beads ID in `extensions.beads.original_id`
 
 **Import Limitations:**
+- **ID prefix changes**: `tbd-100` becomes `bd-100` because the prefix comes from local config (`display.id_prefix`), not the source. This could confuse users expecting identical IDs.
 - `blocked_by` dependencies not fully handled (only `blocks` direction)
 - Beads molecules/wisps not imported (by design)
 - No validation against running Beads daemon
+- No option to preserve original prefix during import
 
 ### Compatibility
 
