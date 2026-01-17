@@ -15,7 +15,7 @@ import { access, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
 
-import { VERSION } from '../../index.js';
+import { VERSION } from '../lib/version.js';
 import { BaseCommand } from '../lib/baseCommand.js';
 import { readConfig } from '../../file/config.js';
 import { listIssues } from '../../file/storage.js';

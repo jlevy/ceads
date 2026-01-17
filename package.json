@@ -29,8 +29,10 @@
     "upgrade:check": "ncu --format group",
     "upgrade": "ncu --target minor -u && pnpm install && pnpm test",
     "upgrade:major": "ncu --target latest --interactive --format group",
-    "tbd": "tsx packages/tbd-cli/src/cli/bin.ts",
-    "tbd:bin": "node packages/tbd-cli/dist/bin.js"
+    "tbd": "TBD_DEV_VERSION=$(node packages/tbd-cli/scripts/git-version.mjs) tsx packages/tbd-cli/src/cli/bin.ts",
+    "tbd:bin": "node packages/tbd-cli/dist/bin.js",
+    "test:install": "pnpm --filter tbd-cli test:install",
+    "test:uninstall": "pnpm --filter tbd-cli test:uninstall"
   },
   "devDependencies": {
     "@changesets/cli": "^2.29.8",

@@ -667,7 +667,7 @@ This provides traceability during development without manual version bumps.
 | On tag | `X.Y.Z` | `1.2.3` |
 | After tag | `X.Y.Z-dev.N.hash` | `1.2.4-dev.12.a1b2c3d` |
 | Dirty working dir | `X.Y.Z-dev.N.hash-dirty` | `1.2.4-dev.12.a1b2c3d-dirty` |
-| No tags | `0.0.0-dev.0.hash` | `0.0.0-dev.0.a1b2c3d` |
+| No tags | `X.Y.Z-dev.N.hash` | `0.1.0-dev.42.a1b2c3d` (uses package.json version + total commits) |
 
 **Key design decisions**:
 
@@ -679,31 +679,92 @@ This provides traceability during development without manual version bumps.
 
 3. **Dirty marker**: Identifies uncommitted changes during development
 
-**Implementation in tsdown.config.ts**:
+4. **No git dependency in runtime**: The published package should not depend on git
+   being present. Git version detection happens only at build time or in dev scripts.
 
-```ts
+5. **Single source of truth**: Extract version logic to a shared script that both the
+   build config and dev scripts can use.
+
+**Why roll your own?**
+
+No npm package provides build-time git version injection with env var support for dev mode:
+
+| Package | Issue |
+| --- | --- |
+| [git-describe](https://github.com/tvdstaaij/node-git-describe) | Last updated 2019, abandoned |
+| [version-from-git](https://github.com/compulim/version-from-git) | Modifies package.json, not build-time injection |
+| [esbuild-plugin-version-injector](https://github.com/favware/esbuild-plugin-version-injector) | Only injects package.json version, no git info |
+| [rollup-plugin-git-version](https://www.npmjs.com/package/rollup-plugin-git-version) | Rollup-only, abandoned (2018) |
+
+The ~60 lines of custom code is dependency-free, bundler-agnostic, and handles all edge cases
+(no tags, dirty state, dev mode). Python's [setuptools-scm](https://github.com/pypa/setuptools-scm)
+is the gold standard; this pattern is "setuptools-scm lite" for Node.js.
+
+**Architecture Overview**:
+
+The versioning system works in three contexts:
+
+| Context | Version Source | Example |
+| --- | --- | --- |
+| Production build | Build-time injection via `__TBD_VERSION__` | `1.2.4-dev.12.a1b2c3d` |
+| Dev mode (tsx) | Environment variable `TBD_DEV_VERSION` | `1.2.4-dev.12.a1b2c3d` |
+| Fallback | package.json version | `0.1.0` |
+
+**File Structure**:
+
+```
+packages/my-cli/
+├── scripts/
+│   ├── git-version.mjs      # Shared git version logic (not distributed)
+│   └── git-version.d.mts    # TypeScript declarations
+├── src/
+│   ├── index.ts             # Library entry with VERSION constant
+│   └── cli/
+│       └── lib/
+│           └── version.ts   # CLI version resolution (no git dependency)
+└── tsdown.config.ts         # Imports from scripts/git-version.mjs
+```
+
+**Step 1: Shared Git Version Script** (`scripts/git-version.mjs`):
+
+```js
+/* global process, console */
+/**
+ * Git-based version detection for build and dev scripts.
+ * Format: X.Y.Z-dev.N.hash
+ */
 import { execSync } from 'node:child_process';
-import { defineConfig } from 'tsdown';
-import pkg from './package.json' with { type: 'json' };
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
 
-function getGitVersion(): string {
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const pkgPath = join(__dirname, '../package.json');
+const pkg = JSON.parse(readFileSync(pkgPath, 'utf-8'));
+
+function git(args) {
+  return execSync(`git ${args}`, { encoding: 'utf-8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
+}
+
+function isDirty() {
   try {
-    const git = (args: string) =>
-      execSync(`git ${args}`, { encoding: 'utf-8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
+    git('diff --quiet');
+    git('diff --cached --quiet');
+    return false;
+  } catch {
+    return true;
+  }
+}
 
+export function getGitVersion() {
+  // Try tag-based version first
+  try {
     const tag = git('describe --tags --abbrev=0');
     const tagVersion = tag.replace(/^v/, '');
     const [major, minor, patch] = tagVersion.split('.').map(Number);
     const commitsSinceTag = parseInt(git(`rev-list ${tag}..HEAD --count`), 10);
     const hash = git('rev-parse --short=7 HEAD');
-
-    let dirty = false;
-    try {
-      git('diff --quiet');
-      git('diff --cached --quiet');
-    } catch {
-      dirty = true;
-    }
+    const dirty = isDirty();
 
     if (commitsSinceTag === 0 && !dirty) {
       return tagVersion;
@@ -713,25 +774,115 @@ function getGitVersion(): string {
     const suffix = dirty ? `${hash}-dirty` : hash;
     return `${major}.${minor}.${bumpedPatch}-dev.${commitsSinceTag}.${suffix}`;
   } catch {
-    return pkg.version;
+    // No tags - use package.json version with total commit count
+    try {
+      const totalCommits = parseInt(git('rev-list --count HEAD'), 10);
+      const hash = git('rev-parse --short=7 HEAD');
+      const dirty = isDirty();
+      const suffix = dirty ? `${hash}-dirty` : hash;
+      return `${pkg.version}-dev.${totalCommits}.${suffix}`;
+    } catch {
+      // Not a git repo
+      return pkg.version;
+    }
   }
 }
+
+// When run directly, print version to stdout
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  console.log(getGitVersion());
+}
+```
+
+**Step 2: TypeScript Declarations** (`scripts/git-version.d.mts`):
+
+```ts
+/**
+ * Get git-based version string.
+ * Format: X.Y.Z-dev.N.hash
+ */
+export function getGitVersion(): string;
+```
+
+**Step 3: Build Config** (`tsdown.config.ts`):
+
+```ts
+import { defineConfig } from 'tsdown';
+import { getGitVersion } from './scripts/git-version.mjs';
+
+const version = getGitVersion();
 
 export default defineConfig({
   // ...
   define: {
-    __VERSION__: JSON.stringify(getGitVersion()),
+    __TBD_VERSION__: JSON.stringify(version),
   },
 });
 ```
 
-**Library usage**:
+**Step 4: Library Entry** (`src/index.ts`):
 
 ```ts
-// src/index.ts
-declare const __VERSION__: string;
-export const VERSION: string = typeof __VERSION__ !== 'undefined' ? __VERSION__ : 'development';
+declare const __TBD_VERSION__: string;
+
+export const VERSION: string =
+  typeof __TBD_VERSION__ !== 'undefined' ? __TBD_VERSION__ : 'development';
 ```
+
+**Step 5: CLI Version Module** (`src/cli/lib/version.ts`):
+
+```ts
+/**
+ * CLI version detection - no git dependency at runtime
+ *
+ * Priority:
+ * 1. Build-time injected __TBD_VERSION__ (production builds)
+ * 2. TBD_DEV_VERSION env var (dev mode, set by pnpm tbd script)
+ * 3. package.json version (fallback)
+ */
+import { createRequire } from 'node:module';
+import { VERSION as BUILD_VERSION } from '../../index.js';
+
+function getVersion(): string {
+  // 1. Build-time injected version (production)
+  if (BUILD_VERSION !== 'development') {
+    return BUILD_VERSION;
+  }
+
+  // 2. Dev mode env var (set by pnpm tbd script)
+  if (process.env.TBD_DEV_VERSION) {
+    return process.env.TBD_DEV_VERSION;
+  }
+
+  // 3. Fallback to package.json version
+  const require = createRequire(import.meta.url);
+  const pkg = require('../../../package.json') as { version: string };
+  return pkg.version;
+}
+
+export const VERSION = getVersion();
+```
+
+**Step 6: Dev Script** (`package.json`):
+
+```json
+{
+  "scripts": {
+    "dev": "TBD_DEV_VERSION=$(node scripts/git-version.mjs) tsx src/cli/bin.ts"
+  }
+}
+```
+
+**Why This Pattern**:
+
+| Concern | Solution |
+| --- | --- |
+| No git in runtime | Git logic only in scripts/ (not distributed) |
+| Dev mode works | Env var passes version from script to tsx |
+| Production works | Build-time injection via define |
+| Single source of truth | One implementation in git-version.mjs |
+| TypeScript support | Declaration file for type checking |
+| Fallback safety | Graceful degradation to package.json |
 
 **Comparison with Python (uv-dynamic-versioning)**:
 
@@ -740,11 +891,12 @@ export const VERSION: string = typeof __VERSION__ !== 'undefined' ? __VERSION__ 
 | Format | `1.2.4-dev.12.a1b2c3d` | `1.2.4.dev12+a1b2c3d` |
 | Metadata handling | In pre-release (preserved) | Local version `+` (may be stripped) |
 | Sorting | Standard semver | PEP 440 compliant |
-| Configuration | In bundler config | In `pyproject.toml` |
+| Configuration | Shared script + bundler config | In `pyproject.toml` |
 
-**Assessment**: Dynamic versioning complements Changesets—use Changesets for releases
-and git-based versioning for development builds.
-This provides full traceability without manual intervention.
+**Assessment**: This pattern provides the best balance of flexibility, maintainability,
+and runtime independence. Dynamic versioning complements Changesets—use Changesets for
+releases and git-based versioning for development builds, with zero git dependency in
+the published package.
 
 * * *
 
