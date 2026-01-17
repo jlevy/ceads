@@ -23,7 +23,7 @@ import {
   saveIdMapping,
   addIdMapping,
   hasShortId,
-  type IdMapping as ShortIdMapping,
+  generateUniqueShortId,
 } from '../../file/idMapping.js';
 import { IssueStatus, IssueKind } from '../../lib/schemas.js';
 import type { Issue, IssueStatusType, IssueKindType, DependencyType } from '../../lib/types.js';
@@ -498,7 +498,7 @@ class ImportHandler extends BaseCommand {
         beadsTotbd[beads.id] = internalId;
         // Generate a random short ID since the original is taken
         const ulid = extractUlidFromInternalId(internalId);
-        const newShortId = this.generateUniqueShortId(shortIdMapping);
+        const newShortId = generateUniqueShortId(shortIdMapping);
         addIdMapping(shortIdMapping, ulid, newShortId);
       } else {
         // Create new mapping, preserving the original short ID
@@ -629,26 +629,6 @@ class ImportHandler extends BaseCommand {
     } catch {
       return [];
     }
-  }
-
-  /**
-   * Generate a unique short ID that doesn't collide with existing ones.
-   */
-  private generateUniqueShortId(mapping: ShortIdMapping): string {
-    const chars = '0123456789abcdefghijklmnopqrstuvwxyz';
-    const MAX_ATTEMPTS = 20;
-
-    for (let i = 0; i < MAX_ATTEMPTS; i++) {
-      let result = '';
-      for (let j = 0; j < 4; j++) {
-        result += chars[Math.floor(Math.random() * 36)];
-      }
-      if (!mapping.shortToUlid.has(result)) {
-        return result;
-      }
-    }
-
-    throw new Error('Failed to generate unique short ID after maximum attempts');
   }
 
   /**

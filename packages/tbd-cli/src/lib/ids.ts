@@ -50,16 +50,16 @@ export function generateInternalId(): string {
 
 /**
  * Generate a short ID for external display.
- * Format: 4 base36 characters (a-z, 0-9)
+ * Format: base36 characters (a-z, 0-9)
  * Example: a7k2
  *
- * This provides ~1.7 million possibilities, sufficient for most projects.
+ * @param length - Number of characters (default 4)
  */
-export function generateShortId(): string {
+export function generateShortId(length = 4): string {
   const chars = '0123456789abcdefghijklmnopqrstuvwxyz';
   let result = '';
-  const bytes = randomBytes(4);
-  for (let i = 0; i < 4; i++) {
+  const bytes = randomBytes(length);
+  for (let i = 0; i < length; i++) {
     result += chars[bytes[i]! % 36];
   }
   return result;

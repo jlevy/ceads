@@ -34,6 +34,7 @@ import { configCommand } from './commands/config.js';
 import { atticCommand } from './commands/attic.js';
 import { importCommand } from './commands/import.js';
 import { docsCommand } from './commands/docs.js';
+import { designCommand } from './commands/design.js';
 import { readmeCommand } from './commands/readme.js';
 import { uninstallCommand } from './commands/uninstall.js';
 import { primeCommand } from './commands/prime.js';
@@ -88,6 +89,7 @@ function createProgram(): Command {
   program.addCommand(atticCommand);
   program.addCommand(importCommand);
   program.addCommand(docsCommand);
+  program.addCommand(designCommand);
   program.addCommand(readmeCommand);
   program.addCommand(uninstallCommand);
   program.addCommand(primeCommand);

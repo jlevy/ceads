@@ -92,21 +92,45 @@ export async function saveIdMapping(baseDir: string, mapping: IdMapping): Promis
 }
 
 /**
+ * Calculate the optimal short ID length based on existing ID count.
+ *
+ * At 50K issues, switches from 4-char to 5-char IDs to keep
+ * collision probability low (~3% per attempt with 4 chars at 50K).
+ *
+ * With 10 retries per length, actual failure probability is astronomically low.
+ */
+export function calculateOptimalLength(existingCount: number): number {
+  return existingCount < 50_000 ? 4 : 5;
+}
+
+/**
  * Generate a unique short ID that doesn't collide with existing ones.
+ *
+ * Calculates optimal length (4 or 5 chars) based on existing ID count,
+ * then retries with the next length if collisions occur.
+ *
  * @returns The new short ID
  * @throws If unable to generate a unique ID after max attempts
  */
 export function generateUniqueShortId(mapping: IdMapping): string {
-  const MAX_ATTEMPTS = 20;
+  const ATTEMPTS_PER_LENGTH = 10;
+  const existingCount = mapping.shortToUlid.size;
+  const optimalLength = calculateOptimalLength(existingCount);
 
-  for (let i = 0; i < MAX_ATTEMPTS; i++) {
-    const shortId = generateShortId();
-    if (!mapping.shortToUlid.has(shortId)) {
-      return shortId;
+  // Try optimal length first, then fall back to longer if needed
+  for (const length of [optimalLength, optimalLength + 1]) {
+    for (let attempt = 0; attempt < ATTEMPTS_PER_LENGTH; attempt++) {
+      const shortId = generateShortId(length);
+      if (!mapping.shortToUlid.has(shortId)) {
+        return shortId;
+      }
     }
   }
 
-  throw new Error('Failed to generate unique short ID after maximum attempts');
+  throw new Error(
+    `Failed to generate unique short ID after 20 attempts with ${existingCount} existing IDs. ` +
+      `This should be extremely rare - please report if you see this error.`,
+  );
 }
 
 /**

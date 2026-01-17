@@ -3,7 +3,7 @@
 
 /**
  * Cross-platform script to copy docs for build.
- * Copies tbd-docs.md and README.md to src/docs (prebuild) and dist/docs (postbuild).
+ * Copies tbd-docs.md, tbd-design.md, and README.md to src/docs (prebuild) and dist/docs (postbuild).
  */
 
 import { mkdirSync, copyFileSync } from 'node:fs';
@@ -20,11 +20,13 @@ if (phase === 'prebuild') {
   const srcDocs = join(root, 'src', 'docs');
   mkdirSync(srcDocs, { recursive: true });
   copyFileSync(join(repoRoot, 'docs', 'tbd-docs.md'), join(srcDocs, 'tbd-docs.md'));
+  copyFileSync(join(repoRoot, 'docs', 'tbd-design.md'), join(srcDocs, 'tbd-design.md'));
   copyFileSync(join(repoRoot, 'README.md'), join(srcDocs, 'README.md'));
 } else if (phase === 'postbuild') {
   const distDocs = join(root, 'dist', 'docs');
   mkdirSync(distDocs, { recursive: true });
   copyFileSync(join(root, 'src', 'docs', 'tbd-docs.md'), join(distDocs, 'tbd-docs.md'));
+  copyFileSync(join(root, 'src', 'docs', 'tbd-design.md'), join(distDocs, 'tbd-design.md'));
   copyFileSync(join(root, 'src', 'docs', 'README.md'), join(distDocs, 'README.md'));
   copyFileSync(join(root, 'dist', 'bin.mjs'), join(root, 'dist', 'tbd'));
 }
