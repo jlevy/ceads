@@ -48,20 +48,14 @@ export function generateInternalId(): string {
   return makeInternalId(ulid());
 }
 
-/** Default short ID length (4 chars = 36^4 = ~1.7M possibilities) */
-export const DEFAULT_SHORT_ID_LENGTH = 4;
-
-/** Maximum short ID length (8 chars = 36^8 = ~2.8 trillion possibilities) */
-export const MAX_SHORT_ID_LENGTH = 8;
-
 /**
  * Generate a short ID for external display.
- * Format: base36 characters (a-z, 0-9), default 4 chars
+ * Format: base36 characters (a-z, 0-9)
  * Example: a7k2
  *
  * @param length - Number of characters (default 4)
  */
-export function generateShortId(length: number = DEFAULT_SHORT_ID_LENGTH): string {
+export function generateShortId(length = 4): string {
   const chars = '0123456789abcdefghijklmnopqrstuvwxyz';
   let result = '';
   const bytes = randomBytes(length);
