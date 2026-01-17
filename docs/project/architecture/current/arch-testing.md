@@ -42,21 +42,23 @@ Tests are organized by **what they require to run**:
 
 ```
 ┌───────────────────────────────────────────────────┐
-│              Performance (~2 min)                  │  Large datasets
+│              Performance (7 tests)                 │  Large datasets
 │        (Validates timing targets)                  │  1000+ issues
 ├───────────────────────────────────────────────────┤
-│    Tryscript Golden (~2.5 min, 318 tests)         │  CLI subprocess
+│    Tryscript Golden (~2.5 min, 334 tests)         │  CLI subprocess
 │     (Markdown-based, pattern matching)            │  Primary golden testing
 ├───────────────────────────────────────────────────┤
 │      Vitest Golden (~50 sec, 7 scenarios)         │  CLI subprocess
 │     (YAML-based, exact comparison)                │  Supplementary golden
 ├───────────────────────────────────────────────────┤
-│            Integration (~1 min)                    │  Temp directories
+│        Integration (~1 min, 50 tests)             │  Temp directories
 │        (File I/O, multi-component)                │  Data round-trips
 ├───────────────────────────────────────────────────┤
-│              Unit (~30 sec)                        │  No I/O
+│          Unit (~30 sec, 108 tests)                │  No I/O
 │        (Pure functions, schemas)                   │  Mocked boundaries
 └───────────────────────────────────────────────────┘
+
+Total: 172 vitest tests + 334 tryscript tests = 506 tests
 ```
 
 ## Terminology
@@ -146,7 +148,7 @@ with embedded console blocks that specify expected command output. Tryscript han
 
 **When to run**: Every commit
 
-**Current Coverage (318 tests across 12 files):**
+**Current Coverage (334 tests across 13 files):**
 
 | File | Tests | Commands Covered |
 | --- | --- | --- |
@@ -162,6 +164,7 @@ with embedded console blocks that specify expected command output. Tryscript han
 | `cli-id-format.tryscript.md` | ~20 | ID format validation |
 | `cli-import-status.tryscript.md` | ~15 | status mapping coverage |
 | `cli-edge-cases.tryscript.md` | ~10 | error handling edge cases |
+| `cli-color-modes.tryscript.md` | ~16 | --color flag, NO_COLOR env var |
 
 **Tryscript File Format:**
 
@@ -170,24 +173,33 @@ with embedded console blocks that specify expected command output. Tryscript han
 sandbox: true
 env:
   NO_COLOR: '1'
+  FORCE_COLOR: '0'
+path:
+  - ../dist
 timeout: 30000
 patterns:
   ULID: '[0-9a-z]{26}'
-  TIMESTAMP: "\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}"
+  TIMESTAMP: "\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d+)?Z"
 before: |
   git init --initial-branch=main
   git config user.email "test@example.com"
   git config user.name "Test User"
+  echo "# Test repo" > README.md
+  git add README.md
+  git commit -m "Initial commit"
 ---
 
 # Test: Create an issue
 
 \`\`\`console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs create "Test issue" -t task
+$ tbd create "Test issue" -t task
 ✓ Created bd-[..]: Test issue
 ? 0
 \`\`\`
 ```
+
+The `path` option (tryscript 0.1.5+) adds `../dist` to the PATH, enabling clean `tbd` commands
+instead of verbose `node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs` invocations.
 
 ### 4. Vitest Golden Tests (CI-Safe) — Supplementary
 
@@ -219,20 +231,38 @@ test setup or need additional assertions beyond output matching.
 | `dry-run` | create --dry-run |
 | `info-command` | info --json |
 
-### 5. Performance Tests (Optional)
+### 5. Performance Tests (CI-Safe)
 
-**Pattern**: `*.perf.test.ts`
+**Pattern**: `performance.test.ts`
 
-**Command**: `pnpm test:perf`
+**Command**: `pnpm test` (included in default run)
 
-**Timeout**: 5 minutes per test
+**Timeout**: 2 minutes per test suite
 
-Performance tests validate <50ms operation targets with 1000+ issues.
-They use mocked data but take significant time to generate and verify.
+Performance tests validate operation timing targets with 1000+ issues:
 
-**Requirements**: None - just takes time
+- Single issue write: <50ms
+- 100 issues write: <3000ms (30ms avg)
+- 1000 issues list: <2000ms
+- Single issue read: <10ms
+- In-memory filtering: <50ms
+- In-memory sorting: <50ms
 
-**When to run**: After modifying storage layer, before releases
+**Requirements**: None - uses temp directories
+
+**When to run**: Every commit (relaxed thresholds for CI environments)
+
+**Current Coverage (7 tests):**
+
+| Test | Target | Description |
+| --- | --- | --- |
+| writes single issue | <50ms | Single atomic write |
+| writes 100 issues | <3s | Batch write throughput |
+| lists 1000 issues | <2s | Full directory scan |
+| reads single issue | <10ms | Random access read |
+| reads 100 random | <500ms | Multi-read throughput |
+| filters 1000 by status | <50ms | In-memory filtering |
+| sorts 1000 by priority | <50ms | In-memory sorting |
 
 ## When to Use Golden Tests vs. Traditional Integration Tests
 
@@ -252,29 +282,36 @@ They use mocked data but take significant time to generate and verify.
 
 ```
 tests/
-├── golden/                    # Golden tests (CLI integration)
-│   ├── golden.test.ts         # Test runner
-│   ├── runner.ts              # Infrastructure
-│   ├── README.md              # Usage docs
-│   └── scenarios/             # Golden baselines (YAML)
+├── golden/                       # Vitest golden tests (CLI integration)
+│   ├── golden.test.ts            # Test runner
+│   ├── runner.ts                 # Infrastructure
+│   ├── README.md                 # Usage docs
+│   └── scenarios/                # Golden baselines (YAML)
 │       ├── core-workflow.yaml
 │       ├── update-close.yaml
 │       └── ...
-├── test-helpers.ts            # Shared test utilities
-├── TESTING.md                 # Testing documentation
-├── schemas.test.ts            # Unit: Zod schemas
-├── ids.test.ts                # Unit: ID generation/resolution
-├── hash.test.ts               # Unit: Content hashing
-├── parser.test.ts             # Unit: YAML parsing
-├── merge.test.ts              # Unit: Merge strategies
-├── errors.test.ts             # Unit: Error formatting
-├── storage.test.ts            # Integration: File I/O
-├── config.test.ts             # Integration: Config files
-├── workflow.test.ts           # Integration: Workflow logic
-├── close-reopen.test.ts       # Integration: State transitions
-├── label-depends.test.ts      # Integration: Labels/deps
-├── doctor-sync.test.ts        # Integration: Health checks
-└── attic-import.test.ts       # Integration: Import/attic
+├── test-helpers.ts               # Shared test utilities
+├── schemas.test.ts               # Unit: Zod schemas
+├── ids.test.ts                   # Unit: ID generation/resolution
+├── hash.test.ts                  # Unit: Content hashing
+├── parser.test.ts                # Unit: YAML parsing
+├── merge.test.ts                 # Unit: Merge strategies
+├── errors.test.ts                # Unit: Error formatting
+├── storage.test.ts               # Integration: File I/O
+├── config.test.ts                # Integration: Config files
+├── workflow.test.ts              # Integration: Workflow logic
+├── close-reopen.test.ts          # Integration: State transitions
+├── label-depends.test.ts         # Integration: Labels/deps
+├── doctor-sync.test.ts           # Integration: Health checks
+├── attic-import.test.ts          # Integration: Import/attic
+├── performance.test.ts           # Performance: Large dataset tests
+├── cli-setup.tryscript.md        # Tryscript: init, info, help
+├── cli-crud.tryscript.md         # Tryscript: create, show, update, list
+├── cli-workflow.tryscript.md     # Tryscript: ready, blocked, stale
+├── cli-advanced.tryscript.md     # Tryscript: search, sync, doctor
+├── cli-import.tryscript.md       # Tryscript: import validation
+├── cli-color-modes.tryscript.md  # Tryscript: --color flag, NO_COLOR
+└── ...                           # (7 more tryscript files)
 ```
 
 ## Golden Test Infrastructure
@@ -469,11 +506,11 @@ git diff tests/golden/scenarios/   # Review changes
 
 ## Test Script Organization
 
-```
-test                    # Full test suite (unit + integration + golden)
-test:unit               # Unit tests only
-test:coverage           # Coverage report
-test:watch              # Watch mode for TDD
+```bash
+pnpm test               # Full vitest suite (unit + integration + golden + performance)
+pnpm test:tryscript     # Tryscript CLI tests (334 tests)
+pnpm test:coverage      # Combined coverage report (vitest + tryscript)
+pnpm test:watch         # Watch mode for TDD
 ```
 
 ## Choosing the Right Test Category
@@ -585,7 +622,8 @@ Data Flow for Golden Tests:
 
 - [Golden Testing Guidelines](../../general/agent-guidelines/golden-testing-guidelines.md) - Core
   methodology
-- [vitest](https://vitest.dev/) - Test runner
+- [TDD Guidelines](../../general/agent-guidelines/general-tdd-guidelines.md) - Test-driven development
+- [vitest](https://vitest.dev/) - Test runner for unit/integration/golden tests
+- [tryscript](https://github.com/jlevy/tryscript) - Markdown-based CLI test runner
 - [picocolors](https://github.com/alexeyraspopov/picocolors) - Color output (tested with NO_COLOR)
 - [commander.js](https://github.com/tj/commander.js) - CLI framework
-- [Tests README](../../../packages/tbd-cli/tests/TESTING.md) - Quick reference for developers
