@@ -19,9 +19,9 @@ before: |
   git commit -m "Initial commit"
 ---
 
-# TBD CLI: Setup and Info Commands
+# TBD CLI: Setup and Status Commands
 
-This tryscript validates initialization, help, version, and info commands.
+This tryscript validates initialization, help, version, and status commands.
 
 ---
 
@@ -65,7 +65,7 @@ Commands:
   depends                   Manage issue dependencies
   sync [options]            Synchronize with remote
   search [options] <query>  Search issues by text
-  info                      Show repository information
+  status                    Show repository status and orientation
   stats                     Show repository statistics
   doctor [options]          Diagnose and repair repository
   config                    Manage configuration
@@ -128,32 +128,48 @@ To complete setup, commit the config files:
 ? 0
 ```
 
-# Test: Info before any issues
+# Test: Status before any issues
 
 ```console
-$ tbd info
-tbd version [..]
+$ tbd status
+Tbd v[..]
 
-Working directory: [..]
-Config file: .tbd/config.yml
+Repository: [..]
+  ✓ Initialized (.tbd/)
+  ✓ Git repository (main)
+
 Sync branch: tbd-sync
 Remote: origin
 ID prefix: bd-
-Total issues: 0
+
+Issues:
+  Ready:       0
+  In progress: 0
+  Open:        0
+  Total:       0
+
+Integrations:
+  ✗ Claude Code hooks (run: tbd setup claude)
+  ✗ Cursor rules (run: tbd setup cursor)
+  ✗ Codex AGENTS.md (run: tbd setup codex)
+
+Worktree: [..] (healthy)
+
+Use 'tbd stats' for detailed issue statistics.
 ? 0
 ```
 
-# Test: Info as JSON
+# Test: Status as JSON
 
 ```console
-$ tbd info --json
+$ tbd status --json
 {
-  "version": [..],
   "initialized": true,
-  "workingDirectory": [..],
-  "configFile": ".tbd/config.yml",
-  "syncBranch": "tbd-sync",
-  "remote": "origin",
+  "tbd_version": [..],
+  "working_directory": [..],
+  "git_repository": true,
+  "git_branch": "main",
+  "beads_detected": false,
 ...
 }
 ? 0
@@ -198,15 +214,31 @@ To complete setup, commit the config files:
 # Test: Verify custom config values
 
 ```console
-$ cd custom-repo && tbd info
-tbd version [..]
+$ cd custom-repo && tbd status
+Tbd v[..]
 
-Working directory: [..]
-Config file: .tbd/config.yml
+Repository: [..]
+  ✓ Initialized (.tbd/)
+  ✓ Git repository[..]
+
 Sync branch: [..]
 Remote: [..]
 ID prefix: bd-
-Total issues: 0
+
+Issues:
+  Ready:       0
+  In progress: 0
+  Open:        0
+  Total:       0
+
+Integrations:
+  ✗ Claude Code hooks (run: tbd setup claude)
+  ✗ Cursor rules (run: tbd setup cursor)
+  ✗ Codex AGENTS.md (run: tbd setup codex)
+
+Worktree: [..] (healthy)
+
+Use 'tbd stats' for detailed issue statistics.
 ? 0
 ```
 
@@ -223,12 +255,18 @@ Error: Not a tbd repository (run 'tbd init' or 'tbd import --from-beads' first)
 ? 1
 ```
 
-# Test: Info on uninitialized repo
+# Test: Status on uninitialized repo
 
 ```console
-$ cd uninit-repo && tbd info 2>&1
-tbd version [..]
+$ cd uninit-repo && tbd status 2>&1
+Not a tbd repository.
 
-Not initialized[..]
+Detected:
+  ✓ Git repository[..]
+  ✗ Beads not detected
+  ✗ Tbd not initialized
+
+To get started:
+  tbd init                  # Start fresh
 ? 0
 ```

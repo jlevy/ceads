@@ -113,60 +113,10 @@ $ tbd prime | grep -c "Essential Commands"
 ? 0
 ```
 
----
-
-## Prime with --full Flag
-
-# Test: Prime --full forces full CLI output
-
-The --full flag forces full CLI output even if MCP mode would be auto-detected.
+# Test: Prime output contains command reference
 
 ```console
-$ tbd prime --full | head -5
-# Tbd Workflow Context
-
-> **Context Recovery**: Run `tbd prime` after compaction, clear, or new session
-> Hooks auto-call this in Claude Code when .tbd/ detected
-
-? 0
-```
-
-# Test: Prime --full contains detailed command reference
-
-```console
-$ tbd prime --full | grep -c "Finding Work"
-1
-? 0
-```
-
----
-
-## Prime with --mcp Flag
-
-# Test: Prime --mcp outputs minimal MCP mode content
-
-The --mcp flag forces minimal output (~50 tokens) suitable for MCP context.
-
-```console
-$ tbd prime --mcp | head -3
-# Tbd Issue Tracker Active
-
-# [..]SESSION CLOSE PROTOCOL[..]
-? 0
-```
-
-# Test: Prime --mcp is shorter than full output
-
-```console
-$ MCP_LINES=$(tbd prime --mcp | wc -l | tr -d ' ') && FULL_LINES=$(tbd prime --full | wc -l | tr -d ' ') && test $MCP_LINES -lt $FULL_LINES && echo "MCP is shorter"
-MCP is shorter
-? 0
-```
-
-# Test: Prime --mcp contains tbd ready reminder
-
-```console
-$ tbd prime --mcp | grep -c "tbd ready"
+$ tbd prime | grep -c "Finding Work"
 1
 ? 0
 ```
@@ -229,8 +179,6 @@ Usage: tbd prime [options]
 Output workflow context for AI agents
 
 Options:
-  --full      Force full CLI output (ignore MCP detection)
-  --mcp       Force MCP mode (minimal output, ~50 tokens)
   --export    Output default content (ignores PRIME.md override)
   -h, --help  display help for command
 ? 0

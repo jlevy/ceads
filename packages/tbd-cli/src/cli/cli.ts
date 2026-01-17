@@ -22,7 +22,7 @@ import { labelCommand } from './commands/label.js';
 import { dependsCommand } from './commands/depends.js';
 import { syncCommand } from './commands/sync.js';
 import { searchCommand } from './commands/search.js';
-import { infoCommand } from './commands/info.js';
+import { statusCommand } from './commands/status.js';
 import { statsCommand } from './commands/stats.js';
 import { doctorCommand } from './commands/doctor.js';
 import { configCommand } from './commands/config.js';
@@ -74,7 +74,7 @@ function createProgram(): Command {
   program.addCommand(dependsCommand);
   program.addCommand(syncCommand);
   program.addCommand(searchCommand);
-  program.addCommand(infoCommand);
+  program.addCommand(statusCommand);
   program.addCommand(statsCommand);
   program.addCommand(doctorCommand);
   program.addCommand(configCommand);

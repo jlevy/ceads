@@ -226,25 +226,25 @@ describe('golden tests', () => {
     );
   });
 
-  describe('info command', () => {
+  describe('status command', () => {
     it(
-      'shows repository info',
+      'shows repository status',
       async () => {
         const results: CommandResult[] = [];
 
         // Create an issue first
         results.push(await runCli('create', 'Test issue', '-t', 'task'));
 
-        // Get info
-        results.push(await runCli('info', '--json'));
+        // Get status
+        results.push(await runCli('status', '--json'));
 
         const scenario: GoldenScenario = {
-          name: 'info-command',
-          description: 'Show repository information',
+          name: 'status-command',
+          description: 'Show repository status and orientation',
           results,
         };
 
-        await verifyGolden('info-command', scenario);
+        await verifyGolden('status-command', scenario);
       },
       GOLDEN_TEST_TIMEOUT,
     );

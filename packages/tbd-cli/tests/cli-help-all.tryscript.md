@@ -181,10 +181,10 @@ $ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs search --help | grep -c "Search query
 ? 0
 ```
 
-# Test: info --help exits successfully
+# Test: status --help exits successfully
 
 ```console
-$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs info --help | grep -c "repository information"
+$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs status --help | grep -c "repository status"
 1
 ? 0
 ```

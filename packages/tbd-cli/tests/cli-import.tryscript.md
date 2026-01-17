@@ -79,6 +79,42 @@ imported: [..]
 ? 0
 ```
 
+---
+
+## ID Preservation
+
+Import preserves the original short IDs from beads. When importing "test-001", the display
+ID should be "bd-001" (preserving "001") not a random ID like "bd-xxxx".
+
+# Test: Imported IDs preserve original short IDs
+
+The beads issues have IDs "test-001", "test-002", "test-003". After import, display IDs
+should be "bd-001", "bd-002", "bd-003".
+
+```console
+$ tbd list --all --json | node -e "d=JSON.parse(require('fs').readFileSync(0,'utf8')); ids=d.map(i=>i.id).sort(); console.log(ids.join(','))"
+bd-001,bd-002,bd-003
+? 0
+```
+
+# Test: Show command displays preserved ID
+
+```console
+$ tbd show bd-001 | grep "^title:"
+title: Test issue one
+? 0
+```
+
+# Test: ID mapping file contains preserved short IDs
+
+```console
+$ cat .tbd/data-sync-worktree/.tbd/data-sync/mappings/ids.yml | grep -c '"00[123]"'
+3
+? 0
+```
+
+---
+
 # Test: Import with verbose output
 
 ```console

@@ -92,7 +92,7 @@ tbd sync
 
 | Command                    | Description             |
 | -------------------------- | ----------------------- |
-| `tbd info`                 | Show repository info    |
+| `tbd status`               | Show repository status  |
 | `tbd stats`                | Show issue statistics   |
 | `tbd doctor`               | Check repository health |
 | `tbd config [key] [value]` | Get/set configuration   |

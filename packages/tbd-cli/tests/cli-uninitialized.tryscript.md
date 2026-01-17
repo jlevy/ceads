@@ -26,17 +26,23 @@ These tests verify that helpful error messages are shown instead of confusing er
 
 ---
 
-## Info Command Shows Helpful Message
+## Status Command Shows Helpful Message
 
-# Test: Info without init shows status
+# Test: Status without init shows orientation
 
-Info command should work and tell user to run init.
+Status command should work without init and show orientation info.
 
 ```console
-$ tbd info
-tbd version [..]
+$ tbd status
+Not a tbd repository.
 
-Not initialized. Run tbd init to set up.
+Detected:
+  ✓ Git repository (main branch)
+  ✗ Beads not detected
+  ✗ Tbd not initialized
+
+To get started:
+  tbd init                  # Start fresh
 ? 0
 ```
 
