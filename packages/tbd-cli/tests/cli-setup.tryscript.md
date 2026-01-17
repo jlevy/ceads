@@ -71,6 +71,8 @@ Commands:
   import [options] [file]   Import issues from Beads or JSONL file.
                             Tip: Run "bd sync" and stop the beads daemon before
                             importing for best results.
+  docs [options]            Display CLI documentation
+  uninstall [options]       Remove tbd from this repository
   help [command]            display help for command
 ? 0
 ```

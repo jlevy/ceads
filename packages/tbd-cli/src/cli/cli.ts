@@ -28,6 +28,8 @@ import { doctorCommand } from './commands/doctor.js';
 import { configCommand } from './commands/config.js';
 import { atticCommand } from './commands/attic.js';
 import { importCommand } from './commands/import.js';
+import { docsCommand } from './commands/docs.js';
+import { uninstallCommand } from './commands/uninstall.js';
 import { CLIError } from './lib/errors.js';
 
 /**
@@ -76,6 +78,8 @@ function createProgram(): Command {
   program.addCommand(configCommand);
   program.addCommand(atticCommand);
   program.addCommand(importCommand);
+  program.addCommand(docsCommand);
+  program.addCommand(uninstallCommand);
 
   return program;
 }

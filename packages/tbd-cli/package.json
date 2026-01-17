@@ -47,7 +47,8 @@
     "markdown"
   ],
   "scripts": {
-    "build": "tsdown",
+    "prebuild": "mkdir -p src/docs && cp ../../docs/tbd-docs.md src/docs/",
+    "build": "tsdown && mkdir -p dist/docs && cp src/docs/tbd-docs.md dist/docs/",
     "dev": "tsdown --watch",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
