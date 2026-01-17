@@ -37,7 +37,7 @@ import {
 import { now, normalizeTimestamp } from '../../utils/timeUtils.js';
 import { initConfig, isInitialized } from '../../file/config.js';
 import { initWorktree } from '../../file/git.js';
-import { VERSION } from '../../index.js';
+import { VERSION } from '../lib/version.js';
 
 interface ImportOptions {
   fromBeads?: boolean;
