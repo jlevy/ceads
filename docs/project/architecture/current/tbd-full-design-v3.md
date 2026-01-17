@@ -820,7 +820,8 @@ Lexicographically Sortable Identifier):
 
 **External IDs** use short alphanumeric codes mapped to internal IDs:
 
-- **Required prefix**: Project-specific (e.g., `proj`, `myapp`, `tk`) via `display.id_prefix`
+- **Required prefix**: Project-specific (e.g., `proj`, `myapp`, `tk`) via
+  `display.id_prefix`
   - Set during `tbd init --prefix=<name>` or automatically from beads import
 - **Short code**: 1+ alphanumeric characters (a-z, 0-9)
   - Imported issues: Preserve original short ID (e.g., `100` from `tbd-100`)
@@ -1671,7 +1672,7 @@ Options:
   --remote=<name>       Remote name (default: origin)
 ```
 
-The `--prefix` option is **required** unless you're importing from an existing beads
+The `--prefix` option is **required** unless you’re importing from an existing beads
 repository (which automatically detects and uses the beads prefix).
 
 **What it does:**
