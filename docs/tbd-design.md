@@ -2,41 +2,59 @@
 
 Git-native issue tracking for AI agents and humans.
 
----
+> This is a design document (`tbd design`). See the tbd readme and user docs for general
+> documentation (`tbd readme` and `tbd docs`).
 
 ## Overview
 
-**tbd** ("To Be Done" or "TypeScript Beads") is a git-native issue tracker designed for simplicity and reliability. It stores issues as Markdown files with YAML frontmatter on a dedicated sync branch, enabling conflict-free collaboration without daemons or databases.
+**tbd** ("To Be Done" or “TypeScript Beads”) is a git-native issue tracker designed for
+simplicity and reliability.
+It stores issues as Markdown files with YAML frontmatter on a dedicated sync branch,
+enabling conflict-free collaboration without daemons or databases.
 
 **Core Philosophy**: Files as truth, git for sync, simplicity over features.
 
-tbd is the **durable persistence layer** for issues: reliable git storage, transparent Markdown+YAML format, simple CLI. It is not a real-time coordination system. Latency is seconds (git operations), not milliseconds. Volume is thousands of issues, not millions. Real-time agent coordination (Agent Mail, Gas Town) is a separate problem—one that can be layered on top of tbd or handled by other tools.
+tbd is the **durable persistence layer** for issues:
+
+- reliable git storage
+- simple CLI for agents and humans
+- transparent Markdown YAML format that is debuggable and friendly to other tooling
+
+It does *not* aim to be a full solution for real-time agent coordination.
+Latency is seconds (git operations), not milliseconds.
+Volume is thousands of issues, not millions.
+Real-time agent coordination (Agent Mail, Gas Town) is a separate problem—one that can
+be layered on top of tbd or handled by other tools.
 
 **Related Projects**:
-- [Beads](https://github.com/steveyegge/beads) - The original git-backed issue tracker tbd is designed to replace
-- [ticket](https://github.com/wedow/ticket) - Elegant bash-based Markdown+YAML tracker (~1900 tickets in production)
-- [git-bug](https://github.com/git-bug/git-bug) - Issues stored as git objects
-- [git-issue](https://github.com/dspinellis/git-issue) - Shell-based with optional GitHub sync
-- [ULID spec](https://github.com/ulid/spec) - Universally Unique Lexicographically Sortable Identifier
 
----
+- [Beads](https://github.com/steveyegge/beads) - The original git-backed issue tracker
+  tbd is designed to replace
+- [ticket](https://github.com/wedow/ticket) - Bash-based Markdown+YAML tracker (~1900
+  tickets in production)
+- [git-bug](https://github.com/git-bug/git-bug) - Issues stored as git objects
+- [git-issue](https://github.com/dspinellis/git-issue) - Shell-based with optional
+  GitHub sync
+- [ULID spec](https://github.com/ulid/spec) - Universally Unique Lexicographically
+  Sortable Identifier
 
 ## Motivation
 
-Modern development increasingly involves AI coding agents working alongside humans. Existing issue trackers either require external services (Jira, GitHub Issues) or have architectural complexity that causes friction (Beads' daemon and SQLite).
+Agents perform *far* better when they can track tasks reliably and stay organized.
+Sometimes they can us issue external issue trackers (GitHub Issues, Linear, Jira), but
+as Beads has shown, there is great benefit to lightweight tracking of tasks via CLI.
 
 tbd addresses specific requirements:
 
 | Requirement | Solution |
-|-------------|----------|
-| Works in cloud sandboxes | No daemon, no database locks |
-| Parallel issue creation | One file per issue = zero merge conflicts |
-| Agent-friendly | JSON output, non-interactive mode, simple commands |
-| Debuggable | Everything is inspectable Markdown files |
-| Context recovery | `tbd prime` restores workflow knowledge after compaction |
-| Network filesystems | Atomic file writes instead of database locks |
-
----
+| --- | --- |
+| Works in cloud sandboxes like Claude Code Cloud | Easy setup, no daemon or SQLite, which is incompatible with some network drives |
+| Git commit log noise | Issues stored on separate `tbd-sync` branch |
+| Synchronized state across Git branches | Always sync from the `tbd-sync` branch |
+| Git merging conflicts | One file per issue eliminates most merge conflicts |
+| Agent-friendly | Self-documenting, skill-compatible, non-interactive, simple commands |
+| Transparent formats | Issues internally are Markdown files with YAML frontmatter |
+| Reliable | Clear specs, golden testing of end-to-end use scenarios |
 
 ## Architecture
 
@@ -45,17 +63,17 @@ tbd addresses specific requirements:
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │  CLI Layer     tbd <command> [args] [options]               │
-│                Agent and human interface                     │
+│                Agent and human interface                    │
 └─────────────────────────────┬───────────────────────────────┘
                               │
 ┌─────────────────────────────┼───────────────────────────────┐
 │  Git Layer     tbd-sync branch │ fetch/push │ merge         │
-│                Distributed sync via standard git             │
+│                Distributed sync via standard git            │
 └─────────────────────────────┬───────────────────────────────┘
                               │
 ┌─────────────────────────────┼───────────────────────────────┐
 │  File Layer    Markdown+YAML │ Zod schemas │ atomic writes  │
-│                Human-readable storage format                 │
+│                Human-readable storage format                │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -64,15 +82,17 @@ tbd addresses specific requirements:
 tbd has exactly **2 data locations**:
 
 | Location | Contents | Branch |
-|----------|----------|--------|
+| --- | --- | --- |
 | `.tbd/config.yml` | Configuration | Main (tracked) |
 | `.tbd/data-sync-worktree/.tbd/data-sync/issues/*.md` | Issue files | `tbd-sync` (via hidden worktree) |
 
-The hidden worktree provides read access to the sync branch without affecting your working checkout, enabling ripgrep search across all issues.
+The hidden worktree provides read access to the sync branch without affecting your
+working checkout, enabling ripgrep search across all issues.
 
 ### Issue File Format
 
-Issues use the standard Markdown + YAML frontmatter pattern (same as Jekyll, Hugo, Astro):
+Issues use the standard Markdown + YAML frontmatter pattern (same as Jekyll, Hugo,
+Astro):
 
 ```markdown
 ---
@@ -103,22 +123,22 @@ Found the issue in session.ts line 42.
 tbd uses a dual ID system:
 
 | ID Type | Format | Purpose |
-|---------|--------|---------|
+| --- | --- | --- |
 | Internal | `is-{ulid}` | Time-ordered, collision-free, used in file storage |
 | Display | `{prefix}-{base36}` | Human-friendly (e.g., `bd-a7k2`), used in CLI |
 
-[ULIDs](https://github.com/ulid/spec) provide time-ordered sorting and 80-bit randomness for collision-free generation across distributed systems.
+[ULIDs](https://github.com/ulid/spec) provide time-ordered sorting and 80-bit randomness
+for collision-free generation across distributed systems.
 
 ### Sync Mechanism
 
 1. **Local changes**: Written to hidden worktree, committed to `tbd-sync` branch
 2. **Push**: Standard `git push` to remote
 3. **Pull**: Fetch remote, merge with local (field-level merge, LWW)
-4. **Conflict preservation**: Losing values saved to "attic" for recovery
+4. **Conflict preservation**: Losing values saved to “attic” for recovery
 
-The sync branch architecture keeps issues separate from code, avoiding merge conflicts on feature branches and working with protected main branches.
-
----
+The sync branch architecture keeps issues separate from code, avoiding merge conflicts
+on feature branches and working with protected main branches.
 
 ## Design Decisions
 
@@ -127,7 +147,8 @@ The sync branch architecture keeps issues separate from code, avoiding merge con
 **Choice**: One Markdown file per issue
 
 **Rationale**:
-- Parallel creation has zero conflicts (two agents creating issues simultaneously never conflict)
+- Parallel creation has zero conflicts (two agents creating issues simultaneously never
+  conflict)
 - Git diffs are readable (see exactly what changed in an issue)
 - Atomic updates per issue (no read-modify-write on shared file)
 - Scales naturally (no need to parse entire file for one issue)
@@ -152,7 +173,7 @@ The sync branch architecture keeps issues separate from code, avoiding merge con
 
 **Rationale**:
 - No merge conflicts between issues and code on feature branches
-- Clean separation of concerns (issues don't pollute code history)
+- Clean separation of concerns (issues don’t pollute code history)
 - Easy to allow-list in sandboxed environments (push to `tbd-sync` only)
 - Issues automatically shared across all code branches
 
@@ -168,7 +189,8 @@ The sync branch architecture keeps issues separate from code, avoiding merge con
 - Diffable in git (YAML changes are clear)
 - Description and notes are natural Markdown
 
-**Prior Art**: [ticket](https://github.com/wedow/ticket) demonstrated this approach scales to ~1900 issues in production.
+**Prior Art**: [ticket](https://github.com/wedow/ticket) demonstrated this approach
+scales to ~1900 issues in production.
 
 ### Decision 5: Hidden Worktree
 
@@ -182,27 +204,29 @@ The sync branch architecture keeps issues separate from code, avoiding merge con
 
 **Tradeoff**: Requires Git 2.42+ for `--orphan` worktree support.
 
-### Decision 6: Only "blocks" Dependencies
+### Decision 6: Only “blocks” Dependencies
 
-**Choice**: Support only `blocks` dependency type (A blocks B = B cannot start until A is done)
+**Choice**: Support only `blocks` dependency type (A blocks B = B cannot start until A
+is done)
 
 **Rationale**:
-- Covers the primary use case (the `ready` command needs to know what's blocked)
+- Covers the primary use case (the `ready` command needs to know what’s blocked)
 - Simpler implementation
-- Can add `related`, `discovered-from`, etc. later without breaking changes
+- Can add `related`, `discovered-from`, etc.
+  later without breaking changes
 
-**Tradeoff**: Can't express all relationship types.
-
----
+**Tradeoff**: Can’t express all relationship types.
 
 ## tbd vs Beads
 
-tbd is designed as a simpler alternative to [Beads](https://github.com/steveyegge/beads). This section details what's different and why.
+tbd is designed as a simpler alternative to
+[Beads](https://github.com/steveyegge/beads).
+This section details what’s different and why.
 
 ### Architecture Comparison
 
 | Aspect | Beads | tbd |
-|--------|-------|-----|
+| --- | --- | --- |
 | Data locations | 4 (SQLite, JSONL, sync branch, main) | 2 (config on main, issues on sync) |
 | Storage format | SQLite database + JSONL export | Markdown files |
 | Background daemon | Required for real-time sync | Not required |
@@ -216,33 +240,48 @@ tbd is designed as a simpler alternative to [Beads](https://github.com/steveyegg
 
 #### 1. Four-Location Data Sync
 
-**Beads**: Data flows through SQLite → Local JSONL → Sync Branch → Main Branch. Each transition can fail or desync, creating mystery state.
+**Beads**: Data flows through SQLite → Local JSONL → Sync Branch → Main Branch.
+Each transition can fail or desync, creating mystery state.
 
-**tbd**: Only 2 locations. Config on main, issues on sync branch. The files are the truth.
+**tbd**: Only 2 locations.
+Config on main, issues on sync branch.
+The files are the truth.
 
 #### 2. Daemon Conflicts
 
-**Beads**: Background daemon required for real-time sync. Can fight manual git operations, leading to confusing state. Doesn't work in containers or sandboxes.
+**Beads**: Background daemon required for real-time sync.
+Can fight manual git operations, leading to confusing state.
+Doesn’t work in containers or sandboxes.
 
-**tbd**: No daemon. `tbd sync` is explicit and predictable. Works in any environment where git works.
+**tbd**: No daemon. `tbd sync` is explicit and predictable.
+Works in any environment where git works.
 
 #### 3. JSONL Merge Conflicts
 
-**Beads**: All issues in one `issues.jsonl` file. Two agents creating issues simultaneously produce a merge conflict requiring manual resolution.
+**Beads**: All issues in one `issues.jsonl` file.
+Two agents creating issues simultaneously produce a merge conflict requiring manual
+resolution.
 
-**tbd**: One file per issue. Parallel creation never conflicts. Git handles file-level isolation naturally.
+**tbd**: One file per issue.
+Parallel creation never conflicts.
+Git handles file-level isolation naturally.
 
 #### 4. SQLite on Network Filesystems
 
-**Beads**: SQLite has documented issues with NFS and SMB due to file locking semantics. Users on network home directories experience corruption or hangs.
+**Beads**: SQLite has documented issues with NFS and SMB due to file locking semantics.
+Users on network home directories experience corruption or hangs.
 
-**tbd**: Atomic file writes (write to temp, rename). Works on any filesystem that supports basic POSIX operations.
+**tbd**: Atomic file writes (write to temp, rename).
+Works on any filesystem that supports basic POSIX operations.
 
 #### 5. Debug Difficulty
 
-**Beads**: When sync fails, debugging requires: query SQLite, check JSONL, compare branches, check daemon logs. State is spread across multiple representations.
+**Beads**: When sync fails, debugging requires: query SQLite, check JSONL, compare
+branches, check daemon logs.
+State is spread across multiple representations.
 
-**tbd**: Everything is Markdown files. `cat`, `grep`, `git log`, `git diff` are all you need.
+**tbd**: Everything is Markdown files.
+`cat`, `grep`, `git log`, `git diff` are all you need.
 
 #### 6. Session Close Protocol Complexity
 
@@ -253,9 +292,10 @@ tbd is designed as a simpler alternative to [Beads](https://github.com/steveyegg
 4. No-push mode
 5. Standard mode
 
-Agents may not know which mode they're in, leading to incorrect behavior.
+Agents may not know which mode they’re in, leading to incorrect behavior.
 
-**tbd `tbd prime`**: 131 lines of TypeScript with 1 code path. One protocol, always the same:
+**tbd `tbd prime`**: 131 lines of TypeScript with 1 code path.
+One protocol, always the same:
 
 ```
 1. git status
@@ -269,7 +309,7 @@ Agents may not know which mode they're in, leading to incorrect behavior.
 ### Feature Comparison
 
 | Feature | Beads | tbd | Notes |
-|---------|-------|-----|-------|
+| --- | --- | --- | --- |
 | Issue CRUD | ✅ | ✅ | Full parity |
 | Labels | ✅ | ✅ | Full parity |
 | Dependencies | ✅ | ⚠️ | Only `blocks` type |
@@ -284,10 +324,11 @@ Agents may not know which mode they're in, leading to incorrect behavior.
 
 ### Intentionally Omitted Features
 
-tbd handles durable persistence. Real-time coordination is a separate layer.
+tbd handles durable persistence.
+Real-time coordination is a separate layer.
 
 | Feature | Why Omitted |
-|---------|-------------|
+| --- | --- |
 | Daemon | Adds failure modes; explicit sync is sufficient for async workflows |
 | Agent Mail | Real-time messaging requires sub-second latency; out of scope |
 | Molecules/Wisps | Workflow orchestration can use tbd as storage backend |
@@ -318,13 +359,12 @@ Import preserves:
 - Dependencies (blocks relationships)
 - Original Beads ID in `extensions.beads.original_id`
 
----
-
 ## Agent Integration
 
 ### Context Recovery
 
-The `tbd prime` command outputs workflow context for AI agents. It's designed to be called by hooks at session start and before context compaction.
+The `tbd prime` command outputs workflow context for AI agents.
+It’s designed to be called by hooks at session start and before context compaction.
 
 ```bash
 tbd setup claude   # Install SessionStart and PreCompact hooks
@@ -338,29 +378,26 @@ The prime output includes:
 ### Agent-Friendly Design
 
 | Feature | Implementation |
-|---------|---------------|
+| --- | --- |
 | Machine output | `--json` flag on all commands |
 | Non-interactive | `--non-interactive` flag fails if input needed |
 | Dry run | `--dry-run` previews changes |
 | Actor identity | `TBD_ACTOR` environment variable |
 | Batch close | `tbd close bd-a bd-b bd-c` |
 
----
-
 ## Performance
 
 Tested benchmarks on realistic workloads:
 
 | Operation | Measured | Target | Notes |
-|-----------|----------|--------|-------|
+| --- | --- | --- | --- |
 | Write 100 issues | 14ms/issue | <30ms | Includes file I/O |
 | List 1000 issues | 1.4s | <2s | Full file scan |
 | Read single issue | 1.2ms | <5ms | Direct file access |
 | Filter 1000 issues | 0.4ms | <50ms | In-memory after load |
 
-For repositories approaching 10K+ issues, consider the future optional SQLite index layer.
-
----
+For repositories approaching 10K+ issues, consider the future optional SQLite index
+layer.
 
 ## Technical Requirements
 
@@ -368,14 +405,12 @@ For repositories approaching 10K+ issues, consider the future optional SQLite in
 - **Git**: 2.42+ (for `--orphan` worktree support)
 - **Platform**: macOS, Linux, Windows
 
----
-
 ## Future Considerations
 
 Explicitly deferred to keep initial release simple:
 
 | Feature | Status |
-|---------|--------|
+| --- | --- |
 | Additional dependency types (`related`, `discovered-from`) | Planned |
 | GitHub Issues bidirectional sync | Under consideration |
 | Optional SQLite index layer | For 10K+ issues |
@@ -384,14 +419,14 @@ Explicitly deferred to keep initial release simple:
 | Workflow automation | Deferred |
 | Custom fields | Deferred |
 
-Philosophy: Ship a small, reliable core first; add complexity only when proven necessary.
-
----
+Philosophy: Ship a small, reliable core first; add complexity only when proven
+necessary.
 
 ## References
 
 - **CLI Documentation**: `tbd docs` or [docs/tbd-docs.md](tbd-docs.md)
-- **Full Design Spec**: [docs/project/architecture/current/tbd-design-v3.md](project/architecture/current/tbd-design-v3.md)
+- **Full Design Spec**:
+  [docs/project/architecture/current/tbd-design-v3.md](project/architecture/current/tbd-design-v3.md)
 - **Beads**: https://github.com/steveyegge/beads
 - **ticket**: https://github.com/wedow/ticket
 - **ULID Spec**: https://github.com/ulid/spec
