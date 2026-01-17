@@ -6,7 +6,7 @@
 
 import { Command } from 'commander';
 
-import { VERSION } from '../index.js';
+import { VERSION } from './lib/version.js';
 import {
   configureColoredHelp,
   createColoredHelpConfig,

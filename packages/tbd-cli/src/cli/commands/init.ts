@@ -11,7 +11,7 @@ import { join } from 'node:path';
 import { writeFile } from 'atomically';
 
 import { BaseCommand } from '../lib/baseCommand.js';
-import { VERSION } from '../../index.js';
+import { VERSION } from '../lib/version.js';
 import { initConfig } from '../../file/config.js';
 import { TBD_DIR, CACHE_DIR, WORKTREE_DIR_NAME, DATA_SYNC_DIR_NAME } from '../../lib/paths.js';
 import { initWorktree } from '../../file/git.js';

@@ -41,6 +41,23 @@ pnpm build
 pnpm tbd:bin --help
 ```
 
+### Testing the packaged installation
+
+To test the CLI exactly as users would install it from npm:
+
+```bash
+# Build, pack, and install globally (like npm install -g tbd-cli)
+pnpm test:install
+
+# Test the installed binary
+tbd --help
+
+# Uninstall when done
+pnpm test:uninstall
+```
+
+This creates an npm tarball and installs from it, validating the full package structure.
+
 ### Building
 
 ```bash

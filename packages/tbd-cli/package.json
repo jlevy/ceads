@@ -61,7 +61,9 @@
     "bench": "tsx scripts/benchmark.ts",
     "validate-import": "tsx scripts/validate-import.ts",
     "publint": "publint",
-    "prepack": "pnpm build"
+    "prepack": "pnpm build",
+    "test:install": "pnpm build && pnpm pack && npm install -g ./tbd-cli-*.tgz && rm ./tbd-cli-*.tgz",
+    "test:uninstall": "npm uninstall -g tbd-cli"
   },
   "dependencies": {
     "atomically": "^2.1.0",
