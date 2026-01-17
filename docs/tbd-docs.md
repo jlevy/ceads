@@ -765,7 +765,7 @@ version: 1
 
 User reports intermittent login failures.
 
-## Working Notes
+## Notes
 
 Found the issue in auth.ts - race condition in token refresh.
 ```

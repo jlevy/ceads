@@ -255,7 +255,7 @@ tbd is designed as a simpler alternative to [Beads](https://github.com/steveyegg
 
 Agents may not know which mode they're in, leading to incorrect behavior.
 
-**tbd `tbd prime`**: 132 lines of TypeScript with 1 code path. One protocol, always the same:
+**tbd `tbd prime`**: 131 lines of TypeScript with 1 code path. One protocol, always the same:
 
 ```
 1. git status
