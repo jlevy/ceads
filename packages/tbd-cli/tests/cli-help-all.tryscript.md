@@ -217,10 +217,26 @@ $ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs import --help | grep -c "\-\-from-bea
 
 ## Documentation Command Help
 
+# Test: docs --help shows topic argument
+
+```console
+$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs docs --help | grep -c "\[topic\]"
+1
+? 0
+```
+
 # Test: docs --help shows section option
 
 ```console
 $ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs docs --help | grep -c "\-\-section"
+1
+? 0
+```
+
+# Test: docs --list shows slugified IDs
+
+```console
+$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs docs --list | grep -c "id-system"
 1
 ? 0
 ```
@@ -233,11 +249,27 @@ $ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs docs --list | grep -c "Quick Referenc
 ? 0
 ```
 
+# Test: docs positional topic argument works
+
+```console
+$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs docs id-system | grep -c "Display ID"
+1
+? 0
+```
+
 # Test: docs --section shows filtered content
 
 ```console
 $ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs docs --section "ID System" | grep -c "Display ID"
 1
+? 0
+```
+
+# Test: docs --list --json outputs array with slugs
+
+```console
+$ node $TRYSCRIPT_TEST_DIR/../dist/bin.mjs docs --list --json | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log(d.some(s=>s.slug==='id-system') ? 'ok' : 'fail')"
+ok
 ? 0
 ```
 
