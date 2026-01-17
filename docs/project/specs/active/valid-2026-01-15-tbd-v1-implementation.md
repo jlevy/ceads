@@ -21,16 +21,16 @@ Tbd V1 is a complete CLI implementation with 21 phases of development:
 | 15 | Import Validation & Benchmarks | ✅ Complete |
 | 16 | Comprehensive Tryscript Coverage | ✅ Complete |
 | 17 | CI Fixes and Dependency Updates | ✅ Complete |
-| 18 | Critical Bug Fixes | ⚠️ Partial (color issues remain) |
+| 18 | Critical Bug Fixes | ✅ Complete |
 | 19 | Worktree Architecture Fix | ✅ Complete |
 | 20 | Directory Naming Refactor | ✅ Complete |
 | 21 | Consistent Atomic File Operations | ✅ Complete |
 
-**Bead Tracking:** 194 beads tracked, 15 open (mostly P3 polish items)
+**Bead Tracking:** 194 beads tracked, 5 open (4 P3 polish items + master epic)
 
 **Latest Validation (2026-01-17):**
 - ✅ 165 vitest unit tests passing
-- ✅ 318 tryscript golden tests passing
+- ✅ 335 tryscript golden tests passing (13 test files)
 - ✅ Import validated: 194 issues imported from beads, 0 errors
 - ✅ Worktree architecture correctly implemented
 - ✅ TypeScript and ESLint checks passing
@@ -62,7 +62,7 @@ All items in this section are validated by automated tests that run in CI.
 
 ### 1.2 Tryscript Golden Tests (CLI Integration)
 
-**318 tryscript golden tests** across 12 test files, testing all CLI commands via
+**335 tryscript golden tests** across 13 test files, testing all CLI commands via
 subprocess execution in isolated sandbox environments:
 
 | Test File | Tests | Commands Covered |

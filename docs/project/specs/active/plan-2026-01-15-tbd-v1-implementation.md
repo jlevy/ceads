@@ -454,8 +454,8 @@ The master epic is **tbd-100**.
 | 14 | tbd-1500 | Security Hardening | tbd-1501 through tbd-1502 | ✅ Complete |
 | 15 | tbd-1600 | Import Validation & Benchmarks | tbd-1601 through tbd-1604 | ✅ Complete |
 | 16 | tbd-1700 | Comprehensive Tryscript Coverage | tbd-1701 through tbd-1706 | ✅ Complete |
-| 17 | tbd-1800 | CI Fixes and Dependency Updates | tbd-1801 through tbd-1805 | 🔄 Pending |
-| 18 | tbd-1900 | Critical Bug Fixes | tbd-1809 through tbd-1818 | ⚠️ Partial |
+| 17 | tbd-1800 | CI Fixes and Dependency Updates | tbd-1801 through tbd-1805 | ✅ Complete |
+| 18 | tbd-1900 | Critical Bug Fixes | tbd-1809 through tbd-1818 | ✅ Complete |
 | 19 | tbd-208 | Worktree Architecture Fix | tbd-208.1 through tbd-208.6 | ✅ Complete |
 | 20 | tbd-2000 | Directory Naming Refactor | tbd-2001 through tbd-2005 | ✅ Complete |
 | 21 | tbd-2100 | Consistent Atomic File Operations | tbd-2101 through tbd-2103 | ✅ Complete |
@@ -463,48 +463,36 @@ The master epic is **tbd-100**.
 
 **Status Legend:** ✅ Complete | ⚠️ Partial (needs review) | 🔲 Pending | 🔴 New
 
-**Implementation Progress (2026-01-17 - Full Review):**
+**Implementation Progress (2026-01-17 - Complete):**
 
 - Core functionality implemented and passing **165 vitest tests**
-- **318 tryscript golden tests** passing
+- **335 tryscript golden tests** passing (13 test files)
 - All CLI commands implemented (Phases 1-11 complete)
 - Security hardening: command injection fix + schema validation (Phase 14 complete)
 - Import validation and benchmarks (Phase 15 complete)
 - CI fixes: pnpm version conflict, Node.js 22 LTS, dependency updates (Phase 17)
 - Build, lint, and typecheck all passing
 - README documentation complete (Phase 12)
-- **Phase 18: Critical bugs mostly fixed** - worktree usage fixed, ID display fixed
+- **Phase 18: Critical bugs all fixed** ✅ - color handling, TESTING.md created
 - **Phase 19: Worktree architecture fix** ✅ - `initWorktree()`, `updateWorktree()`,
   `checkWorktreeHealth()` implemented in git.ts, `resolveDataSyncDir()` in paths.ts
-  for dynamic resolution
-- **Phase 20: Directory naming refactor** ✅ - renamed `.tbd-sync` to `.tbd/data-sync`,
-  created centralized `paths.ts`, refactored all commands
+- **Phase 20: Directory naming refactor** ✅ - renamed `.tbd-sync` to `.tbd/data-sync`
 - **Phase 21: Consistent Atomic File Operations** ✅ - all file writes use atomically library
 - **Import validation**: 194 issues imported from beads, 0 errors, 100% validation pass
-- Remaining: 15 open beads (mostly P3 polish items: color consistency, testing docs)
+- Remaining: 4 P3 polish beads (YAML formatting test, topic docs, perf tests)
 
 **Bead Tracking Summary (2026-01-17):**
 
 | Status | Count | Notes |
 | --- | --- | --- |
-| ✅ Done | 179 | All phases 1-21 core tasks complete |
+| ✅ Done | 189 | All phases 1-21 complete |
 | 🔄 In Progress | 1 | tbd-100 (master epic) |
-| 🔲 Open | 15 | Mostly P3 polish: color consistency (6), testing docs (4), misc (5) |
+| 🔲 Open | 4 | P3 polish items only |
 
-**Open Beads (15):**
-- tbd-1836: Epic: Phase 18 Testing Strategy Enhancement (P1)
-- tbd-1807: Windows CI excluded due to colon in filenames (P2)
-- tbd-1808: Rename shortcut: prefix to shortcut- in speculate docs (P2)
-- tbd-1852: Document testing strategy and patterns in TESTING.md (P2)
-- tbd-1859: Implement packageBin feature in tryscript (P2)
+**Remaining Open Beads (4):**
+- tbd-1859: Implement packageBin feature in tryscript (P2 - external to this project)
 - tbd-1817: Test: Add golden test for YAML frontmatter formatting (P3)
-- tbd-1823: Bug: Inconsistent color usage in help text (P3)
 - tbd-1826: Add topic-specific help to tbd docs (P3)
-- tbd-1831: Audit color usage across all commands (P3)
-- tbd-1832: Ensure --color flag and NO_COLOR env var respected (P3)
-- tbd-1833: Apply Commander.js v14 style functions uniformly (P3)
-- tbd-1834: Test: Verify consistent color behavior (P3)
-- tbd-1846: Create cli-color-modes.tryscript.md (P3)
 - tbd-1851: Add performance tests with 1000+ issues (P3)
 
 **Phase 13: Tryscript Coverage Migration (✅ Complete)**
