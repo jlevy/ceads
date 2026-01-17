@@ -10,7 +10,7 @@ Git-native issue tracking for AI agents and humans.
 
 **Core Philosophy**: Files as truth, git for sync, simplicity over features.
 
-**Intended Scope**: tbd is the **durable persistence layer** for issues: reliable git storage, transparent Markdown+YAML format, simple CLI. It is explicitly *not* a real-time coordination system. Latency is seconds (git operations), not milliseconds. Volume is thousands of issues, not millions. Real-time agent coordination (as Agent Mail or Gas Town attempt) is a separate problem that can be layered on top of tbd or handled by complementary tools.
+tbd is the **durable persistence layer** for issues: reliable git storage, transparent Markdown+YAML format, simple CLI. It is not a real-time coordination system. Latency is seconds (git operations), not milliseconds. Volume is thousands of issues, not millions. Real-time agent coordination (Agent Mail, Gas Town) is a separate problem—one that can be layered on top of tbd or handled by other tools.
 
 **Related Projects**:
 - [Beads](https://github.com/steveyegge/beads) - The original git-backed issue tracker tbd is designed to replace
