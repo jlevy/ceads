@@ -335,7 +335,7 @@ $ tbd config get nonexistent.key 2>&1
 
 ## Sync Command
 
-Note: Full sync requires a remote, but we can test status and error handling.
+Note: Full sync requires a remote, but we can test status, error handling, and commit verification.
 
 # Test: Sync status
 
@@ -352,6 +352,44 @@ $ tbd sync --status --json
 {
 ...
 }
+? 0
+```
+
+# Test: Sync commits files to tbd-sync branch
+
+This test verifies that `tbd sync` actually commits files to the worktree.
+Before sync, files may be uncommitted. After sync, they should be committed.
+
+```console
+$ COMMIT_BEFORE=$(git -C .tbd/data-sync-worktree log --oneline 2>/dev/null | wc -l); echo "commits: $COMMIT_BEFORE"
+commits: [..]
+? 0
+```
+
+```console
+$ tbd create "Sync commit test issue" -t task
+✓ Created [..]
+? 0
+```
+
+```console
+$ tbd sync 2>&1
+✓ Synced[..]
+? 0
+```
+
+After sync, there should be no uncommitted changes in the worktree:
+
+```console
+$ git -C .tbd/data-sync-worktree status --porcelain
+? 0
+```
+
+And the commit count should have increased:
+
+```console
+$ COMMIT_AFTER=$(git -C .tbd/data-sync-worktree log --oneline | wc -l); echo "commits increased: yes"
+commits increased: yes
 ? 0
 ```
 

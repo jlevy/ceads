@@ -18,7 +18,8 @@ import {
   type ConflictEntry,
   type PushResult,
 } from '../../file/git.js';
-import { resolveDataSyncDir, DATA_SYNC_DIR } from '../../lib/paths.js';
+import { resolveDataSyncDir, DATA_SYNC_DIR, WORKTREE_DIR } from '../../lib/paths.js';
+import { join } from 'node:path';
 
 interface SyncOptions {
   push?: boolean;
@@ -250,6 +251,50 @@ class SyncHandler extends BaseCommand {
     }
   }
 
+  /**
+   * Commit any uncommitted changes in the worktree to the sync branch.
+   * This must be called before pushing to ensure changes are captured.
+   *
+   * @returns Number of files committed, or 0 if nothing to commit
+   */
+  private async commitWorktreeChanges(): Promise<number> {
+    const worktreePath = join(process.cwd(), WORKTREE_DIR);
+
+    try {
+      // Check for uncommitted changes (untracked, modified, or deleted)
+      const status = await git('-C', worktreePath, 'status', '--porcelain');
+      if (!status || status.trim() === '') {
+        return 0; // Nothing to commit
+      }
+
+      // Count files with changes
+      const changedFiles = status.split('\n').filter((line) => line.trim() !== '');
+      const fileCount = changedFiles.length;
+
+      // Stage all changes
+      await git('-C', worktreePath, 'add', '-A');
+
+      // Commit the changes
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+      await git(
+        '-C',
+        worktreePath,
+        'commit',
+        '-m',
+        `tbd sync: ${timestamp} (${fileCount} file${fileCount === 1 ? '' : 's'})`,
+      );
+
+      return fileCount;
+    } catch (error) {
+      // If commit fails (e.g., nothing to commit after staging), that's ok
+      const msg = (error as Error).message;
+      if (msg.includes('nothing to commit')) {
+        return 0;
+      }
+      throw error;
+    }
+  }
+
   private async pushChanges(syncBranch: string, remote: string): Promise<void> {
     try {
       // Check if we have any changes to push
@@ -257,6 +302,12 @@ class SyncHandler extends BaseCommand {
       if (issues.length === 0) {
         this.output.info('No issues to push');
         return;
+      }
+
+      // Commit any uncommitted changes in the worktree before pushing
+      const committedFiles = await this.commitWorktreeChanges();
+      if (committedFiles > 0) {
+        this.output.info(`Committed ${committedFiles} file(s) to sync branch`);
       }
 
       // Use push with retry
@@ -343,12 +394,15 @@ class SyncHandler extends BaseCommand {
       // Remote not available - that's ok for first sync
     }
 
-    // Check local changes
+    // Check local changes and commit before pushing
     try {
       const issues = await listIssues(this.dataSyncDir);
       pushed = issues.length;
 
       if (pushed > 0) {
+        // Commit any uncommitted changes in the worktree before pushing
+        await this.commitWorktreeChanges();
+
         // Push with retry
         const result = await this.doPushWithRetry(syncBranch, remote);
         if (result.conflicts) {
