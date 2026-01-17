@@ -28,11 +28,23 @@ export default defineConfig([
     clean: true,
   },
   // CLI binary - ESM entry (used by bootstrap)
+  // Bundle all dependencies for faster startup (no node_modules resolution at runtime)
   {
     ...commonOptions,
     entry: { bin: 'src/cli/bin.ts' },
     banner: '#!/usr/bin/env node',
     clean: false,
+    noExternal: [
+      'yaml',
+      'commander',
+      'picocolors',
+      'marked',
+      'marked-terminal',
+      'atomically',
+      'ulid',
+      'github-slugger',
+      'zod',
+    ],
   },
   // CLI bootstrap - CJS entry that enables compile cache before loading ESM
   {

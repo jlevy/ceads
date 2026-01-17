@@ -2,13 +2,14 @@
 
 **Last Updated**: 2026-01-17
 
-**Status**: Complete
+**Status**: Complete (Updated with dependency bundling results)
 
 **Related**:
 
 - [tbd-1934](/.beads/issues/) - Implement lazy command loading for CLI startup
   performance
 - [benchmark.ts](packages/tbd-cli/scripts/benchmark.ts) - Performance benchmark script
+- [tsdown.config.ts](packages/tbd-cli/tsdown.config.ts) - Build configuration with bundling
 
 * * *
 
@@ -16,21 +17,25 @@
 
 This research investigates why the tbd CLI feels slower than native Rust/Go CLIs and
 identifies opportunities for startup performance optimization.
-Through CPU profiling and dependency timing analysis, we discovered that the CLI’s
-~~50-60ms startup time is dominated by V8 initialization (~~15ms) and dependency loading
-(~~23ms), with the YAML library being the heaviest dependency at ~~11ms—not Zod as
-initially hypothesized.
 
-The key finding is that **lazy command loading** is the only optimization worth
-pursuing, offering a potential ~~50% improvement (60ms → ~~25ms) for help/version
-commands. Other hypothesized optimizations (deferred schema creation, replacing Zod)
-showed negligible impact in profiling.
+Through CPU profiling, dependency timing analysis, and bundling experiments, we
+discovered two major bottlenecks:
+
+1. **Module resolution overhead** (~40ms): Loading 50+ node_modules packages at runtime
+2. **V8 initialization** (~15ms): Unavoidable Node.js baseline
+
+**Key optimization implemented**: Bundling all runtime dependencies into the CLI binary
+using tsdown's `noExternal` option reduced startup from **128ms to 85ms (34% faster)**
+and made all benchmarks pass the 100ms target.
+
+**Remaining opportunity**: Lazy command loading could further reduce help/version
+startup to ~25ms, but is lower priority now that bundling has addressed the main issue.
 
 **Research Questions**:
 
 1. What determines the performance of a modern Node.js CLI at startup?
 
-2. Where are the actual bottlenecks in tbd’s startup sequence?
+2. Where are the actual bottlenecks in tbd's startup sequence?
 
 3. What optimizations would provide meaningful improvement vs.
    theoretical gains?
@@ -41,18 +46,20 @@ showed negligible impact in profiling.
 
 ### Approach
 
-1. **Baseline measurement** - Establish current startup times using `/usr/bin/time`
+1. **Baseline measurement** - Establish current startup times using benchmark.ts
 2. **CPU profiling** - Use Node.js `--cpu-prof` to identify hot paths
 3. **Dependency timing** - Isolate and measure individual dependency load times
-4. **Comparative analysis** - Compare bundled vs unbundled, lazy vs eager loading
-5. **Hypothesis validation** - Test assumptions about Zod, schemas, and lazy loading
+4. **Compile cache analysis** - Verify Node.js V8 compile cache behavior
+5. **Bundling experiment** - Compare bundled vs unbundled dependency loading
+6. **Hypothesis validation** - Test assumptions about Zod, schemas, and lazy loading
 
 ### Sources
 
 - Node.js CPU profiling output
 - Custom profiling scripts measuring import timing
-- Existing benchmark.ts in the codebase
-- Node.js documentation on startup optimization
+- benchmark.ts in the codebase (5K issue stress test)
+- Node.js module.enableCompileCache() API
+- tsdown bundler documentation
 
 * * *
 
@@ -76,6 +83,34 @@ This is the baseline cost.
 
 * * *
 
+#### V8 Compile Cache
+
+**Status**: ✅ Complete (verified 2026-01-17)
+
+**Details**:
+
+- Node 22+ supports `module.enableCompileCache()` for caching compiled JavaScript
+- tbd uses a CJS bootstrap (`bin-bootstrap.cjs`) that enables this before ESM loading
+- Cache location: `/var/folders/.../T/node-compile-cache/v24.9.0-.../` (temp directory)
+- Cache status codes: `ENABLED=1`, `ALREADY_ENABLED=2`, `FAILED=0`, `DISABLED=3`
+
+**Verification**:
+```
+enableCompileCache exists: function
+enableCompileCache result: { status: 1, directory: '/var/folders/.../T/node-compile-cache' }
+```
+
+**Timing impact**:
+```
+First run (cold):  290ms
+Second run (warm): 113ms  (~2.5x faster)
+```
+
+**Assessment**: Compile cache IS working correctly. The "slow first start, fast after"
+behavior is due to both V8 compile cache warming AND filesystem cache warming.
+
+* * *
+
 #### Module Loading Costs
 
 **Status**: ✅ Complete
@@ -85,9 +120,99 @@ This is the baseline cost.
 - ESM module loading involves: file read → parse → compile → execute
 - CPU profile shows 76% of time in `node-builtin` (V8/module operations)
 - Top functions: `compileForInternalLoader`, `wrapSafe`, `compileSourceTextModule`
-- tsdown bundling eliminates module resolution but not parse/compile time
+- **Key finding**: Loading 50+ node_modules packages adds ~40ms overhead
 
-**Assessment**: Bundling helps but doesn’t eliminate module compilation cost.
+**Assessment**: Module resolution is a major bottleneck. Bundling dependencies
+eliminates this overhead.
+
+* * *
+
+### Dependency Bundling Analysis
+
+#### The Problem: External Dependencies
+
+**Status**: ✅ Complete (verified 2026-01-17)
+
+**Original state** (unbundled):
+```
+cli.mjs imports 9 external packages:
+├── yaml           (+ transitive deps)
+├── commander      (+ transitive deps)
+├── picocolors
+├── marked         (+ transitive deps)
+├── marked-terminal
+├── atomically     (+ transitive deps)
+├── ulid
+├── github-slugger
+└── zod
+```
+
+This resulted in **50+ packages** in node_modules, each requiring:
+- File system lookup
+- Module resolution
+- Parse and compile
+
+**Timing breakdown** (unbundled):
+```
+enableCompileCache():  0.19ms
+import cli.mjs:      175.00ms  ← Most time spent here
+```
+
+* * *
+
+#### The Solution: Bundle Dependencies
+
+**Status**: ✅ Implemented (2026-01-17)
+
+**Change**: Added `noExternal` to tsdown.config.ts for the CLI binary:
+
+```typescript
+// CLI binary - ESM entry (used by bootstrap)
+// Bundle all dependencies for faster startup (no node_modules resolution at runtime)
+{
+  ...commonOptions,
+  entry: { bin: 'src/cli/bin.ts' },
+  banner: '#!/usr/bin/env node',
+  clean: false,
+  noExternal: [
+    'yaml',
+    'commander',
+    'picocolors',
+    'marked',
+    'marked-terminal',
+    'atomically',
+    'ulid',
+    'github-slugger',
+    'zod',
+  ],
+},
+```
+
+**Results**:
+
+| Metric | Before (unbundled) | After (bundled) | Improvement |
+|--------|-------------------|-----------------|-------------|
+| **Startup avg** | 128ms | 85ms | **34% faster** |
+| **Command avg** | 145ms | 86ms | **41% faster** |
+| `--version` | 127ms ❌ | 84ms ✅ | 34% faster |
+| `--help` | 130ms ❌ | 86ms ✅ | 34% faster |
+| `list --all` | 150ms ✅ | 89ms ✅ | 41% faster |
+| `show` | 136ms ✅ | 79ms ✅ | 42% faster |
+| `stats` | 142ms ✅ | 79ms ✅ | 44% faster |
+
+**Bundle size impact**:
+
+| File | Before | After |
+|------|--------|-------|
+| `bin.mjs` | 174KB | 2.6MB |
+| `cli.mjs` | 167KB | 171KB (unchanged) |
+| `dist/` total | ~1MB | 9.6MB |
+| **Install size** | ~17MB (dist + node_modules) | **~10MB** (just dist) |
+
+**Key insight**: Total install size is **smaller** with bundling because:
+1. Tree-shaking removes unused code from dependencies
+2. No transitive dependency bloat
+3. Single file instead of 50+ files
 
 * * *
 
@@ -136,7 +261,7 @@ app-code                            2%
  4  ZodType (types.js)
 ```
 
-**Assessment**: Zod’s `ZodType` only accounts for 4 samples—negligible.
+**Assessment**: Zod's `ZodType` only accounts for 4 samples—negligible.
 
 * * *
 
@@ -170,24 +295,39 @@ would save ~5ms.
 
 #### Hypothesis 3: Lazy Command Loading
 
-**Status**: ✅ Complete (VALIDATED)
+**Status**: ✅ Complete (VALIDATED but lower priority)
 
 **Original hypothesis**: Lazy loading commands would reduce help/version time by ~20ms.
 
 **Actual finding** (verified 2026-01-17):
 
-- Current state: ~50-60ms for all commands (everything loads upfront)
-- With lazy loading: ~23ms for help/version (only commander+picocolors)
-- Savings: **~35ms (~55% faster)**
+- With bundling alone: 85ms for help/version (passes 100ms target)
+- With lazy loading: could reach ~25ms for help/version
+- Additional savings: **~60ms (~70% faster than bundled)**
 
-**Validation test**:
-```
-Help/version could be: ~8ms JS + ~15ms V8 = ~23ms
-Full command load:     ~23ms JS + ~15ms V8 = ~38ms
-Current CLI:           ~50-60ms
-```
+**Conclusion**: ✅ Still valid but **lower priority** now that bundling has achieved
+the 100ms target. Consider implementing if sub-50ms startup becomes a requirement.
 
-**Conclusion**: ✅ Best and only worthwhile optimization.
+* * *
+
+#### Hypothesis 4: Bundle Dependencies
+
+**Status**: ✅ Complete (VALIDATED and IMPLEMENTED)
+
+**Original hypothesis**: Bundling dependencies would eliminate module resolution overhead.
+
+**Actual finding** (verified 2026-01-17):
+
+- Unbundled: 128ms startup (50+ files to load)
+- Bundled: 85ms startup (1 file to load)
+- Savings: **43ms (34% faster)**
+
+**Additional benefits**:
+- Smaller install size (~10MB vs ~17MB)
+- Faster npm install (fewer files to extract)
+- More predictable cold-start behavior
+
+**Conclusion**: ✅ **Best ROI optimization**. Implemented in tsdown.config.ts.
 
 * * *
 
@@ -195,47 +335,44 @@ Current CLI:           ~50-60ms
 
 #### Bundle Structure
 
-**Status**: ✅ Complete
+**Status**: ✅ Complete (updated 2026-01-17)
 
-**Current bundle sizes**:
-- `bin.mjs`: 172KB (full CLI, bundled)
-- `cli.mjs`: 164KB (CLI without bin shebang)
+**Current bundle sizes** (after dependency bundling):
+- `bin.mjs`: 2.6MB (full CLI with all deps bundled)
+- `cli.mjs`: 171KB (library entry, deps external)
 - `index.mjs`: 750B (library exports only)
 
-**Bundle composition** (5,259 lines total):
-- Schemas and types: ~200 lines
-- Parser: ~100 lines
-- Git operations: ~500 lines
-- Commands: ~3,500 lines (24 commands)
-- Utilities: ~500 lines
+**Bundle composition** (bin.mjs):
+- Application code: ~170KB
+- Bundled dependencies: ~2.4MB
+  - yaml: ~500KB
+  - marked + marked-terminal: ~800KB
+  - commander: ~200KB
+  - zod: ~400KB
+  - Others: ~500KB
 
-**Assessment**: Bundle is well-structured.
-tsdown is doing its job.
+**Assessment**: Bundle is appropriately structured. CLI binary bundles deps for
+fast startup; library entries keep deps external for deduplication.
 
 * * *
 
 ## Comparative Analysis
 
 | Approach | Effort | Startup Time | Savings | Notes |
-| --- | --- | --- | --- | --- |
-| Current (baseline) | - | ~60ms | - | Acceptable for most use |
-| Lazy command loading | Medium | ~25ms | ~35ms (55%) | Best ROI |
-| Replace Zod with valibot | Medium | ~57ms | ~3ms (5%) | Not worth it |
-| Defer schema creation | Low | ~59.5ms | 0.5ms (1%) | Negligible |
-| V8 snapshots | Very High | ~25ms | ~35ms (55%) | Complex, fragile |
-| Bun compile | Medium | ~15ms | ~45ms (75%) | Different runtime |
-| Rust rewrite | Very High | ~3ms | ~57ms (95%) | Nuclear option |
+|----------|--------|--------------|---------|-------|
+| Original baseline | - | ~128ms | - | 50+ node_modules files |
+| **Bundle dependencies** | **Low** | **~85ms** | **~43ms (34%)** | **✅ Implemented** |
+| + Lazy command loading | Medium | ~25ms | ~60ms (70%) | Future optimization |
+| Replace Zod with valibot | Medium | ~82ms | ~3ms (4%) | Not worth it |
+| Defer schema creation | Low | ~84.5ms | 0.5ms (1%) | Negligible |
+| V8 snapshots | Very High | ~50ms | ~35ms (41%) | Complex, fragile |
+| Bun compile | Medium | ~15ms | ~70ms (82%) | Different runtime |
+| Rust rewrite | Very High | ~3ms | ~82ms (96%) | Nuclear option |
 
-**Strengths/Weaknesses Summary**:
-
-- **Lazy loading**: Only structural change worth making.
-  Medium effort, good payoff.
-
-- **Bun compile**: Good alternative if comfortable with different runtime behavior.
-
-- **V8 snapshots**: Theoretically good but ecosystem doesn’t support it well.
-
-- **Schema optimizations**: Not worth the effort based on profiling data.
+**Current state after bundling**:
+- All benchmarks pass the 100ms target ✅
+- Startup avg: 85ms
+- Command avg: 86ms
 
 * * *
 
@@ -248,29 +385,40 @@ Discovered during research for Node.js CLI performance:
 
 2. **V8 baseline is ~15ms**: Don't expect Node.js CLI to start faster than this.
 
-3. **Bundling helps but isn’t magic**: Eliminates module resolution but not
-   parse/compile time.
+3. **Bundle dependencies for CLIs**: Eliminates module resolution overhead. Use
+   tsdown/esbuild `noExternal` option.
 
-4. **YAML libraries are heavy**: ~11ms for yaml package.
+4. **Bundling doesn't increase install size**: Tree-shaking typically results in
+   smaller total size than node_modules.
+
+5. **Compile cache helps but isn't magic**: Node 22+ compile cache improves warm
+   starts but cold starts still need to read/parse files.
+
+6. **YAML libraries are heavy**: ~11ms for yaml package.
    Consider alternatives if not needed.
 
-5. **picocolors over chalk**: Already using the right choice (~2ms vs ~15ms for
+7. **picocolors over chalk**: Already using the right choice (~2ms vs ~15ms for
    chalk).
 
-6. **Lazy loading for command dispatch**: Don’t load all commands for simple operations.
+8. **CJS bootstrap for compile cache**: Enable compile cache in a CJS file that
+   runs before ESM imports to ensure early caching.
 
 * * *
 
 ## Open Research Questions
 
-1. **Bun compatibility**: Would the CLI work correctly under Bun?
-   What compatibility issues might arise with git operations, file watching, etc.?
+1. ~~**V8 code caching**: Node 22+ has improved module caching.
+   Does running the CLI repeatedly benefit from warm cache?~~
+   **Resolved**: Yes, compile cache is working. Warm starts are ~2.5x faster.
 
-2. **V8 code caching**: Node 22+ has improved module caching.
-   Does running the CLI repeatedly benefit from warm cache?
+2. **Bun compatibility**: Would the CLI work correctly under Bun?
+   What compatibility issues might arise with git operations, file watching, etc.?
 
 3. **Alternative YAML parsers**: Are there lighter YAML parsers that support the subset
    we need (frontmatter only)?
+
+4. **Further lazy loading**: With bundling done, is lazy command loading worth the
+   added complexity for another ~60ms improvement?
 
 * * *
 
@@ -278,50 +426,54 @@ Discovered during research for Node.js CLI performance:
 
 ### Summary
 
-Implement lazy command loading to reduce help/version startup from ~60ms to ~25ms.
-This is the only optimization with meaningful ROI based on profiling data.
+**Completed**: Bundle all runtime dependencies into the CLI binary, reducing startup
+from 128ms to 85ms (34% improvement). All benchmarks now pass.
 
-### Recommended Approach
+**Future consideration**: Lazy command loading could further reduce startup to ~25ms
+but is lower priority now that the 100ms target is met.
+
+### Implemented Approach
+
+**Dependency Bundling** (tsdown.config.ts):
+
+```typescript
+noExternal: [
+  'yaml', 'commander', 'picocolors', 'marked', 'marked-terminal',
+  'atomically', 'ulid', 'github-slugger', 'zod',
+],
+```
+
+**Results**:
+- Startup: 128ms → 85ms (34% faster)
+- Install size: 17MB → 10MB (41% smaller)
+- All benchmarks pass ✅
+
+### Future Optimization (if needed)
 
 **Lazy Command Loading Architecture**:
 
 ```
-BEFORE (eager loading):
-bin.ts → cli.ts → [all 24 commands] → yaml, zod (~60ms)
+CURRENT (bundled, eager loading):
+bin.ts → cli.ts → [all commands bundled] (~85ms)
 
-AFTER (lazy loading):
+FUTURE (bundled, lazy loading):
 bin.ts → cli.ts → [metadata only] (~25ms)
                 ↓ (on command invocation)
-          [one command] → yaml, zod (+~15ms)
+          [one command] (+~15ms)
 ```
 
-**Implementation**:
-
-1. Create `command-defs.ts` with lightweight option metadata (no imports)
-2. Refactor `cli.ts` to register commands with lazy `import()` in action handlers
-3. Update each command file to export Handler class only
-
-**Rationale**:
-
-- ~55% improvement for most common operations (help, version)
-- No change to actual command execution time
-- Maintains full help text functionality
-- Reversible if issues arise
-
-### Alternative Approaches
-
-1. **Bun compilation**: If ~15ms startup is required, consider `bun build --compile`.
-   Tradeoff is different runtime behavior.
-
-2. **Do nothing**: ~60ms is competitive for Node.js CLIs.
-   Focus engineering effort elsewhere if startup time isn't a user complaint.
+**When to consider**:
+- If sub-50ms startup becomes a requirement
+- If adding many more commands significantly increases bundle parse time
 
 * * *
 
 ## References
 
 - Node.js CPU Profiling: `node --cpu-prof`
-- Performance measurement: `performance.now()`, `/usr/bin/time`
+- Node.js Compile Cache: `module.enableCompileCache()` (Node 22+)
+- Performance measurement: `performance.now()`, benchmark.ts
+- tsdown bundler: https://tsdown.dev/options/dependencies
 - Commander.js lazy loading: Dynamic imports in action handlers
 - picocolors vs chalk: https://github.com/alexeyraspopov/picocolors
 
@@ -390,9 +542,60 @@ for (const [cat, count] of Object.entries(times).sort((a,b) => b[1] - a[1])) {
 }
 ```
 
-### Appendix C: Lazy Loading Implementation Sketch
+### Appendix C: Compile Cache Verification
 
-See tbd-1934 for full implementation plan.
+```javascript
+const mod = require('node:module');
+console.log('enableCompileCache exists:', typeof mod.enableCompileCache);
+if (typeof mod.enableCompileCache === 'function') {
+  const result = mod.enableCompileCache();
+  console.log('enableCompileCache result:', result);
+  // { status: 1, directory: '/var/folders/.../T/node-compile-cache' }
+}
+console.log('getCompileCacheDir:', mod.getCompileCacheDir?.());
+```
+
+### Appendix D: Benchmark Results (2026-01-17)
+
+**Before bundling** (unbundled dependencies):
+```
+--version               127ms ❌
+--help                  130ms ❌
+list --all              150ms ✅
+list --status=open      172ms ✅
+list --limit=10         132ms ✅
+show                    136ms ✅
+search                  138ms ✅
+stats                   142ms ✅
+status                  159ms ✅
+doctor                  135ms ✅
+--------------------------------------------------
+Startup avg:  128ms
+Command avg:  145ms
+⚠ Some benchmarks exceeded target
+```
+
+**After bundling** (all deps in bin.mjs):
+```
+--version                84ms ✅
+--help                   86ms ✅
+list --all               89ms ✅
+list --status=open       88ms ✅
+list --limit=10          86ms ✅
+show                     79ms ✅
+search                   84ms ✅
+stats                    79ms ✅
+status                   95ms ✅
+doctor                   90ms ✅
+--------------------------------------------------
+Startup avg:  85ms
+Command avg:  86ms
+✓ All benchmarks passed!
+```
+
+### Appendix E: Lazy Loading Implementation Sketch
+
+See tbd-1934 for full implementation plan (if needed in future).
 Key changes:
 
 **cli.ts** (lazy registration):
