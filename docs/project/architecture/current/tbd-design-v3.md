@@ -1705,31 +1705,31 @@ tbd create [<title>] [options]
 
 Options:
   --from-file <path>        Create from YAML+Markdown file (all fields)
-  -t, --type <type>         Issue type: bug, feature, task, epic, chore (default: task)
-  -p, --priority <0-4>      Priority (0=critical, 4=lowest, default: 2)
-  -d, --description <text>  Description
-  -f, --file <path>         Read description from file
+  --type <type>             Issue type: bug, feature, task, epic, chore (default: task)
+  --priority <0-4>          Priority (0=critical, 4=lowest, default: 2)
+  --description <text>      Description
+  --file <path>             Read description from file
   --assignee <name>         Assignee
   --due <date>              Due date (ISO8601)
   --defer <date>            Defer until date (ISO8601)
   --parent <id>             Parent issue ID
-  -l, --label <label>       Add label (repeatable)
+  --label <label>           Add label (repeatable)
   --no-sync                 Don't sync after create
 ```
 
-> **Note on `--type` flag:** The CLI flag `--type` (or `-t`) sets the issue’s `kind`
-> field, NOT the `type` field.
-> The `type` field is the entity discriminator (always `is` for issues) and is set
-> automatically. This naming choice maintains Beads CLI compatibility where `--type` was
-> used for issue classification.
+> **Note on `--type` flag:** The CLI flag `--type` sets the issue’s `kind` field, NOT
+> the `type` field. The `type` field is the entity discriminator (always `is` for issues)
+> and is set automatically.
+> This naming choice maintains Beads CLI compatibility where `--type` was used for issue
+> classification.
 
 **Examples:**
 
 ```bash
-tbd create "Fix authentication bug" -t bug -p 1
-tbd create "Add OAuth" -t feature -l backend -l security
+tbd create "Fix authentication bug" --type bug --priority 1
+tbd create "Add OAuth" --type feature --label backend --label security
 tbd create "Write tests" --parent bd-a1b2
-tbd create "API docs" -f design.md
+tbd create "API docs" --file design.md
 
 # Create from full YAML+Markdown file
 tbd create --from-file new-issue.md
@@ -4179,11 +4179,11 @@ explicitly deferred.
 | Beads Command | Tbd Command | Status | Notes |
 | --- | --- | --- | --- |
 | `bd create "Title"` | `tbd create "Title"` | ✅ Full | Identical |
-| `bd create "Title" -t type` | `tbd create "Title" -t type` | ✅ Full | Same flag |
-| `bd create "Title" -p N` | `tbd create "Title" -p N` | ✅ Full | Priority 0-4 |
-| `bd create "Title" -d "desc"` | `tbd create "Title" -d "desc"` | ✅ Full | Description |
-| `bd create "Title" -f file.md` | `tbd create "Title" -f file.md` | ✅ Full | Body from file |
-| `bd create "Title" -l label` | `tbd create "Title" -l label` | ✅ Full | Repeatable |
+| `bd create "Title" --type type` | `tbd create "Title" --type type` | ✅ Full | Same flag |
+| `bd create "Title" --priority N` | `tbd create "Title" --priority N` | ✅ Full | Priority 0-4 |
+| `bd create "Title" --description "desc"` | `tbd create "Title" --description "desc"` | ✅ Full | Description |
+| `bd create "Title" --file file.md` | `tbd create "Title" --file file.md` | ✅ Full | Body from file |
+| `bd create "Title" --label label` | `tbd create "Title" --label label` | ✅ Full | Repeatable |
 | `bd create "Title" --assignee X` | `tbd create "Title" --assignee X` | ✅ Full | Identical |
 | `bd create "Title" --parent <id>` | `tbd create "Title" --parent <id>` | ✅ Full | Hierarchical |
 | `bd create "Title" --due <date>` | `tbd create "Title" --due <date>` | ✅ Full | Due date |
@@ -4398,14 +4398,14 @@ Claims are advisory in both (no enforcement).
 **Beads:**
 
 ```bash
-bd create "Found bug" -t bug -p 1 --deps discovered-from:<id> --json
+bd create "Found bug" --type bug --priority 1 --deps discovered-from:<id> --json
 ```
 
 **Tbd:**
 
 ```bash
 # Only blocks dependency supported currently
-tbd create "Found bug" -t bug -p 1 --parent <id> --json
+tbd create "Found bug" --type bug --priority 1 --parent <id> --json
 # Or wait for future version for discovered-from
 ```
 

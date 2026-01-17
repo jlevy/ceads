@@ -1,25 +1,68 @@
-# TBD CLI Documentation
+# tbd CLI Documentation
 
 Git-native issue tracking for AI agents and humans.
 
----
+* * *
+
+## Why tbd?
+
+- **Git-native**: No external services, no databases—just files in git
+- **AI-agent friendly**: JSON output, non-interactive mode, simple commands
+- **File-per-issue**: No merge conflicts from parallel creation
+- **No daemon**: Works in restricted environments (CI, cloud sandboxes)
+- **Beads compatible**: Drop-in replacement, preserves existing issue IDs
+
+* * *
 
 ## Quick Reference
 
-### Most Common Commands
+### Find and claim work
 
 ```bash
-tbd create "Fix login bug" -t bug -p 1    # Create a bug, priority 1
-tbd list                                   # List open issues
-tbd list --all                             # Include closed issues
-tbd ready                                  # Show issues ready to work on
-tbd show bd-a7k2                           # Show issue details
-tbd update bd-a7k2 --status in_progress   # Start working on issue
-tbd close bd-a7k2                          # Close completed issue
-tbd sync                                   # Sync with remote
+tbd ready                                  # What's available to work on?
+tbd show bd-1847                           # Review the issue details
+tbd update bd-1847 --status in_progress    # Claim it
 ```
 
-### Issue Lifecycle
+### Complete work
+
+```bash
+tbd close bd-1847 --reason "Fixed in auth.ts, added retry logic"
+tbd sync                                   # Push to remote
+```
+
+### Create issues
+
+```bash
+tbd create "API returns 500 on malformed input" --type bug --priority 1
+tbd create "Add rate limiting to /api/upload" --type feature
+tbd create "Refactor database connection pooling" --type task --priority 3
+
+# With description and labels
+tbd create "Users can't reset password" --type bug --priority 0 \
+  --description "Reset emails not sending. Affects all users since deploy." \
+  --label urgent --label auth
+```
+
+### Track dependencies
+
+```bash
+tbd create "Write integration tests" --type task
+tbd depends add bd-1850 bd-1847           # Tests blocked until 1847 done
+tbd blocked                                # See what's waiting
+```
+
+### Daily workflow
+
+```bash
+tbd sync                    # Start of session
+tbd ready                   # Find work
+# ... do the work ...
+tbd close bd-xxxx           # Mark complete
+tbd sync                    # End of session
+```
+
+### Issue lifecycle
 
 ```
 open → in_progress → closed
@@ -27,43 +70,11 @@ open → in_progress → closed
 blocked/deferred
 ```
 
----
-
-## ID System
-
-TBD uses a dual ID system:
-
-| Type | Format | Example | Usage |
-|------|--------|---------|-------|
-| Display ID | `bd-{4-char}` | `bd-a7k2` | User-facing, CLI input/output |
-| Internal ID | `is-{26-char}` | `is-01hx5zzkbkactav9wevgemmvrz` | File storage, programmatic use |
-
-### Using IDs
-
-All commands accept either format:
-
-```bash
-tbd show bd-a7k2                           # Short display ID
-tbd show is-01hx5zzkbkactav9wevgemmvrz    # Full internal ID
-tbd show a7k2                              # Without prefix also works
-```
-
-### Debug Mode
-
-Use `--debug` to see both IDs:
-
-```bash
-tbd list --debug
-# bd-a7k2 (is-01hx5zzkbkactav9wevgemmvrz)  Fix login bug
-```
-
----
-
 ## Commands
 
 ### init
 
-Initialize TBD in a git repository.
+Initialize tbd in a git repository.
 
 ```bash
 tbd init                           # Use defaults
@@ -75,24 +86,22 @@ Options:
 - `--sync-branch <name>` - Sync branch name (default: tbd-sync)
 - `--remote <name>` - Remote name (default: origin)
 
----
-
 ### create
 
 Create a new issue.
 
 ```bash
-tbd create "Implement user auth"                      # Basic task
-tbd create "Fix crash on login" -t bug -p 0          # Critical bug
-tbd create "Dark mode support" -t feature            # Feature request
-tbd create "Refactor database layer" -t chore        # Technical debt
-tbd create "Q1 Goals" -t epic                        # Epic for grouping
+tbd create "Implement user auth"                                   # Basic task
+tbd create "Fix crash on login" --type bug --priority 0            # Critical bug
+tbd create "Dark mode support" --type feature                      # Feature request
+tbd create "Refactor database layer" --type chore                  # Technical debt
+tbd create "Q1 Goals" --type epic                                  # Epic for grouping
 
 # With description
-tbd create "Add rate limiting" -d "Prevent API abuse with 100 req/min limit"
+tbd create "Add rate limiting" --description "Prevent API abuse with 100 req/min limit"
 
 # With labels
-tbd create "Fix mobile layout" -l frontend -l urgent
+tbd create "Fix mobile layout" --label frontend --label urgent
 
 # With assignee and due date
 tbd create "Security audit" --assignee alice --due 2025-02-01
@@ -102,18 +111,17 @@ tbd create --from-file issue.yml
 ```
 
 Options:
-- `-t, --type <type>` - Issue type: bug, feature, task, epic, chore (default: task)
-- `-p, --priority <0-4>` - Priority: 0=critical, 1=high, 2=medium, 3=low, 4=backlog (default: 2)
-- `-d, --description <text>` - Issue description
-- `-f, --file <path>` - Read description from file
+- `--type <type>` - Issue type: bug, feature, task, epic, chore (default: task)
+- `--priority <0-4>` - Priority: 0=critical, 1=high, 2=medium, 3=low, 4=backlog
+  (default: 2)
+- `--description <text>` - Issue description
+- `--file <path>` - Read description from file
 - `--assignee <name>` - Assign to someone
 - `--due <date>` - Due date (ISO8601 format)
 - `--defer <date>` - Defer until date
 - `--parent <id>` - Parent issue ID (for sub-issues)
-- `-l, --label <label>` - Add label (can repeat)
+- `--label <label>` - Add label (can repeat)
 - `--from-file <path>` - Create from YAML+Markdown file
-
----
 
 ### list
 
@@ -153,7 +161,7 @@ Options:
 - `--limit <n>` - Limit number of results
 - `--count` - Output only the count of matching issues
 
----
+* * *
 
 ### show
 
@@ -164,9 +172,10 @@ tbd show bd-a7k2                            # YAML output
 tbd show bd-a7k2 --json                     # JSON output
 ```
 
-Output includes all fields: title, description, status, priority, labels, dependencies, timestamps, and working notes.
+Output includes all fields: title, description, status, priority, labels, dependencies,
+timestamps, and working notes.
 
----
+* * *
 
 ### update
 
@@ -205,7 +214,7 @@ Options:
 - `--remove-label <label>` - Remove label
 - `--parent <id>` - Set parent issue
 
----
+* * *
 
 ### close
 
@@ -219,7 +228,7 @@ tbd close bd-a7k2 --reason "Fixed in PR #42"
 Options:
 - `--reason <text>` - Reason for closing
 
----
+* * *
 
 ### reopen
 
@@ -233,7 +242,7 @@ tbd reopen bd-a7k2 --reason "Bug reappeared"
 Options:
 - `--reason <text>` - Reason for reopening
 
----
+* * *
 
 ### ready
 
@@ -249,7 +258,7 @@ Options:
 - `--type <type>` - Filter by type
 - `--limit <n>` - Limit results
 
----
+* * *
 
 ### blocked
 
@@ -263,7 +272,7 @@ tbd blocked --limit 10                      # Limit results
 Options:
 - `--limit <n>` - Limit results
 
----
+* * *
 
 ### stale
 
@@ -281,7 +290,7 @@ Options:
 - `--status <status>` - Filter by status (default: open, in_progress)
 - `--limit <n>` - Limit results
 
----
+* * *
 
 ### label
 
@@ -299,7 +308,7 @@ Subcommands:
 - `remove <id> <labels...>` - Remove labels from an issue
 - `list` - List all labels currently in use
 
----
+* * *
 
 ### depends
 
@@ -321,7 +330,7 @@ Subcommands:
 - `remove <id> <target>` - Remove a blocks dependency
 - `list <id>` - List dependencies for an issue
 
----
+* * *
 
 ### sync
 
@@ -341,7 +350,7 @@ Options:
 - `--status` - Show sync status without syncing
 - `--force` - Force sync, overwriting conflicts
 
----
+* * *
 
 ### search
 
@@ -363,20 +372,7 @@ Options:
 - `--no-refresh` - Skip worktree refresh
 - `--case-sensitive` - Case-sensitive search
 
----
-
-### info
-
-Show repository information.
-
-```bash
-tbd info                                    # Show repo info
-tbd info --json                             # JSON output
-```
-
-Displays: repository path, sync branch, remote, tbd version, and configuration.
-
----
+* * *
 
 ### stats
 
@@ -389,7 +385,7 @@ tbd stats --json                            # JSON output
 
 Displays: issue counts by status, type, priority, and label.
 
----
+* * *
 
 ### doctor
 
@@ -403,11 +399,11 @@ tbd doctor --fix                            # Attempt to fix issues
 Options:
 - `--fix` - Attempt to automatically fix detected issues
 
----
+* * *
 
 ### config
 
-Manage TBD configuration.
+Manage tbd configuration.
 
 ```bash
 tbd config show                             # Show all config
@@ -421,15 +417,16 @@ Subcommands:
 - `set <key> <value>` - Set a configuration value
 
 Common config keys:
-- `display.id_prefix` - ID prefix (default: "bd")
+- `display.id_prefix` - ID prefix (default: “bd”)
 - `sync.branch` - Sync branch name
 - `sync.remote` - Remote name
 
----
+* * *
 
 ### attic
 
-Manage conflict archive. When sync conflicts occur, the losing values are preserved in the attic for recovery.
+Manage conflict archive.
+When sync conflicts occur, the losing values are preserved in the attic for recovery.
 
 ```bash
 tbd attic list                              # List all attic entries
@@ -443,7 +440,7 @@ Subcommands:
 - `show <id> <timestamp>` - Show attic entry details
 - `restore <id> <timestamp>` - Restore a value from the attic
 
----
+* * *
 
 ### import
 
@@ -465,7 +462,70 @@ Options:
 - `--verbose` - Show detailed import progress
 - `--validate` - Validate existing import against Beads source
 
----
+* * *
+
+### status
+
+Show repository status.
+Works even when tbd is not initialized.
+
+```bash
+tbd status                                  # Show repo status
+tbd status --json                           # JSON output
+```
+
+Displays: initialization state, sync status, issue counts, detected integrations.
+
+When not initialized, detects Beads and suggests migration:
+```
+Not a tbd repository.
+
+Detected:
+  ✓ Git repository (main branch)
+  ✓ Beads repository (.beads/ with 142 issues)
+
+To get started:
+  tbd import --from-beads   # Migrate from Beads
+  tbd init                  # Start fresh
+```
+
+* * *
+
+### prime
+
+Output workflow context for AI agents.
+Called automatically by Claude Code hooks.
+
+```bash
+tbd prime                                   # Output workflow context
+tbd prime --export                          # Output default (ignores PRIME.md)
+```
+
+Behavior:
+- Silent exit (code 0) if not in a tbd project
+- Custom output: create `.tbd/PRIME.md` to override default content
+
+* * *
+
+### setup
+
+Configure editor and agent integrations.
+
+```bash
+tbd setup claude                            # Install Claude Code hooks
+tbd setup claude --check                    # Verify installation status
+tbd setup claude --remove                   # Remove tbd hooks
+
+tbd setup cursor                            # Create Cursor rules file
+tbd setup cursor --check                    # Verify Cursor rules
+tbd setup cursor --remove                   # Remove Cursor rules
+
+tbd setup codex                             # Create/update AGENTS.md
+tbd setup codex --check                     # Verify AGENTS.md
+tbd setup codex --remove                    # Remove tbd section from AGENTS.md
+```
+
+* * *
 
 ## Global Options
 
@@ -484,7 +544,7 @@ tbd list --color never                      # Disable colors
 ```
 
 Options:
-- `-V, --version` - Show version number
+- `--version` - Show version number
 - `--dry-run` - Show what would be done without making changes
 - `--verbose` - Enable verbose output
 - `--quiet` - Suppress non-essential output
@@ -495,7 +555,66 @@ Options:
 - `--no-sync` - Skip automatic sync after write operations
 - `--debug` - Show internal IDs alongside display IDs
 
----
+* * *
+
+## For AI Agents
+
+tbd is designed for AI coding agents.
+This section covers agent-specific patterns.
+
+### Agent Workflow Loop
+
+```bash
+tbd ready --json                            # Find available work
+tbd update bd-xxxx --status in_progress     # Claim it (advisory)
+# ... do the work ...
+tbd close bd-xxxx --reason "Fixed in commit abc123"
+tbd sync                                    # Push changes
+```
+
+### Agent-Friendly Flags
+
+| Flag | Purpose |
+| --- | --- |
+| `--json` | Machine-parseable output |
+| `--non-interactive` | Fail if input required (auto-enabled in CI) |
+| `--yes` | Auto-confirm prompts |
+| `--dry-run` | Preview changes before applying |
+| `--quiet` | Suppress informational output |
+
+### Actor Resolution
+
+The actor name (for `created_by` field) is resolved in order:
+
+1. `--actor <name>` flag
+2. `TBD_ACTOR` environment variable
+3. Git `user.email` from config
+4. System username
+
+```bash
+TBD_ACTOR=claude-agent tbd create "Fix bug" --type bug
+```
+
+### Claude Code Integration
+
+Install hooks for automatic context injection:
+
+```bash
+tbd setup claude --global                   # One-time setup
+```
+
+This runs `tbd prime` at session start and before context compaction, ensuring the agent
+remembers the tbd workflow.
+
+### Closing Multiple Issues
+
+Close several issues at once (more efficient than one at a time):
+
+```bash
+tbd close bd-a1 bd-b2 bd-c3 --reason "Sprint complete"
+```
+
+* * *
 
 ## Common Workflows
 
@@ -505,7 +624,7 @@ Options:
 cd my-project
 git init
 tbd init
-tbd create "Initial setup" -t chore
+tbd create "Initial setup" --type chore
 ```
 
 ### Daily Workflow
@@ -532,7 +651,7 @@ tbd sync
 
 ```bash
 # Create epic
-tbd create "User Authentication System" -t epic -p 1
+tbd create "User Authentication System" --type epic --priority 1
 
 # Create child tasks
 tbd create "Design auth API" --parent bd-epic
@@ -548,8 +667,8 @@ tbd list --parent bd-epic
 
 ```bash
 # Create issues
-tbd create "Set up database" -t task
-tbd create "Implement API" -t task
+tbd create "Set up database" --type task
+tbd create "Implement API" --type task
 
 # API depends on database (database blocks API)
 tbd depends add bd-api bd-database
@@ -592,7 +711,7 @@ tbd search "review" --status open
 # Stop Beads daemon first
 bd sync  # Final Beads sync
 
-# Import to TBD
+# Import to tbd
 tbd import --from-beads --verbose
 
 # Verify import
@@ -603,11 +722,11 @@ tbd list --all
 alias bd=tbd
 ```
 
----
+* * *
 
 ## File Structure
 
-TBD stores data in the following locations:
+tbd stores data in the following locations:
 
 ```
 my-project/
@@ -651,8 +770,6 @@ User reports intermittent login failures.
 Found the issue in auth.ts - race condition in token refresh.
 ```
 
----
-
 ## Configuration Reference
 
 Configuration is stored in `.tbd/config.yml`:
@@ -669,7 +786,50 @@ sync:
   auto_sync: true            # Auto-sync after writes
 ```
 
----
+## Priority Scale
+
+| Value | Alias | Meaning |
+| --- | --- | --- |
+| 0 | P0 | Critical—drop everything |
+| 1 | P1 | High—this sprint |
+| 2 | P2 | Medium—soon (default) |
+| 3 | P3 | Low—backlog |
+| 4 | P4 | Lowest—maybe/someday |
+
+Both formats work: `--priority 1` or `--priority P1`
+
+## Date Formats
+
+Commands like `--due` and `--defer` accept flexible date input:
+
+| Format | Example | Result |
+| --- | --- | --- |
+| Full datetime | `2025-02-15T10:00:00Z` | Exact time (UTC) |
+| Date only | `2025-02-15` | Midnight UTC |
+| Relative | `+7d` | 7 days from now |
+| Relative | `+2w` | 2 weeks from now |
+
+## How Sync Works
+
+tbd stores issues on a dedicated `tbd-sync` branch, separate from your code branches.
+
+**Why this matters:**
+- No merge conflicts in feature branches
+- Issues shared across all branches
+- Clean code history (no issue churn)
+
+**Conflict handling:**
+- Detection via content hash comparison
+- Automatic field-level merge (last-write-wins for scalars, union for arrays)
+- Lost values preserved in the attic—no data loss
+
+**Daily usage:**
+```bash
+tbd sync                    # Pull + push (run at session start/end)
+tbd sync --status           # Check what's pending
+```
+
+* * *
 
 ## Troubleshooting
 
@@ -689,7 +849,7 @@ tbd doctor --fix
 
 ### ID Not Found
 
-If you get "Unknown issue ID" errors:
+If you get “Unknown issue ID” errors:
 
 ```bash
 # Verify the issue exists
@@ -697,6 +857,20 @@ tbd list --all | grep <partial-id>
 
 # Use --debug to see internal IDs
 tbd list --debug
+# bd-a7k2 (is-01hx5zzkbkactav9wevgemmvrz)  Fix login bug
+```
+
+### Debugging with Internal IDs
+
+tbd uses short display IDs (`bd-a7k2`) that map to internal ULIDs (`is-01hx5zzkbk...`).
+You normally don’t need internal IDs, but they’re useful for:
+
+```bash
+# Find the actual issue file
+ls .tbd/data-sync-worktree/.tbd/data-sync/issues/is-01hx5*.md
+
+# Internal IDs sort chronologically (creation order)
+ls .tbd/data-sync-worktree/.tbd/data-sync/issues/ | sort
 ```
 
 ### Performance
@@ -711,13 +885,12 @@ tbd list --limit 50
 tbd list --status open --type bug
 ```
 
----
-
 ## Tips
 
 1. **Use labels for workflow states**: `needs-review`, `blocked-external`, `wontfix`
 
-2. **Set priorities consistently**: 0=drop everything, 1=this sprint, 2=soon, 3=backlog, 4=maybe
+2. **Set priorities consistently**: 0=drop everything, 1=this sprint, 2=soon, 3=backlog,
+   4=maybe
 
 3. **Use epics for grouping**: Create an epic and link child tasks with `--parent`
 
@@ -729,8 +902,6 @@ tbd list --status open --type bug
 
 7. **Alias for convenience**: `alias bd=tbd` for muscle memory from Beads
 
----
-
 ## Getting Help
 
 ```bash
@@ -739,4 +910,4 @@ tbd <command> --help          # Command-specific help
 tbd help <command>            # Alternative help syntax
 ```
 
-Report issues: https://github.com/tbd/tbd-cli/issues
+Report issues: https://github.com/jlevy/tbd
