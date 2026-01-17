@@ -767,12 +767,12 @@ Implement agent integration commands: `tbd prime` and `tbd setup` commands for v
 - Agents lose workflow instructions after context compaction
 - Session start needs to prime agents with tbd commands and workflow
 - Matches `bd prime` functionality from Beads for migration compatibility
-- Editor integrations needed for Claude Code and Cursor
+- Editor integrations needed for Claude Code, Cursor, and Codex
 
 **Design Reference:** See tbd-design-v3.md §6.4 for full specification, including:
 - §6.4.2 Claude Code Integration (`tbd setup claude`)
 - §6.4.3 The `tbd prime` Command
-- §6.4.4 Other Editor Integrations (`tbd setup cursor`)
+- §6.4.4 Other Editor Integrations (`tbd setup cursor`, `tbd setup codex`)
 - §6.4.5 Cloud Environment Bootstrapping
 
 | Bead ID | Task | Status | Notes |
@@ -781,6 +781,7 @@ Implement agent integration commands: `tbd prime` and `tbd setup` commands for v
 | tbd-1876 | Implement tbd prime command | Open | Core priming command with MCP detection |
 | tbd-1877 | Implement tbd setup claude command | Open | Claude Code hooks configuration |
 | tbd-1878 | Implement tbd setup cursor command | Open | Cursor IDE rules file |
+| tbd-1882 | Implement tbd setup codex command | Open | Codex AGENTS.md file |
 | tbd-1880 | Golden tests for tbd prime | Open | Test all modes and edge cases |
 | tbd-1881 | Golden tests for tbd setup commands | Open | Test setup for each editor |
 
@@ -797,6 +798,11 @@ Implement agent integration commands: `tbd prime` and `tbd setup` commands for v
    - `--remove` - Remove hooks
 
 3. `tbd setup cursor` - Create `.cursor/rules/tbd.mdc`
+
+4. `tbd setup codex` - Create/update `AGENTS.md`
+   - Adds managed section with tbd workflow instructions
+   - `--check` - Verify installation
+   - `--remove` - Remove tbd section
 
 **Files to Create/Update:**
 - `src/cli/commands/prime.ts` - Prime command
