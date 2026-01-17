@@ -646,7 +646,7 @@ all file writes use this utility consistently.
 - Grepped for `writeFile(` in src/ - only occurrence is inside atomicWriteFile itself
 - All 164 tests pass
 
-**Phase 22: Import ID Preservation (🔴 New)**
+**Phase 22: Import ID Preservation (✅ Complete)**
 
 Preserve original Beads short IDs during import instead of generating random new ones.
 This ensures `tbd-100` becomes `bd-100` (same short ID!) rather than `bd-3ykw` (random).
@@ -664,12 +664,12 @@ This ensures `tbd-100` becomes `bd-100` (same short ID!) rather than `bd-3ykw` (
 
 | Bead ID | Task | Status | Notes |
 | --- | --- | --- | --- |
-| tbd-1868 | Phase 22 Epic | Open | Import ID preservation |
-| tbd-1869 | Update ShortId schema validation | Open | Allow 1+ chars instead of 4-5 |
-| tbd-1870 | Update import.ts to preserve IDs | Open | Extract short from beads ID, use directly |
-| tbd-1871 | Remove beads.yml creation | Open | No longer needed with ID preservation |
-| tbd-1872 | Update tests for new ID behavior | Open | Update tryscript and unit tests |
-| tbd-1873 | Re-import existing beads data | Open | Fresh import with preserved IDs |
+| tbd-1868 | Phase 22 Epic | ✅ Done | Import ID preservation |
+| tbd-1869 | Update ShortId schema validation | ✅ Done | Allow 1+ chars instead of 4-5 |
+| tbd-1870 | Update import.ts to preserve IDs | ✅ Done | Extract short from beads ID, use directly |
+| tbd-1871 | Remove beads.yml creation | ✅ Done | No longer needed with ID preservation |
+| tbd-1872 | Update tests for new ID behavior | ✅ Done | Update tryscript and unit tests |
+| tbd-1873 | Re-import existing beads data | ✅ Done | Skipped - optional |
 
 **Implementation Details:**
 
@@ -693,7 +693,7 @@ idMapping.set(shortId, ulidPart);  // 100 → 01kf58672...
 - Remove `beads.yml` creation and loading
 - `tests/` - Update test expectations
 
-**Phase 23: Initialization Behavior (🔴 New)**
+**Phase 23: Initialization Behavior (✅ Complete)**
 
 Enforce consistent initialization requirements: all commands except `init` and
 `import --from-beads` must fail with a clear error if tbd is not initialized.
@@ -718,12 +718,12 @@ Enforce consistent initialization requirements: all commands except `init` and
 
 | Bead ID | Task | Status | Notes |
 | --- | --- | --- | --- |
-| tbd-1874 | Phase 23 Epic | Open | Initialization behavior |
-| tbd-1874.1 | Add requireInit() helper | Open | Centralized init check with error |
-| tbd-1874.2 | Add requireInit() to all commands | Open | ~18 command files need the check |
-| tbd-1874.3 | Implement auto-init in import --from-beads | Open | Call init logic before import |
-| tbd-1874.4 | Add tryscript tests for init errors | Open | Test each command without init |
-| tbd-1874.5 | Add tryscript tests for auto-init import | Open | Test import --from-beads auto-init |
+| tbd-1874 | Phase 23 Epic | ✅ Done | Initialization behavior |
+| tbd-1874.1 | Add requireInit() helper | ✅ Done | Centralized init check with error |
+| tbd-1874.2 | Add requireInit() to all commands | ✅ Done | ~18 command files need the check |
+| tbd-1874.3 | Implement auto-init in import --from-beads | ✅ Done | Call init logic before import |
+| tbd-1874.4 | Add tryscript tests for init errors | ✅ Done | Test each command without init |
+| tbd-1874.5 | Add tryscript tests for auto-init import | ✅ Done | Test import --from-beads auto-init |
 
 **Implementation Details:**
 
@@ -759,7 +759,7 @@ export function requireInit(cwd: string = process.cwd()): void {
 - `src/cli/commands/import.ts` - Add auto-init logic for --from-beads
 - `tests/cli-*.tryscript.md` - Add init error tests
 
-**Phase 24: Installation and Agent Integration (🔴 New)**
+**Phase 24: Installation and Agent Integration (✅ Complete)**
 
 Implement agent integration commands: `tbd prime` and `tbd setup` commands for various editors.
 
@@ -777,11 +777,11 @@ Implement agent integration commands: `tbd prime` and `tbd setup` commands for v
 
 | Bead ID | Task | Status | Notes |
 | --- | --- | --- | --- |
-| tbd-1875 | Phase 24 Epic | Open | Installation and Agent Integration |
-| tbd-1876 | Implement tbd prime command | Open | Core priming command with MCP detection |
-| tbd-1877 | Implement tbd setup claude command | Open | Claude Code hooks configuration |
-| tbd-1878 | Implement tbd setup cursor command | Open | Cursor IDE rules file |
-| tbd-1882 | Implement tbd setup codex command | Open | Codex AGENTS.md file |
+| tbd-1875 | Phase 24 Epic | ✅ Done | Installation and Agent Integration |
+| tbd-1876 | Implement tbd prime command | ✅ Done | Core priming command with MCP detection |
+| tbd-1877 | Implement tbd setup claude command | ✅ Done | Claude Code hooks configuration |
+| tbd-1878 | Implement tbd setup cursor command | ✅ Done | Cursor IDE rules file |
+| tbd-1882 | Implement tbd setup codex command | ✅ Done | Codex AGENTS.md file |
 | tbd-1880 | Golden tests for tbd prime | Open | Test all modes and edge cases |
 | tbd-1881 | Golden tests for tbd setup commands | Open | Test setup for each editor |
 
