@@ -876,6 +876,86 @@ pnpm test:tryscript:update
 - All commands tested: init, create, list, show, update, close, stats, label, ready,
   doctor
 
+**Test Coverage Gap Analysis (2026-01-17):**
+
+The following table tracks ALL subcommands with their golden test coverage status:
+
+| Command | Subcommand | Test File | Coverage | Gap? | Bead |
+| --- | --- | --- | --- | --- | --- |
+| **init** | - | cli-setup.tryscript.md | ✅ Full | No | - |
+| **create** | - | cli-crud.tryscript.md | ✅ Full | No | - |
+| **list** | - | cli-crud.tryscript.md | ✅ Full | No | - |
+| **show** | - | cli-crud.tryscript.md | ✅ Full | No | - |
+| **update** | - | cli-crud.tryscript.md | ✅ Full | No | - |
+| **close** | - | cli-crud.tryscript.md | ✅ Full | No | - |
+| **reopen** | - | cli-crud.tryscript.md | ✅ Full | No | - |
+| **ready** | - | cli-workflow.tryscript.md | ✅ Full | No | - |
+| **blocked** | - | cli-workflow.tryscript.md | ✅ Full | No | - |
+| **stale** | - | cli-workflow.tryscript.md | ✅ Full | No | - |
+| **label** | add | cli-workflow.tryscript.md | ✅ Full | No | - |
+| **label** | remove | cli-workflow.tryscript.md | ✅ Full | No | - |
+| **label** | list | cli-workflow.tryscript.md | ✅ Full | No | - |
+| **depends** | add | cli-workflow.tryscript.md | ✅ Full | No | - |
+| **depends** | remove | cli-workflow.tryscript.md | ⚠️ Partial | Implicit | - |
+| **depends** | list | cli-workflow.tryscript.md | ⚠️ Partial | Implicit | - |
+| **depends** | tree | cli-workflow.tryscript.md | ⚠️ Partial | Implicit | - |
+| **sync** | --status | cli-advanced.tryscript.md | ✅ Full | No | - |
+| **sync** | (git commit) | - | ❌ None | **CRITICAL** | tbd-1885 |
+| **sync** | --push | cli-advanced.tryscript.md | ⚠️ Error only | Yes | tbd-1885 |
+| **sync** | --pull | cli-advanced.tryscript.md | ⚠️ Error only | Yes | tbd-1885 |
+| **search** | - | cli-advanced.tryscript.md | ✅ Full | No | - |
+| **info** | - | cli-workflow.tryscript.md | ✅ Full | No | - |
+| **stats** | - | cli-advanced.tryscript.md | ✅ Full | No | - |
+| **doctor** | - | cli-advanced.tryscript.md | ✅ Full | No | - |
+| **config** | show | cli-advanced.tryscript.md | ✅ Full | No | - |
+| **config** | get | cli-advanced.tryscript.md | ✅ Full | No | - |
+| **config** | set | cli-advanced.tryscript.md | ✅ Full | No | - |
+| **attic** | list | cli-advanced.tryscript.md | ✅ Full | No | - |
+| **attic** | show | cli-advanced.tryscript.md | ✅ Full | No | - |
+| **attic** | restore | cli-advanced.tryscript.md | ⚠️ Partial | No actual restore | - |
+| **import** | (file) | cli-import.tryscript.md | ✅ Full | No | - |
+| **import** | --from-beads | cli-import-e2e.tryscript.md | ✅ Full | No | - |
+| **docs** | - | cli-advanced.tryscript.md | ✅ Full | No | - |
+| **docs** | --list | cli-advanced.tryscript.md | ✅ Full | No | - |
+| **docs** | --section | cli-advanced.tryscript.md | ✅ Full | No | - |
+| **uninstall** | (success) | - | ❌ None | Yes | tbd-1883 |
+| **uninstall** | (error) | cli-uninitialized.tryscript.md | ✅ Full | No | - |
+| **prime** | - | - | ❌ None | Yes | tbd-1880 |
+| **prime** | --full | - | ❌ None | Yes | tbd-1880 |
+| **prime** | --mcp | - | ❌ None | Yes | tbd-1880 |
+| **setup** | claude | - | ❌ None | Yes | tbd-1881 |
+| **setup** | cursor | - | ❌ None | Yes | tbd-1881 |
+| **setup** | codex | - | ❌ None | Yes | tbd-1881 |
+
+**Additional Test Files:**
+- cli-filesystem.tryscript.md - File/directory structure validation
+- cli-id-format.tryscript.md - ID format and display tests
+- cli-color-modes.tryscript.md - Color/ANSI output tests
+- cli-edge-cases.tryscript.md - Edge cases and error handling
+- cli-help-all.tryscript.md - All --help subcommand tests
+- golden/golden.test.ts - Vitest golden snapshot tests
+
+**Critical Gap: Sync Git Operations (tbd-1885, tbd-1884)**
+
+The sync command has a **P0 bug** (tbd-1884): files are written to the worktree but
+never committed to git before push. The `commitToSyncBranch()` function in
+[git.ts](packages/tbd-cli/src/file/git.ts:177-220) exists but is never called.
+
+Tests must be written first (tbd-1885 blocks tbd-1884) to verify:
+1. After `tbd sync`, files are committed to the `tbd-sync` branch (not just written)
+2. `git log tbd-sync` shows commits with issue files
+3. Push actually sends committed data to remote
+
+**Other Test Gaps:**
+
+| Bead | Priority | Task | Notes |
+| --- | --- | --- | --- |
+| tbd-1885 | P0 | Sync git commit verification | **CRITICAL** - blocks tbd-1884 |
+| tbd-1884 | P0 | Fix sync not committing | Depends on tbd-1885 |
+| tbd-1883 | P2 | Uninstall golden tests | Success path untested |
+| tbd-1880 | P1 | Prime command golden tests | All modes and edge cases |
+| tbd-1881 | P2 | Setup command golden tests | claude/cursor/codex |
+
 **Reference:** See `npx tryscript docs` for detailed coverage documentation.
 
 **Beads Import Validation Plan:**
