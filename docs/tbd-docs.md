@@ -159,11 +159,13 @@ tbd init --prefix=tk --remote=upstream         # Use different remote
 ```
 
 Options:
-- `--prefix <name>` - **Required.** Project prefix for display IDs (e.g., "proj", "myapp")
+- `--prefix <name>` - **Required.** Project prefix for display IDs (e.g., “proj”,
+  “myapp”)
 - `--sync-branch <name>` - Sync branch name (default: tbd-sync)
 - `--remote <name>` - Remote name (default: origin)
 
-Note: When importing from Beads (`tbd import --from-beads`), the prefix is auto-detected.
+Note: When importing from Beads (`tbd import --from-beads`), the prefix is
+auto-detected.
 
 ### create
 

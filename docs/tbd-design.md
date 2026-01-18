@@ -562,8 +562,8 @@ Found the issue in session.ts line 42. Working on fix.
 - `## Notes` section separates working notes from description
 
 > **Note:** The example above shows fields in a human-friendly logical order for
-> readability. Actual files use canonical serialization (alphabetical key ordering)
-> as specified below.
+> readability. Actual files use canonical serialization (alphabetical key ordering) as
+> specified below.
 
 #### Canonical Serialization
 
@@ -2589,7 +2589,8 @@ This follows the same convention as `git`, `ls`, `grep`, and other Unix tools.
 **Actor Resolution Order:**
 
 > **Implementation note:** The `--actor` flag and `TBD_ACTOR` environment variable are
-> not yet implemented. Currently, actor defaults to git user.email or system username.
+> not yet implemented.
+> Currently, actor defaults to git user.email or system username.
 > Full actor system design is tracked as future work.
 
 The actor name (used for `created_by` and recorded in sync commits) is resolved in this
@@ -3731,8 +3732,8 @@ Options:
 #   --global      Install to ~/.claude/settings.json (user-wide)
 ```
 
-> **Note:** Currently installs to project-level settings only. Global installation
-> planned for future release.
+> **Note:** Currently installs to project-level settings only.
+> Global installation planned for future release.
 
 #### 6.4.3 The `tbd prime` Command
 
@@ -4782,7 +4783,8 @@ See `tbd-design-v2-phase1-tracking.md` for full context.
 
 **Status:** Partially designed, not implemented.
 
-The actor system tracks who creates and modifies issues. Current implementation status:
+The actor system tracks who creates and modifies issues.
+Current implementation status:
 
 **Implemented:**
 - Schema fields: `created_by` and `assignee` exist in IssueSchema
@@ -4810,15 +4812,17 @@ The actor system tracks who creates and modifies issues. Current implementation 
 
 3. **Actor resolution order:**
    - Design doc specifies: `--actor` > `TBD_ACTOR` > git user.email > username+hostname
-   - Is this order correct? Should git user.name be considered?
+   - Is this order correct?
+     Should git user.name be considered?
 
 4. **Sync commit authorship:**
    - Should sync commits use the actor name?
    - How does this interact with git commit signing?
 
 **Recommendation:** Defer full implementation until multi-agent coordination patterns
-are better understood. Current fallback to git user.email is sufficient for single-user
-and simple multi-agent scenarios.
+are better understood.
+Current fallback to git user.email is sufficient for single-user and simple multi-agent
+scenarios.
 
 ### 8.2 Git Operations
 
