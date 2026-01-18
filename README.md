@@ -54,8 +54,8 @@ you wish.
 - Git 2.42+ (for orphan worktree support)
 
 ```bash
-# Install requ
-npm install -g tbd-cli@latest
+# Install
+npm install -g @jlevy/tbd@latest
 
 # Initialize in your repo
 cd my-project

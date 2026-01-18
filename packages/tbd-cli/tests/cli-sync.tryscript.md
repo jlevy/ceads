@@ -41,7 +41,7 @@ This is the most important test - verifying that `tbd sync` actually commits fil
 the tbd-sync branch.
 Without this, changes would never be pushed.
 
-# Test: Initial state has one commit (from init, sync doesn't add if nothing changed)
+# Test: Initial state has one commit (from init, sync doesn’t add if nothing changed)
 
 ```console
 $ git -C .tbd/data-sync-worktree log --oneline | wc -l | tr -d ' '

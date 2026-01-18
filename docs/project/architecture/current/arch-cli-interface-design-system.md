@@ -316,7 +316,7 @@ NO_COLOR=1 tbd list
 **Format**: ALL CAPS, bold, followed by blank line before content.
 
 | Element | Format | Color | Example |
-|---------|--------|-------|---------|
+| --- | --- | --- | --- |
 | Section heading | ALL CAPS + newline | Bold | `REPOSITORY` |
 | Inline label | Title Case + colon | Default | `Sync branch:` |
 
@@ -531,7 +531,8 @@ bd-g7h8     P3   ✓ closed         [epic] Initial setup
 ```
 
 **Note:** KIND is displayed as a bracketed prefix to the title in the same column, not a
-separate column. This is more space-efficient while still clearly showing the issue type.
+separate column.
+This is more space-efficient while still clearly showing the issue type.
 
 #### Kind Display Format
 

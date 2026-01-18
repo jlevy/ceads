@@ -42,8 +42,8 @@ problem—one that can be layered on top of tbd or handled by other tools.
 ## Motivation
 
 Agents perform *far* better when they can track tasks reliably and stay organized.
-Sometimes they can use external issue trackers (GitHub Issues, Linear, Jira), but
-as Beads has shown, there is great benefit to lightweight tracking of tasks via CLI.
+Sometimes they can use external issue trackers (GitHub Issues, Linear, Jira), but as
+Beads has shown, there is great benefit to lightweight tracking of tasks via CLI.
 
 tbd addresses specific requirements:
 
@@ -306,9 +306,10 @@ scales to ~1900 issues in production.
 
 **Data model**:
 - When `tbd dep add A B` is run, the dependency is stored on issue B (the blocker)
-- B's file contains: `dependencies: [{type: 'blocks', target: A}]`
-- Read as: "B blocks A" — stored on B, pointing to A (the issue being blocked)
-- This enables efficient "what does this issue block?" queries by reading one file
+- B’s file contains: `dependencies: [{type: 'blocks', target: A}]`
+- Read as: “B blocks A” — stored on B, pointing to A (the issue being blocked)
+- This enables efficient “what does this issue block?”
+  queries by reading one file
 
 **Rationale**:
 - Covers the primary use case (the `ready` command needs to know what’s blocked)

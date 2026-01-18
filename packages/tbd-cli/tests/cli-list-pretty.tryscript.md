@@ -23,7 +23,8 @@ before: |
 ---
 # tbd list --pretty: Tree View Display
 
-Tests for the `--pretty` flag which displays issues in a tree format showing parent-child relationships.
+Tests for the `--pretty` flag which displays issues in a tree format showing
+parent-child relationships.
 
 * * *
 
@@ -108,8 +109,9 @@ Created grandchild
 ? 0
 ```
 
-Note: `--parent` shows direct children only. The grandchild appears nested under
-Child Task 1 only when both are in the filtered results (e.g., filtering by type):
+Note: `--parent` shows direct children only.
+The grandchild appears nested under Child Task 1 only when both are in the filtered
+results (e.g., filtering by type):
 
 ```console
 $ tbd list --pretty --parent=$(cat child1_id.txt)

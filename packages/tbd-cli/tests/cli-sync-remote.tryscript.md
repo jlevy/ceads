@@ -34,7 +34,7 @@ before: |
 # tbd CLI: Sync with Remote
 
 These tests verify sync behavior when a remote repository is available.
-This uses a local bare git repository as a mock "origin" remote.
+This uses a local bare git repository as a mock “origin” remote.
 
 * * *
 

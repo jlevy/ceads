@@ -251,7 +251,8 @@ $ tbd list --priority=P1 --count
 
 # Test: List filter by priority P0 (should return only P0 issues)
 
-At this point we have 1 P0 issue (High priority feature). Create another one:
+At this point we have 1 P0 issue (High priority feature).
+Create another one:
 
 ```console
 $ tbd create "Critical P0 issue" --priority=0 --json | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); require('fs').writeFileSync('p0_id.txt', d.id); console.log('Created')"

@@ -107,8 +107,9 @@ random ID like “bd-xxxx”.
 
 # Test: Imported IDs preserve original short IDs
 
-The beads issues have IDs "test-001", "test-002", "test-003". After import, display IDs
-should be "test-001", "test-002", "test-003" (preserving the original prefix and short IDs).
+The beads issues have IDs “test-001”, “test-002”, “test-003”. After import, display IDs
+should be “test-001”, “test-002”, “test-003” (preserving the original prefix and short
+IDs).
 
 ```console
 $ tbd list --all --json | node -e "d=JSON.parse(require('fs').readFileSync(0,'utf8')); ids=d.map(i=>i.id).sort(); console.log(ids.join(','))"

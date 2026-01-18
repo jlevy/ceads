@@ -28,7 +28,8 @@ Validates ID format behavior across commands.
 ## ID Format Reference
 
 - **Internal ID**: `is-{26-char-ulid}` - stored in files, used for lookups
-- **Display ID**: `{prefix}-{4-char-short-id}` - short ID for readability (prefix is 'test' in these tests)
+- **Display ID**: `{prefix}-{4-char-short-id}` - short ID for readability (prefix is
+  ‘test’ in these tests)
 
 * * *
 

@@ -25,7 +25,8 @@ discovered and fixed three major bottlenecks:
 1. **Module resolution overhead** (~40ms): Loading 50+ node_modules packages at runtime
 2. **Bootstrap loading unbundled code** (~30ms): Bootstrap was importing cli.mjs instead
    of bundled bin.mjs
-3. **Sequential file I/O** (~35ms): Reading issue files one-by-one instead of in parallel
+3. **Sequential file I/O** (~35ms): Reading issue files one-by-one instead of in
+   parallel
 
 **Optimizations implemented**:
 
@@ -38,7 +39,7 @@ discovered and fixed three major bottlenecks:
 - Command avg: **80-93ms** (was 145ms)
 
 **Remaining opportunity**: Lazy command loading could further reduce help/version
-startup to ~25ms, but is lower priority now that we're well under target.
+startup to ~25ms, but is lower priority now that we’re well under target.
 
 **Research Questions**:
 
@@ -419,11 +420,12 @@ Discovered during research for Node.js CLI performance:
    before ESM imports to ensure early caching.
 
 9. **Bootstrap must load bundled binary**: When using a CJS bootstrap with ESM bundled
-   code, ensure the bootstrap imports the bundled file (e.g., `bin.mjs`) not an unbundled
-   entry point (e.g., `cli.mjs`).
+   code, ensure the bootstrap imports the bundled file (e.g., `bin.mjs`) not an
+   unbundled entry point (e.g., `cli.mjs`).
 
 10. **Parallel file I/O for bulk operations**: Use `Promise.all()` for reading multiple
-    files instead of sequential `await` in loops. With 300+ files, this saves ~35ms.
+    files instead of sequential `await` in loops.
+    With 300+ files, this saves ~35ms.
 
 * * *
 
@@ -453,7 +455,7 @@ Discovered during research for Node.js CLI performance:
 All benchmarks now pass with significant margin.
 
 **Future consideration**: Lazy command loading could further reduce startup to ~25ms but
-is lower priority now that we're well under the 100ms target.
+is lower priority now that we’re well under the 100ms target.
 
 ### Implemented Approaches
 
