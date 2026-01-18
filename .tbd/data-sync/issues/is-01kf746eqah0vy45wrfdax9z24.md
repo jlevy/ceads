@@ -1,4 +1,6 @@
 ---
+close_reason: Moved prime instructions to docs/tbd-prime.md. Updated copy-docs.mjs and prime.ts to load from file. Content shared between tbd prime and skill file.
+closed_at: 2026-01-18T01:53:25.765Z
 created_at: 2026-01-17T23:21:11.137Z
 dependencies:
   - target: is-01kf7c0akmxrs9e3ngvv2zz9ys
@@ -9,11 +11,11 @@ id: is-01kf746eqah0vy45wrfdax9z24
 kind: task
 labels: []
 priority: 2
-status: in_progress
+status: closed
 title: Move prime instructions to top-level tbd-prime.md doc
 type: is
-updated_at: 2026-01-18T01:43:24.475Z
-version: 4
+updated_at: 2026-01-18T01:53:25.766Z
+version: 5
 ---
 Currently the prime instructions are hardcoded as a string constant (PRIME_OUTPUT) in packages/tbd-cli/src/cli/commands/prime.ts.
 
