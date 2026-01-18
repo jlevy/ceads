@@ -68,7 +68,7 @@ const CLAUDE_PROJECT_HOOKS = {
         hooks: [
           {
             type: 'command',
-            command: '"$CLAUDE_PROJECT_DIR"/.claude/hooks/tbd-sync-reminder.sh',
+            command: '"$CLAUDE_PROJECT_DIR"/.claude/hooks/tbd-closing-reminder.sh',
           },
         ],
       },
@@ -278,7 +278,7 @@ class SetupClaudeHandler extends BaseCommand {
 
     // Check project-local hooks
     const projectSettingsPath = join(cwd, '.claude', 'settings.json');
-    const hookScriptPath = join(cwd, '.claude', 'hooks', 'tbd-sync-reminder.sh');
+    const hookScriptPath = join(cwd, '.claude', 'hooks', 'tbd-closing-reminder.sh');
 
     try {
       await access(projectSettingsPath);
@@ -289,7 +289,7 @@ class SetupClaudeHandler extends BaseCommand {
       if (hooks) {
         const postToolUse = hooks.PostToolUse as { hooks?: { command?: string }[] }[];
         postToolUseHook = postToolUse?.some((h) =>
-          h.hooks?.some((hook) => hook.command?.includes('tbd-sync-reminder')),
+          h.hooks?.some((hook) => hook.command?.includes('tbd-closing-reminder')),
         );
       }
     } catch {
@@ -460,7 +460,7 @@ class SetupClaudeHandler extends BaseCommand {
 
     // Remove project-local hooks
     const projectSettingsPath = join(cwd, '.claude', 'settings.json');
-    const hookScriptPath = join(cwd, '.claude', 'hooks', 'tbd-sync-reminder.sh');
+    const hookScriptPath = join(cwd, '.claude', 'hooks', 'tbd-closing-reminder.sh');
 
     try {
       await access(projectSettingsPath);
@@ -474,7 +474,7 @@ class SetupClaudeHandler extends BaseCommand {
         const filterPostToolUse = (arr: { hooks?: { command?: string }[] }[] | undefined) => {
           if (!arr) return undefined;
           return arr.filter(
-            (h) => !h.hooks?.some((hook) => hook.command?.includes('tbd-sync-reminder')),
+            (h) => !h.hooks?.some((hook) => hook.command?.includes('tbd-closing-reminder')),
           );
         };
 
@@ -569,7 +569,7 @@ class SetupClaudeHandler extends BaseCommand {
       // Install project-local hooks in .claude/settings.json
       const cwd = process.cwd();
       const projectSettingsPath = join(cwd, '.claude', 'settings.json');
-      const hookScriptPath = join(cwd, '.claude', 'hooks', 'tbd-sync-reminder.sh');
+      const hookScriptPath = join(cwd, '.claude', 'hooks', 'tbd-closing-reminder.sh');
 
       // Read existing project settings if present
       let projectSettings: Record<string, unknown> = {};
