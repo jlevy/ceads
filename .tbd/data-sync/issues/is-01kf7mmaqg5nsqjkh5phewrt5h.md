@@ -1,4 +1,6 @@
 ---
+close_reason: Created cli/lib/issueFormat.ts with ISSUE_COLUMNS, formatKind, formatIssueLine, formatIssueLineExtended, formatIssueWithLabels, formatIssueCompact, formatIssueInline, formatIssueHeader, formatIssueLong, wrapDescription, and 24 unit tests
+closed_at: 2026-01-18T04:36:00.680Z
 created_at: 2026-01-18T04:08:23.023Z
 dependencies:
   - target: is-01kf7mmb636x6ppr9pb3d89d4v
@@ -9,11 +11,11 @@ id: is-01kf7mmaqg5nsqjkh5phewrt5h
 kind: task
 labels: []
 priority: 2
-status: open
+status: closed
 title: Create issue formatting utilities
 type: is
-updated_at: 2026-01-18T04:10:51.750Z
-version: 9
+updated_at: 2026-01-18T04:36:00.681Z
+version: 11
 ---
 Create cli/lib/issueFormat.ts with:
 - ISSUE_COLUMNS constants (ID=12, PRIORITY=5, STATUS=16, ASSIGNEE=10)
