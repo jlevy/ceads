@@ -31,18 +31,18 @@ $ tbd close-protocol | grep -c "CRITICAL"
 ? 0
 ```
 
-# Test: Close protocol contains all 5 checklist steps
+# Test: Close protocol contains all 7 checklist steps
 
 ```console
 $ tbd close-protocol | grep -c "^\[ \]"
-5
+7
 ? 0
 ```
 
 # Test: Close protocol contains git commit step
 
 ```console
-$ tbd close-protocol | grep -c "git add + git commit"
+$ tbd close-protocol | grep -c "git add"
 1
 ? 0
 ```
@@ -75,7 +75,7 @@ $ tbd close-protocol | grep -c "tbd close/update"
 
 ```console
 $ tbd close-protocol | grep -c "tbd sync"
-1
+2
 ? 0
 ```
 
