@@ -614,11 +614,11 @@ $ mkdir -p .beads && echo "test" > .beads/config.yaml
 
 ```console
 $ tbd prime | head -5
-[..]WARNING: A .beads/ directory was detected alongside .tbd/
+⚠️  WARNING: A .beads/ directory was detected alongside .tbd/
    When asked to use beads, use `tbd` commands, NOT `bd` commands.
    To complete migration: tbd setup beads --disable --confirm
 
-# tbd Workflow
+# tbd Workflow Context
 ? 0
 ```
 
