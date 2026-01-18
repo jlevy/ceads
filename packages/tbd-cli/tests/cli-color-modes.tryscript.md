@@ -104,9 +104,9 @@ Note: --sort=created sorts by newest first (descending).
 
 ```console
 $ tbd --color=never list --sort=created
-ID          PRI  STATUS        TITLE
-bd-[..]     2    open          Another issue
-bd-[..]     2    open          Test issue
+ID          PRI  STATUS          TITLE
+bd-[..]     P2   ○ open          [bug] Another issue
+bd-[..]     P2   ○ open          [task] Test issue
 
 2 issue(s)
 ? 0
@@ -175,9 +175,9 @@ These tests verify NO_COLOR environment variable is respected.
 
 ```console
 $ NO_COLOR=1 tbd list --sort=created
-ID          PRI  STATUS        TITLE
-bd-[..]     2    open          Another issue
-bd-[..]     2    open          Test issue
+ID          PRI  STATUS          TITLE
+bd-[..]     P2   ○ open          [bug] Another issue
+bd-[..]     P2   ○ open          [task] Test issue
 
 2 issue(s)
 ? 0

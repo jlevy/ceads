@@ -156,7 +156,8 @@ For more on tbd, see: https://github.com/jlevy/tbd
 
 ```console
 $ tbd setup cursor --check --verbose
-Cursor rules file not found
+⚠ Cursor rules file - not found (.cursor/rules/tbd.mdc)
+    Run: tbd setup cursor
 ? 0
 ```
 
@@ -179,7 +180,7 @@ rules file exists
 # Test: Cursor rules file contains workflow instructions
 
 ```console
-$ grep -c "Session Close Protocol" .cursor/rules/tbd.mdc
+$ grep -c "Session Closing Protocol" .cursor/rules/tbd.mdc
 1
 ? 0
 ```
@@ -196,7 +197,7 @@ $ grep -c "tbd ready" .cursor/rules/tbd.mdc
 
 ```console
 $ tbd setup cursor --check
-✓ Cursor rules file exists
+✓ Cursor rules file (.cursor/rules/tbd.mdc)
 ? 0
 ```
 
@@ -243,8 +244,8 @@ Cursor rules file not found
 
 ```console
 $ tbd setup codex --check --verbose
-AGENTS.md not found
-[..]
+⚠ AGENTS.md - not found (./AGENTS.md)
+    Run: tbd setup codex
 ? 0
 ```
 
@@ -284,7 +285,7 @@ $ grep -c "tbd ready" AGENTS.md
 
 ```console
 $ tbd setup codex --check
-✓ AGENTS.md with tbd section found
+✓ AGENTS.md (./AGENTS.md)
 ? 0
 ```
 
@@ -345,8 +346,8 @@ $ echo '# My Project' > AGENTS.md && echo '' >> AGENTS.md && echo 'This is my cu
 
 ```console
 $ tbd setup codex --check --verbose
-⚠ AGENTS.md exists but no tbd section found
-[..]
+⚠ AGENTS.md - exists but missing tbd integration (./AGENTS.md)
+    Run: tbd setup codex
 ? 0
 ```
 
@@ -455,14 +456,14 @@ $ tbd init --prefix=test --quiet
 # Test: Doctor warns about missing skill
 
 ```console
-$ tbd doctor 2>&1 | grep -c "Claude Code skill - Not installed"
+$ tbd doctor 2>&1 | grep -c "Claude Code skill - not installed"
 1
 ? 0
 ```
 
 # Test: Create skill file manually (simulating setup claude without global hooks)
 
-Note: We can't run full `tbd setup claude` because it modifies global settings.
+Note: We can’t run full `tbd setup claude` because it modifies global settings.
 Instead, we create the skill directory and file manually to test doctor detection.
 
 ```console
@@ -488,7 +489,7 @@ $ rm -rf .claude/skills/tbd
 # Test: Doctor warns again after removal
 
 ```console
-$ tbd doctor 2>&1 | grep -c "Claude Code skill - Not installed"
+$ tbd doctor 2>&1 | grep -c "Claude Code skill - not installed"
 1
 ? 0
 ```

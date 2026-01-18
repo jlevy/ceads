@@ -126,12 +126,11 @@ ID prefix: bd-
 ? 0
 ```
 
-# Test: Status shows issue counts
+# Test: Status no longer shows issue counts (moved to stats)
 
 ```console
 $ tbd status | grep "Total:"
-  Total:       0
-? 0
+? 1
 ```
 
 # Test: Status shows worktree health
@@ -180,29 +179,31 @@ $ tbd create "Second issue" --type=bug
 ? 0
 ```
 
-# Test: Status shows issue counts
+# Test: Status no longer shows issue counts (moved to stats)
+
+Status no longer includes issue counts - these are now in `tbd stats`.
 
 ```console
 $ tbd status | grep -A4 "Issues:"
-Issues:
-  Ready:       2
-  In progress: 0
-  Open:        2
-  Total:       2
-? 0
+? 1
 ```
 
 * * *
 
 ## Status vs Stats
 
-# Test: Status is not the same as stats
+# Test: Status shows footer pointing to stats and doctor
 
-The status command provides orientation, stats provides detailed statistics.
+The status command provides orientation and points to stats for issue counts.
 
 ```console
 $ tbd stats
-Total issues: 2
+Summary:
+  Ready:       2
+  In progress: 0
+  Blocked:     0
+  Open:        2
+  Total:       2
 
 By status:
   open           2
@@ -212,6 +213,8 @@ By kind:
   task           1
 
 By priority:
-  2 (Medium  ) 2
+  P2 (Medium  ) 2
+
+Use 'tbd status' for setup info, 'tbd doctor' for health checks.
 ? 0
 ```

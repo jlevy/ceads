@@ -52,8 +52,8 @@ Documentation:
   readme                    Display the README (same as GitHub landing page)
   prime [options]           Context-efficient instructions for agents, for use
                             in every session
+  closing                   Display the session closing protocol reminder
   docs [options] [topic]    Display CLI documentation
-  closing            Display the session close protocol reminder
   design [options] [topic]  Display design documentation and Beads comparison
 
 Setup & Configuration:
@@ -174,12 +174,11 @@ ID prefix: bd-
 ? 0
 ```
 
-# Test: Status shows issue counts
+# Test: Status no longer shows issue counts (moved to stats)
 
 ```console
 $ tbd status | grep "Total:"
-  Total:       0
-? 0
+? 1
 ```
 
 # Test: Status as JSON

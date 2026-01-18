@@ -133,16 +133,26 @@ $ tbd search "nonexistentxyz123" --json
 
 ```console
 $ tbd stats
-Total issues: [..]
+Summary:
+  Ready:       5
+  In progress: 0
+  Blocked:     0
+  Open:        5
+  Total:       5
 
 By status:
-  open[..]
+  open           5
 
 By kind:
-...
+  bug            2
+  feature        1
+  task           1
+  chore          1
 
 By priority:
-...
+  2 (Medium  ) 5
+
+Use 'tbd status' for setup info, 'tbd doctor' for health checks.
 ? 0
 ```
 
@@ -151,15 +161,29 @@ By priority:
 ```console
 $ tbd stats --json
 {
-  "total": [..],
+  "total": 5,
+  "ready": 5,
+  "blocked": 0,
   "byStatus": {
-...
+    "open": 5,
+    "in_progress": 0,
+    "blocked": 0,
+    "deferred": 0,
+    "closed": 0
   },
   "byKind": {
-...
+    "bug": 2,
+    "feature": 1,
+    "task": 1,
+    "epic": 0,
+    "chore": 1
   },
   "byPriority": {
-...
+    "0": 0,
+    "1": 0,
+    "2": 5,
+    "3": 0,
+    "4": 0
   }
 }
 ? 0

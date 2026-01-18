@@ -68,7 +68,7 @@ $ git -C .tbd/data-sync-worktree status --porcelain | head -3
 
 ```console
 $ tbd sync
-✓ Synced[..]
+✓ Synced: sent [..] new
 ? 0
 ```
 
@@ -213,7 +213,7 @@ Error: Failed to pull: [..]
 
 ```console
 $ tbd sync
-✓ Synced[..]
+✓ [..]
 ? 0
 ```
 
@@ -251,8 +251,19 @@ $ git -C .tbd/data-sync-worktree status --porcelain
 ```console
 $ tbd sync --json
 {
-  "pulled": 0,
-  "pushed": [..],
+  "summary": {
+    "sent": {
+      "new": 0,
+      "updated": 0,
+      "deleted": 0
+    },
+    "received": {
+      "new": 0,
+      "updated": 0,
+      "deleted": 0
+    },
+    "conflicts": 0
+  },
   "conflicts": 0
 }
 ? 0
