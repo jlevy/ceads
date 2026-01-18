@@ -1,6 +1,6 @@
 # Development Guide
 
-This document covers development setup and workflows for `@jlevy/tbd` (the tbd CLI).
+This document covers development setup and workflows for `tbdcli` (the tbd CLI).
 
 ## Prerequisites
 
@@ -46,7 +46,7 @@ pnpm tbd:bin --help
 To test the CLI exactly as users would install it from npm:
 
 ```bash
-# Build, pack, and install globally (like npm install -g @jlevy/tbd)
+# Build, pack, and install globally (like npm install -g tbdcli)
 pnpm test:install
 
 # Test the installed binary
@@ -65,7 +65,7 @@ This creates an npm tarball and installs from it, validating the full package st
 pnpm build
 
 # Watch mode for development
-pnpm --filter @jlevy/tbd dev
+pnpm --filter tbdcli dev
 ```
 
 ### Testing
@@ -78,7 +78,7 @@ pnpm test
 pnpm test:coverage
 
 # Watch mode
-pnpm --filter @jlevy/tbd test:watch
+pnpm --filter tbdcli test:watch
 ```
 
 ### Formatting and Linting

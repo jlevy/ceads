@@ -16,7 +16,7 @@
     "build": "pnpm -r build",
     "typecheck": "pnpm -r typecheck",
     "test": "pnpm -r test",
-    "test:coverage": "pnpm --filter @jlevy/tbd test:coverage",
+    "test:coverage": "pnpm --filter tbdcli test:coverage",
     "publint": "pnpm -r publint",
     "format": "prettier --write --log-level warn . && pnpm format:md",
     "format:check": "prettier --check --log-level warn .",
@@ -34,8 +34,8 @@
     "upgrade:major": "ncu --target latest --interactive --format group",
     "tbd": "TBD_DEV_VERSION=$(node packages/tbd/scripts/git-version.mjs) tsx packages/tbd/src/cli/bin.ts",
     "tbd:bin": "node packages/tbd/dist/bin.js",
-    "test:install": "pnpm --filter @jlevy/tbd test:install",
-    "test:uninstall": "pnpm --filter @jlevy/tbd test:uninstall"
+    "test:install": "pnpm --filter tbdcli test:install",
+    "test:uninstall": "pnpm --filter tbdcli test:uninstall"
   },
   "devDependencies": {
     "@changesets/cli": "^2.29.8",

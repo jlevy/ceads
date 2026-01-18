@@ -3592,15 +3592,15 @@ To restore Beads, move files back from `.beads-disabled/`.
 
 ### 6.4 Installation and Agent Integration
 
-tbd is distributed as an npm package (`@jlevy/tbd`), enabling simple installation across
-all environments including cloud sandboxes.
+tbd is distributed as an npm package (`tbdcli`), enabling simple installation across all
+environments including cloud sandboxes.
 
 #### 6.4.1 Installation Methods
 
 | Method | Command | Best For |
 | --- | --- | --- |
-| **npm** (primary) | `npm install -g @jlevy/tbd` | Most users, cloud environments |
-| **npx** (no install) | `npx @jlevy/tbd <command>` | One-off usage, testing |
+| **npm** (primary) | `npm install -g tbdcli` | Most users, cloud environments |
+| **npx** (no install) | `npx tbdcli <command>` | One-off usage, testing |
 | **From source** | `pnpm install && pnpm build` | Contributors |
 
 **npm is the recommended approach** because:
@@ -3644,7 +3644,7 @@ Location: `.claude/hooks/session-start.sh` (committed to repo)
 ```bash
 #!/bin/bash
 # Minimal cloud bootstrap (2 lines)
-command -v tbd &>/dev/null || npm install -g @jlevy/tbd --quiet
+command -v tbd &>/dev/null || npm install -g tbdcli --quiet
 [ -d ".tbd" ] && tbd prime
 ```
 
@@ -3809,7 +3809,7 @@ bootstrap script to your repository:
 ```bash
 # .claude/hooks/session-start.sh
 #!/bin/bash
-command -v tbd &>/dev/null || npm install -g @jlevy/tbd --quiet
+command -v tbd &>/dev/null || npm install -g tbdcli --quiet
 [ -d ".tbd" ] && tbd prime
 ```
 

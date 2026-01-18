@@ -80,10 +80,10 @@ but these map to unique ULID-based internal IDs for reliable sorting and storage
 git --version  # Should be 2.42.0 or higher
 
 # Global install (recommended)
-npm install -g @jlevy/tbd@latest
+npm install -g tbdcli@latest
 
 # Or run without installing
-npx @jlevy/tbd@latest <command>
+npx tbdcli@latest <command>
 ```
 
 tbd requires Git 2.42+ for orphan worktree support (`git worktree add --orphan`). See

@@ -55,7 +55,7 @@ you wish.
 
 ```bash
 # Install
-npm install -g @jlevy/tbd@latest
+npm install -g tbdcli@latest
 
 # Initialize in your repo
 cd my-project

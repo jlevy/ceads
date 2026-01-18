@@ -1,5 +1,5 @@
 {
-  "name": "@jlevy/tbd",
+  "name": "tbdcli",
   "version": "0.1.0",
   "description": "Git-native issue tracking for AI agents and humans",
   "license": "MIT",
@@ -62,8 +62,8 @@
     "validate-import": "tsx scripts/validate-import.ts",
     "publint": "publint",
     "prepack": "pnpm build",
-    "test:install": "pnpm build && pnpm pack && npm install -g ./jlevy-tbd-*.tgz && rm ./jlevy-tbd-*.tgz",
-    "test:uninstall": "npm uninstall -g @jlevy/tbd"
+    "test:install": "pnpm build && pnpm pack && npm install -g ./tbdcli-*.tgz && rm ./tbdcli-*.tgz",
+    "test:uninstall": "npm uninstall -g tbdcli"
   },
   "dependencies": {
     "atomically": "^2.1.0",
