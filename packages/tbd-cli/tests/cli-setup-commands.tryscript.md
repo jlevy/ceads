@@ -420,12 +420,12 @@ $ grep -c "custom content" AGENTS.md
 
 * * *
 
-## Setup Claude (Check and Dry-Run Only)
+## Setup Claude (Check, Dry-Run, and Skill File)
 
 **SAFETY NOTE**: Full claude setup tests are intentionally limited because
 `tbd setup claude` modifies the global ~/.claude/settings.json file.
 
-We ONLY test safe operations:
+We test safe operations:
 - `--check` - Read-only verification of installation status
 - `--dry-run` - Shows what would happen without making changes
 
@@ -437,10 +437,12 @@ See: https://github.com/jlevy/tbd/issues/TBD
 # Test: Claude --check exits successfully
 
 The check command should always exit with code 0, regardless of installation status.
+It reports both hooks status and skill file status.
 
 ```console
 $ tbd setup claude --check
-[..]
+[..] Claude Code hooks [..]
+[..] file [..]
 ? 0
 ```
 
@@ -448,6 +450,68 @@ $ tbd setup claude --check
 
 ```console
 $ tbd setup claude --dry-run
-[DRY-RUN] Would install Claude Code hooks
+[DRY-RUN] Would install Claude Code hooks and skill file
+? 0
+```
+
+* * *
+
+## Skill File Installation
+
+The skill file is project-local, so we can safely test installation in the sandbox.
+
+# Test: Skill file not present initially
+
+```console
+$ test -f .claude/skills/tbd/SKILL.md || echo "skill file not found"
+skill file not found
+? 0
+```
+
+# Test: Initialize tbd for doctor test
+
+```console
+$ tbd init --prefix=test --quiet
+? 0
+```
+
+# Test: Doctor warns about missing skill
+
+```console
+$ tbd doctor 2>&1 | grep -c "Claude Code skill - Not installed"
+1
+? 0
+```
+
+# Test: Create skill file manually (simulating setup claude without global hooks)
+
+Note: We can't run full `tbd setup claude` because it modifies global settings.
+Instead, we create the skill directory and file manually to test doctor detection.
+
+```console
+$ mkdir -p .claude/skills/tbd && echo "---" > .claude/skills/tbd/SKILL.md
+? 0
+```
+
+# Test: Doctor shows skill file OK after creation
+
+```console
+$ tbd doctor | grep "Claude Code skill"
+✓ Claude Code skill
+? 0
+```
+
+# Test: Skill file can be removed
+
+```console
+$ rm -rf .claude/skills/tbd
+? 0
+```
+
+# Test: Doctor warns again after removal
+
+```console
+$ tbd doctor 2>&1 | grep -c "Claude Code skill - Not installed"
+1
 ? 0
 ```

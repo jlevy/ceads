@@ -205,7 +205,7 @@ The following Beads files will be moved to .beads-disabled/:
 
 This preserves all Beads data for potential rollback.
 
-To confirm, run: tbd setup beads --confirm
+To confirm, run: tbd setup beads --disable --confirm
 
 After disabling Beads, run:
   tbd setup claude   # Install tbd hooks
@@ -479,7 +479,7 @@ The following Beads files will be moved to .beads-disabled/:
 
 This preserves all Beads data for potential rollback.
 
-To confirm, run: tbd setup beads --confirm
+To confirm, run: tbd setup beads --disable --confirm
 
 After disabling Beads, run:
   tbd setup claude   # Install tbd hooks

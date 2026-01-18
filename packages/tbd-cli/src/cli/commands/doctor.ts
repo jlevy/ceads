@@ -77,6 +77,10 @@ class DoctorHandler extends BaseCommand {
     const validityCheck = this.checkIssueValidity(issues);
     checks.push(validityCheck);
 
+    // Check 8: Claude Code skill file
+    const skillCheck = await this.checkClaudeSkill();
+    checks.push(skillCheck);
+
     const allOk = checks.every((c) => c.status === 'ok');
     const hasFixable = checks.some((c) => c.fixable && c.status !== 'ok');
 
@@ -295,6 +299,21 @@ class DoctorHandler extends BaseCommand {
       message: `${invalid.length} invalid issue(s)`,
       fixable: false,
     };
+  }
+
+  private async checkClaudeSkill(): Promise<CheckResult> {
+    const skillPath = join(process.cwd(), '.claude', 'skills', 'tbd', 'SKILL.md');
+    try {
+      await access(skillPath);
+      return { name: 'Claude Code skill', status: 'ok' };
+    } catch {
+      return {
+        name: 'Claude Code skill',
+        status: 'warn',
+        message: 'Not installed (run: tbd setup claude)',
+        fixable: false,
+      };
+    }
   }
 }
 

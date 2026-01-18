@@ -18,6 +18,7 @@ import { writeFile } from 'atomically';
 
 import { BaseCommand } from '../lib/baseCommand.js';
 import { CLIError } from '../lib/errors.js';
+import { loadPrimeContent } from './prime.js';
 
 interface SetupClaudeOptions {
   check?: boolean;
@@ -32,6 +33,25 @@ interface SetupCursorOptions {
 interface SetupCodexOptions {
   check?: boolean;
   remove?: boolean;
+}
+
+/**
+ * YAML frontmatter for the Claude Code skill file.
+ */
+const SKILL_FRONTMATTER = `---
+name: tbd
+description: Git-native issue tracking for AI agents. Use for creating, updating, and tracking issues with dependencies. Invoke when user mentions tbd, issues, tasks, or asks about project work.
+allowed-tools: Bash(tbd:*), Read, Write
+---
+`;
+
+/**
+ * Generate Claude Code skill file content.
+ * Loads the prime content and prepends the skill YAML frontmatter.
+ */
+async function generateSkillContent(): Promise<string> {
+  const primeContent = await loadPrimeContent();
+  return SKILL_FRONTMATTER + primeContent;
 }
 
 /**
@@ -184,110 +204,168 @@ _Add your project-specific conventions here_
 class SetupClaudeHandler extends BaseCommand {
   async run(options: SetupClaudeOptions): Promise<void> {
     const settingsPath = join(homedir(), '.claude', 'settings.json');
+    const cwd = process.cwd();
+    const skillPath = join(cwd, '.claude', 'skills', 'tbd', 'SKILL.md');
 
     if (options.check) {
-      await this.checkClaudeSetup(settingsPath);
+      await this.checkClaudeSetup(settingsPath, skillPath);
       return;
     }
 
     if (options.remove) {
-      await this.removeClaudeHooks(settingsPath);
+      await this.removeClaudeSetup(settingsPath, skillPath);
       return;
     }
 
-    await this.installClaudeHooks(settingsPath);
+    await this.installClaudeSetup(settingsPath, skillPath);
   }
 
-  private async checkClaudeSetup(settingsPath: string): Promise<void> {
+  private async checkClaudeSetup(settingsPath: string, skillPath: string): Promise<void> {
+    let hooksInstalled = false;
+    let skillInstalled = false;
+    let sessionStartHook = false;
+    let preCompactHook = false;
+
+    // Check hooks in global settings
     try {
       await access(settingsPath);
       const content = await readFile(settingsPath, 'utf-8');
       const settings = JSON.parse(content) as Record<string, unknown>;
 
       const hooks = settings.hooks as Record<string, unknown> | undefined;
-      if (!hooks) {
-        this.output.info('Claude Code hooks not configured');
-        this.output.data({ installed: false });
-        return;
-      }
+      if (hooks) {
+        const sessionStart = hooks.SessionStart as { hooks?: { command?: string }[] }[];
+        const preCompact = hooks.PreCompact as { hooks?: { command?: string }[] }[];
 
-      // Check for tbd hooks
-      const sessionStart = hooks.SessionStart as { hooks?: { command?: string }[] }[];
-      const preCompact = hooks.PreCompact as { hooks?: { command?: string }[] }[];
+        sessionStartHook = sessionStart?.some((h) =>
+          h.hooks?.some((hook) => hook.command?.includes('tbd prime')),
+        );
+        preCompactHook = preCompact?.some((h) =>
+          h.hooks?.some((hook) => hook.command?.includes('tbd prime')),
+        );
 
-      const hasSessionStartHook = sessionStart?.some((h) =>
-        h.hooks?.some((hook) => hook.command?.includes('tbd prime')),
-      );
-      const hasPreCompactHook = preCompact?.some((h) =>
-        h.hooks?.some((hook) => hook.command?.includes('tbd prime')),
-      );
-
-      if (hasSessionStartHook && hasPreCompactHook) {
-        this.output.success('Claude Code hooks installed');
-        this.output.data({ installed: true, sessionStart: true, preCompact: true });
-      } else {
-        this.output.warn('Claude Code hooks partially configured');
-        this.output.data({
-          installed: false,
-          sessionStart: hasSessionStartHook,
-          preCompact: hasPreCompactHook,
-        });
+        hooksInstalled = sessionStartHook && preCompactHook;
       }
     } catch {
-      this.output.info('Claude Code settings not found');
-      this.output.data({ installed: false, settingsExists: false });
+      // Settings file doesn't exist
     }
+
+    // Check skill file in project
+    try {
+      await access(skillPath);
+      skillInstalled = true;
+    } catch {
+      // Skill file doesn't exist
+    }
+
+    // Report status
+    const fullyInstalled = hooksInstalled && skillInstalled;
+
+    this.output.data(
+      {
+        installed: fullyInstalled,
+        hooks: {
+          installed: hooksInstalled,
+          sessionStart: sessionStartHook,
+          preCompact: preCompactHook,
+        },
+        skill: { installed: skillInstalled, path: skillPath },
+      },
+      () => {
+        if (hooksInstalled) {
+          this.output.success('Claude Code hooks installed');
+        } else if (sessionStartHook || preCompactHook) {
+          this.output.warn('Claude Code hooks partially configured');
+        } else {
+          this.output.info('Claude Code hooks not configured');
+        }
+
+        if (skillInstalled) {
+          this.output.success('Skill file installed');
+        } else {
+          this.output.info('Skill file not found');
+        }
+      },
+    );
   }
 
-  private async removeClaudeHooks(settingsPath: string): Promise<void> {
+  private async removeClaudeSetup(settingsPath: string, skillPath: string): Promise<void> {
+    let removedHooks = false;
+    let removedSkill = false;
+
+    // Remove hooks from global settings
     try {
       await access(settingsPath);
       const content = await readFile(settingsPath, 'utf-8');
       const settings = JSON.parse(content) as Record<string, unknown>;
 
-      if (!settings.hooks) {
-        this.output.info('No hooks to remove');
-        return;
+      if (settings.hooks) {
+        const hooks = settings.hooks as Record<string, unknown>;
+
+        // Remove tbd hooks from SessionStart and PreCompact
+        const filterHooks = (arr: { hooks?: { command?: string }[] }[] | undefined) => {
+          if (!arr) return undefined;
+          return arr.filter((h) => !h.hooks?.some((hook) => hook.command?.includes('tbd prime')));
+        };
+
+        const sessionStart = filterHooks(
+          hooks.SessionStart as { hooks?: { command?: string }[] }[],
+        );
+        const preCompact = filterHooks(hooks.PreCompact as { hooks?: { command?: string }[] }[]);
+
+        if (sessionStart?.length === 0) delete hooks.SessionStart;
+        else if (sessionStart) hooks.SessionStart = sessionStart;
+
+        if (preCompact?.length === 0) delete hooks.PreCompact;
+        else if (preCompact) hooks.PreCompact = preCompact;
+
+        if (Object.keys(hooks).length === 0) {
+          delete settings.hooks;
+        }
+
+        await writeFile(settingsPath, JSON.stringify(settings, null, 2) + '\n');
+        removedHooks = true;
       }
-
-      const hooks = settings.hooks as Record<string, unknown>;
-
-      // Remove tbd hooks from SessionStart and PreCompact
-      const filterHooks = (arr: { hooks?: { command?: string }[] }[] | undefined) => {
-        if (!arr) return undefined;
-        return arr.filter((h) => !h.hooks?.some((hook) => hook.command?.includes('tbd prime')));
-      };
-
-      const sessionStart = filterHooks(hooks.SessionStart as { hooks?: { command?: string }[] }[]);
-      const preCompact = filterHooks(hooks.PreCompact as { hooks?: { command?: string }[] }[]);
-
-      if (sessionStart?.length === 0) delete hooks.SessionStart;
-      else if (sessionStart) hooks.SessionStart = sessionStart;
-
-      if (preCompact?.length === 0) delete hooks.PreCompact;
-      else if (preCompact) hooks.PreCompact = preCompact;
-
-      if (Object.keys(hooks).length === 0) {
-        delete settings.hooks;
-      }
-
-      await writeFile(settingsPath, JSON.stringify(settings, null, 2) + '\n');
-      this.output.success('Removed tbd hooks from Claude Code');
     } catch {
-      this.output.info('Claude Code settings not found');
+      // Settings file doesn't exist
+    }
+
+    // Remove skill file from project
+    try {
+      await rm(skillPath);
+      removedSkill = true;
+    } catch {
+      // Skill file doesn't exist
+    }
+
+    // Report what was removed
+    if (removedHooks) {
+      this.output.success('Removed tbd hooks from Claude Code');
+    } else {
+      this.output.info('No hooks to remove');
+    }
+
+    if (removedSkill) {
+      this.output.success('Removed skill file');
+    } else {
+      this.output.info('No skill file to remove');
     }
   }
 
-  private async installClaudeHooks(settingsPath: string): Promise<void> {
-    if (this.checkDryRun('Would install Claude Code hooks', { path: settingsPath })) {
+  private async installClaudeSetup(settingsPath: string, skillPath: string): Promise<void> {
+    if (
+      this.checkDryRun('Would install Claude Code hooks and skill file', {
+        settingsPath,
+        skillPath,
+      })
+    ) {
       return;
     }
 
     try {
-      // Ensure directory exists
+      // Install hooks in global settings
       await mkdir(dirname(settingsPath), { recursive: true });
 
-      // Load existing settings or create new
       let settings: Record<string, unknown> = {};
       try {
         await access(settingsPath);
@@ -297,7 +375,6 @@ class SetupClaudeHandler extends BaseCommand {
         // File doesn't exist, start fresh
       }
 
-      // Merge hooks
       const existingHooks = (settings.hooks as Record<string, unknown>) || {};
       settings.hooks = {
         ...existingHooks,
@@ -306,14 +383,22 @@ class SetupClaudeHandler extends BaseCommand {
 
       await writeFile(settingsPath, JSON.stringify(settings, null, 2) + '\n');
       this.output.success('Installed tbd hooks for Claude Code');
+
+      // Install skill file in project
+      await mkdir(dirname(skillPath), { recursive: true });
+      const skillContent = await generateSkillContent();
+      await writeFile(skillPath, skillContent);
+      this.output.success('Installed skill file');
+      this.output.info(`  ${skillPath}`);
+
       this.output.info('');
-      this.output.info('Hooks added:');
-      this.output.info('  - SessionStart: runs `tbd prime` at session start');
-      this.output.info('  - PreCompact: runs `tbd prime` before context compaction');
+      this.output.info('What was installed:');
+      this.output.info('  - Global hooks: SessionStart and PreCompact run `tbd prime`');
+      this.output.info('  - Project skill: .claude/skills/tbd/SKILL.md');
       this.output.info('');
       this.output.info('Use `tbd setup claude --check` to verify installation');
     } catch (error) {
-      throw new CLIError(`Failed to install hooks: ${(error as Error).message}`);
+      throw new CLIError(`Failed to install: ${(error as Error).message}`);
     }
   }
 }
@@ -678,7 +763,7 @@ class SetupBeadsHandler extends BaseCommand {
     if (!options.confirm) {
       console.log(`This preserves all Beads data for potential rollback.`);
       console.log('');
-      console.log(`To confirm, run: ${colors.dim('tbd setup beads --confirm')}`);
+      console.log(`To confirm, run: ${colors.dim('tbd setup beads --disable --confirm')}`);
       console.log('');
       console.log(colors.dim('After disabling Beads, run:'));
       console.log(colors.dim('  tbd setup claude   # Install tbd hooks'));
