@@ -1,11 +1,14 @@
-# tbd Workflow Context
+# tbd Workflow
+
+`tbd` provides lightweight, git-native task and issue tracking using beads, which are
+just lightweight issues managed from the CLI.
 
 > **Context Recovery**: Run `tbd prime` after compaction, clear, or new session.
 > Hooks auto-call this in Claude Code when .tbd/ detected.
 
 # SESSION CLOSE PROTOCOL
 
-**CRITICAL**: Before saying "done" or "complete", you MUST run this checklist:
+**CRITICAL**: Before saying “done” or “complete”, you MUST run this checklist:
 
 ```
 [ ] 1. git status              (check what changed)
@@ -20,11 +23,12 @@
 
 ## Core Rules
 
-- Track strategic work in tbd (multi-session, dependencies, discovered work)
-- Use `tbd create` for issues, TodoWrite for simple single-session execution
-- When in doubt, prefer tbd--persistence you don't need beats lost context
-- Git workflow: run `tbd sync` at session end
-- Session management: check `tbd ready` for available work
+- Track *all task work* not being done immediately as beads using `tbd` (discovered
+  work, future work, TODOs for the session, multi-session work)
+- When in doubt, prefer tbd for tracking tasks, bugs, and issues
+- Use `tbd create` for creating beads
+- Git workflow: update or close issues and run `tbd sync` at session end
+- If not given specific directions, check `tbd ready` for available work
 
 ## Essential Commands
 
@@ -38,7 +42,8 @@
 ### Creating & Updating
 
 - `tbd create "title" --type task|bug|feature --priority 2` - New issue
-  - Priority: 0-4 (0=critical, 2=medium, 4=backlog). Do NOT use "high"/"medium"/"low"
+  - Priority: 0-4 (0=critical, 2=medium, 4=backlog).
+    Do NOT use "high"/"medium"/"low"
 - `tbd update <id> --status in_progress` - Claim work
 - `tbd update <id> --assignee username` - Assign to someone
 - `tbd close <id>` - Mark complete
@@ -49,7 +54,7 @@
 
 - `tbd dep add <issue> <depends-on>` - Add dependency (issue depends on depends-on)
 - `tbd blocked` - Show all blocked issues
-- `tbd show <id>` - See what's blocking/blocked by this issue
+- `tbd show <id>` - See what’s blocking/blocked by this issue
 
 ### Sync & Collaboration
 
