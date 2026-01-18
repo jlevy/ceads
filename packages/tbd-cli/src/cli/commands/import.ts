@@ -1,7 +1,7 @@
 /**
  * `tbd import` - Import from Beads or other sources.
  *
- * See: tbd-full-design.md §5.1 Import Strategy
+ * See: tbd-design-spec.md §5.1 Import Strategy
  */
 
 import { Command } from 'commander';

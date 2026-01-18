@@ -727,7 +727,7 @@ Happy New Year, and Welcome to Gas… | by Steve Yegge | Jan, 2026 | Medium
 [[66]](file://file-G3B5iAgBHwv5B5oNDoXTz5#:~:text=,native%20tracking%20without%20external%20files)
 [[67]](file://file-G3B5iAgBHwv5B5oNDoXTz5#:~:text=,tracker)
 [[107]](file://file-G3B5iAgBHwv5B5oNDoXTz5#:~:text=,SQLite%20and%20associated%20file%20locking)
-[[108]](file://file-G3B5iAgBHwv5B5oNDoXTz5#:~:text=) tbd-full-design.md
+[[108]](file://file-G3B5iAgBHwv5B5oNDoXTz5#:~:text=) tbd-design-spec.md
 
 <file://file-G3B5iAgBHwv5B5oNDoXTz5>
 

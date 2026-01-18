@@ -4,7 +4,7 @@
  * Maps 4-char base36 short IDs to 26-char ULIDs.
  * Stored in .tbd/data-sync/mappings/ids.yml
  *
- * See: tbd-full-design.md §2.5 ID Generation
+ * See: tbd-design-spec.md §2.5 ID Generation
  */
 
 import { readFile, mkdir } from 'node:fs/promises';

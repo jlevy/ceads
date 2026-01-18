@@ -1,7 +1,7 @@
 /**
  * `tbd init` - Initialize tbd in a repository.
  *
- * See: tbd-full-design.md §4.3 Initialization
+ * See: tbd-design-spec.md §4.3 Initialization
  */
 
 import { Command } from 'commander';

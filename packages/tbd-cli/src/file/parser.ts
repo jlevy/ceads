@@ -14,7 +14,7 @@
  *
  * Working notes here.
  *
- * See: tbd-full-design.md §2.1 Markdown + YAML Front Matter Format
+ * See: tbd-design-spec.md §2.1 Markdown + YAML Front Matter Format
  */
 
 import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';

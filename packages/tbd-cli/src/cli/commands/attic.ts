@@ -1,7 +1,7 @@
 /**
  * `tbd attic` - Attic (conflict archive) commands.
  *
- * See: tbd-full-design.md §4.11 Attic Commands
+ * See: tbd-design-spec.md §4.11 Attic Commands
  */
 
 import { Command } from 'commander';

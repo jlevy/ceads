@@ -4,7 +4,7 @@
  * Provides atomic file operations and issue CRUD operations.
  * All operations work on the hidden worktree at .tbd/data-sync/issues/.
  *
- * See: tbd-full-design.md §3.2 Storage Layer
+ * See: tbd-design-spec.md §3.2 Storage Layer
  */
 
 import { readFile, unlink, readdir } from 'node:fs/promises';

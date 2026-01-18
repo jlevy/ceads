@@ -7,7 +7,7 @@
  * Unlike Beads where `bd status` is just an alias for `bd stats`, `tbd status`
  * is a distinct command that provides system orientation, not issue statistics.
  *
- * See: tbd-full-design.md §4.9 Status
+ * See: tbd-design-spec.md §4.9 Status
  */
 
 import { Command } from 'commander';

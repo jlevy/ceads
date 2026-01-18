@@ -4,7 +4,7 @@
  * Designed to be called by hooks at session start and before context compaction
  * to ensure agents remember the tbd workflow.
  *
- * See: tbd-full-design.md §6.4.3 The tbd prime Command
+ * See: tbd-design-spec.md §6.4.3 The tbd prime Command
  */
 
 import { Command } from 'commander';

@@ -37,7 +37,7 @@ This was discovered on 2026-01-16 when issue files appeared as untracked on main
 
 | Phase | What Should Have Happened | What Actually Happened |
 | --- | --- | --- |
-| Design | Spec written (tbd-full-design.md §2.3) | Spec was clear and detailed |
+| Design | Spec written (tbd-design-spec.md §2.3) | Spec was clear and detailed |
 | Planning | Created tbd-208: "Implement worktree management" | Bead correctly captured requirement |
 | Phase 2 | Implement `initWorktree`, `updateWorktree`, `checkWorktreeHealth` | **Functions never written; bead marked DONE** |
 | Phase 3 | `tbd init` creates worktree via `git worktree add` | **init.ts creates `.tbd/data-sync/` directly in cwd** |
@@ -266,7 +266,7 @@ Link each bead to the specific spec section it implements:
 
 ```markdown
 tbd-208: Implement worktree management
-Spec: tbd-full-design.md §2.3 "Hidden Worktree Model"
+Spec: tbd-design-spec.md §2.3 "Hidden Worktree Model"
 ```
 
 Then validation explicitly checks: “Does the implementation match §2.3?”
@@ -298,7 +298,7 @@ Best used as a third layer after automated tests and acceptance criteria.
 [What needs to be done]
 
 ### Spec Reference
-[Link to design doc section, e.g., "tbd-full-design.md §2.3"]
+[Link to design doc section, e.g., "tbd-design-spec.md §2.3"]
 
 ### Acceptance Criteria
 - [ ] [Specific deliverable 1]
@@ -331,7 +331,7 @@ bypassed or rubber-stamped.
 
 ## References
 
-- Design spec: `docs/project/architecture/current/tbd-full-design.md` §2.3 Hidden
+- Design spec: `docs/project/architecture/current/tbd-design-spec.md` §2.3 Hidden
   Worktree Model
 - Implementation plan:
   `docs/project/specs/active/plan-2026-01-15-tbd-v1-implementation.md` Phase 2

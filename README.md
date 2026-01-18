@@ -155,7 +155,7 @@ tbd docs                     # Full CLI reference
 
 Or read online:
 - [CLI Reference](docs/tbd-docs.md) — Complete command documentation
-- [Design Doc](docs/project/architecture/current/tbd-full-design.md) — Technical
+- [Design Doc](docs/project/architecture/current/tbd-design-spec.md) — Technical
   architecture
 
 ## Migration from Beads

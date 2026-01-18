@@ -24,7 +24,7 @@ Key characteristics:
 
 **Reference Documentation:**
 
-- @docs/project/architecture/current/tbd-full-design.md — Complete design specification
+- @docs/project/architecture/current/tbd-design-spec.md — Complete design specification
 - @docs/general/research/current/research-modern-typescript-cli-patterns.md — CLI
   architecture patterns
 - @docs/general/research/current/research-modern-typescript-monorepo-patterns.md — Build
@@ -34,7 +34,7 @@ Key characteristics:
 ## Summary of Task
 
 Implement tbd V1 as a TypeScript CLI application following the design specification in
-`tbd-full-design.md`. The implementation includes:
+`tbd-design-spec.md`. The implementation includes:
 
 1. **Project Setup**: pnpm monorepo with tsdown, Changesets, and proper package exports
 2. **File Layer**: Markdown + YAML parsing, Zod schemas, atomic file operations
@@ -607,7 +607,7 @@ This naming:
 | Bead ID | Task | Status | Notes |
 | --- | --- | --- | --- |
 | tbd-2000 | Phase 20 Epic | Done | Directory naming refactor |
-| tbd-2001 | Update design spec (tbd-full-design.md) | Done | All path references updated |
+| tbd-2001 | Update design spec (tbd-design-spec.md) | Done | All path references updated |
 | tbd-2002 | Update plan spec | Done | This document |
 | tbd-2003 | Update retrospective | Done | Worktree postmortem updated |
 | tbd-2004 | Create centralized paths.ts | Done | `src/lib/paths.ts` with all constants |
@@ -664,7 +664,7 @@ This ensures `tbd-100` becomes `bd-100` (same short ID!) rather than `bd-3ykw` (
 - Commit messages, documentation, and external references remain valid
 - Eliminates need for separate `beads.yml` mapping file
 
-**Design Changes (already updated in tbd-full-design.md):**
+**Design Changes (already updated in tbd-design-spec.md):**
 - Short IDs can be 1+ alphanumeric chars (not just 4-5)
 - Import preserves original short ID (e.g., `100` from `tbd-100`)
 - New issues still get random 4-char base36 IDs
@@ -712,7 +712,7 @@ Enforce consistent initialization requirements: all commands except `init` and
 - Design spec §4.1.1 now defines the exact behavior
 - `import --from-beads` should auto-initialize for one-step migration
 
-**Design Changes (already updated in tbd-full-design.md):**
+**Design Changes (already updated in tbd-design-spec.md):**
 - Added §4.1.1 Initialization Requirements with command table
 - Updated §5.1.1 Import Command with auto-initialization note
 - Updated §5.1.10 Migration Workflow with one-step option
@@ -779,7 +779,7 @@ editors.
 - Matches `bd prime` functionality from Beads for migration compatibility
 - Editor integrations needed for Claude Code, Cursor, and Codex
 
-**Design Reference:** See tbd-full-design.md §6.4 for full specification, including:
+**Design Reference:** See tbd-design-spec.md §6.4 for full specification, including:
 - §6.4.2 Claude Code Integration (`tbd setup claude`)
 - §6.4.3 The `tbd prime` Command
 - §6.4.4 Other Editor Integrations (`tbd setup cursor`, `tbd setup codex`)

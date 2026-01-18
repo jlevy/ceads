@@ -1,7 +1,7 @@
 /**
  * `tbd stale` - List stale issues.
  *
- * See: tbd-full-design.md §4.4 Stale
+ * See: tbd-design-spec.md §4.4 Stale
  */
 
 import { Command } from 'commander';

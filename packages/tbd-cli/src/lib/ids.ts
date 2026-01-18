@@ -7,7 +7,7 @@
  *
  * For Beads compatibility, bd- prefix is accepted on input for external IDs.
  *
- * See: tbd-full-design.md §2.5 ID Generation
+ * See: tbd-design-spec.md §2.5 ID Generation
  */
 
 import { ulid } from 'ulid';

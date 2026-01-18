@@ -211,5 +211,5 @@ tbd setup codex    # AGENTS.md section (optional)
 
 - [Beads uninstall script](https://gist.github.com/banteg/1a539b88b3c8945cd71e4b958f319d8d)
   \- Comprehensive list of Beads file locations
-- [tbd-full-design.md](docs/project/architecture/current/tbd-full-design.md) - Migration
+- [tbd-design-spec.md](docs/project/architecture/current/tbd-design-spec.md) - Migration
   section

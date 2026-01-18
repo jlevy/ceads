@@ -1,7 +1,7 @@
 /**
  * `tbd sync` - Synchronization commands.
  *
- * See: tbd-full-design.md §4.7 Sync Commands
+ * See: tbd-design-spec.md §4.7 Sync Commands
  */
 
 import { Command } from 'commander';

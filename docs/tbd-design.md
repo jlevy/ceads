@@ -479,7 +479,7 @@ necessary.
 - **README**: `tbd readme`
 - **CLI Documentation**: `tbd docs`
 - **Full Design Spec**:
-  [docs/project/architecture/current/tbd-full-design.md](project/architecture/current/tbd-full-design.md)
+  [docs/project/architecture/current/tbd-design-spec.md](project/architecture/current/tbd-design-spec.md)
 - **Beads**: https://github.com/steveyegge/beads
 - **ticket**: https://github.com/wedow/ticket
 - **ULID Spec**: https://github.com/ulid/spec

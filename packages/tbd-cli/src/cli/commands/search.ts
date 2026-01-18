@@ -1,7 +1,7 @@
 /**
  * `tbd search` - Search issues.
  *
- * See: tbd-full-design.md §4.8 Search Commands
+ * See: tbd-design-spec.md §4.8 Search Commands
  */
 
 import { Command } from 'commander';
