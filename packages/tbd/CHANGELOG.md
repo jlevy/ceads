@@ -1,5 +1,12 @@
 # tbd-git
 
+## 0.1.3
+
+### Patch Changes
+
+- Fix build to ensure clean version numbers by syncing documentation files before
+  release.
+
 ## 0.1.2
 
 ### Patch Changes
