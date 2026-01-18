@@ -9,11 +9,11 @@ id: is-01kf7mkwzmemprqp952cwyryk1
 kind: task
 labels: []
 priority: 2
-status: open
+status: in_progress
 title: Create priority utilities
 type: is
-updated_at: 2026-01-18T04:10:48.588Z
-version: 5
+updated_at: 2026-01-18T04:30:15.346Z
+version: 6
 ---
 Create lib/priority.ts with:
 - formatPriority() utility for P0/P1/P2 display format
