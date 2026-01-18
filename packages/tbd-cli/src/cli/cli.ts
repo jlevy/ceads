@@ -34,6 +34,7 @@ import { configCommand } from './commands/config.js';
 import { atticCommand } from './commands/attic.js';
 import { importCommand } from './commands/import.js';
 import { docsCommand } from './commands/docs.js';
+import { closeProtocolCommand } from './commands/closing.js';
 import { designCommand } from './commands/design.js';
 import { readmeCommand } from './commands/readme.js';
 import { uninstallCommand } from './commands/uninstall.js';
@@ -73,6 +74,7 @@ function createProgram(): Command {
   program.commandsGroup('Documentation:');
   program.addCommand(readmeCommand);
   program.addCommand(primeCommand);
+  program.addCommand(closeProtocolCommand);
   program.addCommand(docsCommand);
   program.addCommand(designCommand);
 
@@ -91,8 +93,8 @@ function createProgram(): Command {
   program.addCommand(searchCommand);
 
   program.commandsGroup('Views and Filtering:');
-  program.addCommand(listCommand);
   program.addCommand(readyCommand);
+  program.addCommand(listCommand);
   program.addCommand(blockedCommand);
   program.addCommand(staleCommand);
 
@@ -145,6 +147,31 @@ function applyColoredHelpToAllCommands(program: Command): void {
 }
 
 /**
+ * Check if --json flag is present in argv.
+ */
+function isJsonMode(): boolean {
+  return process.argv.includes('--json');
+}
+
+/**
+ * Output error in the appropriate format (JSON or text).
+ */
+function outputError(message: string, error?: Error): void {
+  if (isJsonMode()) {
+    const errorObj: { error: string; type?: string; details?: string } = { error: message };
+    if (error instanceof CLIError) {
+      errorObj.type = error.name;
+    }
+    if (error && error.message !== message) {
+      errorObj.details = error.message;
+    }
+    console.error(JSON.stringify(errorObj));
+  } else {
+    console.error(`Error: ${message}`);
+  }
+}
+
+/**
  * Run the CLI. This is the main entry point.
  */
 export async function runCli(): Promise<void> {
@@ -154,11 +181,12 @@ export async function runCli(): Promise<void> {
     await program.parseAsync(process.argv);
   } catch (error) {
     if (error instanceof CLIError) {
-      console.error(`Error: ${error.message}`);
+      outputError(error.message, error);
       process.exit(error.exitCode);
     }
     // Unexpected error
-    console.error('Unexpected error:', error);
+    const message = error instanceof Error ? error.message : String(error);
+    outputError(message, error instanceof Error ? error : undefined);
     process.exit(1);
   }
 }

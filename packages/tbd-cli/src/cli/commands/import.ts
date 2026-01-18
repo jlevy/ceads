@@ -1,22 +1,24 @@
 /**
  * `tbd import` - Import from Beads or other sources.
  *
- * See: tbd-full-design.md §5.1 Import Strategy
+ * See: tbd-design-spec.md §5.1 Import Strategy
  */
 
 import { Command } from 'commander';
 import { readFile, access, mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
+import { spawnSync } from 'node:child_process';
 import { writeFile } from 'atomically';
 
 import { BaseCommand } from '../lib/baseCommand.js';
-import { requireInit } from '../lib/errors.js';
+import { requireInit, ValidationError, NotFoundError } from '../lib/errors.js';
 import { writeIssue, listIssues } from '../../file/storage.js';
 import {
   generateInternalId,
   extractShortId,
   extractUlidFromInternalId,
   makeInternalId,
+  extractPrefix,
 } from '../../lib/ids.js';
 import {
   loadIdMapping,
@@ -35,7 +37,7 @@ import {
   DATA_SYNC_DIR_NAME,
 } from '../../lib/paths.js';
 import { now, normalizeTimestamp } from '../../utils/timeUtils.js';
-import { initConfig, isInitialized } from '../../file/config.js';
+import { initConfig, isInitialized, readConfig, writeConfig } from '../../file/config.js';
 import { initWorktree } from '../../file/git.js';
 import { VERSION } from '../lib/version.js';
 
@@ -175,8 +177,7 @@ class ImportHandler extends BaseCommand {
   async run(file: string | undefined, options: ImportOptions): Promise<void> {
     // Validate input first
     if (!file && !options.fromBeads && !options.validate) {
-      this.output.error('Provide a file path or use --from-beads');
-      return;
+      throw new ValidationError('Provide a file path or use --from-beads');
     }
 
     // Handle validation mode - requires init
@@ -212,9 +213,7 @@ class ImportHandler extends BaseCommand {
     try {
       await access(jsonlPath);
     } catch {
-      this.output.error(`Beads database not found at ${beadsDir}`);
-      this.output.info('Use --beads-dir to specify the Beads directory');
-      return;
+      throw new NotFoundError('Beads database', `${beadsDir} (use --beads-dir to specify)`);
     }
 
     console.log('Validating import...\n');
@@ -399,8 +398,7 @@ class ImportHandler extends BaseCommand {
     try {
       await access(filePath);
     } catch {
-      this.output.error(`File not found: ${filePath}`);
-      return;
+      throw new NotFoundError('File', filePath);
     }
 
     if (this.checkDryRun('Would import issues', { file: filePath })) {
@@ -440,6 +438,10 @@ class ImportHandler extends BaseCommand {
       this.output.info('No valid issues found in file');
       return;
     }
+
+    // Auto-detect prefix from imported issues and update config if needed
+    const detectedPrefix = this.detectPrefixFromIssues(beadsIssues);
+    await this.updateConfigPrefixIfNeeded(detectedPrefix);
 
     // Load existing issues and short ID mapping
     const existingIssues = await this.loadExistingIssues();
@@ -566,9 +568,10 @@ class ImportHandler extends BaseCommand {
     try {
       await access(jsonlPath);
     } catch {
-      this.output.error(`Beads database not found at ${beadsDir}`);
-      this.output.info('Use `bd export > issues.jsonl` to create an export file');
-      return;
+      throw new NotFoundError(
+        'Beads database',
+        `${beadsDir} (use \`bd export > issues.jsonl\` to create an export file)`,
+      );
     }
 
     // Auto-initialize if not already initialized (per spec §5.6)
@@ -615,12 +618,15 @@ class ImportHandler extends BaseCommand {
     this.dataSyncDir = await resolveDataSyncDir();
     await this.importFromFile(jsonlPath, options);
 
-    // Show tip about disabling beads
-    console.log();
-    console.log('Tip: To disable Beads and prevent agent confusion:');
-    console.log('  bd hooks uninstall                 # Remove git hooks');
-    console.log('  bd setup claude --remove           # Remove Claude Code hooks');
-    console.log('  bd setup <editor> --remove         # cursor, codex, etc.');
+    // Auto-configure detected coding agents (skip in quiet mode)
+    if (!this.ctx.quiet) {
+      console.log();
+      spawnSync('tbd', ['setup', 'auto'], { stdio: 'inherit' });
+
+      // Show status which includes next steps for beads migration
+      console.log();
+      spawnSync('tbd', ['status'], { stdio: 'inherit' });
+    }
   }
 
   private async loadExistingIssues(): Promise<Issue[]> {
@@ -632,7 +638,7 @@ class ImportHandler extends BaseCommand {
   }
 
   /**
-   * Detect the prefix used by beads issues.
+   * Detect the prefix used by beads issues from a file path.
    * Reads the first few issues and extracts the common prefix pattern.
    * Falls back to 'tbd' if no consistent prefix is found.
    */
@@ -645,37 +651,74 @@ class ImportHandler extends BaseCommand {
         .filter((l) => l)
         .slice(0, 10); // Sample first 10 issues
 
-      const prefixes = new Map<string, number>();
-
+      const issues: BeadsIssue[] = [];
       for (const line of lines) {
         try {
           const issue = JSON.parse(line) as BeadsIssue;
           if (issue.id) {
-            // Extract prefix from ID like "tbd-100" -> "tbd"
-            const match = /^([a-zA-Z]+)-/.exec(issue.id);
-            if (match?.[1]) {
-              const prefix = match[1].toLowerCase();
-              prefixes.set(prefix, (prefixes.get(prefix) ?? 0) + 1);
-            }
+            issues.push(issue);
           }
         } catch {
           // Skip invalid lines
         }
       }
 
-      // Find the most common prefix
-      let maxCount = 0;
-      let mostCommonPrefix = 'tbd';
-      for (const [prefix, count] of prefixes) {
-        if (count > maxCount) {
-          maxCount = count;
-          mostCommonPrefix = prefix;
-        }
-      }
-
-      return mostCommonPrefix;
+      return this.detectPrefixFromIssues(issues);
     } catch {
       return 'tbd'; // Default fallback
+    }
+  }
+
+  /**
+   * Detect the prefix used by a list of beads issues.
+   * Extracts the common prefix pattern from issue IDs.
+   * Falls back to 'tbd' if no consistent prefix is found.
+   */
+  private detectPrefixFromIssues(issues: BeadsIssue[]): string {
+    const prefixes = new Map<string, number>();
+
+    for (const issue of issues.slice(0, 10)) {
+      // Sample first 10
+      if (issue.id) {
+        const prefix = extractPrefix(issue.id);
+        if (prefix) {
+          prefixes.set(prefix, (prefixes.get(prefix) ?? 0) + 1);
+        }
+      }
+    }
+
+    // Find the most common prefix
+    let maxCount = 0;
+    let mostCommonPrefix = 'tbd';
+    for (const [prefix, count] of prefixes) {
+      if (count > maxCount) {
+        maxCount = count;
+        mostCommonPrefix = prefix;
+      }
+    }
+
+    return mostCommonPrefix;
+  }
+
+  /**
+   * Update config prefix if it differs from the detected prefix.
+   * Returns true if prefix was updated.
+   */
+  private async updateConfigPrefixIfNeeded(detectedPrefix: string): Promise<boolean> {
+    const cwd = process.cwd();
+    try {
+      const config = await readConfig(cwd);
+      if (config.display.id_prefix !== detectedPrefix) {
+        const oldPrefix = config.display.id_prefix;
+        config.display.id_prefix = detectedPrefix;
+        await writeConfig(cwd, config);
+        this.output.info(`Updated ID prefix: ${oldPrefix} → ${detectedPrefix}`);
+        return true;
+      }
+      return false;
+    } catch {
+      // Config doesn't exist or can't be read - skip update
+      return false;
     }
   }
 }

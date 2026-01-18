@@ -7,7 +7,7 @@
  * Unlike Beads where `bd status` is just an alias for `bd stats`, `tbd status`
  * is a distinct command that provides system orientation, not issue statistics.
  *
- * See: tbd-full-design.md §4.9 Status
+ * See: tbd-design-spec.md §4.9 Status
  */
 
 import { Command } from 'commander';
@@ -17,9 +17,9 @@ import { homedir } from 'node:os';
 
 import { VERSION } from '../lib/version.js';
 import { BaseCommand } from '../lib/baseCommand.js';
+import { formatHeading } from '../lib/output.js';
 import { readConfig } from '../../file/config.js';
-import { listIssues } from '../../file/storage.js';
-import { resolveDataSyncDir, TBD_DIR, WORKTREE_DIR } from '../../lib/paths.js';
+import { TBD_DIR, WORKTREE_DIR } from '../../lib/paths.js';
 import { git, getCurrentBranch, checkWorktreeHealth } from '../../file/git.js';
 
 interface StatusData {
@@ -42,20 +42,14 @@ interface StatusData {
   worktree_path: string | null;
   worktree_healthy: boolean | null;
 
-  // Issue summary (post-init only)
-  issues: {
-    total: number;
-    open: number;
-    in_progress: number;
-    blocked: number;
-    ready: number;
-  } | null;
-
   // Integrations
   integrations: {
     claude_code: boolean;
+    claude_code_path: string;
     cursor: boolean;
+    cursor_path: string;
     codex: boolean;
+    codex_path: string;
   };
 }
 
@@ -75,11 +69,13 @@ class StatusHandler extends BaseCommand {
       display_prefix: null,
       worktree_path: null,
       worktree_healthy: null,
-      issues: null,
       integrations: {
         claude_code: false,
+        claude_code_path: '~/.claude/settings.json',
         cursor: false,
+        cursor_path: '.cursor/rules/tbd.mdc',
         codex: false,
+        codex_path: './AGENTS.md',
       },
     };
 
@@ -156,13 +152,21 @@ class StatusHandler extends BaseCommand {
     }
   }
 
-  private async checkIntegrations(
-    cwd: string,
-  ): Promise<{ claude_code: boolean; cursor: boolean; codex: boolean }> {
-    const result = { claude_code: false, cursor: false, codex: false };
+  private async checkIntegrations(cwd: string): Promise<StatusData['integrations']> {
+    const claudeSettingsPath = join(homedir(), '.claude', 'settings.json');
+    const cursorRulesPath = join(cwd, '.cursor', 'rules', 'tbd.mdc');
+    const agentsPath = join(cwd, 'AGENTS.md');
+
+    const result: StatusData['integrations'] = {
+      claude_code: false,
+      claude_code_path: claudeSettingsPath.replace(homedir(), '~'),
+      cursor: false,
+      cursor_path: '.cursor/rules/tbd.mdc',
+      codex: false,
+      codex_path: './AGENTS.md',
+    };
 
     // Check Claude Code hooks
-    const claudeSettingsPath = join(homedir(), '.claude', 'settings.json');
     try {
       await access(claudeSettingsPath);
       const content = await readFile(claudeSettingsPath, 'utf-8');
@@ -179,7 +183,6 @@ class StatusHandler extends BaseCommand {
     }
 
     // Check Cursor rules
-    const cursorRulesPath = join(cwd, '.cursor', 'rules', 'tbd.mdc');
     try {
       await access(cursorRulesPath);
       result.cursor = true;
@@ -188,7 +191,6 @@ class StatusHandler extends BaseCommand {
     }
 
     // Check Codex AGENTS.md
-    const agentsPath = join(cwd, 'AGENTS.md');
     try {
       await access(agentsPath);
       const content = await readFile(agentsPath, 'utf-8');
@@ -216,52 +218,6 @@ class StatusHandler extends BaseCommand {
     const worktreeHealth = await checkWorktreeHealth(cwd);
     data.worktree_path = worktreePath;
     data.worktree_healthy = worktreeHealth.valid;
-
-    // Load issue statistics
-    try {
-      const dataSyncDir = await resolveDataSyncDir(cwd);
-      const issues = await listIssues(dataSyncDir);
-
-      const stats = {
-        total: issues.length,
-        open: 0,
-        in_progress: 0,
-        blocked: 0,
-        ready: 0,
-      };
-
-      // Build set of blocked issue IDs
-      const blockedIds = new Set<string>();
-      for (const issue of issues) {
-        for (const dep of issue.dependencies) {
-          if (dep.type === 'blocks') {
-            // Find the issue that is blocked
-            const blockedIssue = issues.find((i) => i.id === dep.target);
-            if (blockedIssue && blockedIssue.status !== 'closed') {
-              blockedIds.add(dep.target);
-            }
-          }
-        }
-      }
-
-      for (const issue of issues) {
-        if (issue.status === 'open') {
-          stats.open++;
-          // Check if ready (open and not blocked)
-          if (!blockedIds.has(issue.id)) {
-            stats.ready++;
-          }
-        } else if (issue.status === 'in_progress') {
-          stats.in_progress++;
-        } else if (issue.status === 'blocked') {
-          stats.blocked++;
-        }
-      }
-
-      data.issues = stats;
-    } catch {
-      // Issue load failed
-    }
   }
 
   private renderText(data: StatusData): void {
@@ -315,6 +271,14 @@ class StatusHandler extends BaseCommand {
       console.log(`  ${colors.success('✓')} Git repository${branchInfo}`);
     }
 
+    // Beads coexistence warning
+    if (data.beads_detected) {
+      console.log('');
+      console.log(`${colors.warn('⚠')}  Beads directory detected alongside tbd`);
+      console.log(`   This may cause confusion for AI agents.`);
+      console.log(`   Run ${colors.bold('tbd setup beads --disable')} for migration options`);
+    }
+
     // Config info
     if (data.sync_branch || data.remote || data.display_prefix) {
       console.log('');
@@ -329,33 +293,47 @@ class StatusHandler extends BaseCommand {
       }
     }
 
-    // Issues summary
-    if (data.issues) {
-      console.log('');
-      console.log(colors.bold('Issues:'));
-      console.log(`  Ready:       ${data.issues.ready}`);
-      console.log(`  In progress: ${data.issues.in_progress}`);
-      console.log(`  Open:        ${data.issues.open}`);
-      console.log(`  Total:       ${data.issues.total}`);
-    }
-
     // Integrations
     console.log('');
-    console.log(colors.bold('Integrations:'));
+    console.log(colors.bold(formatHeading('Integrations')));
+
+    // Track if any integrations are missing
+    let hasMissingIntegrations = false;
+
     if (data.integrations.claude_code) {
-      console.log(`  ${colors.success('✓')} Claude Code hooks installed`);
+      console.log(
+        `  ${colors.success('✓')} Claude Code hooks ${colors.dim(`(${data.integrations.claude_code_path})`)}`,
+      );
     } else {
-      console.log(`  ${colors.dim('✗')} Claude Code hooks (run: tbd setup claude)`);
+      console.log(
+        `  ${colors.dim('✗')} Claude Code hooks ${colors.dim(`(${data.integrations.claude_code_path})`)}`,
+      );
+      hasMissingIntegrations = true;
     }
     if (data.integrations.cursor) {
-      console.log(`  ${colors.success('✓')} Cursor rules installed`);
+      console.log(
+        `  ${colors.success('✓')} Cursor rules ${colors.dim(`(${data.integrations.cursor_path})`)}`,
+      );
     } else {
-      console.log(`  ${colors.dim('✗')} Cursor rules (run: tbd setup cursor)`);
+      console.log(
+        `  ${colors.dim('✗')} Cursor rules ${colors.dim(`(${data.integrations.cursor_path})`)}`,
+      );
+      hasMissingIntegrations = true;
     }
     if (data.integrations.codex) {
-      console.log(`  ${colors.success('✓')} Codex AGENTS.md installed`);
+      console.log(
+        `  ${colors.success('✓')} Codex AGENTS.md ${colors.dim(`(${data.integrations.codex_path})`)}`,
+      );
     } else {
-      console.log(`  ${colors.dim('✗')} Codex AGENTS.md (run: tbd setup codex)`);
+      console.log(
+        `  ${colors.dim('✗')} Codex AGENTS.md ${colors.dim(`(${data.integrations.codex_path})`)}`,
+      );
+      hasMissingIntegrations = true;
+    }
+
+    if (hasMissingIntegrations) {
+      console.log('');
+      console.log(`Run ${colors.bold('tbd setup auto')} to configure detected agents`);
     }
 
     // Worktree health
@@ -372,7 +350,9 @@ class StatusHandler extends BaseCommand {
     }
 
     console.log('');
-    console.log(`Use ${colors.bold("'tbd stats'")} for detailed issue statistics.`);
+    console.log(
+      `Use ${colors.bold("'tbd stats'")} for issue statistics, ${colors.bold("'tbd doctor'")} for health checks.`,
+    );
   }
 }
 

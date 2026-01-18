@@ -4,93 +4,78 @@
  * Designed to be called by hooks at session start and before context compaction
  * to ensure agents remember the tbd workflow.
  *
- * See: tbd-full-design.md §6.4.3 The tbd prime Command
+ * See: tbd-design-spec.md §6.4.3 The tbd prime Command
  */
 
 import { Command } from 'commander';
 import { readFile, access } from 'node:fs/promises';
-import { join } from 'node:path';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import { BaseCommand } from '../lib/baseCommand.js';
 import { isInitialized } from '../../file/config.js';
+import { stripFrontmatter } from '../../utils/markdownUtils.js';
 
 interface PrimeOptions {
   export?: boolean;
 }
 
 /**
- * Prime output (~1-2k tokens, full command reference)
+ * Get the path to the bundled SKILL.md file.
  */
-const PRIME_OUTPUT = `# tbd Workflow Context
+function getSkillPath(): string {
+  const __filename = fileURLToPath(import.meta.url);
+  const __dirname = dirname(__filename);
+  // When bundled, runs from dist/bin.mjs or dist/cli.mjs
+  // Docs are at dist/docs/SKILL.md (same level as the bundle)
+  return join(__dirname, 'docs', 'SKILL.md');
+}
 
-> **Context Recovery**: Run \`tbd prime\` after compaction, clear, or new session
-> Hooks auto-call this in Claude Code when .tbd/ detected
+/**
+ * Load the skill content from the bundled SKILL.md file with fallbacks.
+ * This is exported for use by setup.ts for skill installation.
+ */
+export async function loadSkillContent(): Promise<string> {
+  // Try bundled location first
+  try {
+    return await readFile(getSkillPath(), 'utf-8');
+  } catch {
+    // Fallback: try to read from source location during development
+  }
 
-# SESSION CLOSE PROTOCOL
+  // Fallback for development without bundle
+  try {
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = dirname(__filename);
+    const devPath = join(__dirname, '..', '..', 'docs', 'SKILL.md');
+    return await readFile(devPath, 'utf-8');
+  } catch {
+    // Fallback: try repo-level docs
+  }
 
-**CRITICAL**: Before saying "done" or "complete", you MUST run this checklist:
+  // Last fallback: repo-level docs
+  try {
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = dirname(__filename);
+    const repoPath = join(__dirname, '..', '..', '..', '..', '..', 'docs', 'SKILL.md');
+    return await readFile(repoPath, 'utf-8');
+  } catch {
+    // If all else fails, throw an error
+    throw new Error('SKILL.md content file not found. Please rebuild the CLI.');
+  }
+}
 
-[ ] 1. git status              (check what changed)
-[ ] 2. git add <files>         (stage code changes)
-[ ] 3. tbd sync                (commit tbd changes)
-[ ] 4. git commit -m "..."     (commit code)
-[ ] 5. tbd sync                (commit any new tbd changes)
-[ ] 6. git push                (push to remote)
+/**
+ * Load the prime content from the bundled SKILL.md file with fallbacks.
+ * Strips frontmatter and adjusts the header for prime output.
+ */
+export async function loadPrimeContent(): Promise<string> {
+  const skillContent = await loadSkillContent();
+  const content = stripFrontmatter(skillContent);
 
-**NEVER skip this.** Work is not done until pushed.
-
-## Core Rules
-- Track strategic work in tbd (multi-session, dependencies, discovered work)
-- Use \`tbd create\` for issues, TodoWrite for simple single-session execution
-- When in doubt, prefer tbd—persistence you don't need beats lost context
-- Git workflow: run \`tbd sync\` at session end
-- Session management: check \`tbd ready\` for available work
-
-## Essential Commands
-
-### Finding Work
-- \`tbd ready\` - Show issues ready to work (no blockers)
-- \`tbd list --status open\` - All open issues
-- \`tbd list --status in_progress\` - Your active work
-- \`tbd show <id>\` - Detailed issue view with dependencies
-
-### Creating & Updating
-- \`tbd create "title" --type task|bug|feature --priority 2\` - New issue
-  - Priority: 0-4 (0=critical, 2=medium, 4=backlog)
-- \`tbd update <id> --status in_progress\` - Claim work
-- \`tbd update <id> --assignee username\` - Assign to someone
-- \`tbd close <id>\` - Mark complete
-- \`tbd close <id> --reason "explanation"\` - Close with reason
-
-### Dependencies & Blocking
-- \`tbd dep add <issue> <depends-on>\` - Add dependency
-- \`tbd blocked\` - Show all blocked issues
-- \`tbd show <id>\` - See what's blocking/blocked by this issue
-
-### Sync & Collaboration
-- \`tbd sync\` - Sync with git remote (run at session end)
-- \`tbd sync --status\` - Check sync status without syncing
-
-### Project Health
-- \`tbd stats\` - Project statistics (open/closed/blocked counts)
-- \`tbd doctor\` - Check for issues (sync problems, health checks)
-
-## Common Workflows
-
-**Starting work:**
-tbd ready           # Find available work
-tbd show <id>       # Review issue details
-tbd update <id> --status in_progress  # Claim it
-
-**Completing work:**
-tbd close <id>      # Mark complete
-tbd sync            # Push to remote
-
-**Creating dependent work:**
-tbd create "Implement feature X" --type feature
-tbd create "Write tests for X" --type task
-tbd dep add <tests-id> <feature-id>  # Tests depend on feature
-`;
+  // Replace header for prime output context
+  return content.replace(/^# tbd Workflow\b/, '# tbd Workflow Context');
+}
 
 class PrimeHandler extends BaseCommand {
   async run(options: PrimeOptions): Promise<void> {
@@ -100,6 +85,13 @@ class PrimeHandler extends BaseCommand {
     if (!(await isInitialized(cwd))) {
       // Exit silently with code 0 (no output, no error)
       return;
+    }
+
+    // Check for Beads installation alongside tbd and warn
+    const beadsWarning = await this.checkForBeads(cwd);
+    if (beadsWarning) {
+      console.log(beadsWarning);
+      console.log('');
     }
 
     // Check for custom override file
@@ -117,8 +109,27 @@ class PrimeHandler extends BaseCommand {
       }
     }
 
-    // Output default prime content
-    console.log(PRIME_OUTPUT);
+    // Load and output default prime content from bundled file
+    const primeContent = await loadPrimeContent();
+    console.log(primeContent);
+  }
+
+  /**
+   * Check if Beads is installed alongside tbd and return a warning message.
+   * This helps users who are migrating from Beads to tbd.
+   */
+  private async checkForBeads(cwd: string): Promise<string | null> {
+    const beadsDir = join(cwd, '.beads');
+    try {
+      await access(beadsDir);
+      // .beads/ exists - warn the agent
+      return `⚠️  WARNING: A .beads/ directory was detected alongside .tbd/
+   When asked to use beads, use \`tbd\` commands, NOT \`bd\` commands.
+   To complete migration: tbd setup beads --disable --confirm`;
+    } catch {
+      // No .beads/ directory, no warning needed
+      return null;
+    }
   }
 }
 

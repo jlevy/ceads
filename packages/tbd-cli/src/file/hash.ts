@@ -7,7 +7,7 @@
  * - Array element ordering (sorted)
  * - Whitespace variations
  *
- * See: tbd-full-design.md §2.4 Content Hashing
+ * See: tbd-design-spec.md §2.4 Content Hashing
  */
 
 import { createHash } from 'node:crypto';

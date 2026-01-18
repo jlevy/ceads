@@ -124,8 +124,8 @@ $ tbd create "Blocked by other" --type=task --json | node -e "d=JSON.parse(requi
 ```
 
 ```console
-$ tbd dep add $(cat /tmp/blocker.txt) $(cat /tmp/blocked_by.txt)
-✓ test-[SHORTID] now blocks test-[SHORTID]
+$ tbd dep add $(cat /tmp/blocked_by.txt) $(cat /tmp/blocker.txt)
+✓ test-[SHORTID] now depends on test-[SHORTID]
 ? 0
 ```
 
@@ -262,7 +262,6 @@ labels: backend,frontend,urgent
 
 ```console
 $ tbd label add $(cat /tmp/label_issue.txt) frontend
-All labels already present
 ? 0
 ```
 
@@ -318,8 +317,8 @@ $ tbd label add $(cat /tmp/label_issue.txt) test-label --dry-run
 
 ```console
 $ tbd label add is-00000000000000000000000000 test-label 2>&1
-✗ Issue not found[..]
-? 0
+Error: Issue not found: is-00000000000000000000000000
+? 1
 ```
 
 * * *
@@ -338,27 +337,27 @@ $ tbd create "Child task" --type=task --json | node -e "d=JSON.parse(require('fs
 ? 0
 ```
 
-# Test: Dep add (X blocks Y)
+# Test: Dep add (child depends on parent)
 
 ```console
-$ tbd dep add $(cat /tmp/dep_parent.txt) $(cat /tmp/dep_child.txt)
-✓ test-[SHORTID] now blocks test-[SHORTID]
+$ tbd dep add $(cat /tmp/dep_child.txt) $(cat /tmp/dep_parent.txt)
+✓ test-[SHORTID] now depends on test-[SHORTID]
 ? 0
 ```
 
-# Test: Dep list forward (what does X block)
-
-```console
-$ tbd dep list $(cat /tmp/dep_parent.txt)
-Blocks: test-[SHORTID]
-? 0
-```
-
-# Test: Dep list reverse (what blocks Y)
+# Test: Dep list shows what child depends on
 
 ```console
 $ tbd dep list $(cat /tmp/dep_child.txt)
 Blocked by: test-[SHORTID]
+? 0
+```
+
+# Test: Dep list shows what parent blocks
+
+```console
+$ tbd dep list $(cat /tmp/dep_parent.txt)
+Blocks: test-[SHORTID]
 ? 0
 ```
 
@@ -375,8 +374,8 @@ $ tbd dep list $(cat /tmp/dep_parent.txt) --json
 # Test: Dep remove
 
 ```console
-$ tbd dep remove $(cat /tmp/dep_parent.txt) $(cat /tmp/dep_child.txt)
-✓ Removed dependency[..]
+$ tbd dep remove $(cat /tmp/dep_child.txt) $(cat /tmp/dep_parent.txt)
+✓ test-[SHORTID] no longer depends on test-[SHORTID]
 ? 0
 ```
 
@@ -391,7 +390,7 @@ blocks: 0
 # Test: Dep add with dry-run
 
 ```console
-$ tbd dep add $(cat /tmp/dep_parent.txt) $(cat /tmp/dep_child.txt) --dry-run
+$ tbd dep add $(cat /tmp/dep_child.txt) $(cat /tmp/dep_parent.txt) --dry-run
 [DRY-RUN] Would add dependency
 ? 0
 ```
@@ -400,27 +399,27 @@ $ tbd dep add $(cat /tmp/dep_parent.txt) $(cat /tmp/dep_child.txt) --dry-run
 
 ```console
 $ tbd dep add $(cat /tmp/dep_parent.txt) $(cat /tmp/dep_parent.txt) 2>&1
-✗ Issue cannot block itself
-? 0
+Error: Issue cannot depend on itself
+? 2
 ```
 
 # Test: Dep add non-existent source
 
 ```console
 $ tbd dep add is-00000000000000000000000000 $(cat /tmp/dep_child.txt) 2>&1
-✗ [..]not found[..]
-? 0
+Error: Issue not found: is-00000000000000000000000000
+? 1
 ```
 
 * * *
 
 ## Integration: Ready excludes blocked issues
 
-Add a dependency to make an issue blocked:
+Add a dependency to make an issue blocked (ready1 depends on blocker):
 
 ```console
-$ tbd dep add $(cat /tmp/blocker.txt) $(cat /tmp/ready1.txt)
-✓ test-[SHORTID] now blocks test-[SHORTID]
+$ tbd dep add $(cat /tmp/ready1.txt) $(cat /tmp/blocker.txt)
+✓ test-[SHORTID] now depends on test-[SHORTID]
 ? 0
 ```
 

@@ -10,6 +10,7 @@ import { execSync } from 'node:child_process';
 import { join } from 'node:path';
 
 import { BaseCommand } from '../lib/baseCommand.js';
+import { NotInitializedError, CLIError } from '../lib/errors.js';
 import { readConfig } from '../../file/config.js';
 
 interface UninstallOptions {
@@ -26,8 +27,7 @@ class UninstallHandler extends BaseCommand {
     try {
       await access('.tbd');
     } catch {
-      this.output.error('No .tbd directory found. Nothing to uninstall.');
-      return;
+      throw new NotInitializedError('No .tbd directory found. Nothing to uninstall.');
     }
 
     // Read config to get branch info
@@ -186,8 +186,7 @@ class UninstallHandler extends BaseCommand {
       await rm('.tbd', { recursive: true, force: true });
       console.log(`  ${colors.success('✓')} Removed .tbd directory`);
     } catch {
-      this.output.error('Failed to remove .tbd directory');
-      return;
+      throw new CLIError('Failed to remove .tbd directory');
     }
 
     console.log('');

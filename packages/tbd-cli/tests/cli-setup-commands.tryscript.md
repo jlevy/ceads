@@ -51,9 +51,12 @@ Global Options:
   --debug            Show internal IDs alongside public IDs for debugging
 
 Commands:
-  claude [options]   Configure Claude Code hooks for tbd integration
-  cursor [options]   Create Cursor IDE rules file for tbd integration
-  codex [options]    Create/update AGENTS.md for Codex and compatible tools
+  auto               Auto-detect and configure integrations (Claude, Cursor,
+                     Codex)
+  claude [options]   Configure Claude Code (skill and hooks)
+  cursor [options]   Configure Cursor IDE (rules file)
+  codex [options]    Configure Codex and compatible tools (AGENTS.md)
+  beads [options]    Disable Beads so you only use tbd
   help [command]     display help for command
 
 For more on tbd, see: https://github.com/jlevy/tbd
@@ -66,7 +69,7 @@ For more on tbd, see: https://github.com/jlevy/tbd
 $ tbd setup claude --help
 Usage: tbd setup claude [options]
 
-Configure Claude Code hooks for tbd integration
+Configure Claude Code (skill and hooks)
 
 Options:
   --check            Verify installation status
@@ -95,7 +98,7 @@ For more on tbd, see: https://github.com/jlevy/tbd
 $ tbd setup cursor --help
 Usage: tbd setup cursor [options]
 
-Create Cursor IDE rules file for tbd integration
+Configure Cursor IDE (rules file)
 
 Options:
   --check            Verify installation status
@@ -124,7 +127,7 @@ For more on tbd, see: https://github.com/jlevy/tbd
 $ tbd setup codex --help
 Usage: tbd setup codex [options]
 
-Create/update AGENTS.md for Codex and compatible tools
+Configure Codex and compatible tools (AGENTS.md)
 
 Options:
   --check            Verify installation status
@@ -154,8 +157,9 @@ For more on tbd, see: https://github.com/jlevy/tbd
 # Test: Cursor --check when not installed
 
 ```console
-$ tbd setup cursor --check
-Cursor rules file not found
+$ tbd setup cursor --check --verbose
+⚠ Cursor rules file - not found (.cursor/rules/tbd.mdc)
+    Run: tbd setup cursor
 ? 0
 ```
 
@@ -163,11 +167,7 @@ Cursor rules file not found
 
 ```console
 $ tbd setup cursor
-✓ Created Cursor rules file
-  [..].cursor/rules/tbd.mdc
-
-Cursor will now see tbd workflow instructions.
-Use `tbd setup cursor --check` to verify installation
+✓ Created Cursor rules file[..]
 ? 0
 ```
 
@@ -182,7 +182,7 @@ rules file exists
 # Test: Cursor rules file contains workflow instructions
 
 ```console
-$ grep -c "Session Close Protocol" .cursor/rules/tbd.mdc
+$ grep -c "SESSION CLOSING PROTOCOL" .cursor/rules/tbd.mdc
 1
 ? 0
 ```
@@ -191,7 +191,7 @@ $ grep -c "Session Close Protocol" .cursor/rules/tbd.mdc
 
 ```console
 $ grep -c "tbd ready" .cursor/rules/tbd.mdc
-2
+3
 ? 0
 ```
 
@@ -199,7 +199,7 @@ $ grep -c "tbd ready" .cursor/rules/tbd.mdc
 
 ```console
 $ tbd setup cursor --check
-✓ Cursor rules file exists
+✓ Cursor rules file (.cursor/rules/tbd.mdc)
 ? 0
 ```
 
@@ -233,7 +233,7 @@ rules file removed
 # Test: Cursor --remove when not installed
 
 ```console
-$ tbd setup cursor --remove
+$ tbd setup cursor --remove --verbose
 Cursor rules file not found
 ? 0
 ```
@@ -245,9 +245,9 @@ Cursor rules file not found
 # Test: Codex --check when not installed
 
 ```console
-$ tbd setup codex --check
-AGENTS.md not found
-  Run: tbd setup codex
+$ tbd setup codex --check --verbose
+⚠ AGENTS.md - not found (./AGENTS.md)
+    Run: tbd setup codex
 ? 0
 ```
 
@@ -255,13 +255,7 @@ AGENTS.md not found
 
 ```console
 $ tbd setup codex
-✓ Created new AGENTS.md with tbd integration
-  File: [..]AGENTS.md
-
-Codex and other AGENTS.md-compatible tools will automatically
-read this file on session start.
-
-Use `tbd setup codex --check` to verify installation
+✓ Created new AGENTS.md with tbd integration[..]
 ? 0
 ```
 
@@ -293,7 +287,7 @@ $ grep -c "tbd ready" AGENTS.md
 
 ```console
 $ tbd setup codex --check
-✓ AGENTS.md with tbd section found
+✓ AGENTS.md - tbd section found (./AGENTS.md)
 ? 0
 ```
 
@@ -313,13 +307,7 @@ $ tbd setup codex --check --json
 
 ```console
 $ tbd setup codex
-✓ Updated existing tbd section in AGENTS.md
-  File: [..]AGENTS.md
-
-Codex and other AGENTS.md-compatible tools will automatically
-read this file on session start.
-
-Use `tbd setup codex --check` to verify installation
+✓ Updated existing tbd section in AGENTS.md[..]
 ? 0
 ```
 
@@ -359,9 +347,9 @@ $ echo '# My Project' > AGENTS.md && echo '' >> AGENTS.md && echo 'This is my cu
 # Test: Codex --check shows no tbd section
 
 ```console
-$ tbd setup codex --check
-⚠ AGENTS.md exists but no tbd section found
-  Run: tbd setup codex (to add tbd section)
+$ tbd setup codex --check --verbose
+⚠ AGENTS.md - exists but no tbd section (./AGENTS.md)
+    Run: tbd setup codex
 ? 0
 ```
 
@@ -369,13 +357,7 @@ $ tbd setup codex --check
 
 ```console
 $ tbd setup codex
-✓ Added tbd section to existing AGENTS.md
-  File: [..]AGENTS.md
-
-Codex and other AGENTS.md-compatible tools will automatically
-read this file on session start.
-
-Use `tbd setup codex --check` to verify installation
+✓ Added tbd section to existing AGENTS.md[..]
 ? 0
 ```
 
@@ -419,12 +401,12 @@ $ grep -c "custom content" AGENTS.md
 
 * * *
 
-## Setup Claude (Check and Dry-Run Only)
+## Setup Claude (Check, Dry-Run, and Skill File)
 
 **SAFETY NOTE**: Full claude setup tests are intentionally limited because
 `tbd setup claude` modifies the global ~/.claude/settings.json file.
 
-We ONLY test safe operations:
+We test safe operations:
 - `--check` - Read-only verification of installation status
 - `--dry-run` - Shows what would happen without making changes
 
@@ -436,10 +418,11 @@ See: https://github.com/jlevy/tbd/issues/TBD
 # Test: Claude --check exits successfully
 
 The check command should always exit with code 0, regardless of installation status.
+Use --verbose to show status messages.
 
 ```console
-$ tbd setup claude --check
-[..]
+$ tbd setup claude --check --verbose
+...
 ? 0
 ```
 
@@ -447,6 +430,68 @@ $ tbd setup claude --check
 
 ```console
 $ tbd setup claude --dry-run
-[DRY-RUN] Would install Claude Code hooks
+[DRY-RUN] Would install Claude Code hooks and skill file
+? 0
+```
+
+* * *
+
+## Skill File Installation
+
+The skill file is project-local, so we can safely test installation in the sandbox.
+
+# Test: Skill file not present initially
+
+```console
+$ test -f .claude/skills/tbd/SKILL.md || echo "skill file not found"
+skill file not found
+? 0
+```
+
+# Test: Initialize tbd for doctor test
+
+```console
+$ tbd init --prefix=test --quiet
+? 0
+```
+
+# Test: Doctor warns about missing skill
+
+```console
+$ tbd doctor 2>&1 | grep -c "Claude Code skill - not installed"
+1
+? 0
+```
+
+# Test: Create skill file manually (simulating setup claude without global hooks)
+
+Note: We can’t run full `tbd setup claude` because it modifies global settings.
+Instead, we create the skill directory and file manually to test doctor detection.
+
+```console
+$ mkdir -p .claude/skills/tbd && echo "---" > .claude/skills/tbd/SKILL.md
+? 0
+```
+
+# Test: Doctor shows skill file OK after creation
+
+```console
+$ tbd doctor 2>/dev/null | grep "Claude Code skill"
+✓ Claude Code skill (.claude/skills/tbd/SKILL.md)
+? 0
+```
+
+# Test: Skill file can be removed
+
+```console
+$ rm -rf .claude/skills/tbd
+? 0
+```
+
+# Test: Doctor warns again after removal
+
+```console
+$ tbd doctor 2>&1 | grep -c "Claude Code skill - not installed"
+1
 ? 0
 ```

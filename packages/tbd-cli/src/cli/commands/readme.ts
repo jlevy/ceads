@@ -10,6 +10,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
 import { BaseCommand } from '../lib/baseCommand.js';
+import { CLIError } from '../lib/errors.js';
 import { renderMarkdown } from '../lib/output.js';
 
 /**
@@ -46,8 +47,7 @@ class ReadmeHandler extends BaseCommand {
           const pkgPath = join(__dirname, '..', '..', '..', 'README.md');
           content = await readFile(pkgPath, 'utf-8');
         } catch {
-          this.output.error('README file not found. Please rebuild the CLI.');
-          return;
+          throw new CLIError('README file not found. Please rebuild the CLI.');
         }
       }
     }

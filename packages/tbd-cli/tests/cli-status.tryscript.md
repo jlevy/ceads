@@ -97,43 +97,46 @@ To get started:
 # Test: Initialize tbd
 
 ```console
-$ tbd init --prefix=bd
-✓ Initialized tbd repository
-
-To complete setup, commit the config files:
-  git add .tbd/
-  git commit -m "Initialize tbd"
+$ tbd init --prefix=bd --quiet
 ? 0
 ```
 
-# Test: Status after initialization
+# Test: Status shows initialized
 
 ```console
-$ tbd status
-tbd v[..]
-
-Repository: [..]
+$ tbd status | grep "✓ Initialized"
   ✓ Initialized (.tbd/)
+? 0
+```
+
+# Test: Status shows git repository
+
+```console
+$ tbd status | grep "✓ Git repository"
   ✓ Git repository (main)
+? 0
+```
 
-Sync branch: tbd-sync
-Remote: origin
+# Test: Status shows prefix
+
+```console
+$ tbd status | grep "ID prefix"
 ID prefix: bd-
+? 0
+```
 
-Issues:
-  Ready:       0
-  In progress: 0
-  Open:        0
-  Total:       0
+# Test: Status no longer shows issue counts (moved to stats)
 
-Integrations:
-  ✗ Claude Code hooks (run: tbd setup claude)
-  ✗ Cursor rules (run: tbd setup cursor)
-  ✗ Codex AGENTS.md (run: tbd setup codex)
+```console
+$ tbd status | grep "Total:"
+? 1
+```
 
-Worktree: [..] (healthy)
+# Test: Status shows worktree health
 
-Use 'tbd stats' for detailed issue statistics.
+```console
+$ tbd status | grep -c "(healthy)"
+1
 ? 0
 ```
 
@@ -175,29 +178,31 @@ $ tbd create "Second issue" --type=bug
 ? 0
 ```
 
-# Test: Status shows issue counts
+# Test: Status no longer shows issue counts (moved to stats)
+
+Status no longer includes issue counts - these are now in `tbd stats`.
 
 ```console
 $ tbd status | grep -A4 "Issues:"
-Issues:
-  Ready:       2
-  In progress: 0
-  Open:        2
-  Total:       2
-? 0
+? 1
 ```
 
 * * *
 
 ## Status vs Stats
 
-# Test: Status is not the same as stats
+# Test: Status shows footer pointing to stats and doctor
 
-The status command provides orientation, stats provides detailed statistics.
+The status command provides orientation and points to stats for issue counts.
 
 ```console
 $ tbd stats
-Total issues: 2
+Summary:
+  Ready:       2
+  In progress: 0
+  Blocked:     0
+  Open:        2
+  Total:       2
 
 By status:
   open           2
@@ -207,6 +212,8 @@ By kind:
   task           1
 
 By priority:
-  2 (Medium  ) 2
+  P2 (Medium  ) 2
+
+Use 'tbd status' for setup info, 'tbd doctor' for health checks.
 ? 0
 ```

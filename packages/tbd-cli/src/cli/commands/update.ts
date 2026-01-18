@@ -1,21 +1,22 @@
 /**
  * `tbd update` - Update an issue.
  *
- * See: tbd-full-design.md §4.4 Update
+ * See: tbd-design-spec.md §4.4 Update
  */
 
 import { Command } from 'commander';
 import { readFile } from 'node:fs/promises';
 
 import { BaseCommand } from '../lib/baseCommand.js';
-import { requireInit } from '../lib/errors.js';
+import { requireInit, NotFoundError, ValidationError, CLIError } from '../lib/errors.js';
 import { readIssue, writeIssue } from '../../file/storage.js';
-import { normalizeIssueId, formatDisplayId, formatDebugId } from '../../lib/ids.js';
-import { IssueStatus, IssueKind, Priority } from '../../lib/schemas.js';
+import { formatDisplayId, formatDebugId } from '../../lib/ids.js';
+import { IssueStatus, IssueKind } from '../../lib/schemas.js';
+import { parsePriority } from '../../lib/priority.js';
 import type { IssueStatusType, IssueKindType, PriorityType } from '../../lib/types.js';
 import { resolveDataSyncDir } from '../../lib/paths.js';
 import { now } from '../../utils/timeUtils.js';
-import { loadIdMapping, resolveToInternalId } from '../../file/idMapping.js';
+import { loadIdMapping, resolveToInternalId, type IdMapping } from '../../file/idMapping.js';
 import { readConfig } from '../../file/config.js';
 
 interface UpdateOptions {
@@ -48,8 +49,7 @@ class UpdateHandler extends BaseCommand {
     try {
       internalId = resolveToInternalId(id, mapping);
     } catch {
-      this.output.error(`Issue not found: ${id}`);
-      return;
+      throw new NotFoundError('Issue', id);
     }
 
     // Load existing issue
@@ -57,12 +57,11 @@ class UpdateHandler extends BaseCommand {
     try {
       issue = await readIssue(dataSyncDir, internalId);
     } catch {
-      this.output.error(`Issue not found: ${id}`);
-      return;
+      throw new NotFoundError('Issue', id);
     }
 
     // Parse and validate options
-    const updates = await this.parseUpdates(options);
+    const updates = await this.parseUpdates(options, mapping);
     if (updates === null) return;
 
     if (this.checkDryRun('Would update issue', { id: internalId, ...updates })) {
@@ -115,7 +114,10 @@ class UpdateHandler extends BaseCommand {
     });
   }
 
-  private async parseUpdates(options: UpdateOptions): Promise<{
+  private async parseUpdates(
+    options: UpdateOptions,
+    mapping: IdMapping,
+  ): Promise<{
     status?: IssueStatusType;
     kind?: IssueKindType;
     priority?: PriorityType;
@@ -145,8 +147,7 @@ class UpdateHandler extends BaseCommand {
     if (options.status) {
       const result = IssueStatus.safeParse(options.status);
       if (!result.success) {
-        this.output.error(`Invalid status: ${options.status}`);
-        return null;
+        throw new ValidationError(`Invalid status: ${options.status}`);
       }
       updates.status = result.data;
     }
@@ -154,20 +155,18 @@ class UpdateHandler extends BaseCommand {
     if (options.type) {
       const result = IssueKind.safeParse(options.type);
       if (!result.success) {
-        this.output.error(`Invalid type: ${options.type}`);
-        return null;
+        throw new ValidationError(`Invalid type: ${options.type}`);
       }
       updates.kind = result.data;
     }
 
     if (options.priority) {
-      const num = parseInt(options.priority, 10);
-      const result = Priority.safeParse(num);
-      if (!result.success) {
-        this.output.error(`Invalid priority: ${options.priority}. Must be 0-4`);
-        return null;
+      // Use shared parsePriority which accepts both "P1" and "1" formats
+      const priority = parsePriority(options.priority);
+      if (priority === undefined) {
+        throw new ValidationError(`Invalid priority: ${options.priority}. Use P0-P4 or 0-4.`);
       }
-      updates.priority = result.data;
+      updates.priority = priority;
     }
 
     if (options.assignee !== undefined) {
@@ -186,8 +185,7 @@ class UpdateHandler extends BaseCommand {
       try {
         updates.notes = await readFile(options.notesFile, 'utf-8');
       } catch {
-        this.output.error(`Failed to read notes from file: ${options.notesFile}`);
-        return null;
+        throw new CLIError(`Failed to read notes from file: ${options.notesFile}`);
       }
     }
 
@@ -200,7 +198,15 @@ class UpdateHandler extends BaseCommand {
     }
 
     if (options.parent !== undefined) {
-      updates.parent_id = options.parent ? normalizeIssueId(options.parent) : null;
+      if (options.parent) {
+        try {
+          updates.parent_id = resolveToInternalId(options.parent, mapping);
+        } catch {
+          throw new ValidationError(`Invalid parent ID: ${options.parent}`);
+        }
+      } else {
+        updates.parent_id = null;
+      }
     }
 
     if (options.addLabel && options.addLabel.length > 0) {

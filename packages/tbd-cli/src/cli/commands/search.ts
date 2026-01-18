@@ -1,7 +1,7 @@
 /**
  * `tbd search` - Search issues.
  *
- * See: tbd-full-design.md §4.8 Search Commands
+ * See: tbd-design-spec.md §4.8 Search Commands
  */
 
 import { Command } from 'commander';
@@ -10,7 +10,7 @@ import { readFile } from 'node:fs/promises';
 import { writeFile } from 'atomically';
 
 import { BaseCommand } from '../lib/baseCommand.js';
-import { requireInit } from '../lib/errors.js';
+import { requireInit, NotInitializedError, ValidationError } from '../lib/errors.js';
 import { listIssues } from '../../file/storage.js';
 import { IssueStatus } from '../../lib/schemas.js';
 import type { Issue, IssueStatusType } from '../../lib/types.js';
@@ -19,6 +19,7 @@ import { now } from '../../utils/timeUtils.js';
 import { formatDisplayId, formatDebugId } from '../../lib/ids.js';
 import { loadIdMapping } from '../../file/idMapping.js';
 import { readConfig } from '../../file/config.js';
+import { formatIssueCompact, type IssueForDisplay } from '../lib/issueFormat.js';
 
 // Staleness threshold for worktree (5 minutes)
 const STALE_THRESHOLD_MS = 5 * 60 * 1000;
@@ -100,8 +101,7 @@ class SearchHandler extends BaseCommand {
       dataSyncDir = await resolveDataSyncDir();
       issues = await listIssues(dataSyncDir);
     } catch {
-      this.output.error('No issue store found. Run `tbd init` first.');
-      return;
+      throw new NotInitializedError('No issue store found. Run `tbd init` first.');
     }
 
     // Parse status filter
@@ -109,8 +109,7 @@ class SearchHandler extends BaseCommand {
     if (options.status) {
       const result = IssueStatus.safeParse(options.status);
       if (!result.success) {
-        this.output.error(`Invalid status: ${options.status}`);
-        return;
+        throw new ValidationError(`Invalid status: ${options.status}`);
       }
       statusFilter = result.data;
     }
@@ -157,8 +156,10 @@ class SearchHandler extends BaseCommand {
       id: showDebug
         ? formatDebugId(r.issue.id, mapping, prefix)
         : formatDisplayId(r.issue.id, mapping, prefix),
-      title: r.issue.title,
+      priority: r.issue.priority,
       status: r.issue.status,
+      kind: r.issue.kind,
+      title: r.issue.title,
       matchField: r.matchField,
       match: r.matchText,
     }));
@@ -172,7 +173,7 @@ class SearchHandler extends BaseCommand {
       const colors = this.output.getColors();
       console.log(`Found ${output.length} result${output.length === 1 ? '' : 's'}:\n`);
       for (const result of output) {
-        console.log(`${colors.id(result.id)} ${result.title}`);
+        console.log(formatIssueCompact(result as IssueForDisplay, colors));
         console.log(`  ${colors.dim(`[${result.matchField}]`)} ${result.match}`);
         console.log('');
       }

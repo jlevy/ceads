@@ -1,13 +1,13 @@
 /**
  * `tbd sync` - Synchronization commands.
  *
- * See: tbd-full-design.md §4.7 Sync Commands
+ * See: tbd-design-spec.md §4.7 Sync Commands
  */
 
 import { Command } from 'commander';
 
 import { BaseCommand } from '../lib/baseCommand.js';
-import { requireInit } from '../lib/errors.js';
+import { requireInit, NotInitializedError, SyncError } from '../lib/errors.js';
 import { readConfig } from '../../file/config.js';
 import { listIssues, readIssue, writeIssue } from '../../file/storage.js';
 import {
@@ -20,6 +20,16 @@ import {
 } from '../../file/git.js';
 import { resolveDataSyncDir, DATA_SYNC_DIR, WORKTREE_DIR } from '../../lib/paths.js';
 import { join } from 'node:path';
+import {
+  type SyncSummary,
+  type SyncTallies,
+  emptySummary,
+  emptyTallies,
+  hasTallies,
+  formatSyncSummary,
+  parseGitStatus,
+  parseGitDiff,
+} from '../../lib/syncSummary.js';
 
 interface SyncOptions {
   push?: boolean;
@@ -51,8 +61,7 @@ class SyncHandler extends BaseCommand {
     try {
       config = await readConfig(process.cwd());
     } catch {
-      this.output.error('Not a tbd repository. Run `tbd init` first.');
-      return;
+      throw new NotInitializedError('Not a tbd repository. Run `tbd init` first.');
     }
 
     const syncBranch = config.sync.branch;
@@ -144,11 +153,11 @@ class SyncHandler extends BaseCommand {
             }
           }
         } catch {
-          // Git not available or not a git repo
+          this.output.debug('Git not available or not a git repo');
         }
       }
     } catch {
-      // No issues directory
+      this.output.debug('No issues directory');
     }
 
     // Check for remote changes
@@ -164,7 +173,7 @@ class SyncHandler extends BaseCommand {
         );
         ahead = parseInt(aheadOutput, 10) || 0;
       } catch {
-        // Branch doesn't exist locally
+        this.output.debug('Branch does not exist locally');
       }
 
       try {
@@ -175,7 +184,7 @@ class SyncHandler extends BaseCommand {
         );
         behind = parseInt(behindOutput, 10) || 0;
       } catch {
-        // Remote branch doesn't exist
+        this.output.debug('Remote branch does not exist');
       }
 
       // Get commit messages for remote changes
@@ -193,7 +202,7 @@ class SyncHandler extends BaseCommand {
         }
       }
     } catch {
-      // Remote not available or sync branch doesn't exist
+      this.output.debug('Remote not available or sync branch does not exist');
     }
 
     return {
@@ -209,6 +218,7 @@ class SyncHandler extends BaseCommand {
   }
 
   private async pullChanges(syncBranch: string, remote: string): Promise<void> {
+    const spinner = this.output.spinner('Pulling from remote...');
     try {
       await git('fetch', remote, syncBranch);
 
@@ -222,9 +232,10 @@ class SyncHandler extends BaseCommand {
         );
         behind = parseInt(behindOutput, 10) || 0;
       } catch {
-        // Branch doesn't exist
+        this.output.debug('Branch does not exist');
       }
 
+      spinner.stop();
       if (behind === 0) {
         this.output.success('Already up to date');
         return;
@@ -242,11 +253,12 @@ class SyncHandler extends BaseCommand {
 
       this.output.success(`Pulled ${behind} change(s) from ${remote}/${syncBranch}`);
     } catch (error) {
+      spinner.stop();
       const msg = (error as Error).message;
       if (msg.includes('not found') || msg.includes('does not exist')) {
         this.output.info(`Remote branch ${remote}/${syncBranch} does not exist yet`);
       } else {
-        this.output.error(`Failed to pull: ${msg}`);
+        throw new SyncError(`Failed to pull: ${msg}`);
       }
     }
   }
@@ -255,21 +267,21 @@ class SyncHandler extends BaseCommand {
    * Commit any uncommitted changes in the worktree to the sync branch.
    * This must be called before pushing to ensure changes are captured.
    *
-   * @returns Number of files committed, or 0 if nothing to commit
+   * @returns Tallies of new/updated/deleted files committed
    */
-  private async commitWorktreeChanges(): Promise<number> {
+  private async commitWorktreeChanges(): Promise<SyncTallies> {
     const worktreePath = join(process.cwd(), WORKTREE_DIR);
 
     try {
       // Check for uncommitted changes (untracked, modified, or deleted)
       const status = await git('-C', worktreePath, 'status', '--porcelain');
       if (!status || status.trim() === '') {
-        return 0; // Nothing to commit
+        return emptyTallies(); // Nothing to commit
       }
 
-      // Count files with changes
-      const changedFiles = status.split('\n').filter((line) => line.trim() !== '');
-      const fileCount = changedFiles.length;
+      // Parse status to get tallies
+      const tallies = parseGitStatus(status);
+      const fileCount = tallies.new + tallies.updated + tallies.deleted;
 
       // Stage all changes
       await git('-C', worktreePath, 'add', '-A');
@@ -284,23 +296,26 @@ class SyncHandler extends BaseCommand {
         `tbd sync: ${timestamp} (${fileCount} file${fileCount === 1 ? '' : 's'})`,
       );
 
-      return fileCount;
+      return tallies;
     } catch (error) {
       // If commit fails (e.g., nothing to commit after staging), that's ok
       const msg = (error as Error).message;
       if (msg.includes('nothing to commit')) {
-        return 0;
+        return emptyTallies();
       }
       throw error;
     }
   }
 
   private async pushChanges(syncBranch: string, remote: string): Promise<void> {
+    const spinner = this.output.spinner('Pushing to remote...');
     try {
       // Commit any uncommitted changes in the worktree before pushing
-      const committedFiles = await this.commitWorktreeChanges();
-      if (committedFiles > 0) {
-        this.output.info(`Committed ${committedFiles} file(s) to sync branch`);
+      const committedTallies = await this.commitWorktreeChanges();
+      const committedCount =
+        committedTallies.new + committedTallies.updated + committedTallies.deleted;
+      if (committedCount > 0) {
+        this.output.info(`Committed ${committedCount} file(s) to sync branch`);
       }
 
       // Check how many commits we're ahead of remote
@@ -322,16 +337,19 @@ class SyncHandler extends BaseCommand {
           this.output.debug(`Remote branch not found, ${ahead} local commit(s) to push`);
         } catch {
           ahead = 0;
+          this.output.debug('Could not count local commits');
         }
       }
 
       if (ahead === 0) {
+        spinner.stop();
         this.output.success('Already up to date');
         return;
       }
 
       // Use push with retry
       const result = await this.doPushWithRetry(syncBranch, remote);
+      spinner.stop();
 
       if (result.success) {
         this.output.success(`Pushed ${ahead} commit(s) to ${remote}/${syncBranch}`);
@@ -340,10 +358,12 @@ class SyncHandler extends BaseCommand {
           `Push completed with ${result.conflicts.length} conflict(s) (see attic for details)`,
         );
       } else {
-        this.output.error(`Failed to push: ${result.error}`);
+        throw new SyncError(`Failed to push: ${result.error}`);
       }
     } catch (error) {
-      this.output.error(`Failed to push: ${(error as Error).message}`);
+      spinner.stop();
+      if (error instanceof SyncError) throw error;
+      throw new SyncError(`Failed to push: ${(error as Error).message}`);
     }
   }
 
@@ -374,6 +394,7 @@ class SyncHandler extends BaseCommand {
           }
         } catch {
           // Issue doesn't exist remotely - no merge needed
+          this.output.debug(`Issue ${localIssue.id} not on remote, no merge needed`);
         }
       }
 
@@ -381,93 +402,193 @@ class SyncHandler extends BaseCommand {
     });
   }
 
-  private async fullSync(syncBranch: string, remote: string, force?: boolean): Promise<void> {
-    let pulled = 0;
-    let pushed = 0;
-    const conflicts: ConflictEntry[] = [];
-
-    // Pull first
+  /**
+   * Show git log --stat output in debug mode.
+   * Used to display commits that were synced.
+   */
+  private async showGitLogDebug(range: string, label: string): Promise<void> {
     try {
+      const logOutput = await git('log', '--stat', '--oneline', range);
+      if (logOutput.trim()) {
+        this.output.debug(`${label}:`);
+        for (const line of logOutput.split('\n')) {
+          this.output.debug(`  ${line}`);
+        }
+      }
+    } catch {
+      // Ignore errors - log is just for debugging
+    }
+  }
+
+  private async fullSync(syncBranch: string, remote: string, _force?: boolean): Promise<void> {
+    const spinner = this.output.spinner('Syncing with remote...');
+    const summary: SyncSummary = emptySummary();
+    const conflicts: ConflictEntry[] = [];
+    const worktreePath = join(process.cwd(), WORKTREE_DIR);
+
+    try {
+      // STEP 1: Commit local changes FIRST (before pulling)
+      // This ensures local work is preserved before we incorporate remote changes.
+      const committedTallies = await this.commitWorktreeChanges();
+      // Add committed changes to sent tallies
+      summary.sent.new += committedTallies.new;
+      summary.sent.updated += committedTallies.updated;
+      summary.sent.deleted += committedTallies.deleted;
+      if (hasTallies(committedTallies)) {
+        const count = committedTallies.new + committedTallies.updated + committedTallies.deleted;
+        this.output.debug(`Committed ${count} file(s) to sync branch`);
+      }
+
+      // STEP 2: Fetch remote
       await git('fetch', remote, syncBranch);
 
-      // Count commits to pull
+      // Get file-level changes from remote using git diff
+      let behindCommits = 0;
       try {
         const behindOutput = await git(
           'rev-list',
           '--count',
           `${syncBranch}..${remote}/${syncBranch}`,
         );
-        pulled = parseInt(behindOutput, 10) || 0;
-        this.output.debug(`Behind remote by ${pulled} commit(s)`);
+        behindCommits = parseInt(behindOutput, 10) || 0;
+        this.output.debug(`Behind remote by ${behindCommits} commit(s)`);
+
+        // Get file-level tallies for received changes
+        if (behindCommits > 0) {
+          try {
+            const diffOutput = await git(
+              'diff',
+              '--name-status',
+              `${syncBranch}..${remote}/${syncBranch}`,
+            );
+            const receivedTallies = parseGitDiff(diffOutput);
+            summary.received.new += receivedTallies.new;
+            summary.received.updated += receivedTallies.updated;
+            summary.received.deleted += receivedTallies.deleted;
+          } catch {
+            // If we can't get detailed diff, just track commit count
+            this.output.debug('Could not get detailed diff for received changes');
+          }
+        }
       } catch {
-        // Branch doesn't exist
-        this.output.debug('Local sync branch does not exist yet');
+        // Branch doesn't exist on remote
+        this.output.debug('Remote sync branch does not exist yet');
       }
 
-      if (pulled > 0) {
-        // Pull changes
-        await withIsolatedIndex(async () => {
-          await git('read-tree', `${remote}/${syncBranch}`);
-          const remoteCommit = await git('rev-parse', `${remote}/${syncBranch}`);
-          await git('update-ref', `refs/heads/${syncBranch}`, remoteCommit);
-        });
-        this.output.debug(`Pulled ${pulled} commit(s) from remote`);
+      // STEP 3: If remote has changes, merge them in
+      if (behindCommits > 0) {
+        // Track HEAD before merge for debug log
+        let headBeforeMerge = '';
+        try {
+          headBeforeMerge = (await git('-C', worktreePath, 'rev-parse', 'HEAD')).trim();
+        } catch {
+          // Ignore - just won't show debug log
+        }
+
+        // Merge remote into local using worktree
+        // This is a proper git merge that preserves both local and remote changes
+        try {
+          await git(
+            '-C',
+            worktreePath,
+            'merge',
+            `${remote}/${syncBranch}`,
+            '-m',
+            'tbd sync: merge remote changes',
+          );
+          this.output.debug(`Merged ${behindCommits} commit(s) from remote`);
+
+          // Show received commits in debug mode
+          if (headBeforeMerge) {
+            await this.showGitLogDebug(`${headBeforeMerge}..HEAD`, 'Commits received');
+          }
+        } catch {
+          // Merge conflict - try to resolve at file level
+          this.output.info(`Merge conflict, attempting file-level resolution`);
+
+          // For each conflicted issue, do field-level merge
+          const localIssues = await listIssues(this.dataSyncDir);
+          for (const localIssue of localIssues) {
+            try {
+              const remoteContent = await git(
+                'show',
+                `${remote}/${syncBranch}:${DATA_SYNC_DIR}/issues/${localIssue.id}.md`,
+              );
+              if (remoteContent) {
+                const remoteIssue = await readIssue(this.dataSyncDir, localIssue.id);
+                const result = mergeIssues(null, localIssue, remoteIssue);
+                await writeIssue(this.dataSyncDir, result.merged);
+                conflicts.push(...result.conflicts);
+              }
+            } catch {
+              // Issue doesn't exist remotely - keep local version
+              this.output.debug(`Issue ${localIssue.id} not on remote, keeping local`);
+            }
+          }
+
+          // Stage resolved files and complete merge
+          await git('-C', worktreePath, 'add', '-A');
+          try {
+            await git('-C', worktreePath, 'commit', '-m', 'tbd sync: resolved merge conflicts');
+          } catch {
+            // May fail if no conflicts needed resolving
+            this.output.debug('No merge commit needed (conflicts already resolved)');
+          }
+        }
       }
     } catch (error) {
       // Remote not available - that's ok for first sync
       this.output.debug(`Fetch failed (may be first sync): ${(error as Error).message}`);
     }
 
-    // Commit any uncommitted changes in the worktree before pushing
-    const committedFiles = await this.commitWorktreeChanges();
-    if (committedFiles > 0) {
-      this.output.debug(`Committed ${committedFiles} file(s) to sync branch`);
-    }
-
     // Check how many commits we're ahead of remote (if any)
+    let aheadCommits = 0;
     try {
       const aheadOutput = await git(
         'rev-list',
         '--count',
         `${remote}/${syncBranch}..${syncBranch}`,
       );
-      pushed = parseInt(aheadOutput, 10) || 0;
-      this.output.debug(`Ahead of remote by ${pushed} commit(s)`);
+      aheadCommits = parseInt(aheadOutput, 10) || 0;
+      this.output.debug(`Ahead of remote by ${aheadCommits} commit(s)`);
     } catch {
       // Remote branch doesn't exist - count all local commits on sync branch
       try {
         const countOutput = await git('rev-list', '--count', syncBranch);
-        pushed = parseInt(countOutput, 10) || 0;
-        this.output.debug(`Remote branch not found, ${pushed} local commit(s) to push`);
+        aheadCommits = parseInt(countOutput, 10) || 0;
+        this.output.debug(`Remote branch not found, ${aheadCommits} local commit(s) to push`);
       } catch {
-        pushed = 0;
+        aheadCommits = 0;
+        this.output.debug('Could not count local commits');
       }
     }
 
     // Push if we have commits ahead of remote
-    if (pushed > 0) {
-      this.output.debug(`Pushing ${pushed} commit(s) to remote`);
+    if (aheadCommits > 0) {
+      this.output.debug(`Pushing ${aheadCommits} commit(s) to remote`);
       const result = await this.doPushWithRetry(syncBranch, remote);
       if (result.conflicts) {
         conflicts.push(...result.conflicts);
       }
       if (!result.success) {
         this.output.debug(`Push failed: ${result.error}`);
+      } else {
+        // Show pushed commits in debug mode
+        await this.showGitLogDebug(`-${aheadCommits}`, 'Commits sent');
       }
     } else {
       this.output.debug('No commits to push');
     }
 
-    const forceNote = force ? ' (force)' : '';
-    this.output.data({ pulled, pushed, conflicts: conflicts.length }, () => {
-      if (pulled === 0 && pushed === 0) {
+    summary.conflicts = conflicts.length;
+    spinner.stop();
+
+    this.output.data({ summary, conflicts: conflicts.length }, () => {
+      const summaryText = formatSyncSummary(summary);
+      if (!summaryText) {
         this.output.success('Already in sync');
       } else {
-        let msg = `Synced: pulled ${pulled}, pushed ${pushed}${forceNote}`;
-        if (conflicts.length > 0) {
-          msg += ` (${conflicts.length} conflict(s) resolved)`;
-        }
-        this.output.success(msg);
+        this.output.success(`Synced: ${summaryText}`);
       }
     });
   }

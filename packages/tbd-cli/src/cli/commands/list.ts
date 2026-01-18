@@ -1,19 +1,28 @@
 /**
  * `tbd list` - List issues.
  *
- * See: tbd-full-design.md §4.4 List
+ * See: tbd-design-spec.md §4.4 List
  */
 
 import { Command } from 'commander';
 
 import { BaseCommand } from '../lib/baseCommand.js';
-import { requireInit } from '../lib/errors.js';
+import { requireInit, CLIError } from '../lib/errors.js';
 import { loadDataContext, type TbdDataContext } from '../lib/dataContext.js';
 import type { Issue, IssueStatusType, IssueKindType } from '../../lib/types.js';
 import { listIssues } from '../../file/storage.js';
 import { formatDisplayId, formatDebugId, extractUlidFromInternalId } from '../../lib/ids.js';
 import type { IdMapping } from '../../file/idMapping.js';
+import { resolveToInternalId } from '../../file/idMapping.js';
 import { naturalCompare } from '../../lib/sort.js';
+import {
+  formatIssueLine,
+  formatIssueLong,
+  formatIssueHeader,
+  type IssueForDisplay,
+} from '../lib/issueFormat.js';
+import { parsePriority } from '../../lib/priority.js';
+import { buildIssueTree, renderIssueTree } from '../lib/treeView.js';
 
 interface ListOptions {
   status?: IssueStatusType;
@@ -28,6 +37,8 @@ interface ListOptions {
   sort?: string;
   limit?: string;
   count?: boolean;
+  long?: boolean;
+  pretty?: boolean;
 }
 
 class ListHandler extends BaseCommand {
@@ -42,12 +53,11 @@ class ListHandler extends BaseCommand {
       dataCtx = await loadDataContext();
       issues = await listIssues(dataCtx.dataSyncDir);
     } catch {
-      this.output.error('Failed to read issues');
-      return;
+      throw new CLIError('Failed to read issues');
     }
 
     // Apply filters
-    issues = this.filterIssues(issues, options);
+    issues = this.filterIssues(issues, options, dataCtx.mapping);
 
     // Sort results (with secondary sort by short ID for stable ordering)
     issues = this.sortIssues(issues, options.sort ?? 'priority', dataCtx.mapping);
@@ -75,36 +85,67 @@ class ListHandler extends BaseCommand {
     const displayIssues = issues.map((i) => ({
       id: showDebug ? formatDebugId(i.id, mapping, prefix) : formatDisplayId(i.id, mapping, prefix),
       internalId: i.id,
+      parentId: i.parent_id
+        ? showDebug
+          ? formatDebugId(i.parent_id, mapping, prefix)
+          : formatDisplayId(i.parent_id, mapping, prefix)
+        : undefined,
       priority: i.priority,
       status: i.status,
       kind: i.kind,
       title: i.title,
+      description: i.description,
       assignee: i.assignee,
       labels: i.labels,
     }));
 
     this.output.data(displayIssues, () => {
       if (issues.length === 0) {
-        this.output.info('No issues found');
+        console.log('No issues found');
         return;
       }
 
       const colors = this.output.getColors();
-      console.log(
-        `${colors.dim('ID'.padEnd(12))}${colors.dim('PRI'.padEnd(5))}${colors.dim('STATUS'.padEnd(14))}${colors.dim('TITLE')}`,
-      );
-      for (const issue of displayIssues) {
-        const statusColor = this.getStatusColor(issue.status);
-        console.log(
-          `${colors.id(issue.id.padEnd(12))}${String(issue.priority).padEnd(5)}${statusColor(issue.status.padEnd(14))}${issue.title}`,
-        );
+
+      if (options.pretty) {
+        // Tree view: show parent-child relationships
+        const tree = buildIssueTree(displayIssues as (IssueForDisplay & { parentId?: string })[]);
+        const lines = renderIssueTree(tree, colors, {
+          long: options.long,
+          maxWidth: process.stdout.columns ?? 80,
+        });
+        for (const line of lines) {
+          console.log(line);
+        }
+      } else {
+        // Table view: standard tabular format
+        console.log(formatIssueHeader(colors));
+        for (const issue of displayIssues) {
+          if (options.long) {
+            console.log(formatIssueLong(issue as IssueForDisplay, colors));
+          } else {
+            console.log(formatIssueLine(issue as IssueForDisplay, colors));
+          }
+        }
       }
+
       console.log('');
       console.log(colors.dim(`${issues.length} issue(s)`));
     });
   }
 
-  private filterIssues(issues: Issue[], options: ListOptions): Issue[] {
+  private filterIssues(issues: Issue[], options: ListOptions, mapping: IdMapping): Issue[] {
+    // Resolve parent filter to internal ID if provided
+    let resolvedParentId: string | undefined;
+    if (options.parent) {
+      try {
+        resolvedParentId = resolveToInternalId(options.parent, mapping);
+      } catch {
+        // If parent ID cannot be resolved, no issues will match
+        return [];
+      }
+    }
+
     return issues.filter((issue) => {
       // By default, exclude closed issues unless --all
       if (!options.all && issue.status === 'closed') {
@@ -121,10 +162,10 @@ class ListHandler extends BaseCommand {
         return false;
       }
 
-      // Priority filter
+      // Priority filter - supports both numeric (1) and prefixed (P1) formats
       if (options.priority !== undefined) {
-        const priority = parseInt(options.priority, 10);
-        if (!isNaN(priority) && issue.priority !== priority) {
+        const priority = parsePriority(options.priority);
+        if (priority !== undefined && issue.priority !== priority) {
           return false;
         }
       }
@@ -142,8 +183,8 @@ class ListHandler extends BaseCommand {
         }
       }
 
-      // Parent filter
-      if (options.parent && issue.parent_id !== options.parent) {
+      // Parent filter (compare resolved internal IDs)
+      if (resolvedParentId && issue.parent_id !== resolvedParentId) {
         return false;
       }
 
@@ -187,24 +228,6 @@ class ListHandler extends BaseCommand {
       return naturalCompare(getShortId(a), getShortId(b));
     });
   }
-
-  private getStatusColor(status: string): (s: string) => string {
-    const colors = this.output.getColors();
-    switch (status) {
-      case 'open':
-        return colors.info;
-      case 'in_progress':
-        return colors.success;
-      case 'blocked':
-        return colors.error;
-      case 'deferred':
-        return colors.dim;
-      case 'closed':
-        return colors.dim;
-      default:
-        return (s) => s;
-    }
-  }
 }
 
 export const listCommand = new Command('list')
@@ -224,6 +247,8 @@ export const listCommand = new Command('list')
   .option('--sort <field>', 'Sort by: priority, created, updated', 'priority')
   .option('--limit <n>', 'Limit results')
   .option('--count', 'Output only the count of matching issues')
+  .option('--long', 'Show descriptions')
+  .option('--pretty', 'Show tree view with parent-child relationships')
   .action(async (options, command) => {
     const handler = new ListHandler(command);
     await handler.run(options);

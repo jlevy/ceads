@@ -68,7 +68,7 @@ $ git -C .tbd/data-sync-worktree status --porcelain | head -3
 
 ```console
 $ tbd sync
-✓ Synced[..]
+✓ Synced: sent [..] new
 ? 0
 ```
 
@@ -195,25 +195,25 @@ synced: [..]
 ```console
 $ tbd sync --push 2>&1
 ...
-✗ Failed to push: [..]
+Error: Failed to push: [..]
 ...
-? 0
+? 1
 ```
 
 # Test: Sync pull without remote fails gracefully
 
 ```console
 $ tbd sync --pull 2>&1
-✗ Failed to pull: [..]
+Error: Failed to pull: [..]
 ...
-? 0
+? 1
 ```
 
 # Test: Full sync handles missing remote gracefully
 
 ```console
 $ tbd sync
-✓ Synced[..]
+✓ [..]
 ? 0
 ```
 
@@ -251,8 +251,19 @@ $ git -C .tbd/data-sync-worktree status --porcelain
 ```console
 $ tbd sync --json
 {
-  "pulled": 0,
-  "pushed": [..],
+  "summary": {
+    "sent": {
+      "new": 0,
+      "updated": 0,
+      "deleted": 0
+    },
+    "received": {
+      "new": 0,
+      "updated": 0,
+      "deleted": 0
+    },
+    "conflicts": 0
+  },
   "conflicts": 0
 }
 ? 0

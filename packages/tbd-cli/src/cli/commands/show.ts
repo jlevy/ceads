@@ -1,19 +1,22 @@
 /**
  * `tbd show` - Show issue details.
  *
- * See: tbd-full-design.md §4.4 Show
+ * See: tbd-design-spec.md §4.4 Show
  */
 
 import { Command } from 'commander';
 
 import { BaseCommand } from '../lib/baseCommand.js';
-import { requireInit } from '../lib/errors.js';
+import { requireInit, NotFoundError } from '../lib/errors.js';
 import { readIssue } from '../../file/storage.js';
 import { serializeIssue } from '../../file/parser.js';
 import { formatDisplayId, formatDebugId } from '../../lib/ids.js';
 import { resolveDataSyncDir } from '../../lib/paths.js';
 import { loadIdMapping, resolveToInternalId } from '../../file/idMapping.js';
 import { readConfig } from '../../file/config.js';
+import { formatPriority, getPriorityColor } from '../../lib/priority.js';
+import { getStatusColor } from '../../lib/status.js';
+import type { IssueStatusType } from '../../lib/types.js';
 
 class ShowHandler extends BaseCommand {
   async run(id: string): Promise<void> {
@@ -29,16 +32,14 @@ class ShowHandler extends BaseCommand {
     try {
       internalId = resolveToInternalId(id, mapping);
     } catch {
-      this.output.error(`Issue not found: ${id}`);
-      return;
+      throw new NotFoundError('Issue', id);
     }
 
     let issue;
     try {
       issue = await readIssue(dataSyncDir, internalId);
     } catch {
-      this.output.error(`Issue not found: ${id}`);
-      return;
+      throw new NotFoundError('Issue', id);
     }
     const showDebug = this.ctx.debug;
     const config = await readConfig(process.cwd());
@@ -67,13 +68,13 @@ class ShowHandler extends BaseCommand {
         } else if (line.startsWith('id:')) {
           console.log(`${colors.dim('id:')} ${colors.id(line.slice(4))}`);
         } else if (line.startsWith('status:')) {
-          const status = line.slice(8).trim();
-          const statusColor = this.getStatusColor(status);
+          const status = line.slice(8).trim() as IssueStatusType;
+          const statusColor = getStatusColor(status, colors);
           console.log(`${colors.dim('status:')} ${statusColor(status)}`);
         } else if (line.startsWith('priority:')) {
-          const priority = line.slice(10).trim();
-          const priorityColor = this.getPriorityColor(parseInt(priority, 10));
-          console.log(`${colors.dim('priority:')} ${priorityColor(priority)}`);
+          const priority = parseInt(line.slice(10).trim(), 10);
+          const priorityColor = getPriorityColor(priority, colors);
+          console.log(`${colors.dim('priority:')} ${priorityColor(formatPriority(priority))}`);
         } else if (line.startsWith('title:')) {
           console.log(`${colors.dim('title:')} ${colors.bold(line.slice(7))}`);
         } else if (line.startsWith('## Notes')) {
@@ -85,36 +86,6 @@ class ShowHandler extends BaseCommand {
         }
       }
     });
-  }
-
-  private getStatusColor(status: string): (s: string) => string {
-    const colors = this.output.getColors();
-    switch (status) {
-      case 'open':
-        return colors.info;
-      case 'in_progress':
-        return colors.success;
-      case 'blocked':
-        return colors.error;
-      case 'deferred':
-        return colors.dim;
-      case 'closed':
-        return colors.dim;
-      default:
-        return (s) => s;
-    }
-  }
-
-  private getPriorityColor(priority: number): (s: string) => string {
-    const colors = this.output.getColors();
-    switch (priority) {
-      case 0:
-        return colors.error; // Critical
-      case 1:
-        return colors.warn; // High
-      default:
-        return (s) => s;
-    }
   }
 }
 

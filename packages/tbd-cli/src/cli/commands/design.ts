@@ -11,6 +11,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
 import { BaseCommand } from '../lib/baseCommand.js';
+import { CLIError, NotFoundError } from '../lib/errors.js';
 import { renderMarkdown } from '../lib/output.js';
 import GithubSlugger from 'github-slugger';
 
@@ -58,8 +59,7 @@ class DesignHandler extends BaseCommand {
           const repoPath = join(__dirname, '..', '..', '..', 'docs', 'tbd-design.md');
           content = await readFile(repoPath, 'utf-8');
         } catch {
-          this.output.error('Design documentation file not found. Please rebuild the CLI.');
-          return;
+          throw new CLIError('Design documentation file not found. Please rebuild the CLI.');
         }
       }
     }
@@ -91,10 +91,10 @@ class DesignHandler extends BaseCommand {
     if (sectionQuery) {
       const sectionContent = this.extractSection(content, sections, sectionQuery);
       if (!sectionContent) {
-        this.output.error(`Section "${sectionQuery}" not found.`);
-        console.log('');
-        console.log('Use --list to see available sections.');
-        return;
+        throw new NotFoundError(
+          'Section',
+          `"${sectionQuery}" (use --list to see available sections)`,
+        );
       }
       content = sectionContent;
     }

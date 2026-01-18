@@ -40,37 +40,83 @@ tbd supports multiple output modes that can be combined:
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│  --quiet              Only errors and warnings (stderr)         │
+│  --quiet              Only errors + data (nothing else)         │
 ├─────────────────────────────────────────────────────────────────┤
-│  (default)            + Success, info, data output              │
+│  (default)            + warnings, notices, success messages     │
 ├─────────────────────────────────────────────────────────────────┤
-│  --verbose            + Verbose messages (operations, timing)   │
+│  --verbose            + info messages (operations, progress)    │
 ├─────────────────────────────────────────────────────────────────┤
-│  --debug              + Debug messages (internal state, IDs)    │
+│  --debug              + debug messages (internal state, IDs)    │
 └─────────────────────────────────────────────────────────────────┘
 ```
+
+### Output Levels
+
+Each output level has a specific icon, color, prefix format, and channel:
+
+| Level | Icon | Color | Prefix | Channel | Purpose |
+| --- | --- | --- | --- | --- | --- |
+| **error** | `✗` | Red | `✗ {message}` | stderr | Failures that stop operation |
+| **warning** | `⚠` | Yellow | `⚠ {message}` | stderr | Issues that didn't stop operation |
+| **notice** | `•` | Blue | `• {message}` | stdout | Noteworthy events during normal operation |
+| **success** | `✓` | Green | `✓ {message}` | stdout | Confirmation of completed actions |
+| **info** | (none) | Dim | `{message}` | stderr | Operational progress (verbose only) |
+| **command** | `>` | Dim | `> {command}` | stderr | External commands being run (verbose only) |
+| **debug** | (none) | Dim | `[debug] {message}` | stderr | Internal state (debug only) |
+| **data** | (none) | (varies) | (none) | stdout | Primary output (tables, details) |
+
+**Exact appearance examples:**
+
+```
+✗ Issue not found: bd-xyz                    # error - red
+⚠ Remote branch not found                    # warning - yellow
+• Issue doesn't exist remotely - kept local  # notice - blue
+✓ Created issue bd-a1b2                      # success - green
+Syncing with remote...                       # info - dim (verbose only)
+> git fetch origin tbd-sync                  # command - dim (verbose only)
+[debug] Resolved bd-a1b2 → is-01hx...        # debug - dim (debug only)
+```
+
+**Icon rules:**
+
+- `✓` (U+2713) - Success only, always green
+- `✗` (U+2717) - Error only, always red
+- `⚠` (U+26A0) - Warning only, always yellow
+- `•` (U+2022) - Notice only, always blue
+- `>` - Command prefix only, always dim
+- Never use alternative characters (`✔`, `√`, `×`, `!`, etc.)
+- Icon always followed by single space before message
 
 ### Mode Flags
 
 | Flag | Effect |
 | --- | --- |
-| `--quiet` | Suppress success and info messages |
-| `--verbose` | Show operation progress and timing |
-| `--debug` | Show internal IDs, paths, and state |
+| `--quiet` | Only errors and data output |
+| `--verbose` | Show info messages (operations, progress) |
+| `--debug` | Show debug messages (internal state, IDs) |
 | `--json` | Output data as JSON, messages as JSON to stderr |
 | `--color=auto\|always\|never` | Control colorization |
 | `--dry-run` | Show what would happen without doing it |
 
-### Mode Combinations
+### Level Visibility Matrix
 
-| Mode | Data | Success | Info | Warning | Error | Debug |
+| Level | Method | Channel | `--quiet` | Default | `--verbose` | `--debug` |
 | --- | --- | --- | --- | --- | --- | --- |
-| Default | stdout | stdout | stdout | stderr | stderr | - |
-| `--quiet` | stdout | - | - | stderr | stderr | - |
-| `--verbose` | stdout | stdout | stdout | stderr | stderr | stderr |
-| `--debug` | stdout | stdout | stdout | stderr | stderr | stderr |
-| `--json` | JSON | - | - | JSON | JSON | - |
-| `--json --verbose` | JSON | - | - | JSON | JSON | JSON |
+| error | `error()` | stderr | ✓ | ✓ | ✓ | ✓ |
+| data | `data()` | stdout | ✓ | ✓ | ✓ | ✓ |
+| warning | `warn()` | stderr | — | ✓ | ✓ | ✓ |
+| notice | `notice()` | stdout | — | ✓ | ✓ | ✓ |
+| success | `success()` | stdout | — | ✓ | ✓ | ✓ |
+| info | `info()` | stderr | — | — | ✓ | ✓ |
+| command | `command()` | stderr | — | — | ✓ | ✓ |
+| debug | `debug()` | stderr | — | — | — | ✓ |
+
+**Key design decisions:**
+
+1. **`--quiet` suppresses warnings** - Only errors and data are truly critical
+2. **`notice` is for noteworthy events** - Not warnings, but user should see them
+3. **`info` requires `--verbose`** - Operational progress is opt-in, not default
+4. **`debug` requires `--debug`** - Does NOT show with just `--verbose`
 
 ## Output Channels
 
@@ -92,27 +138,34 @@ Progress indicators and debug output go to stderr because:
 
 ### OutputManager Methods
 
+The OutputManager API enforces consistent formatting.
+Each method handles its own icon, color, and visibility rules internally - callers just
+pass the message.
+
 ```typescript
-// Primary data output - stdout, respects --json
+// Primary data output - stdout, always shown
 output.data(data, textFormatter)
 
-// Success confirmation - stdout, not in json/quiet
-output.success("Created issue bd-a1b2")
-
-// Informational - stdout, not in json/quiet
-output.info("Syncing with remote...")
-
-// Warning - stderr, always shown
-output.warn("Remote branch not found")
-
-// Error - stderr, always shown
+// Error - stderr, always shown (red, ✗ prefix)
 output.error("Failed to read issue", error)
 
-// Debug - stderr, only in verbose/debug mode
-output.debug("Loading 42 issues from cache")
+// Warning - stderr, default+ (yellow, ⚠ prefix, suppressed by --quiet)
+output.warn("Remote branch not found")
 
-// External command - stderr, only in verbose mode
+// Notice - stdout, default+ (blue, • prefix, suppressed by --quiet)
+output.notice("Issue doesn't exist remotely - kept local")
+
+// Success - stdout, default+ (green, ✓ prefix, suppressed by --quiet)
+output.success("Created issue bd-a1b2")
+
+// Info - stderr, verbose+ (dim, no prefix, requires --verbose)
+output.info("Syncing with remote...")
+
+// Command - stderr, verbose+ (dim, > prefix, requires --verbose)
 output.command("git", ["fetch", "origin", "tbd-sync"])
+
+// Debug - stderr, debug only (dim, [debug] prefix, requires --debug)
+output.debug("Loading 42 issues from cache")
 
 // Dry-run indicator - stdout, only in dry-run mode
 output.dryRun("Would create issue", { title: "..." })
@@ -120,6 +173,13 @@ output.dryRun("Would create issue", { title: "..." })
 // Progress spinner - stderr, only in TTY mode
 output.spinner("Syncing...")
 ```
+
+**API Design Principles:**
+
+1. **Callers never format icons** - Methods add their own prefix
+2. **Callers never check verbosity** - Methods handle visibility internally
+3. **Callers never choose colors** - Methods apply semantic colors consistently
+4. **One method per level** - No overloading, no optional “level” parameters
 
 ## Color System
 
@@ -150,15 +210,35 @@ console.log(colors.error('Failed to sync'));
 console.log(colors.dim(`Updated 2 hours ago`));
 ```
 
-### Status Colors
+### Status Icons and Colors
 
-| Status | Color | Rationale |
-| --- | --- | --- |
-| `open` | Blue (info) | Neutral, awaiting action |
-| `in_progress` | Green (success) | Active, positive progress |
-| `blocked` | Red (error) | Needs attention, problem |
-| `deferred` | Gray (dim) | Low priority, background |
-| `closed` | Gray (dim) | Complete, historical |
+**Rule**: Always display status with both icon and word together, never icon-only or
+word-only.
+
+| Status | Icon | Display | Color | Rationale |
+| --- | --- | --- | --- | --- |
+| `open` | `○` (U+25CB) | `○ open` | Blue (info) | Neutral, awaiting action |
+| `in_progress` | `◐` (U+25D0) | `◐ in_progress` | Green (success) | Active, positive progress |
+| `blocked` | `●` (U+25CF) | `● blocked` | Red (error) | Needs attention, problem |
+| `deferred` | `○` (U+25CB) | `○ deferred` | Gray (dim) | Low priority, background |
+| `closed` | `✓` (U+2713) | `✓ closed` | Gray (dim) | Complete, historical |
+
+**Display Examples:**
+```
+ID          PRI  STATUS           TITLE
+bd-a1b2     P0   ● blocked        Fix authentication timeout
+bd-c3d4     P1   ◐ in_progress    Add dark mode support
+bd-e5f6     P2   ○ open           Update documentation
+bd-g7h8     P3   ✓ closed         Initial setup
+```
+
+**Icon Rules:**
+- `○` (U+25CB) - Open/deferred (empty circle = not started)
+- `◐` (U+25D0) - In progress (half-filled = partially complete)
+- `●` (U+25CF) - Blocked (filled circle = stopped)
+- `✓` (U+2713) - Closed (checkmark = done)
+- Never use alternative characters
+- Icon always followed by single space before status word
 
 ### Priority Colors
 
@@ -174,10 +254,10 @@ console.log(colors.dim(`Updated 2 hours ago`));
 
 **Display Examples:**
 ```
-ID          PRI  STATUS        TITLE
-bd-a1b2     P0   blocked       Fix authentication timeout
-bd-c3d4     P1   in_progress   Add dark mode support
-bd-e5f6     P2   open          Update documentation
+ID          PRI  STATUS           TITLE
+bd-a1b2     P0   ● blocked        Fix authentication timeout
+bd-c3d4     P1   ◐ in_progress    Add dark mode support
+bd-e5f6     P2   ○ open           Update documentation
 ```
 
 **Parsing Rules:**
@@ -229,43 +309,121 @@ NO_COLOR=1 tbd list
 
 ## Message Formatting
 
+### Section Headings
+
+**Rule**: All section headings in CLI output must follow a consistent grammar.
+
+**Format**: ALL CAPS, bold, followed by blank line before content.
+
+| Element | Format | Color | Example |
+|---------|--------|-------|---------|
+| Section heading | ALL CAPS + newline | Bold | `REPOSITORY` |
+| Inline label | Title Case + colon | Default | `Sync branch:` |
+
+**Structure:**
+```
+HEADING
+
+  content line 1
+  content line 2
+
+NEXT HEADING
+
+  more content
+```
+
+**Examples:**
+```
+REPOSITORY
+
+  ✓ Initialized (.tbd/)
+  ✓ Git repository (main)
+
+CONFIGURATION
+
+  Sync branch: tbd-sync
+  Remote:      origin
+  ID prefix:   tbd-
+
+INTEGRATIONS
+
+  ✓ Claude Code skill
+  ⚠ Cursor rules - not installed
+      Run: tbd setup cursor
+
+HEALTH CHECKS
+
+  ✓ Git version (2.50.1)
+  ✓ Config file
+  ✓ Worktree healthy
+```
+
+**Rules:**
+- ALL CAPS for section headings (never Title Case or lowercase)
+- Blank line after heading before content
+- Blank line between sections
+- Content indented 2 spaces under heading
+- Sub-items (like fix hints) indented 6 spaces
+- No colon after section headings
+- Use colons for inline key-value pairs within content
+
+**Commands using section headings:**
+- `tbd status` - REPOSITORY, CONFIGURATION, INTEGRATIONS
+- `tbd doctor` - Same as status + STATISTICS, HEALTH CHECKS
+- `tbd show` - Issue details sections
+- `tbd stats` - Statistics breakdown
+
+**Implementation:**
+```typescript
+/** Format a section heading - ALL CAPS, bold */
+export function formatHeading(text: string): string {
+  return colors.bold(text.toUpperCase());
+}
+
+// Usage:
+console.log(formatHeading('Repository'));
+console.log('');  // Blank line after heading
+console.log('  ✓ Initialized (.tbd/)');
+```
+
 ### Icons and Prefixes
 
-**Standard Icons:**
+**Standard Icons (one per level, never mix):**
 
-| Icon | Meaning | When to Use |
-| --- | --- | --- |
-| `✓` | Success/Complete | Operation completed successfully |
-| `✗` | Error/Failure | Operation failed |
-| `⚠` | Warning/Caution | Non-fatal issue, needs attention |
-| `•` | Bullet/Item | List items |
-| `⠋⠙⠹...` | Progress | Spinner animation for in-progress operations |
+| Icon | Unicode | Color | Level | When to Use |
+| --- | --- | --- | --- | --- |
+| `✓` | U+2713 | Green | success | Operation completed successfully |
+| `✗` | U+2717 | Red | error | Operation failed |
+| `⚠` | U+26A0 | Yellow | warning | Non-fatal issue, needs attention |
+| `•` | U+2022 | Blue | notice | Noteworthy event during normal operation |
+| `⠋⠙⠹...` | Braille | Blue | spinner | Progress animation for in-progress operations |
 
 **Text Prefixes:**
 
-| Prefix | Meaning | When to Use |
-| --- | --- | --- |
-| `[debug]` | Debug info | Internal state in verbose/debug mode |
-| `[DRY-RUN]` | Dry run | Simulated action, no changes made |
-| `>` | Command | External shell command being executed |
+| Prefix | Color | Level | When to Use |
+| --- | --- | --- | --- |
+| `[debug]` | Dim | debug | Internal state (debug mode only) |
+| `[DRY-RUN]` | Yellow | dryRun | Simulated action, no changes made |
+| `>` | Dim | command | External shell command being executed |
 
-**Message Prefixes:**
+**Complete Level Format Reference:**
 
-| Type | Format | Example |
-| --- | --- | --- |
-| Success | `✓ {message}` | `✓ Created issue bd-a1b2` |
-| Error | `✗ {message}` | `✗ Issue not found: bd-xyz` |
-| Warning | `⚠ {message}` | `⚠ Remote branch not found` |
-| Debug | `[debug] {message}` | `[debug] Cache hit for bd-a1b2` |
-| Dry-run | `[DRY-RUN] {message}` | `[DRY-RUN] Would create issue` |
-| Command | `> {command}` | `> git fetch origin tbd-sync` |
+| Level | Format | Color | Example |
+| --- | --- | --- | --- |
+| error | `✗ {message}` | Red | `✗ Issue not found: bd-xyz` |
+| warning | `⚠ {message}` | Yellow | `⚠ Remote branch not found` |
+| notice | `• {message}` | Blue | `• Issue doesn't exist remotely - kept local` |
+| success | `✓ {message}` | Green | `✓ Created issue bd-a1b2` |
+| info | `{message}` | Dim | `Syncing with remote...` |
+| command | `> {command}` | Dim | `> git fetch origin tbd-sync` |
+| debug | `[debug] {message}` | Dim | `[debug] Cache hit for bd-a1b2` |
+| dryRun | `[DRY-RUN] {message}` | Yellow | `[DRY-RUN] Would create issue` |
 
 **Icon Rules:**
-- Always use `✓` for successful completion (green)
-- Always use `✗` for errors (red)
-- Always use `⚠` for warnings (yellow)
-- Never mix icons (e.g., don’t use `✔` or `√` instead of `✓`)
-- Icons appear at start of line, followed by space
+- Each icon belongs to exactly one level - never reuse
+- Always use exact Unicode characters (no alternatives like `✔`, `√`, `×`)
+- Icon/prefix always followed by single space before message
+- Colors are fixed per level - never override
 
 ### Success Messages
 
@@ -310,6 +468,24 @@ Examples:
   Run 'tbd doctor --fix' to clean up.
 ```
 
+### Notice Messages
+
+Notices are for noteworthy events that aren’t warnings - things the user should know
+about but that don’t indicate a problem.
+
+```
+• {Noteworthy event}
+
+Examples:
+• Issue doesn't exist remotely - kept local version
+• Using cached data (last sync 2 hours ago)
+• Skipped 3 issue(s) already up to date
+```
+
+**When to use notice vs warning:**
+- **Notice**: Normal operation, just informing the user
+- **Warning**: Something unexpected that may need attention
+
 ### Debug Messages
 
 ```
@@ -324,13 +500,358 @@ Examples:
 
 ## Data Formatting
 
-### Tables
+### Issue Line Format
+
+**Rule**: Use consistent issue line formatting across all commands and contexts.
+
+#### Standard Issue Line (List/Table View)
+
+The canonical format for displaying issues in lists and tables:
 
 ```
-ID          PRI  STATUS        TITLE
-bd-a1b2     P0   blocked       Fix authentication timeout
-bd-c3d4     P1   in_progress   Add dark mode support
-bd-e5f6     P2   open          Update documentation
+{ID}  {PRI}  {STATUS}  {KIND} {TITLE}
+```
+
+**Column specifications:**
+
+| Column | Width | Alignment | Format | Color |
+| --- | --- | --- | --- | --- |
+| ID | 12 chars | Left | Display ID | Cyan (`id`) |
+| PRI | 5 chars | Left | P-prefixed | P0=red, P1=yellow, P2+=default |
+| STATUS | 16 chars | Left | Icon + word | Per status color |
+| KIND+TITLE | Remaining | Left | `[type]` prefix + title | Kind=dim, title=default |
+
+**Example:**
+```
+ID          PRI  STATUS           TITLE
+bd-a1b2     P0   ● blocked        [bug] Fix authentication timeout
+bd-c3d4     P1   ◐ in_progress    [feature] Add dark mode support
+bd-e5f6     P2   ○ open           [task] Update documentation
+bd-g7h8     P3   ✓ closed         [epic] Initial setup
+```
+
+**Note:** KIND is displayed as a bracketed prefix to the title in the same column, not a
+separate column. This is more space-efficient while still clearly showing the issue type.
+
+#### Kind Display Format
+
+**Rule**: Always display kind/type in square brackets with dim color.
+
+| Kind | Display | Color |
+| --- | --- | --- |
+| `bug` | `[bug]` | Dim |
+| `feature` | `[feature]` | Dim |
+| `task` | `[task]` | Dim |
+| `epic` | `[epic]` | Dim |
+| `chore` | `[chore]` | Dim |
+
+**Rationale:**
+- Brackets visually distinguish kind from other fields
+- Dim color keeps focus on title while still showing type
+- Consistent with label display style `[label1, label2]`
+- Matches familiar patterns from other issue trackers
+
+**Implementation:**
+```typescript
+/** Format kind for display - always in brackets, dim color */
+export function formatKind(kind: string): string {
+  return `[${kind}]`;
+}
+```
+
+#### Compact Issue Line (References)
+
+For inline references, dependency lists, blocked-by lists, and search results where
+space is limited:
+
+```
+{ID} {STATUS_ICON} {TITLE}
+```
+
+**Examples:**
+```
+Blocked by:
+  bd-a1b2 ● Fix authentication timeout
+  bd-c3d4 ◐ Add dark mode support
+
+Blocks:
+  bd-e5f6 ○ Update documentation
+```
+
+**Rules:**
+- ID in cyan
+- Status icon only (no word) - colored per status
+- Single space between elements
+- Kind NOT shown in compact format (space-limited context)
+- Used for secondary/nested issue references
+
+#### Extended Issue Line (with Assignee)
+
+For detailed views showing assignee information:
+
+```
+{ID}  {PRI}  {STATUS}  {ASSIGNEE}  {KIND} {TITLE}
+```
+
+**Additional column:**
+
+| Column | Width | Alignment | Format | Color |
+| --- | --- | --- | --- | --- |
+| ASSIGNEE | 10 chars | Left | @username or - | Default |
+
+**Example:**
+```
+ID          PRI  STATUS           ASSIGNEE    TITLE
+bd-a1b2     P0   ● blocked        @alice      [bug] Fix authentication timeout
+bd-c3d4     P1   ◐ in_progress    @bob        [feature] Add dark mode support
+bd-e5f6     P2   ○ open           -           [task] Update documentation
+```
+
+#### Issue Line with Labels
+
+When labels are relevant (search results, filtered views):
+
+```
+{ID}  {PRI}  {STATUS}  {KIND} {TITLE}  [{LABELS}]
+```
+
+**Example:**
+```
+bd-a1b2     P0   ● blocked        [bug] Fix auth timeout  [urgent, security]
+bd-c3d4     P1   ◐ in_progress    [feature] Add dark mode  [ui]
+```
+
+**Rules:**
+- Labels in square brackets, comma-separated
+- Labels in magenta (`label`) color
+- Only show if issue has labels
+- Labels appear AFTER title (kind prefix appears BEFORE title)
+
+#### Long Format (`--long`)
+
+The `--long` flag shows the first part of the issue description on a second line,
+providing more context without requiring `tbd show`.
+
+```
+{ID}  {PRI}  {STATUS}  {KIND} {TITLE}
+      {DESCRIPTION_EXCERPT}…
+```
+
+**Example:**
+```
+bd-a1b2     P0   ● blocked        [bug] Fix authentication timeout
+      Users report 30s delays when logging in. Investigate connection
+      pooling and add retry logic with exponential backoff…
+
+bd-c3d4     P1   ◐ in_progress    [feature] Add dark mode support
+      Implement system-preference-aware dark mode toggle. Should persist
+      user choice in localStorage and sync across devices…
+
+bd-e5f6     P2   ○ open           [task] Update documentation
+      Add examples for new CLI commands and update screenshots for v2…
+```
+
+**Rules:**
+- Description starts on second line, indented 6 spaces (aligns under title start)
+- Description in dim color
+- Text wraps at terminal width with consistent indentation
+- Maximum 2 lines for description (truncate with `…` U+2026 if longer)
+- If no description, show only the single issue line (no blank line)
+- Word-wrap on word boundaries, never mid-word
+- Works with both table format and `--pretty` tree format
+
+**Word Wrapping Algorithm:**
+```typescript
+/** Wrap text to fit within width, with indentation for continuation lines */
+export function wrapDescription(
+  description: string,
+  maxWidth: number,
+  indent: number = 6,
+): string[] {
+  const firstLineWidth = maxWidth;
+  const continuationWidth = maxWidth - indent;
+  const indentStr = ' '.repeat(indent);
+
+  // Clean and truncate description
+  const cleaned = description
+    .replace(/\n+/g, ' ')  // Replace newlines with spaces
+    .replace(/\s+/g, ' ')  // Collapse whitespace
+    .trim();
+
+  const words = cleaned.split(' ');
+  const lines: string[] = [];
+  let currentLine = '';
+  let isFirstLine = true;
+
+  for (const word of words) {
+    const lineWidth = isFirstLine ? firstLineWidth : continuationWidth;
+    const testLine = currentLine ? `${currentLine} ${word}` : word;
+
+    if (testLine.length <= lineWidth) {
+      currentLine = testLine;
+    } else {
+      if (currentLine) {
+        lines.push(isFirstLine ? indentStr + currentLine : indentStr + currentLine);
+        isFirstLine = false;
+      }
+      currentLine = word;
+    }
+
+    // Stop at 2 lines
+    if (lines.length >= 2) break;
+  }
+
+  // Add final line (use truncate() utility for ellipsis)
+  if (currentLine && lines.length < 2) {
+    const needsTruncation = words.length > lines.length;
+    lines.push(indentStr + (needsTruncation ? truncate(currentLine, lineWidth) : currentLine));
+  }
+
+  return lines;
+}
+```
+
+**Long Format with Labels:**
+```
+bd-a1b2     P0   ● blocked        [bug] Fix auth timeout  [urgent, security]
+      Users report 30s delays when logging in. Investigate connection…
+```
+
+**Long Format with `--pretty` (Tree View):**
+```
+bd-f14c  P2  ○ open  [feature] Add OAuth support
+      Implement OAuth 2.0 flow with support for Google, GitHub, and
+      custom OIDC providers. Should handle token refresh…
+├── bd-c3d4  P2  ● blocked  [task] Write OAuth tests
+│       Need comprehensive test coverage for token exchange, refresh,
+│       and error handling scenarios…
+└── bd-e5f6  P2  ○ open  [task] Update OAuth docs
+        Document OAuth configuration options and provide examples for
+        each supported provider…
+```
+
+#### Single Issue Reference (Inline)
+
+For mentioning an issue inline in messages or logs:
+
+```
+{ID} ({TITLE})
+```
+
+**Examples:**
+```
+✓ Created issue bd-a1b2 (Fix authentication timeout)
+✓ Closed bd-c3d4 (Add dark mode support)
+• Skipped bd-e5f6 (Update documentation) - already up to date
+```
+
+**Rules:**
+- Kind NOT shown in inline references (keep concise)
+- Used in success/notice/error messages
+
+#### Formatting Utility Functions
+
+**File(s)**: `packages/tbd-cli/src/cli/lib/issueFormat.ts`
+
+All commands MUST use these shared utilities for consistent formatting:
+
+```typescript
+/** Column widths for consistent table alignment */
+export const ISSUE_COLUMNS = {
+  ID: 12,
+  PRIORITY: 5,
+  STATUS: 16,
+  ASSIGNEE: 10,  // Only used in extended format
+} as const;
+// Note: KIND is not a separate column - it's a prefix to TITLE
+
+/** Format kind for display - always in brackets */
+export function formatKind(kind: string): string;
+
+/** Format a standard issue line for list/table view (includes kind) */
+export function formatIssueLine(
+  issue: { id: string; priority: number; status: string; kind: string; title: string },
+  colors: ColorFunctions,
+): string;
+
+/** Format a compact issue reference (for dependency lists, etc.) */
+export function formatIssueCompact(
+  issue: { id: string; status: string; title: string },
+  colors: ColorFunctions,
+): string;
+
+/** Format an inline issue reference */
+export function formatIssueInline(
+  issue: { id: string; title: string },
+  colors: ColorFunctions,
+): string;
+
+/** Format table header row */
+export function formatIssueHeader(colors: ColorFunctions): string;
+
+/** Format extended issue line with assignee */
+export function formatIssueLineExtended(
+  issue: { id: string; priority: number; status: string; kind: string; assignee?: string; title: string },
+  colors: ColorFunctions,
+): string;
+
+/** Format issue line with description for --long mode */
+export function formatIssueLong(
+  issue: { id: string; priority: number; status: string; kind: string; title: string; description?: string },
+  colors: ColorFunctions,
+  terminalWidth: number,
+): string[];
+
+/** Wrap description text for --long mode */
+export function wrapDescription(
+  description: string,
+  maxWidth: number,
+  indent?: number,
+): string[];
+```
+
+**Usage example:**
+```typescript
+import {
+  formatIssueLine,
+  formatIssueHeader,
+  formatIssueCompact,
+  formatIssueInline,
+  formatIssueLong,
+} from '../lib/issueFormat.js';
+
+// List view (standard)
+console.log(formatIssueHeader(colors));
+for (const issue of issues) {
+  console.log(formatIssueLine(issue, colors));
+}
+
+// List view (--long mode)
+console.log(formatIssueHeader(colors));
+for (const issue of issues) {
+  const lines = formatIssueLong(issue, colors, process.stdout.columns ?? 80);
+  lines.forEach(line => console.log(line));
+}
+
+// Dependency list (compact)
+console.log('Blocked by:');
+for (const dep of blockedBy) {
+  console.log(`  ${formatIssueCompact(dep, colors)}`);
+}
+
+// Success message (inline)
+output.success(`Created issue ${formatIssueInline(issue, colors)}`);
+```
+
+### Tables
+
+The standard issue table format (see Issue Line Format above):
+
+```
+ID          PRI  STATUS           TITLE
+bd-a1b2     P0   ● blocked        [bug] Fix authentication timeout
+bd-c3d4     P1   ◐ in_progress    [feature] Add dark mode support
+bd-e5f6     P2   ○ open           [task] Update documentation
 
 3 issue(s)
 ```
@@ -339,7 +860,52 @@ bd-e5f6     P2   open          Update documentation
 - Header row in dim color
 - Column widths consistent within table
 - Priorities always as P0-P4 (never raw numbers)
+- Status always with icon + word (e.g., `● blocked`, never just `blocked`)
 - Left-align text columns (ID, PRI, TITLE, STATUS)
+- Count summary at bottom in dim color
+
+### Tree View (--pretty)
+
+The `--pretty` flag displays issues in a tree format showing parent-child relationships:
+
+```
+bd-1875  P1  ✓ closed  [epic] Phase 24 Epic: Installation and Agent Integration
+├── bd-1876  P1  ✓ closed  [task] Implement tbd prime command
+└── bd-1877  P1  ✓ closed  [task] Implement tbd setup claude command
+bd-a1b2  P1  ◐ in_progress  [bug] Fix authentication bug
+bd-f14c  P2  ○ open  [feature] Add OAuth support
+├── bd-c3d4  P2  ● blocked  [task] Write OAuth tests
+└── bd-e5f6  P2  ○ open  [task] Update OAuth docs
+
+7 issue(s)
+```
+
+**Column layout (left to right):**
+
+| Column | Color | Notes |
+| --- | --- | --- |
+| Tree prefix | dim | `├── ` or `└── ` for children |
+| ID | cyan | Display ID |
+| Priority | P0=red, P1=yellow, P2+=default | Always with P prefix |
+| Status | per status | Icon + word together |
+| Kind+Title | kind=dim, title=default | `[kind]` prefix + title |
+
+**Tree characters:**
+
+| Character | Unicode | Usage |
+| --- | --- | --- |
+| `├── ` | U+251C, U+2500 | Middle child |
+| `└── ` | U+2514, U+2500 | Last child |
+| `│   ` | U+2502 | Continuation line for deeper nesting |
+| `    ` | (spaces) | Spacing after last child at a level |
+
+**Rules:**
+- Root issues (no parent) appear at left margin
+- Children grouped under their parent with tree lines
+- Children sorted by priority within each parent group
+- Multi-level nesting supported with proper indentation
+- Tree prefix in dim color
+- No header row (unlike table format)
 - Count summary at bottom in dim color
 
 ### Lists
@@ -512,7 +1078,8 @@ id: bd-a1b2 (is-01hx5zzkbkactav9wevgemmvrz)
 
 ### Git Stat Log in Debug Mode
 
-**Rule**: In `--debug` mode, after any git push/pull operation, show the git log with stat for the commits that were just synced.
+**Rule**: In `--debug` mode, after any git push/pull operation, show the git log with
+stat for the commits that were just synced.
 
 ```bash
 $ tbd sync --debug
@@ -710,11 +1277,11 @@ $ tbd create --title="New feature" --type=feature
 ```
 
 **Summary formatting rules:**
-- Omit zero counts (don't say "sent 0 new")
-- Use singular/plural correctly: "1 new" vs "2 new"
+- Omit zero counts (don’t say “sent 0 new”)
+- Use singular/plural correctly: “1 new” vs “2 new”
 - Order: new → updated → deleted
 - Separate sent/received with comma if both present
-- Use "Already in sync" when nothing changed
+- Use “Already in sync” when nothing changed
 
 ### Sync Progress Visibility
 
@@ -751,24 +1318,33 @@ Central class for all output operations:
 
 ```typescript
 export class OutputManager {
-  // Primary data output
+  // Icon constants (private)
+  private static readonly ICONS = {
+    SUCCESS: '✓',  // U+2713
+    ERROR: '✗',    // U+2717
+    WARNING: '⚠',  // U+26A0
+    NOTICE: '•',   // U+2022
+  } as const;
+
+  // Always shown
   data<T>(data: T, textFormatter?: (data: T) => void): void
+  error(message: string, err?: Error): void  // ✗ red, stderr
 
-  // Message methods
-  success(message: string): void
-  info(message: string): void
-  warn(message: string): void
-  error(message: string, err?: Error): void
-  debug(message: string): void
+  // Default+ (suppressed by --quiet)
+  warn(message: string): void    // ⚠ yellow, stderr
+  notice(message: string): void  // • blue, stdout (NEW)
+  success(message: string): void // ✓ green, stdout
+
+  // Verbose+ (requires --verbose or --debug)
+  info(message: string): void    // dim, stderr
+  command(cmd: string, args: string[]): void  // > dim, stderr
+
+  // Debug only (requires --debug)
+  debug(message: string): void   // [debug] dim, stderr
+
+  // Other
   dryRun(message: string, details?: object): void
-
-  // Verbose mode
-  command(cmd: string, args: string[]): void  // Show external command being run
-
-  // Progress
   spinner(message: string): Spinner
-
-  // Colors
   getColors(): ColorFunctions
 }
 ```
@@ -795,6 +1371,163 @@ export function parsePriority(input: string): number {
   return num;
 }
 ```
+
+#### 2b. Status Formatting Utilities
+
+**File(s)**: `packages/tbd-cli/src/lib/status.ts`
+
+Format status with icon consistently:
+
+```typescript
+/** Status icons - always use with status word */
+const STATUS_ICONS: Record<string, string> = {
+  open: '○',        // U+25CB - empty circle
+  in_progress: '◐', // U+25D0 - half-filled circle
+  blocked: '●',     // U+25CF - filled circle
+  deferred: '○',    // U+25CB - empty circle (same as open)
+  closed: '✓',      // U+2713 - checkmark
+} as const;
+
+/** Format status for display - always includes icon */
+export function formatStatus(status: string): string {
+  const icon = STATUS_ICONS[status] ?? '○';
+  return `${icon} ${status}`;
+}
+
+/** Get status icon only (for special cases) */
+export function getStatusIcon(status: string): string {
+  return STATUS_ICONS[status] ?? '○';
+}
+```
+
+**Usage:**
+```typescript
+// Always use formatStatus() for display
+console.log(formatStatus('blocked'));     // "● blocked"
+console.log(formatStatus('in_progress')); // "◐ in_progress"
+console.log(formatStatus('open'));        // "○ open"
+console.log(formatStatus('closed'));      // "✓ closed"
+```
+
+#### 2c. Text Truncation Utility
+
+**File(s)**: `packages/tbd-cli/src/lib/truncate.ts`
+
+A standalone, reusable utility for truncating text with Unicode ellipsis.
+This utility MUST be used everywhere text needs truncation for consistent behavior.
+
+```typescript
+/** Unicode ellipsis character */
+export const ELLIPSIS = '…';  // U+2026
+
+/**
+ * Truncate text to fit within maxLength, adding ellipsis if needed.
+ * Truncates on word boundaries when possible.
+ *
+ * @param text - The text to truncate
+ * @param maxLength - Maximum length including ellipsis
+ * @param options - Truncation options
+ * @returns Truncated text with ellipsis if truncated
+ */
+export function truncate(
+  text: string,
+  maxLength: number,
+  options?: {
+    /** Truncate at word boundaries (default: true) */
+    wordBoundary?: boolean;
+    /** Custom ellipsis character (default: '…') */
+    ellipsis?: string;
+  },
+): string {
+  const { wordBoundary = true, ellipsis = ELLIPSIS } = options ?? {};
+
+  if (text.length <= maxLength) {
+    return text;
+  }
+
+  const truncateAt = maxLength - ellipsis.length;
+  if (truncateAt <= 0) {
+    return ellipsis.slice(0, maxLength);
+  }
+
+  let truncated = text.slice(0, truncateAt);
+
+  // Truncate at word boundary if requested
+  if (wordBoundary) {
+    const lastSpace = truncated.lastIndexOf(' ');
+    if (lastSpace > truncateAt * 0.5) {  // Only if we don't lose too much
+      truncated = truncated.slice(0, lastSpace);
+    }
+  }
+
+  return truncated.trimEnd() + ellipsis;
+}
+
+/**
+ * Truncate text from the middle, keeping start and end visible.
+ * Useful for paths and IDs.
+ *
+ * @param text - The text to truncate
+ * @param maxLength - Maximum length including ellipsis
+ * @returns Truncated text with ellipsis in middle
+ */
+export function truncateMiddle(
+  text: string,
+  maxLength: number,
+): string {
+  if (text.length <= maxLength) {
+    return text;
+  }
+
+  const ellipsis = ELLIPSIS;
+  const charsToShow = maxLength - ellipsis.length;
+  if (charsToShow <= 0) {
+    return ellipsis.slice(0, maxLength);
+  }
+
+  const frontChars = Math.ceil(charsToShow / 2);
+  const backChars = Math.floor(charsToShow / 2);
+
+  return text.slice(0, frontChars) + ellipsis + text.slice(-backChars);
+}
+```
+
+**Usage:**
+```typescript
+import { truncate, truncateMiddle, ELLIPSIS } from '../lib/truncate.js';
+
+// Basic truncation (word boundary by default)
+truncate('Fix authentication timeout issues', 20);
+// → "Fix authentication…"
+
+// Truncation without word boundary
+truncate('Fix authentication timeout', 20, { wordBoundary: false });
+// → "Fix authenticatio…"
+
+// Middle truncation (for paths/IDs)
+truncateMiddle('is-01hx5zzkbkactav9wevgemmvrz', 15);
+// → "is-01h…emmvrz"
+
+// Check if truncation happened
+const result = truncate(text, 50);
+const wasTruncated = result.endsWith(ELLIPSIS);
+```
+
+**Rules:**
+- Always use `…` (U+2026) - never use `...` (three dots)
+- Prefer word boundary truncation for natural text
+- Use middle truncation for paths, IDs, and technical strings
+- All truncation in the CLI MUST use this utility (no ad-hoc truncation)
+
+**Test Coverage Required:**
+- Empty string handling
+- String shorter than max (no truncation)
+- String exactly at max (no truncation)
+- String longer than max (truncation)
+- Word boundary truncation preserves whole words
+- Very short maxLength edge cases
+- Unicode character handling
+- Middle truncation with even/odd lengths
 
 #### 3. CommandContext
 
@@ -846,10 +1579,14 @@ export function createColors(colorOption: ColorOption) {
 ### DO: Use OutputManager Methods
 
 ```typescript
-// ✅ CORRECT: Use output methods
-output.success(`Created issue ${colors.id(displayId)}`);
-output.debug(`Resolved ${displayId} -> ${internalId}`);
-output.error('Failed to sync', error);
+// ✅ CORRECT: Use output methods - they handle icons, colors, visibility
+output.error('Failed to sync', error);           // ✗ red, always shown
+output.warn('Remote branch not found');          // ⚠ yellow, default+
+output.notice('Kept local version');             // • blue, default+
+output.success(`Created issue ${displayId}`);    // ✓ green, default+
+output.info('Syncing with remote...');           // dim, verbose+
+output.command('git', ['fetch', 'origin']);      // > dim, verbose+
+output.debug(`Resolved ${displayId}`);           // [debug] dim, debug only
 ```
 
 ### DON’T: Use console Directly
@@ -860,16 +1597,19 @@ console.log('Created issue ' + id);
 console.error('[DEBUG] ' + message);
 ```
 
-### DO: Respect Mode Hierarchy
+### DO: Let Methods Handle Visibility
 
 ```typescript
-// ✅ CORRECT: Check modes appropriately
-if (!this.ctx.quiet && !this.ctx.json) {
-  output.info('Syncing...');
-}
+// ✅ CORRECT: Just call the method - it handles visibility internally
+output.notice('Kept local version');  // Suppressed by --quiet automatically
+output.info('Syncing...');            // Only shows with --verbose
+output.debug(`Cache hit for ${id}`);  // Only shows with --debug
 
-// Debug only in verbose/debug mode
-output.debug(`Cache ${hit ? 'hit' : 'miss'} for ${id}`);
+// DON'T check modes manually - the methods do this
+// ❌ WRONG:
+if (!this.ctx.quiet) {
+  output.notice('...');  // Redundant - notice() already checks
+}
 ```
 
 ### DON’T: Mix Output Channels

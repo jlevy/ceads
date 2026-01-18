@@ -1,13 +1,13 @@
 /**
  * `tbd close` - Close an issue.
  *
- * See: tbd-full-design.md §4.4 Close
+ * See: tbd-design-spec.md §4.4 Close
  */
 
 import { Command } from 'commander';
 
 import { BaseCommand } from '../lib/baseCommand.js';
-import { requireInit } from '../lib/errors.js';
+import { requireInit, NotFoundError, CLIError } from '../lib/errors.js';
 import { readIssue, writeIssue } from '../../file/storage.js';
 import { formatDisplayId, formatDebugId } from '../../lib/ids.js';
 import { resolveDataSyncDir } from '../../lib/paths.js';
@@ -33,8 +33,7 @@ class CloseHandler extends BaseCommand {
     try {
       internalId = resolveToInternalId(id, mapping);
     } catch {
-      this.output.error(`Issue not found: ${id}`);
-      return;
+      throw new NotFoundError('Issue', id);
     }
 
     // Load existing issue
@@ -42,14 +41,12 @@ class CloseHandler extends BaseCommand {
     try {
       issue = await readIssue(dataSyncDir, internalId);
     } catch {
-      this.output.error(`Issue not found: ${id}`);
-      return;
+      throw new NotFoundError('Issue', id);
     }
 
     // Check if already closed
     if (issue.status === 'closed') {
-      this.output.error(`Issue ${id} is already closed`);
-      return;
+      throw new CLIError(`Issue ${id} is already closed`);
     }
 
     if (this.checkDryRun('Would close issue', { id: internalId, reason: options.reason })) {

@@ -1,13 +1,13 @@
 /**
  * `tbd dep` - Dependency management commands.
  *
- * See: tbd-full-design.md §4.6 Dependency Commands
+ * See: tbd-design-spec.md §4.6 Dependency Commands
  */
 
 import { Command } from 'commander';
 
 import { BaseCommand } from '../lib/baseCommand.js';
-import { requireInit } from '../lib/errors.js';
+import { requireInit, NotFoundError, ValidationError } from '../lib/errors.js';
 import { readIssue, writeIssue, listIssues } from '../../file/storage.js';
 import { formatDisplayId, formatDebugId } from '../../lib/ids.js';
 import type { Issue } from '../../lib/types.js';
@@ -16,9 +16,9 @@ import { now } from '../../utils/timeUtils.js';
 import { loadIdMapping, resolveToInternalId } from '../../file/idMapping.js';
 import { readConfig } from '../../file/config.js';
 
-// Add dependency
+// Add dependency: "A depends on B" means B blocks A
 class DependsAddHandler extends BaseCommand {
-  async run(id: string, targetId: string): Promise<void> {
+  async run(issueId: string, dependsOnId: string): Promise<void> {
     await requireInit();
 
     const dataSyncDir = await resolveDataSyncDir();
@@ -27,86 +27,88 @@ class DependsAddHandler extends BaseCommand {
     const mapping = await loadIdMapping(dataSyncDir);
 
     // Resolve both IDs to internal IDs
-    let internalId: string;
-    let internalTarget: string;
+    // issueId = the issue that depends on something
+    // dependsOnId = the issue it depends on (the blocker)
+    let internalIssueId: string;
+    let internalDependsOnId: string;
     try {
-      internalId = resolveToInternalId(id, mapping);
+      internalIssueId = resolveToInternalId(issueId, mapping);
     } catch {
-      this.output.error(`Issue not found: ${id}`);
-      return;
+      throw new NotFoundError('Issue', issueId);
     }
     try {
-      internalTarget = resolveToInternalId(targetId, mapping);
+      internalDependsOnId = resolveToInternalId(dependsOnId, mapping);
     } catch {
-      this.output.error(`Target issue not found: ${targetId}`);
-      return;
-    }
-
-    // Load the blocking issue
-    let issue;
-    try {
-      issue = await readIssue(dataSyncDir, internalId);
-    } catch {
-      this.output.error(`Issue not found: ${id}`);
-      return;
+      throw new NotFoundError('Issue', dependsOnId);
     }
 
-    // Verify target issue exists
+    // Verify issueId exists
     try {
-      await readIssue(dataSyncDir, internalTarget);
+      await readIssue(dataSyncDir, internalIssueId);
     } catch {
-      this.output.error(`Target issue not found: ${targetId}`);
-      return;
+      throw new NotFoundError('Issue', issueId);
+    }
+
+    // Load the blocking issue (dependsOnId) - this is where we add the dependency
+    let blockerIssue;
+    try {
+      blockerIssue = await readIssue(dataSyncDir, internalDependsOnId);
+    } catch {
+      throw new NotFoundError('Issue', dependsOnId);
     }
 
     // Check for self-reference
-    if (internalId === internalTarget) {
-      this.output.error('Issue cannot block itself');
+    if (internalIssueId === internalDependsOnId) {
+      throw new ValidationError('Issue cannot depend on itself');
+    }
+
+    if (
+      this.checkDryRun('Would add dependency', {
+        issue: internalIssueId,
+        dependsOn: internalDependsOnId,
+      })
+    ) {
       return;
     }
 
-    if (this.checkDryRun('Would add dependency', { id: internalId, target: internalTarget })) {
-      return;
-    }
-
-    // Check if dependency already exists
-    const exists = issue.dependencies.some(
-      (dep) => dep.type === 'blocks' && dep.target === internalTarget,
+    // Check if dependency already exists (dependsOnId blocks issueId)
+    const exists = blockerIssue.dependencies.some(
+      (dep) => dep.type === 'blocks' && dep.target === internalIssueId,
     );
     if (exists) {
       this.output.info('Dependency already exists');
       return;
     }
 
-    // Add the dependency
-    issue.dependencies.push({ type: 'blocks', target: internalTarget });
-    issue.version += 1;
-    issue.updated_at = now();
+    // Add the dependency: dependsOnId blocks issueId
+    blockerIssue.dependencies.push({ type: 'blocks', target: internalIssueId });
+    blockerIssue.version += 1;
+    blockerIssue.updated_at = now();
 
     await this.execute(async () => {
-      await writeIssue(dataSyncDir, issue);
+      await writeIssue(dataSyncDir, blockerIssue);
     }, 'Failed to update issue');
 
     // Use already loaded mapping for display
     const showDebug = this.ctx.debug;
     const config = await readConfig(process.cwd());
     const prefix = config.display.id_prefix;
-    const displayId = showDebug
-      ? formatDebugId(internalId, mapping, prefix)
-      : formatDisplayId(internalId, mapping, prefix);
-    const displayTarget = showDebug
-      ? formatDebugId(internalTarget, mapping, prefix)
-      : formatDisplayId(internalTarget, mapping, prefix);
+    const displayIssueId = showDebug
+      ? formatDebugId(internalIssueId, mapping, prefix)
+      : formatDisplayId(internalIssueId, mapping, prefix);
+    const displayDependsOnId = showDebug
+      ? formatDebugId(internalDependsOnId, mapping, prefix)
+      : formatDisplayId(internalDependsOnId, mapping, prefix);
 
-    this.output.data({ id: displayId, blocks: displayTarget }, () => {
-      this.output.success(`${displayId} now blocks ${displayTarget}`);
+    this.output.data({ issue: displayIssueId, dependsOn: displayDependsOnId }, () => {
+      this.output.success(`${displayIssueId} now depends on ${displayDependsOnId}`);
     });
   }
 }
 
-// Remove dependency
+// Remove dependency: "A no longer depends on B" means B no longer blocks A
 class DependsRemoveHandler extends BaseCommand {
-  async run(id: string, targetId: string): Promise<void> {
+  async run(issueId: string, dependsOnId: string): Promise<void> {
     await requireInit();
 
     const dataSyncDir = await resolveDataSyncDir();
@@ -115,65 +117,67 @@ class DependsRemoveHandler extends BaseCommand {
     const mapping = await loadIdMapping(dataSyncDir);
 
     // Resolve both IDs to internal IDs
-    let internalId: string;
-    let internalTarget: string;
+    let internalIssueId: string;
+    let internalDependsOnId: string;
     try {
-      internalId = resolveToInternalId(id, mapping);
+      internalIssueId = resolveToInternalId(issueId, mapping);
     } catch {
-      this.output.error(`Issue not found: ${id}`);
-      return;
+      throw new NotFoundError('Issue', issueId);
     }
     try {
-      internalTarget = resolveToInternalId(targetId, mapping);
+      internalDependsOnId = resolveToInternalId(dependsOnId, mapping);
     } catch {
-      this.output.error(`Target issue not found: ${targetId}`);
+      throw new NotFoundError('Issue', dependsOnId);
+    }
+
+    // Load the blocker issue (dependsOnId) - this is where the dependency is stored
+    let blockerIssue;
+    try {
+      blockerIssue = await readIssue(dataSyncDir, internalDependsOnId);
+    } catch {
+      throw new NotFoundError('Issue', dependsOnId);
+    }
+
+    if (
+      this.checkDryRun('Would remove dependency', {
+        issue: internalIssueId,
+        dependsOn: internalDependsOnId,
+      })
+    ) {
       return;
     }
 
-    // Load the blocking issue
-    let issue;
-    try {
-      issue = await readIssue(dataSyncDir, internalId);
-    } catch {
-      this.output.error(`Issue not found: ${id}`);
-      return;
-    }
-
-    if (this.checkDryRun('Would remove dependency', { id: internalId, target: internalTarget })) {
-      return;
-    }
-
-    // Find and remove the dependency
-    const initialLength = issue.dependencies.length;
-    issue.dependencies = issue.dependencies.filter(
-      (dep) => !(dep.type === 'blocks' && dep.target === internalTarget),
+    // Find and remove the dependency (dependsOnId blocks issueId)
+    const initialLength = blockerIssue.dependencies.length;
+    blockerIssue.dependencies = blockerIssue.dependencies.filter(
+      (dep) => !(dep.type === 'blocks' && dep.target === internalIssueId),
     );
 
-    if (issue.dependencies.length === initialLength) {
+    if (blockerIssue.dependencies.length === initialLength) {
       this.output.info('Dependency not found');
       return;
     }
 
-    issue.version += 1;
-    issue.updated_at = now();
+    blockerIssue.version += 1;
+    blockerIssue.updated_at = now();
 
     await this.execute(async () => {
-      await writeIssue(dataSyncDir, issue);
+      await writeIssue(dataSyncDir, blockerIssue);
     }, 'Failed to update issue');
 
     // Use already loaded mapping for display
     const showDebug = this.ctx.debug;
     const config = await readConfig(process.cwd());
     const prefix = config.display.id_prefix;
-    const displayId = showDebug
-      ? formatDebugId(internalId, mapping, prefix)
-      : formatDisplayId(internalId, mapping, prefix);
-    const displayTarget = showDebug
-      ? formatDebugId(internalTarget, mapping, prefix)
-      : formatDisplayId(internalTarget, mapping, prefix);
+    const displayIssueId = showDebug
+      ? formatDebugId(internalIssueId, mapping, prefix)
+      : formatDisplayId(internalIssueId, mapping, prefix);
+    const displayDependsOnId = showDebug
+      ? formatDebugId(internalDependsOnId, mapping, prefix)
+      : formatDisplayId(internalDependsOnId, mapping, prefix);
 
-    this.output.data({ id: displayId, removed: displayTarget }, () => {
-      this.output.success(`Removed dependency: ${displayId} no longer blocks ${displayTarget}`);
+    this.output.data({ issue: displayIssueId, removed: displayDependsOnId }, () => {
+      this.output.success(`${displayIssueId} no longer depends on ${displayDependsOnId}`);
     });
   }
 }
@@ -193,8 +197,7 @@ class DependsListHandler extends BaseCommand {
     try {
       internalId = resolveToInternalId(id, mapping);
     } catch {
-      this.output.error(`Issue not found: ${id}`);
-      return;
+      throw new NotFoundError('Issue', id);
     }
 
     // Load the issue
@@ -202,8 +205,7 @@ class DependsListHandler extends BaseCommand {
     try {
       issue = await readIssue(dataSyncDir, internalId);
     } catch {
-      this.output.error(`Issue not found: ${id}`);
-      return;
+      throw new NotFoundError('Issue', id);
     }
 
     // Load all issues to find reverse dependencies
@@ -258,21 +260,21 @@ class DependsListHandler extends BaseCommand {
 }
 
 const addCommand = new Command('add')
-  .description('Add a blocks dependency')
-  .argument('<id>', 'Issue ID that blocks')
-  .argument('<target>', 'Issue ID that is blocked')
-  .action(async (id, target, _options, command) => {
+  .description('Add dependency (issue depends on depends-on)')
+  .argument('<issue>', 'Issue ID that depends on something')
+  .argument('<depends-on>', 'Issue ID that must be completed first')
+  .action(async (issue, dependsOn, _options, command) => {
     const handler = new DependsAddHandler(command);
-    await handler.run(id, target);
+    await handler.run(issue, dependsOn);
   });
 
 const removeCommand = new Command('remove')
-  .description('Remove a blocks dependency')
-  .argument('<id>', 'Issue ID')
-  .argument('<target>', 'Target issue ID')
-  .action(async (id, target, _options, command) => {
+  .description('Remove dependency (issue no longer depends on depends-on)')
+  .argument('<issue>', 'Issue ID')
+  .argument('<depends-on>', 'Issue ID it depended on')
+  .action(async (issue, dependsOn, _options, command) => {
     const handler = new DependsRemoveHandler(command);
-    await handler.run(id, target);
+    await handler.run(issue, dependsOn);
   });
 
 const listDepsCommand = new Command('list')

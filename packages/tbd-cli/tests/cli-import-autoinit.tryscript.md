@@ -57,19 +57,10 @@ Error: Not a tbd repository (run 'tbd init' or 'tbd import --from-beads' first)
 The `--from-beads` flag should auto-initialize tbd and then import the issues.
 
 ```console
-$ tbd import --from-beads
-Detected beads prefix: test
-Initializing tbd repository...
-✓ Initialized tbd repository
-✓ Import complete from .beads/issues.jsonl
+$ tbd import --from-beads --quiet
   New issues:   2
   Merged:       0
   Skipped:      0
-
-Tip: To disable Beads and prevent agent confusion:
-  bd hooks uninstall                 # Remove git hooks
-  bd setup claude --remove           # Remove Claude Code hooks
-  bd setup <editor> --remove         # cursor, codex, etc.
 ? 0
 ```
 

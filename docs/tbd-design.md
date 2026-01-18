@@ -2,20 +2,21 @@
 
 Git-native issue tracking for AI agents and humans.
 
-> This is a design document (`tbd design`). See the tbd readme and user docs for general
-> documentation (`tbd readme` and `tbd docs`).
+> [!NOTE]
+> This is a design document (`tbd design`). See the tbd readme (`tbd readme`) or
+> reference docs (`tbd docs`) for general documentation.
 
 ## Overview
 
-**tbd** ("To Be Done" or “TypeScript Beads”) is a git-native issue tracker designed for
+**tbd** (“To Be Done” or “TypeScript Beads”) is a git-native issue tracker designed for
 simplicity and reliability.
 It stores issues as Markdown files with YAML frontmatter on a dedicated sync branch,
 enabling conflict-free collaboration without daemons or databases.
 
-tbd is the **durable persistence layer** for issues, with three core principles:
+tbd is the **durable persistence layer** for issues, with four core principles:
 
 - Durable storage in git
-- Works in almost any enviromnent
+- Works in almost any environment
 - Simple, self-documenting CLI for agents and humans
 - Transparent internal format (Markdown/YAML that is debuggable and friendly to other
   tooling)
@@ -41,7 +42,7 @@ problem—one that can be layered on top of tbd or handled by other tools.
 ## Motivation
 
 Agents perform *far* better when they can track tasks reliably and stay organized.
-Sometimes they can us issue external issue trackers (GitHub Issues, Linear, Jira), but
+Sometimes they can use external issue trackers (GitHub Issues, Linear, Jira), but
 as Beads has shown, there is great benefit to lightweight tracking of tasks via CLI.
 
 tbd addresses specific requirements:
@@ -79,15 +80,43 @@ tbd addresses specific requirements:
 
 ### Data Locations
 
-tbd has exactly **2 data locations**:
+tbd has **3 data locations** (2 synced, 1 local-only):
 
-| Location | Contents | Branch |
+| Location | Contents | Synced? |
 | --- | --- | --- |
-| `.tbd/config.yml` | Configuration | Main (tracked) |
-| `.tbd/data-sync-worktree/.tbd/data-sync/issues/*.md` | Issue files | `tbd-sync` (via hidden worktree) |
+| `.tbd/config.yml` | Configuration | Yes (on main branch) |
+| `.tbd/data-sync-worktree/.tbd/data-sync/issues/*.md` | Issue files | Yes (on `tbd-sync` branch) |
+| `.tbd/cache/` | Local state, index, sync lock | No (gitignored) |
 
 The hidden worktree provides read access to the sync branch without affecting your
-working checkout, enabling ripgrep search across all issues.
+working checkout, enabling direct file access and search across all issues.
+
+The cache directory (`.tbd/cache/`) stores local-only data that is never synced:
+- `state.yml` — last sync timestamp, node ID
+- `index.json` — optional query cache (rebuildable)
+- `sync.lock` — prevents concurrent sync operations
+
+### Configuration
+
+The `.tbd/config.yml` file (tracked on main branch) defines project settings:
+
+```yaml
+tbd_version: "1.0.0"
+
+sync:
+  branch: tbd-sync    # Branch name for synced data
+  remote: origin      # Git remote
+
+display:
+  id_prefix: tbd      # Prefix for display IDs (e.g., tbd-a1b2)
+
+settings:
+  auto_sync: false    # Auto-sync after write operations
+  index_enabled: true # Use optional query index
+```
+
+The `display.id_prefix` is required and set during `tbd init --prefix=<name>` or
+auto-detected from Beads during `tbd import --from-beads`.
 
 ### Issue File Format
 
@@ -103,12 +132,20 @@ kind: bug
 title: Fix authentication timeout
 status: in_progress
 priority: 1
+assignee: alice
 labels: [backend, security]
 dependencies:
   - target: is-01hx5zzkbkbctav9wevgemmvrz
     type: blocks
+parent_id: null
 created_at: 2025-01-07T10:00:00Z
 updated_at: 2025-01-08T14:30:00Z
+created_by: bob
+closed_at: null
+close_reason: null
+due_date: 2025-01-15T00:00:00Z
+deferred_until: null
+extensions: {}
 ---
 
 Users are being logged out after 5 minutes of inactivity.
@@ -117,6 +154,30 @@ Users are being logged out after 5 minutes of inactivity.
 
 Found the issue in session.ts line 42.
 ```
+
+**Field summary** (all fields shown above):
+
+| Field | Required | Description |
+| --- | --- | --- |
+| type | Yes | Entity discriminator, always `is` for issues |
+| id | Yes | Internal ULID-based ID |
+| version | Yes | Edit counter for merge resolution |
+| kind | Yes | Issue type: bug, feature, task, epic, chore |
+| title | Yes | Issue title (1-500 chars) |
+| status | Yes | open, in_progress, blocked, deferred, closed |
+| priority | Yes | 0 (critical) to 4 (backlog), default 2 |
+| assignee | No | Who is working on this |
+| labels | No | Array of string tags |
+| dependencies | No | Array of `{type, target}` objects |
+| parent_id | No | Parent issue ID for hierarchies |
+| created_at | Yes | ISO8601 creation timestamp |
+| updated_at | Yes | ISO8601 last update timestamp |
+| created_by | No | Who created this issue |
+| closed_at | No | When closed (set automatically) |
+| close_reason | No | Why it was closed |
+| due_date | No | Target completion date |
+| deferred_until | No | Don't show in `ready` until this date |
+| extensions | No | Third-party metadata namespace |
 
 ### ID System
 
@@ -132,11 +193,15 @@ for collision-free generation across distributed systems.
 
 ### Sync Mechanism
 
-**Basic flow**:
+**Basic flow** (all handled automatically by `tbd sync`):
 
 1. **Commit local changes**: Stage and commit worktree files to `tbd-sync` branch
-2. **Push to remote**: `git push` to sync branch
+2. **Push to remote**: Push to sync branch
 3. **If push rejected** (remote has changes): fetch, update worktree, re-commit, retry
+
+**Key difference from Beads**: With tbd, you never manually `git push` issue data.
+The `tbd sync` command handles all git operations on the sync branch automatically.
+Your normal `git push` is only for code changes on your working branch.
 
 **Why most syncs are trivial**:
 
@@ -152,11 +217,12 @@ The file-per-entity design means parallel work rarely conflicts at the git level
 
 | Strategy | Fields | Behavior |
 | --- | --- | --- |
-| LWW | title, status, priority, description | Last-write-wins by `updated_at` |
+| Immutable | id, type, created_at, created_by | Never change after creation |
+| LWW | title, status, priority, kind, description, notes, assignee, parent_id, due_date, deferred_until, closed_at, close_reason, extensions | Last-write-wins by `updated_at` timestamp |
 | Union | labels, dependencies | Combine arrays, deduplicate |
-| Immutable | id, type | Error if different |
+| Max+1 | version | `max(local, remote) + 1` |
 
-Losing values from LWW merges are saved to the attic for recovery.
+Conflicts are recorded and losing values can be recovered from the attic.
 
 **Safety**: All sync operations use an isolated git index (`GIT_INDEX_FILE`), never
 touching your staged files.
@@ -221,17 +287,28 @@ scales to ~1900 issues in production.
 **Choice**: Git worktree in `.tbd/data-sync-worktree/` for sync branch access
 
 **Rationale**:
-- Enables ripgrep/grep search across all issues
+- Enables direct file access for search across all issues
 - No checkout switching needed
 - Files are always accessible (no git plumbing required)
 - Worktree is gitignored (not tracked on main)
+- Future: enables ripgrep/grep search for performance optimization
 
 **Tradeoff**: Requires Git 2.42+ for `--orphan` worktree support.
 
 ### Decision 6: Only “blocks” Dependencies
 
-**Choice**: Support only `blocks` dependency type (A blocks B = B cannot start until A
-is done)
+**Choice**: Support only `blocks` dependency type with “depends on” CLI semantics.
+
+**CLI semantics** (matches Beads):
+- `tbd dep add A B` means “A depends on B” (equivalently, “B blocks A”)
+- A cannot start until B is completed
+- Output: `✓ A now depends on B`
+
+**Data model**:
+- When `tbd dep add A B` is run, the dependency is stored on issue B (the blocker)
+- B's file contains: `dependencies: [{type: 'blocks', target: A}]`
+- Read as: "B blocks A" — stored on B, pointing to A (the issue being blocked)
+- This enables efficient "what does this issue block?" queries by reading one file
 
 **Rationale**:
 - Covers the primary use case (the `ready` command needs to know what’s blocked)
@@ -258,7 +335,7 @@ This section details what’s different and why.
 | Merge conflicts | Common on parallel creation | Zero on parallel creation |
 | State inspection | SQLite queries required | `cat` the files |
 | Network filesystems | SQLite locking issues | Atomic file writes work |
-| Search | SQLite FTS indexes | ripgrep on worktree |
+| Search | SQLite FTS indexes | In-memory scan (ripgrep planned) |
 
 ### Pain Points Addressed
 
@@ -280,7 +357,17 @@ Doesn’t work in containers or sandboxes.
 **tbd**: No daemon. `tbd sync` is explicit and predictable.
 Works in any environment where git works.
 
-#### 3. JSONL Merge Conflicts
+#### 3. Manual Git Operations for Issues
+
+**Beads**: After creating/updating issues, you must manually `git add`, `git commit`,
+and `git push` the JSONL file.
+Easy to forget, leading to lost work or desync.
+
+**tbd**: `tbd sync` handles everything automatically.
+One command commits and pushes to the sync branch.
+No manual git operations for issues.
+
+#### 4. JSONL Merge Conflicts
 
 **Beads**: All issues in one `issues.jsonl` file.
 Two agents creating issues simultaneously produce a merge conflict requiring manual
@@ -290,7 +377,7 @@ resolution.
 Parallel creation never conflicts.
 Git handles file-level isolation naturally.
 
-#### 4. SQLite on Network Filesystems
+#### 5. SQLite on Network Filesystems
 
 **Beads**: SQLite has documented issues with NFS and SMB due to file locking semantics.
 Users on network home directories experience corruption or hangs.
@@ -298,7 +385,7 @@ Users on network home directories experience corruption or hangs.
 **tbd**: Atomic file writes (write to temp, rename).
 Works on any filesystem that supports basic POSIX operations.
 
-#### 5. Debug Difficulty
+#### 6. Debug Difficulty
 
 **Beads**: When sync fails, debugging requires: query SQLite, check JSONL, compare
 branches, check daemon logs.
@@ -307,7 +394,7 @@ State is spread across multiple representations.
 **tbd**: Everything is Markdown files.
 `cat`, `grep`, `git log`, `git diff` are all you need.
 
-#### 6. Session Close Protocol Complexity
+#### 7. Session Closing Protocol Complexity
 
 **Beads `bd prime`**: 432 lines of Go with 5 conditional code paths:
 1. Stealth/Local-only mode
@@ -340,11 +427,14 @@ One protocol, always the same:
 | Search | ✅ | ✅ | Full parity |
 | Sync | ✅ | ✅ | Different mechanism |
 | Agent hooks | ✅ | ✅ | `setup claude` command |
+| Tree view (`--pretty`) | ✅ | ✅ | Parent-child hierarchy display |
 | Daemon | Required | Not needed | Major simplification |
 | SQLite | Yes | No | Files instead |
 | Molecules/Wisps | ✅ | ❌ | Intentionally omitted |
 | Agent Mail | ✅ | ❌ | Use issue comments instead |
 | `bd edit` | ✅ | ❌ | Opens $EDITOR, blocks agents |
+| `bd graph` | ✅ | ❌ | Execution layer visualization |
+| `bd dep tree` | ✅ | ❌ | Dependency tree with directions |
 
 ### Intentionally Omitted Features
 
@@ -363,25 +453,86 @@ Real-time coordination is a separate layer.
 ### Migration Path
 
 ```bash
-# Final Beads sync
+# 1. Final Beads sync
 bd sync
 
-# Import to tbd
+# 2. Import to tbd
 tbd import --from-beads --verbose
 
-# Verify
+# 3. Disable Beads (moves files to .beads-disabled/)
+tbd beads --disable                     # Preview
+tbd beads --disable --confirm           # Execute
+
+# 4. Install tbd integrations
+tbd setup claude                        # Claude Code hooks
+
+# 5. Verify
 tbd stats
 tbd list --all
-
-# Use tbd going forward
-alias bd=tbd  # Optional muscle-memory compatibility
 ```
+
+The `tbd beads --disable` command safely moves all Beads files to `.beads-disabled/`
+including `.beads/`, `.beads-hooks/`, Cursor rules, removes bd hooks from Claude
+settings, and removes beads merge driver lines from `.gitattributes`. This preserves
+data for potential rollback.
 
 Import preserves:
 - Issue IDs (numeric portion preserved, prefix from config)
 - All fields (status, priority, labels, assignee, etc.)
 - Dependencies (blocks relationships)
 - Original Beads ID in `extensions.beads.original_id`
+
+## CLI Command Reference
+
+### Core Commands
+
+| Command | Description |
+| --- | --- |
+| `tbd create <title>` | Create a new issue |
+| `tbd list` | List issues (excludes closed by default) |
+| `tbd show <id>` | Show issue details |
+| `tbd update <id>` | Update issue fields |
+| `tbd close <id>` | Close an issue |
+| `tbd reopen <id>` | Reopen a closed issue |
+
+### Discovery Commands
+
+| Command | Description |
+| --- | --- |
+| `tbd ready` | Issues ready to work (open, unblocked, unassigned) |
+| `tbd blocked` | Issues blocked by dependencies |
+| `tbd stale [--days N]` | Issues not updated recently (default: 7 days) |
+| `tbd search <pattern>` | Full-text search across all issues |
+
+### Organization Commands
+
+| Command | Description |
+| --- | --- |
+| `tbd label add <id> <label>` | Add label to issue |
+| `tbd label remove <id> <label>` | Remove label from issue |
+| `tbd label list` | List all labels in use |
+| `tbd dep add <issue> <depends-on>` | Add dependency (issue depends on depends-on) |
+| `tbd dep remove <issue> <depends-on>` | Remove dependency |
+
+### Sync and Maintenance
+
+| Command | Description |
+| --- | --- |
+| `tbd sync` | Sync with remote (pull then push) |
+| `tbd sync --status` | Show pending local/remote changes |
+| `tbd status` | Repository status and health check |
+| `tbd stats` | Issue statistics (counts by status, type, priority) |
+| `tbd doctor` | Diagnose and fix problems |
+
+### Attic Commands
+
+The attic preserves values lost during merge conflicts:
+
+| Command | Description |
+| --- | --- |
+| `tbd attic list` | List preserved conflict entries |
+| `tbd attic show <entry-id>` | Show details of a conflict entry |
+| `tbd attic restore <entry-id>` | Restore a lost value |
 
 ## Agent Integration
 
@@ -398,6 +549,18 @@ The prime output includes:
 - Session close protocol (the 6-step checklist)
 - Core commands reference
 - Common workflow examples
+
+### Setup Commands
+
+tbd provides setup commands for different environments:
+
+| Command | Description |
+| --- | --- |
+| `tbd setup claude` | Install Claude Code hooks (SessionStart, PreCompact) |
+| `tbd setup cursor` | Create Cursor IDE rules file (`.cursor/rules/tbd.mdc`) |
+| `tbd setup codex` | Create/update AGENTS.md for OpenAI Codex |
+| `tbd setup beads --disable` | Migrate from Beads (moves `.beads/` to `.beads-disabled/`) |
+| `tbd setup auto` | Auto-detect and configure all available integrations |
 
 ### Agent-Friendly Design
 
@@ -452,7 +615,7 @@ necessary.
 - **README**: `tbd readme`
 - **CLI Documentation**: `tbd docs`
 - **Full Design Spec**:
-  [docs/project/architecture/current/tbd-full-design.md](project/architecture/current/tbd-full-design.md)
+  [docs/project/architecture/current/tbd-design-spec.md](project/architecture/current/tbd-design-spec.md)
 - **Beads**: https://github.com/steveyegge/beads
 - **ticket**: https://github.com/wedow/ticket
 - **ULID Spec**: https://github.com/ulid/spec

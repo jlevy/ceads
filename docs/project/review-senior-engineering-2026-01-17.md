@@ -1,21 +1,25 @@
 # Senior Engineering Review: tbd CLI Tool
 
-**Reviewer**: Claude (Senior Engineering Review Role)
-**Date**: 2026-01-17
-**Version Reviewed**: 0.1.0 (development)
-**Commit**: 48c6316
+**Reviewer**: Claude (Senior Engineering Review Role) **Date**: 2026-01-17 **Version
+Reviewed**: 0.1.0 (development) **Commit**: 48c6316
 
----
+* * *
 
 ## Executive Summary
 
-**tbd** is a well-architected CLI tool for git-native issue tracking. It successfully achieves its primary goals of being a simpler alternative to Beads with better conflict handling, no daemon requirements, and improved cross-environment support.
+**tbd** is a well-architected CLI tool for git-native issue tracking.
+It successfully achieves its primary goals of being a simpler alternative to Beads with
+better conflict handling, no daemon requirements, and improved cross-environment
+support.
 
 **Overall Assessment**: **Ready for beta release with minor issues**
 
-**Key Finding from Beads Comparison**: tbd's simpler approach is better. Beads has 5 different session close protocols based on context; tbd has one clear protocol that always works. **Do not add Beads' complexity.**
+**Key Finding from Beads Comparison**: tbd’s simpler approach is better.
+Beads has 5 different session closing protocols based on context; tbd has one clear
+protocol that always works.
+**Do not add Beads’ complexity.**
 
----
+* * *
 
 ## Table of Contents
 
@@ -27,12 +31,12 @@
 6. [Testing and Quality](#testing-and-quality)
 7. [Release Checklist](#release-checklist)
 
----
+* * *
 
 ## Bugs Summary
 
 | # | Issue | Bug | Severity | Location | Status |
-|---|-------|-----|----------|----------|--------|
+| --- | --- | --- | --- | --- | --- |
 | 1 | `tbd-wyy6` | Exit codes return 0 on errors | **Critical** | `src/cli/commands/*.ts` | Open |
 | 2 | `tbd-sefe` | Dependency direction semantics confusing | Medium | `src/cli/commands/dep.ts` | Open |
 | 3 | `tbd-kylk` | Search outputs message with --quiet | Low | `src/cli/commands/search.ts` | Open |
@@ -40,14 +44,14 @@
 | 5 | `tbd-5dfm` | Import changes ID prefix | Medium | `src/cli/commands/import.ts` | Open |
 | 6 | `tbd-ig1p` | Errors not JSON with --json flag | Medium | `src/cli/lib/output.ts` | Open |
 
----
+* * *
 
 ## Enhancements Summary
 
 ### Priority: Critical (Before Beta)
 
 | # | Issue | Enhancement | Category |
-|---|-------|-------------|----------|
+| --- | --- | --- | --- |
 | E1 | `tbd-wyy6` | Fix exit codes (Bug #1) | Bug Fix |
 | E2 | `tbd-ys08` | Publish to npm | Release |
 | E3 | `tbd-ywil` | Add Git 2.42+ version check | Robustness |
@@ -55,7 +59,7 @@
 ### Priority: High (Before 1.0)
 
 | # | Issue | Enhancement | Category |
-|---|-------|-------------|----------|
+| --- | --- | --- | --- |
 | E4 | `tbd-sefe` | Clarify dependency semantics (Bug #2) | UX |
 | E5 | `tbd-ig1p` | Error JSON output with --json (Bug #6) | Agent Support |
 | E6 | `tbd-7696` | Integration tests with git remotes | Testing |
@@ -65,7 +69,7 @@
 ### Priority: Medium (Nice to Have)
 
 | # | Issue | Enhancement | Category |
-|---|-------|-------------|----------|
+| --- | --- | --- | --- |
 | E9 | `tbd-7dh3` | Add `--brief` flag to prime | Agent Support |
 | E10 | `tbd-xqn2` | Issue templates | UX |
 | E11 | `tbd-mvus` | Query DSL for list | UX |
@@ -74,15 +78,14 @@
 | E14 | `tbd-32ar` | Architecture diagrams in docs | Docs |
 | E15 | `tbd-w3gj` | Make close idempotent | Agent Support |
 
----
+* * *
 
 ## Bugs (Detailed)
 
 ### Bug #1: Exit Codes Return 0 on Errors ⚠️ CRITICAL
 
-**Severity**: Critical
-**Location**: `src/cli/commands/*.ts`
-**Impact**: Agents and CI scripts cannot detect failures
+**Severity**: Critical **Location**: `src/cli/commands/*.ts` **Impact**: Agents and CI
+scripts cannot detect failures
 
 All error conditions return exit code 0 instead of non-zero:
 
@@ -110,12 +113,11 @@ if (!issue) {
 
 **Fix**: Throw `CLIError` subclasses instead of returning after `output.error()`.
 
----
+* * *
 
 ### Bug #2: Dependency Direction Semantics Confusing
 
-**Severity**: Medium
-**Location**: `src/cli/commands/dep.ts`
+**Severity**: Medium **Location**: `src/cli/commands/dep.ts`
 
 The `dep add` command semantics are inverted from user expectation:
 
@@ -124,46 +126,45 @@ $ tbd dep add bd-afau bd-zadd
 ✓ bd-afau now blocks bd-zadd
 ```
 
-Users expect `dep add A B` to mean "A depends on B" (B blocks A), but current behavior means "A blocks B".
+Users expect `dep add A B` to mean “A depends on B” (B blocks A), but current behavior
+means “A blocks B”.
 
 **Fix Options**:
 1. Change semantics to `dep add <issue> <blocked-by>`
 2. Add `--blocks` / `--blocked-by` flags
 3. Add clearer documentation with examples
 
----
+* * *
 
 ### Bug #3: Search Outputs Message with --quiet
 
-**Severity**: Low
-**Location**: `src/cli/commands/search.ts`
+**Severity**: Low **Location**: `src/cli/commands/search.ts`
 
-The search command outputs "Refreshing worktree..." even with `--quiet` flag, polluting machine-readable output.
+The search command outputs “Refreshing worktree …” even with `--quiet` flag, polluting
+machine-readable output.
 
 **Fix**: Check quiet mode before outputting status messages.
 
----
+* * *
 
 ### Bug #4: Doctor Warns on Empty Issues Directory
 
-**Severity**: Low
-**Location**: `src/cli/commands/doctor.ts`
+**Severity**: Low **Location**: `src/cli/commands/doctor.ts`
 
-When issues directory doesn't exist (empty repo), doctor reports:
+When issues directory doesn’t exist (empty repo), doctor reports:
 ```
 ⚠ Issues directory - Issues directory not found (may be empty)
 ```
 
-This is expected for a fresh repo with no issues and shouldn't be a warning.
+This is expected for a fresh repo with no issues and shouldn’t be a warning.
 
 **Fix**: Only warn if directory is expected but missing.
 
----
+* * *
 
 ### Bug #5: Import Changes ID Prefix
 
-**Severity**: Medium
-**Location**: `src/cli/commands/import.ts`
+**Severity**: Medium **Location**: `src/cli/commands/import.ts`
 
 When importing from Beads, the ID prefix changes based on local config:
 
@@ -175,25 +176,26 @@ tbd-100
 bd-100
 ```
 
-The numeric portion is preserved, but users with muscle memory for `tbd-100` must now use `bd-100`.
+The numeric portion is preserved, but users with muscle memory for `tbd-100` must now
+use `bd-100`.
 
 **Fix Options**:
 1. Auto-detect prefix from Beads IDs during import
 2. Add `--preserve-prefix` flag
 3. Document as expected behavior
 
----
+* * *
 
 ### Bug #6: Errors Not JSON with --json Flag
 
-**Severity**: Medium
-**Location**: `src/cli/lib/output.ts`
+**Severity**: Medium **Location**: `src/cli/lib/output.ts`
 
-When `--json` flag is used, errors still output as plain text instead of JSON, making parsing unreliable for agents.
+When `--json` flag is used, errors still output as plain text instead of JSON, making
+parsing unreliable for agents.
 
 **Fix**: Wrap errors in JSON structure when `--json` is enabled.
 
----
+* * *
 
 ## Enhancements (Detailed)
 
@@ -209,7 +211,7 @@ When `--json` flag is used, errors still output as plain text instead of JSON, m
 - Requires Git 2.42+ for `--orphan` worktree
 - Fail gracefully with upgrade instructions
 
----
+* * *
 
 ### E4-E8: High Priority for 1.0
 
@@ -237,7 +239,7 @@ When `--json` flag is used, errors still output as plain text instead of JSON, m
 - Parse first Beads ID to extract prefix
 - Set config `display.id_prefix` accordingly
 
----
+* * *
 
 ### E9-E15: Medium Priority
 
@@ -274,11 +276,11 @@ tbd list --format=yaml
 - `tbd close` on already-closed issue should succeed silently
 - Important for agent retry logic
 
----
+* * *
 
 ## Beads vs tbd Comparison
 
-### Session Close Protocol
+### Session Closing Protocol
 
 **Beads has 5 different protocols:**
 1. Stealth/Local-only: `bd sync --flush-only`
@@ -300,7 +302,7 @@ tbd list --format=yaml
 ### Code Complexity
 
 | Metric | Beads | tbd |
-|--------|-------|-----|
+| --- | --- | --- |
 | Prime command lines | 432 | 132 |
 | Conditional paths | 5 | 1 |
 | Testing complexity | High | Low |
@@ -319,7 +321,7 @@ tbd list --format=yaml
 - Stealth mode (use PRIME.md override)
 - Daemon detection (no daemon)
 
----
+* * *
 
 ## Testing and Quality
 
@@ -344,7 +346,7 @@ tbd list --format=yaml
 - Zod for validation
 - Clean separation of concerns
 
----
+* * *
 
 ## Release Checklist
 
@@ -371,7 +373,7 @@ tbd list --format=yaml
 - [ ] **E12**: Batch operations
 - [ ] **E14**: Architecture diagrams
 
----
+* * *
 
 ## Appendix: Files Reviewed
 

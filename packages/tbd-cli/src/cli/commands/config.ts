@@ -1,13 +1,13 @@
 /**
  * `tbd config` - Configuration management.
  *
- * See: tbd-full-design.md §4.9 Config
+ * See: tbd-design-spec.md §4.9 Config
  */
 
 import { Command } from 'commander';
 
 import { BaseCommand } from '../lib/baseCommand.js';
-import { requireInit } from '../lib/errors.js';
+import { requireInit, NotInitializedError, ValidationError } from '../lib/errors.js';
 import { readConfig, writeConfig } from '../../file/config.js';
 import type { Config } from '../../lib/types.js';
 
@@ -20,8 +20,7 @@ class ConfigShowHandler extends BaseCommand {
     try {
       config = await readConfig('.');
     } catch {
-      this.output.error('No configuration found. Run `tbd init` first.');
-      return;
+      throw new NotInitializedError('No configuration found. Run `tbd init` first.');
     }
 
     this.output.data(config, () => {
@@ -49,8 +48,7 @@ class ConfigSetHandler extends BaseCommand {
     try {
       config = await readConfig('.');
     } catch {
-      this.output.error('No configuration found. Run `tbd init` first.');
-      return;
+      throw new NotInitializedError('No configuration found. Run `tbd init` first.');
     }
 
     if (this.checkDryRun('Would set config', { key, value })) {
@@ -64,8 +62,7 @@ class ConfigSetHandler extends BaseCommand {
     try {
       this.setNestedValue(config, keys, parsedValue);
     } catch {
-      this.output.error(`Invalid key: ${key}`);
-      return;
+      throw new ValidationError(`Invalid key: ${key}`);
     }
 
     await this.execute(async () => {
@@ -112,8 +109,7 @@ class ConfigGetHandler extends BaseCommand {
     try {
       config = await readConfig('.');
     } catch {
-      this.output.error('No configuration found. Run `tbd init` first.');
-      return;
+      throw new NotInitializedError('No configuration found. Run `tbd init` first.');
     }
 
     const keys = key.split('.');
@@ -121,8 +117,7 @@ class ConfigGetHandler extends BaseCommand {
 
     for (const k of keys) {
       if (typeof value !== 'object' || value === null || !(k in value)) {
-        this.output.error(`Unknown key: ${key}`);
-        return;
+        throw new ValidationError(`Unknown key: ${key}`);
       }
       value = (value as Record<string, unknown>)[k];
     }

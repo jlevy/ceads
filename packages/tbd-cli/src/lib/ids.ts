@@ -7,7 +7,7 @@
  *
  * For Beads compatibility, bd- prefix is accepted on input for external IDs.
  *
- * See: tbd-full-design.md §2.5 ID Generation
+ * See: tbd-design-spec.md §2.5 ID Generation
  */
 
 import { ulid } from 'ulid';
@@ -123,6 +123,21 @@ export function isShortId(input: string): boolean {
  */
 export function extractShortId(externalId: string): string {
   return externalId.toLowerCase().replace(/^[a-z]+-/, '');
+}
+
+/**
+ * Extract the prefix portion from an external ID.
+ * Returns the prefix (letters before the hyphen) or null if no prefix found.
+ * Examples:
+ *   "tbd-100" -> "tbd"
+ *   "bd-a7k2" -> "bd"
+ *   "TBD-100" -> "tbd" (normalized to lowercase)
+ *   "a7k2" -> null (no prefix)
+ *   "100" -> null (no prefix)
+ */
+export function extractPrefix(externalId: string): string | null {
+  const match = /^([a-zA-Z]+)-/.exec(externalId);
+  return match?.[1]?.toLowerCase() ?? null;
 }
 
 /**

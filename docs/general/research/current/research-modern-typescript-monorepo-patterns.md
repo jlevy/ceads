@@ -687,7 +687,8 @@ This provides traceability during development without manual version bumps.
 
 **Why roll your own?**
 
-No npm package provides build-time git version injection with env var support for dev mode:
+No npm package provides build-time git version injection with env var support for dev
+mode:
 
 | Package | Issue |
 | --- | --- |
@@ -696,9 +697,10 @@ No npm package provides build-time git version injection with env var support fo
 | [esbuild-plugin-version-injector](https://github.com/favware/esbuild-plugin-version-injector) | Only injects package.json version, no git info |
 | [rollup-plugin-git-version](https://www.npmjs.com/package/rollup-plugin-git-version) | Rollup-only, abandoned (2018) |
 
-The ~60 lines of custom code is dependency-free, bundler-agnostic, and handles all edge cases
-(no tags, dirty state, dev mode). Python's [setuptools-scm](https://github.com/pypa/setuptools-scm)
-is the gold standard; this pattern is "setuptools-scm lite" for Node.js.
+The ~60 lines of custom code is dependency-free, bundler-agnostic, and handles all edge
+cases (no tags, dirty state, dev mode).
+Python’s [setuptools-scm](https://github.com/pypa/setuptools-scm) is the gold standard;
+this pattern is “setuptools-scm lite” for Node.js.
 
 **Architecture Overview**:
 
@@ -894,9 +896,9 @@ export const VERSION = getVersion();
 | Configuration | Shared script + bundler config | In `pyproject.toml` |
 
 **Assessment**: This pattern provides the best balance of flexibility, maintainability,
-and runtime independence. Dynamic versioning complements Changesets—use Changesets for
-releases and git-based versioning for development builds, with zero git dependency in
-the published package.
+and runtime independence.
+Dynamic versioning complements Changesets—use Changesets for releases and git-based
+versioning for development builds, with zero git dependency in the published package.
 
 * * *
 

@@ -1,13 +1,13 @@
 /**
  * `tbd label` - Label management commands.
  *
- * See: tbd-full-design.md §4.5 Label Commands
+ * See: tbd-design-spec.md §4.5 Label Commands
  */
 
 import { Command } from 'commander';
 
 import { BaseCommand } from '../lib/baseCommand.js';
-import { requireInit } from '../lib/errors.js';
+import { requireInit, NotFoundError, NotInitializedError } from '../lib/errors.js';
 import { readIssue, writeIssue, listIssues } from '../../file/storage.js';
 import { formatDisplayId, formatDebugId } from '../../lib/ids.js';
 import { resolveDataSyncDir } from '../../lib/paths.js';
@@ -30,8 +30,7 @@ class LabelAddHandler extends BaseCommand {
     try {
       internalId = resolveToInternalId(id, mapping);
     } catch {
-      this.output.error(`Issue not found: ${id}`);
-      return;
+      throw new NotFoundError('Issue', id);
     }
 
     // Load existing issue
@@ -39,8 +38,7 @@ class LabelAddHandler extends BaseCommand {
     try {
       issue = await readIssue(dataSyncDir, internalId);
     } catch {
-      this.output.error(`Issue not found: ${id}`);
-      return;
+      throw new NotFoundError('Issue', id);
     }
 
     if (this.checkDryRun('Would add labels', { id: internalId, labels })) {
@@ -99,8 +97,7 @@ class LabelRemoveHandler extends BaseCommand {
     try {
       internalId = resolveToInternalId(id, mapping);
     } catch {
-      this.output.error(`Issue not found: ${id}`);
-      return;
+      throw new NotFoundError('Issue', id);
     }
 
     // Load existing issue
@@ -108,8 +105,7 @@ class LabelRemoveHandler extends BaseCommand {
     try {
       issue = await readIssue(dataSyncDir, internalId);
     } catch {
-      this.output.error(`Issue not found: ${id}`);
-      return;
+      throw new NotFoundError('Issue', id);
     }
 
     if (this.checkDryRun('Would remove labels', { id: internalId, labels })) {
@@ -160,8 +156,7 @@ class LabelListHandler extends BaseCommand {
     try {
       issues = await listIssues(dataSyncDir);
     } catch {
-      this.output.error('No issue store found. Run `tbd init` first.');
-      return;
+      throw new NotInitializedError('No issue store found. Run `tbd init` first.');
     }
 
     // Collect labels with counts

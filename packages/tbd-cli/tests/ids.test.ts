@@ -16,6 +16,8 @@ import {
   isInternalId,
   isShortId,
   formatDisplayId,
+  extractShortId,
+  extractPrefix,
 } from '../src/lib/ids.js';
 import { IssueId } from '../src/lib/schemas.js';
 
@@ -448,5 +450,64 @@ describe('generateUniqueShortId', () => {
     // Empty mapping should generate 4-char IDs
     const id = generateUniqueShortId(mapping);
     expect(id.length).toBe(4);
+  });
+});
+
+describe('extractShortId', () => {
+  it('extracts short ID from prefixed ID', () => {
+    expect(extractShortId('tbd-100')).toBe('100');
+    expect(extractShortId('bd-a7k2')).toBe('a7k2');
+    expect(extractShortId('proj-xyz123')).toBe('xyz123');
+  });
+
+  it('returns ID as-is when no prefix', () => {
+    expect(extractShortId('a7k2')).toBe('a7k2');
+    expect(extractShortId('100')).toBe('100');
+    expect(extractShortId('xyz123')).toBe('xyz123');
+  });
+
+  it('handles uppercase input by normalizing to lowercase', () => {
+    expect(extractShortId('TBD-100')).toBe('100');
+    expect(extractShortId('BD-A7K2')).toBe('a7k2');
+  });
+
+  it('handles multi-letter prefixes', () => {
+    expect(extractShortId('myproject-12345')).toBe('12345');
+    expect(extractShortId('abc-def')).toBe('def');
+  });
+});
+
+describe('extractPrefix', () => {
+  it('extracts prefix from prefixed ID', () => {
+    expect(extractPrefix('tbd-100')).toBe('tbd');
+    expect(extractPrefix('bd-a7k2')).toBe('bd');
+    expect(extractPrefix('proj-xyz123')).toBe('proj');
+  });
+
+  it('returns null when no prefix', () => {
+    expect(extractPrefix('a7k2')).toBeNull();
+    expect(extractPrefix('100')).toBeNull();
+    expect(extractPrefix('xyz123')).toBeNull();
+  });
+
+  it('normalizes prefix to lowercase', () => {
+    expect(extractPrefix('TBD-100')).toBe('tbd');
+    expect(extractPrefix('BD-A7K2')).toBe('bd');
+    expect(extractPrefix('PROJ-xyz')).toBe('proj');
+  });
+
+  it('handles multi-letter prefixes', () => {
+    expect(extractPrefix('myproject-12345')).toBe('myproject');
+    expect(extractPrefix('abc-def')).toBe('abc');
+  });
+
+  it('returns null for numeric-only strings', () => {
+    expect(extractPrefix('12345')).toBeNull();
+    expect(extractPrefix('0')).toBeNull();
+  });
+
+  it('returns null for strings starting with numbers', () => {
+    expect(extractPrefix('123-abc')).toBeNull();
+    expect(extractPrefix('1abc-def')).toBeNull();
   });
 });

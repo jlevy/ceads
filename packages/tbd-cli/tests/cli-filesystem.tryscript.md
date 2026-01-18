@@ -19,7 +19,7 @@ before: |
   git add README.md
   git commit -m "Initial commit"
   # Initialize tbd
-  tbd init --prefix=test
+  tbd init --prefix=test --quiet
 ---
 # tbd CLI: Filesystem and Storage Tests
 

@@ -67,31 +67,30 @@ $ echo "# Test repo" > README.md && git add README.md && git commit -m "Initial 
 ```
 
 ```console
-$ tbd init --prefix=test
-✓ Initialized tbd repository
-
-To complete setup, commit the config files:
-  git add .tbd/
-  git commit -m "Initialize tbd"
+$ tbd init --prefix=test --quiet
 ? 0
 ```
 
 # Test: Prime outputs workflow context in initialized project
 
 ```console
-$ tbd prime | head -5
+$ tbd prime | head -1
 # tbd Workflow Context
+? 0
+```
 
-> **Context Recovery**: Run `tbd prime` after compaction, clear, or new session
-> Hooks auto-call this in Claude Code when .tbd/ detected
+# Test: Prime contains context recovery note
 
+```console
+$ tbd prime | grep -c "Context Recovery"
+1
 ? 0
 ```
 
 # Test: Prime output contains session close protocol
 
 ```console
-$ tbd prime | grep -c "SESSION CLOSE PROTOCOL"
+$ tbd prime | grep -c "SESSION CLOSING PROTOCOL"
 1
 ? 0
 ```
@@ -129,10 +128,8 @@ $ tbd prime | grep -c "Finding Work"
 The --export flag outputs the default content, ignoring any custom PRIME.md.
 
 ```console
-$ tbd prime --export | head -3
+$ tbd prime --export | head -1
 # tbd Workflow Context
-
-> **Context Recovery**: Run `tbd prime` after compaction, clear, or new session
 ? 0
 ```
 
@@ -158,10 +155,8 @@ $ tbd prime | head -1
 # Test: Prime --export ignores custom PRIME.md
 
 ```console
-$ tbd prime --export | head -3
+$ tbd prime --export | head -1
 # tbd Workflow Context
-
-> **Context Recovery**: Run `tbd prime` after compaction, clear, or new session
 ? 0
 ```
 

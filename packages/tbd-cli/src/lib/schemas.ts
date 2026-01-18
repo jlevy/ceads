@@ -2,7 +2,7 @@
  * Zod schemas for tbd entities.
  *
  * These schemas are the normative specification for the file format.
- * See: tbd-full-design.md §2.6 Schemas
+ * See: tbd-design-spec.md §2.6 Schemas
  */
 
 import { z } from 'zod';

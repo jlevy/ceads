@@ -1,7 +1,7 @@
 /**
  * `tbd attic` - Attic (conflict archive) commands.
  *
- * See: tbd-full-design.md §4.11 Attic Commands
+ * See: tbd-design-spec.md §4.11 Attic Commands
  */
 
 import { Command } from 'commander';
@@ -12,7 +12,7 @@ import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
 import { writeFile } from 'atomically';
 
 import { BaseCommand } from '../lib/baseCommand.js';
-import { requireInit } from '../lib/errors.js';
+import { requireInit, NotFoundError, ValidationError } from '../lib/errors.js';
 import { readIssue, writeIssue } from '../../file/storage.js';
 import { normalizeIssueId, formatDisplayId, formatDebugId } from '../../lib/ids.js';
 import { resolveDataSyncDir, resolveAtticDir } from '../../lib/paths.js';
@@ -172,8 +172,7 @@ class AtticShowHandler extends BaseCommand {
     );
 
     if (!entry) {
-      this.output.error(`Attic entry not found: ${id} at ${timestamp}`);
-      return;
+      throw new NotFoundError('Attic entry', `${id} at ${timestamp}`);
     }
 
     // Load ID mapping and config for display
@@ -220,8 +219,7 @@ class AtticRestoreHandler extends BaseCommand {
     );
 
     if (!entry) {
-      this.output.error(`Attic entry not found: ${id} at ${timestamp}`);
-      return;
+      throw new NotFoundError('Attic entry', `${id} at ${timestamp}`);
     }
 
     if (this.checkDryRun('Would restore from attic', { id: normalizedId, field: entry.field })) {
@@ -234,8 +232,7 @@ class AtticRestoreHandler extends BaseCommand {
     try {
       issue = await readIssue(dataSyncDir, normalizedId);
     } catch {
-      this.output.error(`Issue not found: ${id}`);
-      return;
+      throw new NotFoundError('Issue', id);
     }
 
     // Restore the field value
@@ -243,8 +240,7 @@ class AtticRestoreHandler extends BaseCommand {
     if (field === 'description' || field === 'notes' || field === 'title') {
       (issue as Record<string, unknown>)[field] = entry.lost_value;
     } else {
-      this.output.error(`Cannot restore field: ${entry.field}`);
-      return;
+      throw new ValidationError(`Cannot restore field: ${entry.field}`);
     }
 
     issue.version += 1;

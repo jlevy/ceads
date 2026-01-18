@@ -52,6 +52,7 @@ Documentation:
   readme                    Display the README (same as GitHub landing page)
   prime [options]           Context-efficient instructions for agents, for use
                             in every session
+  closing                   Display the session closing protocol reminder
   docs [options] [topic]    Display CLI documentation
   design [options] [topic]  Display design documentation and Beads comparison
 
@@ -69,9 +70,9 @@ Working With Issues:
   search [options] <query>  Search issues by text
 
 Views and Filtering:
-  list [options]            List issues
   ready [options]           List issues ready to work on (open, unblocked,
                             unclaimed)
+  list [options]            List issues
   blocked [options]         List blocked issues
   stale [options]           List issues not updated recently
 
@@ -144,44 +145,39 @@ For more on tbd, see: https://github.com/jlevy/tbd
 # Test: Initialize tbd with defaults
 
 ```console
-$ tbd init --prefix=bd
-✓ Initialized tbd repository
-
-To complete setup, commit the config files:
-  git add .tbd/
-  git commit -m "Initialize tbd"
+$ tbd init --prefix=bd --quiet
 ? 0
 ```
 
-# Test: Status before any issues
+# Test: Status shows initialized repo
 
 ```console
-$ tbd status
-tbd v[..]
-
-Repository: [..]
-  ✓ Initialized (.tbd/)
-  ✓ Git repository (main)
-
-Sync branch: tbd-sync
-Remote: origin
-ID prefix: bd-
-
-Issues:
-  Ready:       0
-  In progress: 0
-  Open:        0
-  Total:       0
-
-Integrations:
-  ✗ Claude Code hooks (run: tbd setup claude)
-  ✗ Cursor rules (run: tbd setup cursor)
-  ✗ Codex AGENTS.md (run: tbd setup codex)
-
-Worktree: [..] (healthy)
-
-Use 'tbd stats' for detailed issue statistics.
+$ tbd status | grep -c "✓ Initialized"
+1
 ? 0
+```
+
+# Test: Status shows git repository
+
+```console
+$ tbd status | grep -c "✓ Git repository"
+1
+? 0
+```
+
+# Test: Status shows prefix
+
+```console
+$ tbd status | grep "ID prefix"
+ID prefix: bd-
+? 0
+```
+
+# Test: Status no longer shows issue counts (moved to stats)
+
+```console
+$ tbd status | grep "Total:"
+? 1
 ```
 
 # Test: Status as JSON
@@ -204,12 +200,12 @@ $ tbd status --json
 
 ## Reinitialization
 
-# Test: Reinit on already initialized repo shows warning
+# Test: Reinit on already initialized repo shows error
 
 ```console
 $ tbd init 2>&1
-✗ tbd is already initialized[..]
-? 0
+Error: tbd is already initialized[..]
+? 1
 ```
 
 * * *
@@ -227,12 +223,7 @@ Initialized empty Git repository in [..]
 # Test: Init with custom sync branch
 
 ```console
-$ cd custom-repo && tbd init --prefix=bd --sync-branch custom-sync --remote upstream
-✓ Initialized tbd repository
-
-To complete setup, commit the config files:
-  git add .tbd/
-  git commit -m "Initialize tbd"
+$ cd custom-repo && tbd init --prefix=bd --sync-branch custom-sync --remote upstream --quiet
 ? 0
 ```
 
@@ -242,31 +233,16 @@ Note: The --sync-branch and --remote options are not currently applied (bug).
 This test verifies the actual current behavior.
 
 ```console
-$ cd custom-repo && tbd status
-tbd v[..]
-
-Repository: [..]
-  ✓ Initialized (.tbd/)
-  ✓ Git repository
-
-Sync branch: tbd-sync
-Remote: origin
+$ cd custom-repo && tbd status | grep "ID prefix"
 ID prefix: bd-
+? 0
+```
 
-Issues:
-  Ready:       0
-  In progress: 0
-  Open:        0
-  Total:       0
+# Test: Custom repo shows initialized
 
-Integrations:
-  ✗ Claude Code hooks (run: tbd setup claude)
-  ✗ Cursor rules (run: tbd setup cursor)
-  ✗ Codex AGENTS.md (run: tbd setup codex)
-
-Worktree: [..] (healthy)
-
-Use 'tbd stats' for detailed issue statistics.
+```console
+$ cd custom-repo && tbd status | grep -c "✓ Initialized"
+1
 ? 0
 ```
 

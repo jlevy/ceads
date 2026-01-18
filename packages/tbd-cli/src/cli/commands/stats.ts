@@ -1,29 +1,29 @@
 /**
  * `tbd stats` - Show repository statistics.
  *
- * See: tbd-full-design.md §4.9 Stats
+ * See: tbd-design-spec.md §4.9 Stats
  */
 
 import { Command } from 'commander';
 
 import { BaseCommand } from '../lib/baseCommand.js';
-import { requireInit } from '../lib/errors.js';
+import { requireInit, NotInitializedError } from '../lib/errors.js';
 import { listIssues } from '../../file/storage.js';
-import type { IssueStatusType, IssueKindType } from '../../lib/types.js';
+import type { Issue, IssueStatusType, IssueKindType } from '../../lib/types.js';
 import { resolveDataSyncDir } from '../../lib/paths.js';
+import { formatPriority } from '../../lib/priority.js';
 
 class StatsHandler extends BaseCommand {
   async run(): Promise<void> {
     await requireInit();
 
     // Load all issues
-    let issues;
+    let issues: Issue[];
     try {
       const dataSyncDir = await resolveDataSyncDir();
       issues = await listIssues(dataSyncDir);
     } catch {
-      this.output.error('No issue store found. Run `tbd init` first.');
-      return;
+      throw new NotInitializedError('No issue store found. Run `tbd init` first.');
     }
 
     // Count by status
@@ -53,6 +53,23 @@ class StatsHandler extends BaseCommand {
       4: 0,
     };
 
+    // Build set of blocked issue IDs (issues that have open blockers)
+    const blockedIds = new Set<string>();
+    for (const issue of issues) {
+      for (const dep of issue.dependencies) {
+        if (dep.type === 'blocks') {
+          // The target issue is blocked by this issue
+          const blockedIssue = issues.find((i) => i.id === dep.target);
+          if (blockedIssue && blockedIssue.status !== 'closed') {
+            blockedIds.add(dep.target);
+          }
+        }
+      }
+    }
+
+    // Count ready issues (open and not blocked)
+    let readyCount = 0;
+
     // Accumulate counts
     for (const issue of issues) {
       byStatus[issue.status]++;
@@ -60,10 +77,16 @@ class StatsHandler extends BaseCommand {
       if (issue.priority >= 0 && issue.priority <= 4) {
         byPriority[issue.priority]!++;
       }
+      // Count ready: open and not blocked
+      if (issue.status === 'open' && !blockedIds.has(issue.id)) {
+        readyCount++;
+      }
     }
 
     const stats = {
       total: issues.length,
+      ready: readyCount,
+      blocked: blockedIds.size,
       byStatus,
       byKind,
       byPriority,
@@ -71,9 +94,20 @@ class StatsHandler extends BaseCommand {
 
     this.output.data(stats, () => {
       const colors = this.output.getColors();
-      console.log(`${colors.bold('Total issues:')} ${stats.total}`);
+
+      // Summary section
+      console.log(colors.bold('Summary:'));
+      console.log(`  Ready:       ${stats.ready}`);
+      console.log(`  In progress: ${stats.byStatus.in_progress}`);
+      console.log(`  Blocked:     ${stats.blocked}`);
+      console.log(`  Open:        ${stats.byStatus.open}`);
+      console.log(`  Total:       ${stats.total}`);
 
       if (stats.total === 0) {
+        console.log('');
+        console.log(
+          `Use ${colors.bold("'tbd status'")} for setup info, ${colors.bold("'tbd doctor'")} for health checks.`,
+        );
         return;
       }
 
@@ -99,9 +133,14 @@ class StatsHandler extends BaseCommand {
       for (let i = 0; i <= 4; i++) {
         const count = stats.byPriority[i];
         if (count !== undefined && count > 0) {
-          console.log(`  ${i} (${priorityLabels[i]!.padEnd(8)}) ${count}`);
+          console.log(`  ${formatPriority(i)} (${priorityLabels[i]!.padEnd(8)}) ${count}`);
         }
       }
+
+      console.log('');
+      console.log(
+        `Use ${colors.bold("'tbd status'")} for setup info, ${colors.bold("'tbd doctor'")} for health checks.`,
+      );
     });
   }
 }

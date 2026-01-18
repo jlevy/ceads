@@ -92,6 +92,17 @@ export const TEST_ULIDS = {
   IMPORT_1: '01importtest000000000001aa',
   IMPORT_2: '01importtest000000000002aa',
   IMPORT_3: '01importtest000000000003aa',
+
+  // Git remote integration tests (26 chars)
+  REMOTE_1: '01remotetest000000000001aa',
+  REMOTE_2: '01remotetest000000000002aa',
+  REMOTE_3: '01remotetest000000000003aa',
+  REMOTE_4: '01remotetest000000000004aa',
+  REMOTE_5: '01remotetest000000000005aa',
+  CONCURRENT_1: '01concurrent0000000000001a',
+  CONCURRENT_2: '01concurrent0000000000002a',
+  CONCURRENT_3: '01concurrent0000000000003a',
+  CONCURRENT_4: '01concurrent0000000000004a',
 };
 
 /**

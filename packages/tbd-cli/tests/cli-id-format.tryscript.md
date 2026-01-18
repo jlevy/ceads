@@ -174,10 +174,9 @@ $ tbd ready | grep -c "^test-"
 ? 0
 ```
 
-# Test: Blocked command output
+# Test: Blocked command shows nothing when no blocked issues
 
 ```console
-$ tbd blocked 2>&1 | head -2
-[..]
+$ tbd blocked
 ? 0
 ```

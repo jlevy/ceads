@@ -69,12 +69,7 @@ $ tbd --color=never --version
 # Test: Init with --color=never produces clean output
 
 ```console
-$ tbd --color=never init --prefix=bd
-[..] Initialized tbd repository
-
-To complete setup, commit the config files:
-  git add .tbd/
-  git commit -m "Initialize tbd"
+$ tbd --color=never init --prefix=bd --quiet
 ? 0
 ```
 
@@ -108,9 +103,9 @@ Note: --sort=created sorts by newest first (descending).
 
 ```console
 $ tbd --color=never list --sort=created
-ID          PRI  STATUS        TITLE
-bd-[..]     2    open          Another issue
-bd-[..]     2    open          Test issue
+ID          PRI  STATUS          TITLE
+bd-[..]     P2   ○ open          [bug] Another issue
+bd-[..]     P2   ○ open          [task] Test issue
 
 2 issue(s)
 ? 0
@@ -179,9 +174,9 @@ These tests verify NO_COLOR environment variable is respected.
 
 ```console
 $ NO_COLOR=1 tbd list --sort=created
-ID          PRI  STATUS        TITLE
-bd-[..]     2    open          Another issue
-bd-[..]     2    open          Test issue
+ID          PRI  STATUS          TITLE
+bd-[..]     P2   ○ open          [bug] Another issue
+bd-[..]     P2   ○ open          [task] Test issue
 
 2 issue(s)
 ? 0
@@ -206,8 +201,8 @@ $ NO_COLOR=1 tbd --color=always --version
 
 ```console
 $ tbd --color=never show bd-nonexistent 2>&1
-[..]Issue not found: bd-nonexistent
-? 0
+Error: Issue not found: bd-nonexistent
+? 1
 ```
 
 # Test: Error output with --color=always (may have ANSI codes)
@@ -215,7 +210,7 @@ $ tbd --color=never show bd-nonexistent 2>&1
 ```console
 $ tbd --color=always show bd-nonexistent 2>&1
 [..]Issue not found: bd-nonexistent[..]
-? 0
+? 1
 ```
 
 * * *

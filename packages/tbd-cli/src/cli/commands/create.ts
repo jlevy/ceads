@@ -1,14 +1,14 @@
 /**
  * `tbd create` - Create a new issue.
  *
- * See: tbd-full-design.md §4.4 Create
+ * See: tbd-design-spec.md §4.4 Create
  */
 
 import { Command } from 'commander';
 import { readFile } from 'node:fs/promises';
 
 import { BaseCommand } from '../lib/baseCommand.js';
-import { requireInit } from '../lib/errors.js';
+import { requireInit, ValidationError, CLIError } from '../lib/errors.js';
 import type { Issue, IssueKindType, PriorityType } from '../../lib/types.js';
 import { generateInternalId, extractUlidFromInternalId } from '../../lib/ids.js';
 import { writeIssue } from '../../file/storage.js';
@@ -17,8 +17,10 @@ import {
   saveIdMapping,
   generateUniqueShortId,
   addIdMapping,
+  resolveToInternalId,
 } from '../../file/idMapping.js';
-import { IssueKind, Priority } from '../../lib/schemas.js';
+import { IssueKind } from '../../lib/schemas.js';
+import { parsePriority } from '../../lib/priority.js';
 import { resolveDataSyncDir } from '../../lib/paths.js';
 import { now } from '../../utils/timeUtils.js';
 import { readConfig } from '../../file/config.js';
@@ -42,16 +44,12 @@ class CreateHandler extends BaseCommand {
 
     // Validate title is provided (unless --from-file)
     if (!title && !options.fromFile) {
-      this.output.error('Title is required. Use: tbd create "Issue title"');
-      return;
+      throw new ValidationError('Title is required. Use: tbd create "Issue title"');
     }
 
     // Parse and validate options
     const kind = this.parseKind(options.type ?? 'task');
-    if (!kind) return;
-
-    const priority = this.parsePriority(options.priority ?? '2');
-    if (priority === null) return;
+    const priority = this.validatePriority(options.priority ?? '2');
 
     // Read description from file if specified
     let description = options.description;
@@ -59,8 +57,7 @@ class CreateHandler extends BaseCommand {
       try {
         description = await readFile(options.file, 'utf-8');
       } catch {
-        this.output.error(`Failed to read description from file: ${options.file}`);
-        return;
+        throw new CLIError(`Failed to read description from file: ${options.file}`);
       }
     }
 
@@ -72,27 +69,9 @@ class CreateHandler extends BaseCommand {
     const id = generateInternalId();
     const ulid = extractUlidFromInternalId(id);
 
-    const issue: Issue = {
-      type: 'is',
-      id,
-      version: 1,
-      title: title!,
-      kind,
-      status: 'open',
-      priority,
-      labels: options.label ?? [],
-      dependencies: [],
-      created_at: timestamp,
-      updated_at: timestamp,
-      description: description ?? undefined,
-      assignee: options.assignee ?? undefined,
-      due_date: options.due ?? undefined,
-      deferred_until: options.defer ?? undefined,
-      parent_id: options.parent ?? undefined,
-    };
-
     let shortId: string;
     let prefix: string;
+    let issue: Issue;
     await this.execute(async () => {
       const dataSyncDir = await resolveDataSyncDir();
 
@@ -104,6 +83,35 @@ class CreateHandler extends BaseCommand {
       const mapping = await loadIdMapping(dataSyncDir);
       shortId = generateUniqueShortId(mapping);
       addIdMapping(mapping, ulid, shortId);
+
+      // Resolve parent ID if provided (convert display ID to internal ID)
+      let parentId: string | undefined;
+      if (options.parent) {
+        try {
+          parentId = resolveToInternalId(options.parent, mapping);
+        } catch {
+          throw new ValidationError(`Invalid parent ID: ${options.parent}`);
+        }
+      }
+
+      issue = {
+        type: 'is',
+        id,
+        version: 1,
+        title: title!,
+        kind,
+        status: 'open',
+        priority,
+        labels: options.label ?? [],
+        dependencies: [],
+        created_at: timestamp,
+        updated_at: timestamp,
+        description: description ?? undefined,
+        assignee: options.assignee ?? undefined,
+        due_date: options.due ?? undefined,
+        deferred_until: options.defer ?? undefined,
+        parent_id: parentId,
+      };
 
       // Write both the issue and the mapping
       await writeIssue(dataSyncDir, issue);
@@ -117,23 +125,21 @@ class CreateHandler extends BaseCommand {
     });
   }
 
-  private parseKind(value: string): IssueKindType | undefined {
+  private parseKind(value: string): IssueKindType {
     const result = IssueKind.safeParse(value);
     if (!result.success) {
-      this.output.error(`Invalid type: ${value}. Must be: bug, feature, task, epic, chore`);
-      return undefined;
+      throw new ValidationError(`Invalid type: ${value}. Must be: bug, feature, task, epic, chore`);
     }
     return result.data;
   }
 
-  private parsePriority(value: string): PriorityType | null {
-    const num = parseInt(value, 10);
-    const result = Priority.safeParse(num);
-    if (!result.success) {
-      this.output.error(`Invalid priority: ${value}. Must be 0-4`);
-      return null;
+  private validatePriority(value: string): PriorityType {
+    // Use shared parsePriority which accepts both "P1" and "1" formats
+    const num = parsePriority(value);
+    if (num === undefined) {
+      throw new ValidationError(`Invalid priority: ${value}. Use P0-P4 or 0-4.`);
     }
-    return result.data;
+    return num;
   }
 }
 

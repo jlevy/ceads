@@ -3,7 +3,7 @@
  *
  * Config is stored at .tbd/config.yml and contains project-level settings.
  *
- * See: tbd-full-design.md §2.2.2 Config File
+ * See: tbd-design-spec.md §2.2.2 Config File
  */
 
 import { readFile, mkdir, access } from 'node:fs/promises';

@@ -6,7 +6,7 @@
  * - Field-level merge algorithm
  * - Push retry with exponential backoff
  *
- * See: tbd-full-design.md §3.3 Sync Operations
+ * See: tbd-design-spec.md §3.3 Sync Operations
  */
 
 import { execFile } from 'node:child_process';
@@ -145,14 +145,14 @@ function getUpgradeInstructions(currentVersion: GitVersion): string {
       upgradeUrl = 'https://git-scm.com/downloads';
   }
 
-  return `Git ${versionStr} detected. Git ${MIN_GIT_VERSION}+ recommended.\nUpgrade: ${upgradeUrl}`;
+  return `Git ${versionStr} detected. Git ${MIN_GIT_VERSION}+ required for tbd.\nUpgrade: ${upgradeUrl}`;
 }
 
 /**
  * Execute a git command with isolated index.
  * This protects the user's staging area during sync operations.
  *
- * See: tbd-full-design.md §3.3.2 Writing to Sync Branch
+ * See: tbd-design-spec.md §3.3.2 Writing to Sync Branch
  */
 export async function withIsolatedIndex<T>(fn: () => Promise<T>): Promise<T> {
   const gitDir = await git('rev-parse', '--git-dir');
@@ -226,7 +226,7 @@ type MergeStrategy = 'lww' | 'union' | 'max' | 'immutable';
 
 /**
  * Field-level merge strategies for Issue fields.
- * See: tbd-full-design.md §3.5 Merge Rules
+ * See: tbd-design-spec.md §3.5 Merge Rules
  */
 const FIELD_STRATEGIES: Record<keyof Issue, MergeStrategy> = {
   // Immutable - never change after creation
@@ -347,7 +347,7 @@ function createConflictEntry(
 
 /**
  * Three-way merge algorithm for issues.
- * See: tbd-full-design.md §3.4 Conflict Detection and Resolution
+ * See: tbd-design-spec.md §3.4 Conflict Detection and Resolution
  *
  * @param base - Common ancestor (null if new issue)
  * @param local - Local version
@@ -513,7 +513,7 @@ export interface PushResult {
 
 /**
  * Push with retry and merge on conflict.
- * See: tbd-full-design.md §3.3.3 Sync Algorithm
+ * See: tbd-design-spec.md §3.3.3 Sync Algorithm
  *
  * @param syncBranch - The sync branch name
  * @param remote - The remote name
@@ -607,7 +607,7 @@ export async function getRemoteUrl(remote: string): Promise<string | null> {
 
 // =============================================================================
 // Worktree Management
-// See: tbd-full-design.md §2.3 Hidden Worktree Model
+// See: tbd-design-spec.md §2.3 Hidden Worktree Model
 // =============================================================================
 
 import { access, rm } from 'node:fs/promises';
@@ -641,7 +641,7 @@ export interface WorktreeHealth {
 
 /**
  * Check worktree health and return status.
- * See: tbd-full-design.md §2.3 Worktree Lifecycle
+ * See: tbd-design-spec.md §2.3 Worktree Lifecycle
  */
 export async function checkWorktreeHealth(baseDir: string): Promise<WorktreeHealth> {
   const worktreePath = join(baseDir, WORKTREE_DIR);
@@ -694,7 +694,7 @@ export async function checkWorktreeHealth(baseDir: string): Promise<WorktreeHeal
 
 /**
  * Initialize the hidden worktree for the tbd-sync branch.
- * Follows the decision tree from tbd-full-design.md §2.3.
+ * Follows the decision tree from tbd-design-spec.md §2.3.
  *
  * @param baseDir - The base directory of the repository
  * @param remote - The remote name (default: 'origin')

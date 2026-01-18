@@ -20,6 +20,7 @@
     "publint": "pnpm -r publint",
     "format": "prettier --write --log-level warn .",
     "format:check": "prettier --check --log-level warn .",
+    "format:md": "find README.md docs packages/tbd-cli/*.md -name '*.md' -type f 2>/dev/null | xargs uvx flowmark@latest --auto",
     "lint": "eslint . --fix && pnpm typecheck && eslint . --max-warnings 0",
     "lint:check": "pnpm typecheck && eslint . --max-warnings 0",
     "prepare": "lefthook install",

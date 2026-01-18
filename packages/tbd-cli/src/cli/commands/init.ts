@@ -1,20 +1,22 @@
 /**
  * `tbd init` - Initialize tbd in a repository.
  *
- * See: tbd-full-design.md §4.3 Initialization
+ * See: tbd-design-spec.md §4.3 Initialization
  */
 
 import { Command } from 'commander';
 import { mkdir, stat } from 'node:fs/promises';
 import { join } from 'node:path';
+import { spawnSync } from 'node:child_process';
 
 import { writeFile } from 'atomically';
 
 import { BaseCommand } from '../lib/baseCommand.js';
+import { CLIError, ValidationError } from '../lib/errors.js';
 import { VERSION } from '../lib/version.js';
 import { initConfig } from '../../file/config.js';
 import { TBD_DIR, CACHE_DIR, WORKTREE_DIR_NAME, DATA_SYNC_DIR_NAME } from '../../lib/paths.js';
-import { initWorktree } from '../../file/git.js';
+import { initWorktree, checkGitVersion, MIN_GIT_VERSION } from '../../file/git.js';
 
 interface InitOptions {
   prefix?: string;
@@ -29,24 +31,22 @@ class InitHandler extends BaseCommand {
     // Check if already initialized
     try {
       await stat(join(cwd, TBD_DIR));
-      this.output.error('tbd is already initialized in this directory');
-      return;
-    } catch {
-      // Not initialized - continue
+      throw new CLIError('tbd is already initialized in this directory');
+    } catch (error) {
+      // Not initialized - continue (unless it's our CLIError)
+      if (error instanceof CLIError) throw error;
     }
 
     // Validate prefix is provided
     if (!options.prefix) {
-      this.output.error('The --prefix option is required');
-      this.output.info('');
-      this.output.info('Usage: tbd init --prefix=<name>');
-      this.output.info('');
-      this.output.info('The prefix is used for display IDs (e.g., proj-a7k2, myapp-b3m9)');
-      this.output.info('Choose a short, memorable prefix for your project.');
-      this.output.info('');
-      this.output.info("If importing from beads, use 'tbd import --from-beads' instead");
-      this.output.info('(the beads prefix will be automatically detected).');
-      return;
+      throw new ValidationError(
+        'The --prefix option is required\n\n' +
+          'Usage: tbd init --prefix=<name>\n\n' +
+          'The prefix is used for display IDs (e.g., proj-a7k2, myapp-b3m9)\n' +
+          'Choose a short, memorable prefix for your project.\n\n' +
+          "If importing from beads, use 'tbd import --from-beads' instead\n" +
+          '(the beads prefix will be automatically detected).',
+      );
     }
 
     if (this.checkDryRun('Would initialize tbd repository', options)) {
@@ -86,6 +86,26 @@ class InitHandler extends BaseCommand {
       // This creates .tbd/data-sync-worktree/ with the sync branch checkout
       const remote = options.remote ?? 'origin';
       const syncBranch = options.syncBranch ?? 'tbd-sync';
+
+      // Check Git version before attempting worktree creation
+      // Git 2.42+ is required for --orphan worktree support
+      try {
+        const { version, supported } = await checkGitVersion();
+        if (!supported) {
+          const versionStr = `${version.major}.${version.minor}.${version.patch}`;
+          throw new CLIError(
+            `Git ${versionStr} detected. Git ${MIN_GIT_VERSION}+ is required for tbd.\n\n` +
+              `tbd requires Git 2.42+ for orphan worktree support.\n` +
+              `Please upgrade Git: https://git-scm.com/downloads`,
+          );
+        }
+        this.output.debug(`Git version ${version.major}.${version.minor}.${version.patch} OK`);
+      } catch (error) {
+        // If git is not installed at all, let worktree init handle it
+        if (error instanceof CLIError) throw error;
+        this.output.debug(`Git version check skipped: ${(error as Error).message}`);
+      }
+
       const worktreeResult = await initWorktree(cwd, remote, syncBranch);
 
       if (worktreeResult.success) {
@@ -103,11 +123,17 @@ class InitHandler extends BaseCommand {
 
     this.output.data({ initialized: true, version: VERSION }, () => {
       this.output.success('Initialized tbd repository');
-      this.output.info('');
-      this.output.info('To complete setup, commit the config files:');
-      this.output.info(`  git add ${TBD_DIR}/`);
-      this.output.info('  git commit -m "Initialize tbd"');
     });
+
+    // Auto-configure detected coding agents (skip in quiet mode)
+    if (!this.ctx.quiet) {
+      console.log('');
+      spawnSync('tbd', ['setup', 'auto'], { stdio: 'inherit' });
+
+      // Show status with next steps
+      console.log('');
+      spawnSync('tbd', ['status'], { stdio: 'inherit' });
+    }
   }
 }
 

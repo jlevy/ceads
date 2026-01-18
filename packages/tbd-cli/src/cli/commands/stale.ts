@@ -1,13 +1,13 @@
 /**
  * `tbd stale` - List stale issues.
  *
- * See: tbd-full-design.md §4.4 Stale
+ * See: tbd-design-spec.md §4.4 Stale
  */
 
 import { Command } from 'commander';
 
 import { BaseCommand } from '../lib/baseCommand.js';
-import { requireInit } from '../lib/errors.js';
+import { requireInit, NotInitializedError, ValidationError } from '../lib/errors.js';
 import { listIssues } from '../../file/storage.js';
 import { IssueStatus } from '../../lib/schemas.js';
 import type { Issue, IssueStatusType } from '../../lib/types.js';
@@ -34,15 +34,13 @@ class StaleHandler extends BaseCommand {
       dataSyncDir = await resolveDataSyncDir();
       issues = await listIssues(dataSyncDir);
     } catch {
-      this.output.error('No issue store found. Run `tbd init` first.');
-      return;
+      throw new NotInitializedError('No issue store found. Run `tbd init` first.');
     }
 
     // Parse days threshold (default: 7)
     const daysThreshold = options.days ? parseInt(options.days, 10) : 7;
     if (isNaN(daysThreshold) || daysThreshold < 0) {
-      this.output.error('Invalid days value. Must be a positive number.');
-      return;
+      throw new ValidationError('Invalid days value. Must be a positive number.');
     }
 
     // Parse status filter (default: open, in_progress)
@@ -52,8 +50,7 @@ class StaleHandler extends BaseCommand {
       for (const s of statuses) {
         const result = IssueStatus.safeParse(s);
         if (!result.success) {
-          this.output.error(`Invalid status: ${s}`);
-          return;
+          throw new ValidationError(`Invalid status: ${s}`);
         }
         allowedStatuses.add(result.data);
       }

@@ -142,6 +142,7 @@
       - [Decision 7: Hidden worktree for sync branch](#decision-7-hidden-worktree-for-sync-branch)
     - [7.2 Future Enhancements](#72-future-enhancements)
       - [Additional Dependency Types (High Priority)](#additional-dependency-types-high-priority)
+      - [Ripgrep-Based Search (Performance)](#ripgrep-based-search-performance)
       - [Agent Registry](#agent-registry)
       - [Comments/Messages](#commentsmessages)
       - [GitHub Bridge](#github-bridge)
@@ -222,7 +223,8 @@ preference.
 
 - **File-per-entity**: Each issue is a separate `.md` file for fewer merge conflicts
 
-- **Searchable**: Hidden worktree enables fast ripgrep/grep search across all issues
+- **Searchable**: Hidden worktree enables search across all issues (manual ripgrep also
+  works)
 
 - **Reliable sync**: Git-based conflict detection with field-level LWW merge and attic
   preservation
@@ -305,7 +307,8 @@ architecture accumulated complexity:
 
 - **No daemon required**: Simple CLI tool, optional background sync
 
-- **Hidden worktree**: Managed worktree for sync branch access, searchable with ripgrep
+- **Hidden worktree**: Managed worktree for sync branch access (also enables manual
+  ripgrep)
 
 - **File-per-entity**: Parallel creation has zero conflicts
 
@@ -1407,8 +1410,9 @@ The file-per-entity design means parallel work rarely conflicts at the git level
 | A modifies issue-1, B creates issue-2 | Different files | Trivial merge |
 | A and B both modify issue-1 | Same file modified | Field-level merge |
 
-Only when two agents modify the **same issue** before syncing does tbd need to
-perform field-level merging. This is rare in practice because:
+Only when two agents modify the **same issue** before syncing does tbd need to perform
+field-level merging.
+This is rare in practice because:
 - Issues are small, focused units of work
 - Agents typically work on different issues
 - The `ready` command distributes work across agents
@@ -1417,9 +1421,8 @@ perform field-level merging. This is rare in practice because:
 
 #### When Conflicts Occur
 
-Conflicts (requiring field-level merge) happen when the same issue file is modified
-in two places before
-sync:
+Conflicts (requiring field-level merge) happen when the same issue file is modified in
+two places before sync:
 
 - Two environments modify the same issue before syncing
 
@@ -1747,7 +1750,7 @@ Options:
 **Examples:**
 
 ```bash
-tbd create "Fix authentication bug" --type=bug --priority=1
+tbd create "Fix authentication bug" --type=bug --priority=P1
 tbd create "Add OAuth" --type=feature --label=backend --label=security
 tbd create "Write tests" --parent proj-a1b2
 tbd create "API docs" --file design.md
@@ -1792,6 +1795,7 @@ Options:
   --sort <field>            Sort by: priority, created, updated (default: priority)
                             (created/updated are shorthand for created_at/updated_at)
   --limit <n>               Limit results
+  --pretty                  Tree format showing parent-child hierarchy
   --json                    Output as JSON
 ```
 
@@ -1805,7 +1809,7 @@ Options:
 tbd list                             # Active issues only (excludes closed)
 tbd list --all                       # All issues including closed
 tbd list --status closed             # Only closed issues
-tbd list --status open --priority=1
+tbd list --status open --priority=P1
 tbd list --assignee agent-1 --json
 tbd list --deferred
 ```
@@ -1813,11 +1817,47 @@ tbd list --deferred
 **Output (human-readable):**
 
 ```
-ID        PRI  STATUS       TITLE
-proj-a1b2   1    in_progress  Fix authentication bug
-proj-f14c   2    open         Add OAuth support
-proj-c3d4   3    blocked      Write API tests
+ID          PRI  STATUS           TITLE
+proj-a1b2   P1   ◐ in_progress    Fix authentication bug
+proj-f14c   P2   ○ open           Add OAuth support
+proj-c3d4   P3   ● blocked        Write API tests
 ```
+
+**Output (--pretty):**
+
+The `--pretty` flag displays issues in a tree format showing parent-child relationships.
+Issues with children are shown with their children indented below them using tree
+characters.
+
+```
+proj-1875  P1  ✓ closed  epic  Phase 24 Epic: Installation and Agent Integration
+├── proj-1876  P1  ✓ closed  task  Implement tbd prime command
+└── proj-1877  P1  ✓ closed  task  Implement tbd setup claude command
+proj-a1b2  P1  ◐ in_progress  bug  Fix authentication bug
+proj-f14c  P2  ○ open  feature  Add OAuth support
+├── proj-c3d4  P2  ● blocked  task  Write OAuth tests
+└── proj-e5f6  P2  ○ open  task  Update OAuth docs
+```
+
+**Pretty format columns (left to right):**
+
+| Column | Color | Notes |
+| --- | --- | --- |
+| Tree prefix | dim | `├── ` or `└── ` for children, with indentation for deeper levels |
+| ID | cyan | Display ID (e.g., `proj-a1b2`) |
+| Priority | P0=red, P1=yellow, P2+=default | Always with P prefix |
+| Status | per status | Icon + word (e.g., `✓ closed`, `◐ in_progress`) |
+| Type | dim | Issue kind (bug, feature, task, epic, chore) |
+| Title | default | Issue title |
+
+**Tree structure rules:**
+
+- Issues without a parent appear at root level (no indentation)
+- Children are grouped under their parent with tree lines
+- `├── ` prefix for middle children
+- `└── ` prefix for last child in a group
+- Multi-level nesting uses additional indentation (`│ ` or ` `)
+- Children sorted by priority within each parent group
 
 **Output (--json):**
 
@@ -1928,7 +1968,7 @@ Options:
 
 ```bash
 tbd update proj-a1b2 --status=in_progress
-tbd update proj-a1b2 --add-label urgent --priority 0
+tbd update proj-a1b2 --add-label urgent --priority=P0
 tbd update proj-a1b2 --defer 2025-02-01
 
 # Round-trip editing: export, modify, re-import
@@ -2075,25 +2115,45 @@ tbd label list
 
 ### 4.6 Dependency Commands
 
+Dependencies use the semantics **“A depends on B”** (equivalent to **“B blocks A”**).
+This matches Beads convention.
+
 ```bash
-# Add dependency
-tbd dep add <id> <target-id> [--type blocks]
+# Add dependency: issue depends on depends-on (depends-on blocks issue)
+tbd dep add <issue> <depends-on>
 
 # Remove dependency
-tbd dep remove <id> <target-id>
+tbd dep remove <issue> <depends-on>
 
-# Show dependency tree
-tbd dep tree <id>
+# List dependencies for an issue
+tbd dep list <id>
 ```
+
+**Argument semantics:**
+
+- `<issue>`: The issue that depends on something (the dependent/blocked issue)
+- `<depends-on>`: The issue that must be completed first (the prerequisite/blocker)
 
 **Examples:**
 
 ```bash
-tbd dep add proj-c3d4 proj-f14c --type blocks
-tbd dep tree proj-a1b2
+# "Write tests" depends on "Add OAuth" (can't write tests until OAuth is done)
+tbd dep add proj-c3d4 proj-f14c
+# Output: ✓ proj-c3d4 now depends on proj-f14c
+
+# List what blocks/is blocked by an issue
+tbd dep list proj-c3d4
+# Output:
+# Blocked by: proj-f14c
 ```
 
+**Data model:** Dependencies are stored on the blocker issue with
+`{type: 'blocks', target: blocked-issue-id}`. This enables efficient lookup of “what
+does this issue block?”
+from its own dependencies array.
+
 **Note**: Currently only supports `blocks` dependency type.
+Future: `related`, `discovered-from`.
 
 ### 4.7 Sync Commands
 
@@ -2131,8 +2191,8 @@ Remote changes (not yet pulled):
 
 ### 4.8 Search Commands
 
-tbd provides integrated search via the hidden worktree, enabling direct text search
-across all issues using standard tools like ripgrep or grep.
+tbd provides integrated search via the hidden worktree, enabling text search across all
+issues. (The worktree also enables manual use of ripgrep/grep if needed.)
 
 ```bash
 # Search issue content
@@ -2206,20 +2266,11 @@ Found 2 issues with 2 matches
 
 #### Implementation Notes
 
-Search is implemented by running ripgrep (or grep as fallback) against the hidden
-worktree directory:
+Search is currently implemented as an **in-memory scan**:
 
-```
-.tbd/data-sync-worktree/.tbd/data-sync/issues/
-```
-
-**Tool selection:**
-
-1. If `rg` (ripgrep) is available, use it (recommended for speed)
-
-2. Fall back to `grep -r` if ripgrep unavailable
-
-3. Emit warning on first fallback: “ripgrep not found, using grep (slower)”
+1. Load all issues from the hidden worktree directory
+2. Filter issues by searching fields with string matching
+3. Apply additional filters (status, type, label)
 
 **Search algorithm:**
 
@@ -2228,23 +2279,15 @@ SEARCH(pattern, options):
   1. Ensure worktree is initialized and up-to-date
      - If stale (>5 minutes since last fetch), refresh: tbd sync --pull
 
-  2. Build search command:
-     rg_args = [
-       "-i" if not options.case_sensitive,
-       "-C", options.context,
-       "--type", "md",  # Only search .md files
-       pattern,
-       worktree_path + "/.tbd/data-sync/issues/"
-     ]
+  2. Load all issues from worktree into memory
 
-  3. If field filter specified:
-     - Post-process results to filter by YAML field or body section
+  3. For each issue, search specified fields:
+     - title, description, notes, labels (default: all)
+     - Case-insensitive by default
 
-  4. Parse results and map to issue IDs
+  4. Apply additional filters (type, status, label)
 
-  5. Apply additional filters (type, status, label) by reading matched files
-
-  6. Format output according to options
+  5. Format output according to options
 ```
 
 **Worktree staleness:**
@@ -2254,20 +2297,9 @@ If the worktree is stale (last fetch was more than 5 minutes ago), search will
 automatically pull before searching to ensure results are current.
 This can be disabled with `--no-refresh`.
 
-> **Why 5 minutes?** The default staleness threshold of 5 minutes balances freshness vs
-> performance. During active work, agents typically sync more frequently than this, so
-> the auto-refresh rarely triggers.
-> For long-running sessions where remote changes may accumulate, the refresh ensures
-> search results include recent work from other agents.
-> The threshold is configurable via `settings.search_staleness_minutes` in config.yml.
-
-**Configuration:**
-
-```yaml
-# .tbd/config.yml
-settings:
-  search_staleness_minutes: 5 # Default: 5, set to 0 to always refresh, -1 to never
-```
+> **Future Enhancement:** For improved performance on large repositories (10K+ issues),
+> search could be optimized to use ripgrep (`rg`) against the worktree files directly.
+> See §7.2 Future Enhancements for details.
 
 ```bash
 # Search without refreshing (faster but potentially stale)
@@ -2540,7 +2572,7 @@ Example agent workflow:
 
 ```bash
 # CI pipeline: create issue non-interactively
-CI=1 tbd create "Deploy failed" --kind bug --priority=2 --json
+CI=1 tbd create "Deploy failed" --kind bug --priority=P2 --json
 
 # Agent: preview changes before committing
 tbd update td-abc1 --status done --dry-run --json
@@ -3509,35 +3541,54 @@ even at scale.
 
 ### 6.3 Migration Path
 
-**Beads → tbd migration checklist:**
+**Beads → tbd migration workflow:**
 
-1. ✅ Export Beads data: `bd export > backup.jsonl`
+```bash
+# 1. Final Beads sync (stop daemon first)
+bd sync
 
-2. ✅ Initialize tbd: `tbd init`
+# 2. Import issues to tbd (auto-initializes if needed)
+tbd import --from-beads --verbose
 
-3. ✅ Import: `tbd import backup.jsonl`
+# 3. Disable Beads (moves files to .beads-disabled/)
+tbd beads --disable                     # Preview what will be moved
+tbd beads --disable --confirm           # Actually disable
 
-4. ✅ Verify: `tbd list --json | wc -l` matches Beads count
+# 4. Install tbd integrations
+tbd setup claude                        # Claude Code hooks
+tbd setup cursor                        # Cursor rules (optional)
+tbd setup codex                         # AGENTS.md (optional)
 
-5. ✅ Configure display: `tbd config display.id_prefix bd`
+# 5. Verify and commit
+tbd stats
+git add .tbd/ && git commit -m "Migrate from Beads to tbd"
+git push origin tbd-sync
+```
 
-6. ✅ Test workflows: create, update, sync
+**What `tbd beads --disable` does:**
 
-7. ✅ Commit config: `git add .tbd/ && git commit`
+The command safely moves all Beads files to `.beads-disabled/` for potential rollback:
 
-8. ✅ Sync team: `git push origin tbd-sync`
+| Source | Destination | Description |
+| --- | --- | --- |
+| `.beads/` | `.beads-disabled/.beads/` | Beads data and config |
+| `.beads-hooks/` | `.beads-disabled/.beads-hooks/` | Beads git hooks |
+| `.cursor/rules/beads.mdc` | `.beads-disabled/.cursor/rules/beads.mdc` | Cursor rules |
+| `.claude/settings.local.json` | `.beads-disabled/.claude/settings.local.json` | Backup (bd hooks removed) |
+| `AGENTS.md` | `.beads-disabled/AGENTS.md` | Backup (Beads section removed) |
+| `.gitattributes` | `.beads-disabled/.gitattributes` | Backup (beads merge driver lines removed) |
 
-9. ✅ Update docs: Replace `bd` with `tbd` in scripts (or keep `bd` alias)
+To restore Beads, move files back from `.beads-disabled/`.
 
-**Gradual rollout:**
+**Gradual rollout alternative:**
 
-- Keep Beads running alongside tbd initially
+- Keep Beads running alongside tbd initially (don’t run `tbd beads --disable`)
 
 - Compare outputs (`bd list` vs `tbd list`)
 
 - Migrate one team/agent at a time
 
-- Full cutover when confident
+- Run `tbd beads --disable --confirm` for full cutover when confident
 
 ### 6.4 Installation and Agent Integration
 
@@ -3641,7 +3692,7 @@ Options:
 > **Context Recovery**: Run `tbd prime` after compaction, clear, or new session
 > Hooks auto-call this in Claude Code when .tbd/ detected
 
-# SESSION CLOSE PROTOCOL
+# SESSION CLOSING PROTOCOL
 
 **CRITICAL**: Before saying "done" or "complete", you MUST run this checklist:
 
@@ -3670,8 +3721,8 @@ Options:
 - `tbd show <id>` - Detailed issue view with dependencies
 
 ### Creating & Updating
-- `tbd create "title" --type=task|bug|feature --priority=2` - New issue
-  - Priority: 0-4 (0=critical, 2=medium, 4=backlog)
+- `tbd create "title" --type=task|bug|feature --priority=P2` - New issue
+  - Priority: P0-P4 (P0=critical, P2=medium, P4=backlog)
 - `tbd update <id> --status=in_progress` - Claim work
 - `tbd update <id> --assignee username` - Assign to someone
 - `tbd close <id>` - Mark complete
@@ -4041,6 +4092,35 @@ Future versions should add:
 
 **Implementation**: Extend `Dependency.type` enum, update CLI `--deps` parsing.
 No changes to sync algorithm needed.
+
+#### Ripgrep-Based Search (Performance)
+
+Currently search loads all issues into memory and filters with JavaScript string
+matching. For large repositories (10K+ issues), this could be optimized:
+
+**Approach:**
+
+1. If `rg` (ripgrep) is available, use it for initial pattern matching
+2. Fall back to `grep -r` if ripgrep unavailable
+3. Emit warning on first fallback: “ripgrep not found, using grep (slower)”
+
+**Benefits:**
+
+- Faster initial pattern matching (ripgrep is highly optimized)
+- Lower memory usage (don’t load all issues upfront)
+- Context lines support (`-C` flag)
+- External commands visible in `--verbose` mode for debugging
+
+**Implementation:**
+
+```bash
+rg -i -C 2 --type md "pattern" .tbd/data-sync-worktree/.tbd/data-sync/issues/
+```
+
+Post-process results to:
+- Map file paths to issue IDs
+- Apply field filters (title, description, notes)
+- Apply status/type/label filters by reading matched files
 
 #### Agent Registry
 
@@ -4419,14 +4499,14 @@ Claims are advisory in both (no enforcement).
 **Beads:**
 
 ```bash
-bd create "Found bug" --type=bug --priority=1 --deps discovered-from:<id> --json
+bd create "Found bug" --type=bug --priority=P1 --deps discovered-from:<id> --json
 ```
 
 **tbd:**
 
 ```bash
 # Only blocks dependency supported currently
-tbd create "Found bug" --type=bug --priority=1 --parent=<id> --json
+tbd create "Found bug" --type=bug --priority=P1 --parent=<id> --json
 # Or wait for future version for discovered-from
 ```
 

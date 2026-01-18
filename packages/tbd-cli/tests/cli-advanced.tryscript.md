@@ -133,16 +133,26 @@ $ tbd search "nonexistentxyz123" --json
 
 ```console
 $ tbd stats
-Total issues: [..]
+Summary:
+  Ready:       5
+  In progress: 0
+  Blocked:     0
+  Open:        5
+  Total:       5
 
 By status:
-  open[..]
+  open           5
 
 By kind:
-...
+  bug            2
+  feature        1
+  task           1
+  chore          1
 
 By priority:
-...
+  P2 (Medium  ) 5
+
+Use 'tbd status' for setup info, 'tbd doctor' for health checks.
 ? 0
 ```
 
@@ -151,15 +161,29 @@ By priority:
 ```console
 $ tbd stats --json
 {
-  "total": [..],
+  "total": 5,
+  "ready": 5,
+  "blocked": 0,
   "byStatus": {
-...
+    "open": 5,
+    "in_progress": 0,
+    "blocked": 0,
+    "deferred": 0,
+    "closed": 0
   },
   "byKind": {
-...
+    "bug": 2,
+    "feature": 1,
+    "task": 1,
+    "epic": 0,
+    "chore": 1
   },
   "byPriority": {
-...
+    "0": 0,
+    "1": 0,
+    "2": 5,
+    "3": 0,
+    "4": 0
   }
 }
 ? 0
@@ -326,8 +350,8 @@ $ tbd config get settings.auto_sync --json
 
 ```console
 $ tbd config get nonexistent.key 2>&1
-✗ Unknown key: nonexistent.key
-? 0
+Error: Unknown key: nonexistent.key
+? 2
 ```
 
 * * *
@@ -390,8 +414,8 @@ $ tbd attic list is-01hx5zzkbkactav9wevgemmvrz --json
 
 ```console
 $ tbd attic show is-00000000000000000000000000 2025-01-01T00:00:00Z 2>&1
-✗ Attic entry not found[..]
-? 0
+Error: Attic entry not found[..]
+? 1
 ```
 
 * * *
@@ -468,25 +492,28 @@ Usage: tbd dep [options] [command]
 Manage issue dependencies
 
 Options:
-  -h, --help            display help for command
+  -h, --help                   display help for command
 
 Global Options:
-  --version             Show version number
-  --dry-run             Show what would be done without making changes
-  --verbose             Enable verbose output
-  --quiet               Suppress non-essential output
-  --json                Output as JSON
-  --color <when>        Colorize output: auto, always, never (default: "auto")
-  --non-interactive     Disable all prompts, fail if input required
-  --yes                 Assume yes to confirmation prompts
-  --no-sync             Skip automatic sync after write operations
-  --debug               Show internal IDs alongside public IDs for debugging
+  --version                    Show version number
+  --dry-run                    Show what would be done without making changes
+  --verbose                    Enable verbose output
+  --quiet                      Suppress non-essential output
+  --json                       Output as JSON
+  --color <when>               Colorize output: auto, always, never (default:
+                               "auto")
+  --non-interactive            Disable all prompts, fail if input required
+  --yes                        Assume yes to confirmation prompts
+  --no-sync                    Skip automatic sync after write operations
+  --debug                      Show internal IDs alongside public IDs for
+                               debugging
 
 Commands:
-  add <id> <target>     Add a blocks dependency
-  remove <id> <target>  Remove a blocks dependency
-  list <id>             List dependencies for an issue
-  help [command]        display help for command
+  add <issue> <depends-on>     Add dependency (issue depends on depends-on)
+  remove <issue> <depends-on>  Remove dependency (issue no longer depends on
+                               depends-on)
+  list <id>                    List dependencies for an issue
+  help [command]               display help for command
 
 For more on tbd, see: https://github.com/jlevy/tbd
 ? 0
