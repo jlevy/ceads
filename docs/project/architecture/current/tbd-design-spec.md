@@ -2115,7 +2115,7 @@ tbd label list
 
 ### 4.6 Dependency Commands
 
-Dependencies use the semantics **"A depends on B"** (equivalent to **"B blocks A"**).
+Dependencies use the semantics **“A depends on B”** (equivalent to **“B blocks A”**).
 This matches Beads convention.
 
 ```bash
@@ -2147,12 +2147,13 @@ tbd dep list proj-c3d4
 # Blocked by: proj-f14c
 ```
 
-**Data model:** Dependencies are stored on the blocker issue with `{type: 'blocks', target:
-blocked-issue-id}`. This enables efficient lookup of "what does this issue block?" from
-its own dependencies array.
+**Data model:** Dependencies are stored on the blocker issue with
+`{type: 'blocks', target: blocked-issue-id}`. This enables efficient lookup of “what
+does this issue block?”
+from its own dependencies array.
 
-**Note**: Currently only supports `blocks` dependency type. Future: `related`,
-`discovered-from`.
+**Note**: Currently only supports `blocks` dependency type.
+Future: `related`, `discovered-from`.
 
 ### 4.7 Sync Commands
 
@@ -3691,7 +3692,7 @@ Options:
 > **Context Recovery**: Run `tbd prime` after compaction, clear, or new session
 > Hooks auto-call this in Claude Code when .tbd/ detected
 
-# SESSION CLOSE PROTOCOL
+# SESSION CLOSING PROTOCOL
 
 **CRITICAL**: Before saying "done" or "complete", you MUST run this checklist:
 

@@ -309,6 +309,83 @@ NO_COLOR=1 tbd list
 
 ## Message Formatting
 
+### Section Headings
+
+**Rule**: All section headings in CLI output must follow a consistent grammar.
+
+**Format**: ALL CAPS, bold, followed by blank line before content.
+
+| Element | Format | Color | Example |
+|---------|--------|-------|---------|
+| Section heading | ALL CAPS + newline | Bold | `REPOSITORY` |
+| Inline label | Title Case + colon | Default | `Sync branch:` |
+
+**Structure:**
+```
+HEADING
+
+  content line 1
+  content line 2
+
+NEXT HEADING
+
+  more content
+```
+
+**Examples:**
+```
+REPOSITORY
+
+  ✓ Initialized (.tbd/)
+  ✓ Git repository (main)
+
+CONFIGURATION
+
+  Sync branch: tbd-sync
+  Remote:      origin
+  ID prefix:   tbd-
+
+INTEGRATIONS
+
+  ✓ Claude Code skill
+  ⚠ Cursor rules - not installed
+      Run: tbd setup cursor
+
+HEALTH CHECKS
+
+  ✓ Git version (2.50.1)
+  ✓ Config file
+  ✓ Worktree healthy
+```
+
+**Rules:**
+- ALL CAPS for section headings (never Title Case or lowercase)
+- Blank line after heading before content
+- Blank line between sections
+- Content indented 2 spaces under heading
+- Sub-items (like fix hints) indented 6 spaces
+- No colon after section headings
+- Use colons for inline key-value pairs within content
+
+**Commands using section headings:**
+- `tbd status` - REPOSITORY, CONFIGURATION, INTEGRATIONS
+- `tbd doctor` - Same as status + STATISTICS, HEALTH CHECKS
+- `tbd show` - Issue details sections
+- `tbd stats` - Statistics breakdown
+
+**Implementation:**
+```typescript
+/** Format a section heading - ALL CAPS, bold */
+export function formatHeading(text: string): string {
+  return colors.bold(text.toUpperCase());
+}
+
+// Usage:
+console.log(formatHeading('Repository'));
+console.log('');  // Blank line after heading
+console.log('  ✓ Initialized (.tbd/)');
+```
+
 ### Icons and Prefixes
 
 **Standard Icons (one per level, never mix):**

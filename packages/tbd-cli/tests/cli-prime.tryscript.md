@@ -88,10 +88,10 @@ $ tbd prime | grep -c "Context Recovery"
 ? 0
 ```
 
-# Test: Prime output contains session closing protocol
+# Test: Prime output contains session close protocol
 
 ```console
-$ tbd prime | grep -c "SESSION CLOSING PROTOCOL"
+$ tbd prime | grep -c "SESSION CLOSE PROTOCOL"
 1
 ? 0
 ```

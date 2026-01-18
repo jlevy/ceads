@@ -1,4 +1,4 @@
-# Session Close Protocol
+# Session Closing Protocol
 
 **CRITICAL**: Before saying “done” or “complete”, you MUST run this checklist:
 

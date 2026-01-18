@@ -8,7 +8,7 @@ command=$(echo "$input" | jq -r '.tool_input.command // empty')
 # Check if this is a git push command and .tbd exists
 if [[ "$command" == git\ push* ]] || [[ "$command" == *"&& git push"* ]] || [[ "$command" == *"; git push"* ]]; then
   if [ -d ".tbd" ]; then
-    tbd close-protocol
+    tbd closing
   fi
 fi
 

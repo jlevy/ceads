@@ -1,35 +1,54 @@
 ---
 name: tbd
-description: Git-native issue tracking for AI agents. Use for creating, updating, and tracking issues with dependencies. Invoke when user mentions tbd, issues, tasks, or asks about project work.
+description: Lightweight, git-native issue tracking (aka beads) for AI agents. Use for creating, planning, updating, and tracking issues with dependencies. Invoke when user mentions tbd, beads, to-do lists, planning, tracking tasks, issues, or bugs.
 allowed-tools: Bash(tbd:*), Read, Write
 ---
-# tbd Workflow Context
+# tbd Workflow
+
+`tbd` provides lightweight, git-native task and issue tracking using beads, which are
+just lightweight issues managed from the CLI.
 
 > **Context Recovery**: Run `tbd prime` after compaction, clear, or new session.
 > Hooks auto-call this in Claude Code when .tbd/ detected.
 
-# SESSION CLOSE PROTOCOL
+# SESSION CLOSING PROTOCOL
 
-**CRITICAL**: Before saying "done" or "complete", you MUST run this checklist:
+**CRITICAL**: Before saying “done” or “complete”, you MUST run this checklist:
 
 ```
-[ ] 1. git status              (check what changed)
-[ ] 2. git add <files>         (stage code changes)
-[ ] 3. tbd sync                (commit tbd changes)
-[ ] 4. git commit -m "..."     (commit code)
-[ ] 5. tbd sync                (commit any new tbd changes)
-[ ] 6. git push                (push to remote)
+[ ] 1. Stage and commit: git add + git commit
+[ ] 2. Push to remote: git push
+[ ] 3. Start CI watch (BLOCKS until done): gh pr checks <PR> --watch 2>&1
+[ ] 4. While CI runs: tbd close/update <id> for issues worked on
+[ ] 5. While CI runs: tbd sync
+[ ] 6. Return to step 3 and CONFIRM CI passed
+[ ] 7. If CI failed: fix, re-push, restart from step 3
 ```
 
-**NEVER skip this.** Work is not done until pushed.
+## NON-NEGOTIABLE Requirements
+
+### CI: Wait for `--watch` to finish
+
+The `--watch` flag blocks until ALL checks complete.
+Do NOT see “passing” in early output and move on—wait for the **final summary** showing
+all checks passed.
+
+### tbd: Update issues and sync
+
+Every session must end with tbd in a clean state:
+- Close/update **every issue** you worked on
+- Run `tbd sync` and confirm it completed
+
+**Work is not done until pushed, CI passes, and tbd is synced.**
 
 ## Core Rules
 
-- Track strategic work in tbd (multi-session, dependencies, discovered work)
-- Use `tbd create` for issues, TodoWrite for simple single-session execution
-- When in doubt, prefer tbd--persistence you don't need beats lost context
-- Git workflow: run `tbd sync` at session end
-- Session management: check `tbd ready` for available work
+- Track *all task work* not being done immediately as beads using `tbd` (discovered
+  work, future work, TODOs for the session, multi-session work)
+- When in doubt, prefer tbd for tracking tasks, bugs, and issues
+- Use `tbd create` for creating beads
+- Git workflow: update or close issues and run `tbd sync` at session end
+- If not given specific directions, check `tbd ready` for available work
 
 ## Essential Commands
 
@@ -43,7 +62,8 @@ allowed-tools: Bash(tbd:*), Read, Write
 ### Creating & Updating
 
 - `tbd create "title" --type task|bug|feature --priority 2` - New issue
-  - Priority: 0-4 (0=critical, 2=medium, 4=backlog). Do NOT use "high"/"medium"/"low"
+  - Priority: 0-4 (0=critical, 2=medium, 4=backlog).
+    Do NOT use "high"/"medium"/"low"
 - `tbd update <id> --status in_progress` - Claim work
 - `tbd update <id> --assignee username` - Assign to someone
 - `tbd close <id>` - Mark complete
@@ -54,7 +74,7 @@ allowed-tools: Bash(tbd:*), Read, Write
 
 - `tbd dep add <issue> <depends-on>` - Add dependency (issue depends on depends-on)
 - `tbd blocked` - Show all blocked issues
-- `tbd show <id>` - See what's blocking/blocked by this issue
+- `tbd show <id>` - See what’s blocking/blocked by this issue
 
 ### Sync & Collaboration
 

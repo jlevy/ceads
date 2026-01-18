@@ -15,7 +15,7 @@ support.
 **Overall Assessment**: **Ready for beta release with minor issues**
 
 **Key Finding from Beads Comparison**: tbd’s simpler approach is better.
-Beads has 5 different session close protocols based on context; tbd has one clear
+Beads has 5 different session closing protocols based on context; tbd has one clear
 protocol that always works.
 **Do not add Beads’ complexity.**
 
@@ -280,7 +280,7 @@ tbd list --format=yaml
 
 ## Beads vs tbd Comparison
 
-### Session Close Protocol
+### Session Closing Protocol
 
 **Beads has 5 different protocols:**
 1. Stealth/Local-only: `bd sync --flush-only`

@@ -180,7 +180,7 @@ rules file exists
 # Test: Cursor rules file contains workflow instructions
 
 ```console
-$ grep -c "Session Closing Protocol" .cursor/rules/tbd.mdc
+$ grep -c "Session Close Protocol" .cursor/rules/tbd.mdc
 1
 ? 0
 ```
@@ -475,6 +475,7 @@ $ mkdir -p .claude/skills/tbd && echo "---" > .claude/skills/tbd/SKILL.md
 
 ```console
 $ tbd doctor | grep "Claude Code skill"
+...[..]
 ✓ Claude Code skill (.claude/skills/tbd/SKILL.md)
 ? 0
 ```

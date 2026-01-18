@@ -1,5 +1,5 @@
 /**
- * `tbd closing` - Display the session close protocol reminder.
+ * `tbd closing` - Display the session closing protocol reminder.
  *
  * Shows the close protocol checklist for completing work.
  * Used by the Claude Code PostToolUse hook after git push.
@@ -54,7 +54,7 @@ class CloseProtocolHandler extends BaseCommand {
 }
 
 export const closeProtocolCommand = new Command('closing')
-  .description('Display the session close protocol reminder')
+  .description('Display the session closing protocol reminder')
   .action(async (_options: unknown, command: Command) => {
     const handler = new CloseProtocolHandler(command);
     await handler.run();
