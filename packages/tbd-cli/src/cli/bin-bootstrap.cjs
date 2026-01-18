@@ -26,8 +26,7 @@ try {
   // Silently ignore - caching is an optimization, not required.
 }
 
-// Load the real CLI (ESM)
-const cliPath = path.join(__dirname, 'cli.mjs');
-import(pathToFileURL(cliPath).href).then((mod) => {
-  mod.runCli();
-});
+// Load the bundled CLI binary (ESM with all deps bundled for fast startup).
+// bin.mjs runs runCli() as a side effect when imported.
+const binPath = path.join(__dirname, 'bin.mjs');
+import(pathToFileURL(binPath).href);

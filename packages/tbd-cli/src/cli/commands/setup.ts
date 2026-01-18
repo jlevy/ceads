@@ -18,7 +18,7 @@ import { writeFile } from 'atomically';
 
 import { BaseCommand } from '../lib/baseCommand.js';
 import { CLIError } from '../lib/errors.js';
-import { loadPrimeContent } from './prime.js';
+import { loadSkillContent } from './prime.js';
 import { type DiagnosticResult, renderDiagnostics } from '../lib/diagnostics.js';
 
 interface SetupClaudeOptions {
@@ -602,7 +602,7 @@ class SetupClaudeHandler extends BaseCommand {
 
       // Install skill file in project
       await mkdir(dirname(skillPath), { recursive: true });
-      const skillContent = await loadPrimeContent();
+      const skillContent = await loadSkillContent();
       await writeFile(skillPath, skillContent);
       this.output.success('Installed skill file');
       this.output.info(`  ${skillPath}`);

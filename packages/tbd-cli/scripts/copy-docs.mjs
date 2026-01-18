@@ -24,12 +24,14 @@ if (phase === 'prebuild') {
   copyFileSync(join(repoRoot, 'docs', 'tbd-closing.md'), join(srcDocs, 'tbd-closing.md'));
   copyFileSync(join(repoRoot, 'docs', 'SKILL.md'), join(srcDocs, 'SKILL.md'));
   copyFileSync(join(repoRoot, 'README.md'), join(srcDocs, 'README.md'));
+  // Note: tbd-prime.md is not in repo docs, it lives in src/docs (not copied from repo)
 } else if (phase === 'postbuild') {
   const distDocs = join(root, 'dist', 'docs');
   mkdirSync(distDocs, { recursive: true });
   copyFileSync(join(root, 'src', 'docs', 'tbd-docs.md'), join(distDocs, 'tbd-docs.md'));
   copyFileSync(join(root, 'src', 'docs', 'tbd-design.md'), join(distDocs, 'tbd-design.md'));
   copyFileSync(join(root, 'src', 'docs', 'tbd-closing.md'), join(distDocs, 'tbd-closing.md'));
+  copyFileSync(join(root, 'src', 'docs', 'tbd-prime.md'), join(distDocs, 'tbd-prime.md'));
   copyFileSync(join(root, 'src', 'docs', 'SKILL.md'), join(distDocs, 'SKILL.md'));
   copyFileSync(join(root, 'src', 'docs', 'README.md'), join(distDocs, 'README.md'));
   copyFileSync(join(root, 'dist', 'bin.mjs'), join(root, 'dist', 'tbd'));

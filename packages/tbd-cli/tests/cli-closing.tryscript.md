@@ -19,7 +19,7 @@ Tests for the `tbd closing` command which displays the session close checklist.
 
 ```console
 $ tbd closing | head -1
-# Session Close Protocol
+# Session Closing Protocol
 ? 0
 ```
 
@@ -97,7 +97,7 @@ $ tbd closing | grep -c "tbd closing"
 $ tbd closing --help
 Usage: tbd closing [options]
 
-Display the session close protocol reminder
+Display the session closing protocol reminder
 
 Options:
   -h, --help         display help for command

@@ -52,7 +52,7 @@ Documentation:
   readme                    Display the README (same as GitHub landing page)
   prime [options]           Context-efficient instructions for agents, for use
                             in every session
-  closing                   Display the session close protocol reminder
+  closing                   Display the session closing protocol reminder
   docs [options] [topic]    Display CLI documentation
   design [options] [topic]  Display design documentation and Beads comparison
 

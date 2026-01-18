@@ -76,7 +76,7 @@ $ tbd init --prefix=test
 
 ```console
 $ tbd prime | head -1
-# tbd Workflow
+# tbd Workflow Context
 ? 0
 ```
 
@@ -130,7 +130,7 @@ The --export flag outputs the default content, ignoring any custom PRIME.md.
 
 ```console
 $ tbd prime --export | head -1
-# tbd Workflow
+# tbd Workflow Context
 ? 0
 ```
 
@@ -157,7 +157,7 @@ $ tbd prime | head -1
 
 ```console
 $ tbd prime --export | head -1
-# tbd Workflow
+# tbd Workflow Context
 ? 0
 ```
 

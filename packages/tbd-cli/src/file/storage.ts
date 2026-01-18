@@ -44,6 +44,8 @@ export async function writeIssue(baseDir: string, issue: Issue): Promise<void> {
 /**
  * List all issues in the worktree.
  * Returns empty array if issues directory doesn't exist.
+ *
+ * Uses parallel file reading for better performance with many issues.
  */
 export async function listIssues(baseDir: string): Promise<Issue[]> {
   const issuesDir = join(baseDir, 'issues');
@@ -56,17 +58,31 @@ export async function listIssues(baseDir: string): Promise<Issue[]> {
     return [];
   }
 
+  // Filter to only .md files
+  const mdFiles = files.filter((f) => f.endsWith('.md'));
+
+  // Read all files in parallel for better I/O performance
+  const fileContents = await Promise.all(
+    mdFiles.map(async (file) => {
+      const filePath = join(issuesDir, file);
+      try {
+        const content = await readFile(filePath, 'utf-8');
+        return { file, content };
+      } catch {
+        return { file, content: null };
+      }
+    }),
+  );
+
+  // Parse issues (filter out failed reads)
   const issues: Issue[] = [];
-
-  for (const file of files) {
-    if (!file.endsWith('.md')) continue;
-
-    const id = file.slice(0, -3); // Remove .md extension
+  for (const { file, content } of fileContents) {
+    if (content === null) continue;
     try {
-      const issue = await readIssue(baseDir, id);
+      const issue = parseIssue(content);
       issues.push(issue);
     } catch (error) {
-      // Skip invalid files with a warning (in production, would log this)
+      // Skip invalid files with a warning
       console.warn(`Skipping invalid issue file: ${file}`, error);
     }
   }
