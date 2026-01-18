@@ -163,8 +163,8 @@ Issue to show
 
 ```console
 $ tbd show is-00000000000000000000000000 2>&1
-✗ Issue not found: is-00000000000000000000000000
-? 0
+Error: Issue not found: is-00000000000000000000000000
+? 1
 ```
 
 * * *
@@ -381,8 +381,8 @@ $ tbd update $(cat update_id.txt) --priority=4 --dry-run
 
 ```console
 $ tbd update is-00000000000000000000000000 --status=closed 2>&1
-✗ Issue not found: is-00000000000000000000000000
-? 0
+Error: Issue not found: is-00000000000000000000000000
+? 1
 ```
 
 * * *
@@ -446,8 +446,8 @@ $ tbd close $(cat dryclose_id.txt) --dry-run
 
 ```console
 $ tbd close $(cat close_id.txt) 2>&1
-✗ Issue[..]already closed
-? 0
+Error: Issue[..]already closed
+? 1
 ```
 
 * * *
@@ -502,8 +502,8 @@ First reopen it for real:
 ```console
 $ tbd reopen $(cat close_id.txt) 2>/dev/null; tbd reopen $(cat close_id.txt) 2>&1
 ...
-✗ Issue[..]not closed[..]
-? 0
+Error: Issue[..]not closed[..]
+? 1
 ```
 
 * * *
@@ -514,24 +514,24 @@ $ tbd reopen $(cat close_id.txt) 2>/dev/null; tbd reopen $(cat close_id.txt) 2>&
 
 ```console
 $ tbd create "" 2>&1
-✗ Title is required[..]
-? 0
+Error: Title is required[..]
+? 2
 ```
 
 # Test: Update with invalid priority
 
 ```console
 $ tbd update $(cat update_id.txt) --priority=10 2>&1
-✗ Invalid priority[..]
-? 0
+Error: Invalid priority[..]
+? 2
 ```
 
 # Test: Create with invalid type
 
 ```console
 $ tbd create "Bad type" --type=invalid 2>&1
-✗ Invalid type[..]
-? 0
+Error: Invalid type[..]
+? 2
 ```
 
 # Test: Update with invalid option --title

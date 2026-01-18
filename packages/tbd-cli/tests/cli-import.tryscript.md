@@ -245,17 +245,17 @@ $ tbd import merge-import.jsonl --merge
 
 ```console
 $ tbd import nonexistent.jsonl 2>&1
-✗ File not found: nonexistent.jsonl
-? 0
+Error: File not found: nonexistent.jsonl
+? 1
 ```
 
 # Test: Import missing beads directory
 
 ```console
 $ tbd import --from-beads --beads-dir=nonexistent-dir 2>&1
-✗ Beads database not found[..]
+Error: Beads database not found[..]
 ...
-? 0
+? 1
 ```
 
 # Test: Validate without import first
@@ -272,9 +272,9 @@ Initialized empty Git repository in [..]
 $ cd fresh-repo && tbd init --prefix=test && tbd import --validate 2>&1
 ✓ Initialized tbd repository
 ...
-✗ Beads database not found[..]
+Error: Beads database not found[..]
 ...
-? 0
+? 1
 ```
 
 * * *

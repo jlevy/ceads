@@ -253,18 +253,16 @@ $ tbd docs --list | grep -c "Quick Reference"
 # Test: docs positional topic argument works
 
 ```console
-$ tbd docs id-system | grep -c "Display ID"
-✗ Section "id-system" not found.
-0
+$ tbd docs id-system 2>&1 | head -1
+Error: Section not found: "id-system" (use --list to see available sections)
 ? 1
 ```
 
 # Test: docs --section shows filtered content
 
 ```console
-$ tbd docs --section "ID System" | grep -c "Display ID"
-✗ Section "ID System" not found.
-0
+$ tbd docs --section "ID System" 2>&1 | head -1
+Error: Section not found: "ID System" (use --list to see available sections)
 ? 1
 ```
 

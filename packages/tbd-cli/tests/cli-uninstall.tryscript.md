@@ -64,17 +64,17 @@ For more on tbd, see: https://github.com/jlevy/tbd
 # Test: Uninstall when not initialized shows error
 
 ```console
-$ tbd uninstall
-✗ No .tbd directory found. Nothing to uninstall.
-? 0
+$ tbd uninstall 2>&1
+Error: No .tbd directory found. Nothing to uninstall.
+? 1
 ```
 
 # Test: Uninstall --confirm when not initialized
 
 ```console
-$ tbd uninstall --confirm
-✗ No .tbd directory found. Nothing to uninstall.
-? 0
+$ tbd uninstall --confirm 2>&1
+Error: No .tbd directory found. Nothing to uninstall.
+? 1
 ```
 
 * * *
@@ -230,10 +230,6 @@ Deleted branch tbd-sync [..].
 ```console
 $ tbd init --prefix=test
 ✓ Initialized tbd repository
-
-To complete setup, commit the config files:
-  git add .tbd/
-  git commit -m "Initialize tbd"
 ? 0
 ```
 

@@ -204,12 +204,12 @@ $ tbd status --json
 
 ## Reinitialization
 
-# Test: Reinit on already initialized repo shows warning
+# Test: Reinit on already initialized repo shows error
 
 ```console
 $ tbd init 2>&1
-✗ tbd is already initialized[..]
-? 0
+Error: tbd is already initialized[..]
+? 1
 ```
 
 * * *

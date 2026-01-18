@@ -195,18 +195,18 @@ synced: [..]
 ```console
 $ tbd sync --push 2>&1
 ...
-✗ Failed to push: [..]
+Error: Failed to push: [..]
 ...
-? 0
+? 1
 ```
 
 # Test: Sync pull without remote fails gracefully
 
 ```console
 $ tbd sync --pull 2>&1
-✗ Failed to pull: [..]
+Error: Failed to pull: [..]
 ...
-? 0
+? 1
 ```
 
 # Test: Full sync handles missing remote gracefully

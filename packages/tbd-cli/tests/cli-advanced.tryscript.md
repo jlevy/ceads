@@ -326,8 +326,8 @@ $ tbd config get settings.auto_sync --json
 
 ```console
 $ tbd config get nonexistent.key 2>&1
-✗ Unknown key: nonexistent.key
-? 0
+Error: Unknown key: nonexistent.key
+? 1
 ```
 
 * * *
@@ -390,8 +390,8 @@ $ tbd attic list is-01hx5zzkbkactav9wevgemmvrz --json
 
 ```console
 $ tbd attic show is-00000000000000000000000000 2025-01-01T00:00:00Z 2>&1
-✗ Attic entry not found[..]
-? 0
+Error: Attic entry not found[..]
+? 1
 ```
 
 * * *
