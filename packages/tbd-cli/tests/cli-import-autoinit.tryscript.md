@@ -58,8 +58,6 @@ The `--from-beads` flag should auto-initialize tbd and then import the issues.
 
 ```console
 $ tbd import --from-beads
-Detected beads prefix: test
-Initializing tbd repository...
 ✓ Initialized tbd repository
 ✓ Import complete from .beads/issues.jsonl
   New issues:   2

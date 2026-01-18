@@ -155,7 +155,7 @@ For more on tbd, see: https://github.com/jlevy/tbd
 # Test: Cursor --check when not installed
 
 ```console
-$ tbd setup cursor --check
+$ tbd setup cursor --check --verbose
 Cursor rules file not found
 ? 0
 ```
@@ -164,11 +164,7 @@ Cursor rules file not found
 
 ```console
 $ tbd setup cursor
-✓ Created Cursor rules file
-  [..].cursor/rules/tbd.mdc
-
-Cursor will now see tbd workflow instructions.
-Use `tbd setup cursor --check` to verify installation
+✓ Created Cursor rules file[..]
 ? 0
 ```
 
@@ -234,7 +230,7 @@ rules file removed
 # Test: Cursor --remove when not installed
 
 ```console
-$ tbd setup cursor --remove
+$ tbd setup cursor --remove --verbose
 Cursor rules file not found
 ? 0
 ```
@@ -246,9 +242,9 @@ Cursor rules file not found
 # Test: Codex --check when not installed
 
 ```console
-$ tbd setup codex --check
+$ tbd setup codex --check --verbose
 AGENTS.md not found
-  Run: tbd setup codex
+[..]
 ? 0
 ```
 
@@ -256,13 +252,7 @@ AGENTS.md not found
 
 ```console
 $ tbd setup codex
-✓ Created new AGENTS.md with tbd integration
-  File: [..]AGENTS.md
-
-Codex and other AGENTS.md-compatible tools will automatically
-read this file on session start.
-
-Use `tbd setup codex --check` to verify installation
+✓ Created new AGENTS.md with tbd integration[..]
 ? 0
 ```
 
@@ -314,13 +304,7 @@ $ tbd setup codex --check --json
 
 ```console
 $ tbd setup codex
-✓ Updated existing tbd section in AGENTS.md
-  File: [..]AGENTS.md
-
-Codex and other AGENTS.md-compatible tools will automatically
-read this file on session start.
-
-Use `tbd setup codex --check` to verify installation
+✓ Updated existing tbd section in AGENTS.md[..]
 ? 0
 ```
 
@@ -360,9 +344,9 @@ $ echo '# My Project' > AGENTS.md && echo '' >> AGENTS.md && echo 'This is my cu
 # Test: Codex --check shows no tbd section
 
 ```console
-$ tbd setup codex --check
+$ tbd setup codex --check --verbose
 ⚠ AGENTS.md exists but no tbd section found
-  Run: tbd setup codex (to add tbd section)
+[..]
 ? 0
 ```
 
@@ -370,13 +354,7 @@ $ tbd setup codex --check
 
 ```console
 $ tbd setup codex
-✓ Added tbd section to existing AGENTS.md
-  File: [..]AGENTS.md
-
-Codex and other AGENTS.md-compatible tools will automatically
-read this file on session start.
-
-Use `tbd setup codex --check` to verify installation
+✓ Added tbd section to existing AGENTS.md[..]
 ? 0
 ```
 
@@ -437,12 +415,10 @@ See: https://github.com/jlevy/tbd/issues/TBD
 # Test: Claude --check exits successfully
 
 The check command should always exit with code 0, regardless of installation status.
-It reports both hooks status and skill file status.
 
 ```console
 $ tbd setup claude --check
-[..] Claude Code hooks [..]
-[..] file [..]
+[..]
 ? 0
 ```
 

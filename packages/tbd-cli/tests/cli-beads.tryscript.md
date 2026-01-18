@@ -203,9 +203,9 @@ $ grep -c "merge=beads" .gitattributes
 $ tbd setup beads --disable
 The following Beads files will be moved to .beads-disabled/:
 
-  .beads/ → .beads-disabled/beads/ [..]
+  .beads/ → .beads-disabled/.beads/ [..]
     Beads data directory
-  .beads-hooks/ → .beads-disabled/beads-hooks/ [..]
+  .beads-hooks/ → .beads-disabled/.beads-hooks/ [..]
     Beads git hooks
   .cursor/rules/beads.mdc → .beads-disabled/cursor-rules-beads.mdc
     Cursor IDE Beads rules
@@ -265,9 +265,9 @@ no .beads-disabled yet
 $ tbd setup beads --disable --confirm
 The following Beads files will be moved to .beads-disabled/:
 
-  .beads/ → .beads-disabled/beads/ [..]
+  .beads/ → .beads-disabled/.beads/ [..]
     Beads data directory
-  .beads-hooks/ → .beads-disabled/beads-hooks/ [..]
+  .beads-hooks/ → .beads-disabled/.beads-hooks/ [..]
     Beads git hooks
   .cursor/rules/beads.mdc → .beads-disabled/cursor-rules-beads.mdc
     Cursor IDE Beads rules
@@ -336,26 +336,26 @@ $ test -d .beads-disabled && echo ".beads-disabled created"
 ? 0
 ```
 
-# Test: .beads moved to .beads-disabled/beads
+# Test: .beads moved to .beads-disabled/.beads
 
 ```console
-$ test -d .beads-disabled/beads && echo "beads dir moved"
+$ test -d .beads-disabled/.beads && echo "beads dir moved"
 beads dir moved
 ? 0
 ```
 
-# Test: .beads-disabled/beads contains config
+# Test: .beads-disabled/.beads contains config
 
 ```console
-$ test -f .beads-disabled/beads/config.yaml && echo "config preserved"
+$ test -f .beads-disabled/.beads/config.yaml && echo "config preserved"
 config preserved
 ? 0
 ```
 
-# Test: .beads-hooks moved to .beads-disabled/beads-hooks
+# Test: .beads-hooks moved to .beads-disabled/.beads-hooks
 
 ```console
-$ test -d .beads-disabled/beads-hooks && echo "beads-hooks moved"
+$ test -d .beads-disabled/.beads-hooks && echo "beads-hooks moved"
 beads-hooks moved
 ? 0
 ```
@@ -363,7 +363,7 @@ beads-hooks moved
 # Test: Cursor rules backed up
 
 ```console
-$ test -f .beads-disabled/cursor-rules-beads.mdc && echo "cursor rules backed up"
+$ test -f .beads-disabled/.cursor/rules/beads.mdc && echo "cursor rules backed up"
 cursor rules backed up
 ? 0
 ```
@@ -371,7 +371,7 @@ cursor rules backed up
 # Test: Claude settings backed up
 
 ```console
-$ test -f .beads-disabled/claude-settings.local.json && echo "claude settings backed up"
+$ test -f .beads-disabled/.claude/settings.local.json && echo "claude settings backed up"
 claude settings backed up
 ? 0
 ```
@@ -403,7 +403,7 @@ $ grep -c "To Restore Beads" .beads-disabled/RESTORE.md
 # Test: RESTORE.md contains restore commands
 
 ```console
-$ grep -c "mv .beads-disabled/beads/ .beads/" .beads-disabled/RESTORE.md
+$ grep -c "mv .beads-disabled/.beads/ .beads/" .beads-disabled/RESTORE.md
 1
 ? 0
 ```
@@ -411,7 +411,7 @@ $ grep -c "mv .beads-disabled/beads/ .beads/" .beads-disabled/RESTORE.md
 # Test: .gitattributes backed up
 
 ```console
-$ test -f .beads-disabled/gitattributes.backup && echo "gitattributes backed up"
+$ test -f .beads-disabled/.gitattributes && echo "gitattributes backed up"
 gitattributes backed up
 ? 0
 ```
@@ -419,7 +419,7 @@ gitattributes backed up
 # Test: Backup contains original beads line
 
 ```console
-$ grep -c "merge=beads" .beads-disabled/gitattributes.backup
+$ grep -c "merge=beads" .beads-disabled/.gitattributes
 1
 ? 0
 ```
@@ -538,7 +538,7 @@ $ mkdir -p .beads && echo "test" > .beads/config.yaml
 $ tbd setup beads --disable
 The following Beads files will be moved to .beads-disabled/:
 
-  .beads/ → .beads-disabled/beads/ [..]
+  .beads/ → .beads-disabled/.beads/ [..]
     Beads data directory
 
 This preserves all Beads data for potential rollback.
@@ -568,11 +568,11 @@ $ test -d .beads || echo ".beads removed"
 ? 0
 ```
 
-# Test: .beads-disabled/beads was created
+# Test: .beads-disabled/.beads was created
 
 ```console
-$ test -d .beads-disabled/beads && echo ".beads-disabled/beads created"
-.beads-disabled/beads created
+$ test -d .beads-disabled/.beads && echo ".beads-disabled/.beads created"
+.beads-disabled/.beads created
 ? 0
 ```
 
@@ -599,11 +599,8 @@ $ tbd init --prefix=test --quiet
 # Test: tbd prime without .beads shows no warning
 
 ```console
-$ tbd prime | head -5
-# tbd Workflow Context
-
-> **Context Recovery**: Run `tbd prime` after compaction, clear, or new session
-> Hooks auto-call this in Claude Code when .tbd/ detected
+$ tbd prime | grep -c "A .beads/ directory was detected"
+0
 ? 0
 ```
 
@@ -622,7 +619,7 @@ $ tbd prime | head -5
    When asked to use beads, use `tbd` commands, NOT `bd` commands.
    To complete migration: tbd setup beads --disable --confirm
 
-# tbd Workflow Context
+# tbd Workflow
 ? 0
 ```
 
@@ -635,10 +632,7 @@ $ tbd setup beads --disable --confirm | grep "has been disabled"
 ```
 
 ```console
-$ tbd prime | head -5
-# tbd Workflow Context
-
-> **Context Recovery**: Run `tbd prime` after compaction, clear, or new session
-> Hooks auto-call this in Claude Code when .tbd/ detected
+$ tbd prime | grep -c "A .beads/ directory was detected"
+0
 ? 0
 ```

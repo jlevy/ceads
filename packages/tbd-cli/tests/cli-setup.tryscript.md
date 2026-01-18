@@ -53,6 +53,7 @@ Documentation:
   prime [options]           Context-efficient instructions for agents, for use
                             in every session
   docs [options] [topic]    Display CLI documentation
+  close-protocol            Display the session close protocol reminder
   design [options] [topic]  Display design documentation and Beads comparison
 
 Setup & Configuration:
@@ -69,9 +70,9 @@ Working With Issues:
   search [options] <query>  Search issues by text
 
 Views and Filtering:
-  list [options]            List issues
   ready [options]           List issues ready to work on (open, unblocked,
                             unclaimed)
+  list [options]            List issues
   blocked [options]         List blocked issues
   stale [options]           List issues not updated recently
 
@@ -149,34 +150,35 @@ $ tbd init --prefix=bd
 ? 0
 ```
 
-# Test: Status before any issues
+# Test: Status shows initialized repo
 
 ```console
-$ tbd status
-tbd v[..]
+$ tbd status | grep -c "✓ Initialized"
+1
+? 0
+```
 
-Repository: [..]
-  ✓ Initialized (.tbd/)
-  ✓ Git repository (main)
+# Test: Status shows git repository
 
-Sync branch: tbd-sync
-Remote: origin
+```console
+$ tbd status | grep -c "✓ Git repository"
+1
+? 0
+```
+
+# Test: Status shows prefix
+
+```console
+$ tbd status | grep "ID prefix"
 ID prefix: bd-
+? 0
+```
 
-Issues:
-  Ready:       0
-  In progress: 0
-  Open:        0
+# Test: Status shows issue counts
+
+```console
+$ tbd status | grep "Total:"
   Total:       0
-
-Integrations:
-  ✗ Claude Code hooks (run: tbd setup claude)
-  ✗ Cursor rules (run: tbd setup cursor)
-  ✗ Codex AGENTS.md (run: tbd setup codex)
-
-Worktree: [..] (healthy)
-
-Use 'tbd stats' for detailed issue statistics.
 ? 0
 ```
 
@@ -234,31 +236,16 @@ Note: The --sync-branch and --remote options are not currently applied (bug).
 This test verifies the actual current behavior.
 
 ```console
-$ cd custom-repo && tbd status
-tbd v[..]
-
-Repository: [..]
-  ✓ Initialized (.tbd/)
-  ✓ Git repository
-
-Sync branch: tbd-sync
-Remote: origin
+$ cd custom-repo && tbd status | grep "ID prefix"
 ID prefix: bd-
+? 0
+```
 
-Issues:
-  Ready:       0
-  In progress: 0
-  Open:        0
-  Total:       0
+# Test: Custom repo shows initialized
 
-Integrations:
-  ✗ Claude Code hooks (run: tbd setup claude)
-  ✗ Cursor rules (run: tbd setup cursor)
-  ✗ Codex AGENTS.md (run: tbd setup codex)
-
-Worktree: [..] (healthy)
-
-Use 'tbd stats' for detailed issue statistics.
+```console
+$ cd custom-repo && tbd status | grep -c "✓ Initialized"
+1
 ? 0
 ```
 

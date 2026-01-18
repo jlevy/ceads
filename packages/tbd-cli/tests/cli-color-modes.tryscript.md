@@ -202,8 +202,8 @@ $ NO_COLOR=1 tbd --color=always --version
 
 ```console
 $ tbd --color=never show bd-nonexistent 2>&1
-[..]Issue not found: bd-nonexistent
-? 0
+Error: Issue not found: bd-nonexistent
+? 1
 ```
 
 # Test: Error output with --color=always (may have ANSI codes)
@@ -211,7 +211,7 @@ $ tbd --color=never show bd-nonexistent 2>&1
 ```console
 $ tbd --color=always show bd-nonexistent 2>&1
 [..]Issue not found: bd-nonexistent[..]
-? 0
+? 1
 ```
 
 * * *

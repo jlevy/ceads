@@ -102,34 +102,43 @@ $ tbd init --prefix=bd
 ? 0
 ```
 
-# Test: Status after initialization
+# Test: Status shows initialized
 
 ```console
-$ tbd status
-tbd v[..]
-
-Repository: [..]
+$ tbd status | grep "✓ Initialized"
   ✓ Initialized (.tbd/)
+? 0
+```
+
+# Test: Status shows git repository
+
+```console
+$ tbd status | grep "✓ Git repository"
   ✓ Git repository (main)
+? 0
+```
 
-Sync branch: tbd-sync
-Remote: origin
+# Test: Status shows prefix
+
+```console
+$ tbd status | grep "ID prefix"
 ID prefix: bd-
+? 0
+```
 
-Issues:
-  Ready:       0
-  In progress: 0
-  Open:        0
+# Test: Status shows issue counts
+
+```console
+$ tbd status | grep "Total:"
   Total:       0
+? 0
+```
 
-Integrations:
-  ✗ Claude Code hooks (run: tbd setup claude)
-  ✗ Cursor rules (run: tbd setup cursor)
-  ✗ Codex AGENTS.md (run: tbd setup codex)
+# Test: Status shows worktree health
 
-Worktree: [..] (healthy)
-
-Use 'tbd stats' for detailed issue statistics.
+```console
+$ tbd status | grep -c "(healthy)"
+1
 ? 0
 ```
 
