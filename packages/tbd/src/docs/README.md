@@ -5,26 +5,26 @@
 **tbd** (which stands for “To Be Done” or “TypeScript beads,” depending on your
 preference) is a command-line issue tracker that stores issues as files in git.
 
-Designed for AI coding agents and humans: simple commands, pretty console and JSON
-output, installs via `npm` and works in almost any agent or sandboxed cloud environment.
+It’s ideal for AI coding agents as well as humans: simple commands, pretty console and
+JSON output. It installs via `npm` and works in almost any agent or sandboxed cloud
+environment.
+
+## Why?
 
 tbd is inspired by [Beads](https://github.com/steveyegge/beads) by Steve Yegge.
-I love the power of and am grateful for it!
-Unfortunately, after using it heavily for over a month, I found architectural issues and
-glitches that were too much of a distraction to ignore.
-Things like SQLite WAL errors in Claude Code Cloud, fighting with the daemon modifying
-files in the active working tree, confusing sync algorithms, and merge conflicts.
+I love the power of Beads and am grateful for it!
+Unfortunately, after using it heavily for about a month, I found architectural issues
+and glitches that were too much of a distraction to ignore.
+Things like Claude Code Cloud’s network filesystems unable to use SQLite, fighting with
+the daemon modifying files in the active working tree, merge conflicts, and a confusing
+4-way sync algorithm.
 
 tbd uses a simpler architecture with (I hope) fewer edge cases and bugs.
 If you want to try it, you can import issues from Beads, preserving issue IDs.
 Internally, everything is Markdown files so you can debug or migrate in the future if
 you wish.
 
-> [!NOTE]
-> See the design document (`tbd design`) or reference docs (`tbd docs`) for more
-> details.
-
-## Why tbd?
+## Features
 
 - **Git-native:** Issues live in your repo, synced to a separate, dedicated `tbd-sync`
   branch. Your code history stays clean—no issue churn polluting your logs.
@@ -43,9 +43,13 @@ you wish.
   (Hope to have more on this soon.)
 
 > [!NOTE]
+> See the [design doc](docs/tbd-design.md) (`tbd design`) or
+> [reference docs](docs/tbd-docs.md) (`tbd docs`) for more details.
+
+> [!NOTE]
 > I use *Beads* (capitalized) to refer to the original `bd` tool.
 > In the docs and prompts I sometimes use lowercase “beads” as a generic way to refer to
-> issues in `tbd` or `bd`.
+> issues stored in `tbd` or `bd`.
 
 ## Quick Start
 
