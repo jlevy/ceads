@@ -9,10 +9,10 @@ id: is-01kf7tppr53k2gp1mxs978g9bb
 kind: task
 labels: []
 priority: 2
-status: open
+status: in_progress
 title: Use consistent section names between status and doctor
 type: is
-updated_at: 2026-01-18T05:55:35.772Z
-version: 3
+updated_at: 2026-01-18T06:19:20.207Z
+version: 4
 ---
 Both commands should use: Repository, Configuration, Integrations. Doctor adds Health Checks section.
