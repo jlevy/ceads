@@ -33,7 +33,7 @@ This test uses the actual beads database from the tbd repository.
 # Test: Source beads database exists
 
 ```console
-$ ls $TRYSCRIPT_TEST_DIR/../../../.beads/issues.jsonl
+$ ls $TRYSCRIPT_TEST_DIR/../../../.beads-disabled/.beads/issues.jsonl
 [..]/issues.jsonl
 ? 0
 ```
@@ -45,7 +45,7 @@ $ ls $TRYSCRIPT_TEST_DIR/../../../.beads/issues.jsonl
 # Test: Import from source beads
 
 ```console
-$ tbd import --from-beads --beads-dir=$TRYSCRIPT_TEST_DIR/../../../.beads 2>&1 | grep "Import complete"
+$ tbd import --from-beads --beads-dir=$TRYSCRIPT_TEST_DIR/../../../.beads-disabled/.beads 2>&1 | grep "Import complete"
 ✓ Import complete from [..]
 ? 0
 ```
@@ -125,7 +125,7 @@ $ tbd list --all --count > count_before.txt && cat count_before.txt
 # Test: Re-import does not create duplicates
 
 ```console
-$ tbd import --from-beads --beads-dir=$TRYSCRIPT_TEST_DIR/../../../.beads >/dev/null 2>&1 && tbd list --all --count > count_after.txt && diff count_before.txt count_after.txt && echo "Idempotent: YES"
+$ tbd import --from-beads --beads-dir=$TRYSCRIPT_TEST_DIR/../../../.beads-disabled/.beads >/dev/null 2>&1 && tbd list --all --count > count_after.txt && diff count_before.txt count_after.txt && echo "Idempotent: YES"
 Idempotent: YES
 ? 0
 ```
