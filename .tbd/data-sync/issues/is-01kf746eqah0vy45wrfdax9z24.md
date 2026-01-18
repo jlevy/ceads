@@ -3,15 +3,17 @@ created_at: 2026-01-17T23:21:11.137Z
 dependencies:
   - target: is-01kf7c0akmxrs9e3ngvv2zz9ys
     type: blocks
+  - target: is-01kf7c6ngnzk3da33fec0j1n55
+    type: blocks
 id: is-01kf746eqah0vy45wrfdax9z24
 kind: task
 labels: []
 priority: 2
-status: open
+status: in_progress
 title: Move prime instructions to top-level tbd-prime.md doc
 type: is
-updated_at: 2026-01-18T01:37:52.355Z
-version: 2
+updated_at: 2026-01-18T01:43:24.475Z
+version: 4
 ---
 Currently the prime instructions are hardcoded as a string constant (PRIME_OUTPUT) in packages/tbd-cli/src/cli/commands/prime.ts.
 

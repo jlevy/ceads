@@ -1,15 +1,17 @@
 ---
+close_reason: Added pnpm format:md script using Flowmark. ESLint already only processes TypeScript, Prettier already ignores *.md. Ran Flowmark on all docs.
+closed_at: 2026-01-18T01:46:07.111Z
 created_at: 2026-01-18T01:22:05.198Z
 dependencies: []
 id: is-01kf7b3trfp2yrb75ggkmnqjyc
 kind: task
 labels: []
 priority: 2
-status: open
+status: closed
 title: Auto-format markdown with Flowmark instead of ESLint
 type: is
-updated_at: 2026-01-18T01:22:28.055Z
-version: 2
+updated_at: 2026-01-18T01:46:07.127Z
+version: 3
 ---
 Switch markdown formatting from ESLint to Flowmark for better markdown-specific formatting.
 
