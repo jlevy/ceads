@@ -15,7 +15,7 @@ import { CLIError, ValidationError } from '../lib/errors.js';
 import { VERSION } from '../lib/version.js';
 import { initConfig } from '../../file/config.js';
 import { TBD_DIR, CACHE_DIR, WORKTREE_DIR_NAME, DATA_SYNC_DIR_NAME } from '../../lib/paths.js';
-import { initWorktree } from '../../file/git.js';
+import { initWorktree, checkGitVersion, MIN_GIT_VERSION } from '../../file/git.js';
 
 interface InitOptions {
   prefix?: string;
@@ -85,6 +85,26 @@ class InitHandler extends BaseCommand {
       // This creates .tbd/data-sync-worktree/ with the sync branch checkout
       const remote = options.remote ?? 'origin';
       const syncBranch = options.syncBranch ?? 'tbd-sync';
+
+      // Check Git version before attempting worktree creation
+      // Git 2.42+ is required for --orphan worktree support
+      try {
+        const { version, supported } = await checkGitVersion();
+        if (!supported) {
+          const versionStr = `${version.major}.${version.minor}.${version.patch}`;
+          throw new CLIError(
+            `Git ${versionStr} detected. Git ${MIN_GIT_VERSION}+ is required for tbd.\n\n` +
+              `tbd requires Git 2.42+ for orphan worktree support.\n` +
+              `Please upgrade Git: https://git-scm.com/downloads`,
+          );
+        }
+        this.output.debug(`Git version ${version.major}.${version.minor}.${version.patch} OK`);
+      } catch (error) {
+        // If git is not installed at all, let worktree init handle it
+        if (error instanceof CLIError) throw error;
+        this.output.debug(`Git version check skipped: ${(error as Error).message}`);
+      }
+
       const worktreeResult = await initWorktree(cwd, remote, syncBranch);
 
       if (worktreeResult.success) {

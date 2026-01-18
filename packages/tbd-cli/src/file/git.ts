@@ -145,7 +145,7 @@ function getUpgradeInstructions(currentVersion: GitVersion): string {
       upgradeUrl = 'https://git-scm.com/downloads';
   }
 
-  return `Git ${versionStr} detected. Git ${MIN_GIT_VERSION}+ recommended.\nUpgrade: ${upgradeUrl}`;
+  return `Git ${versionStr} detected. Git ${MIN_GIT_VERSION}+ required for tbd.\nUpgrade: ${upgradeUrl}`;
 }
 
 /**

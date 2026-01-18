@@ -15,6 +15,7 @@ import { readConfig } from '../../file/config.js';
 import type { Issue } from '../../lib/types.js';
 import { resolveDataSyncDir, TBD_DIR } from '../../lib/paths.js';
 import { validateIssueId } from '../../lib/ids.js';
+import { checkGitVersion, MIN_GIT_VERSION } from '../../file/git.js';
 
 const CONFIG_DIR = TBD_DIR;
 
@@ -39,11 +40,15 @@ class DoctorHandler extends BaseCommand {
     const checks: CheckResult[] = [];
     let issues: Issue[] = [];
 
-    // Check 1: Config directory and file
+    // Check 1: Git version
+    const gitVersionCheck = await this.checkGitVersion();
+    checks.push(gitVersionCheck);
+
+    // Check 2: Config directory and file
     const configCheck = await this.checkConfig();
     checks.push(configCheck);
 
-    // Check 2: Issues directory
+    // Check 3: Issues directory
     const issuesDirCheck = await this.checkIssuesDirectory();
     checks.push(issuesDirCheck);
 
@@ -56,19 +61,19 @@ class DoctorHandler extends BaseCommand {
       }
     }
 
-    // Check 3: Orphaned dependencies
+    // Check 4: Orphaned dependencies
     const orphanCheck = this.checkOrphanedDependencies(issues);
     checks.push(orphanCheck);
 
-    // Check 4: Duplicate IDs
+    // Check 5: Duplicate IDs
     const duplicateCheck = this.checkDuplicateIds(issues);
     checks.push(duplicateCheck);
 
-    // Check 5: Orphaned temp files
+    // Check 6: Orphaned temp files
     const tempFilesCheck = await this.checkTempFiles(options.fix);
     checks.push(tempFilesCheck);
 
-    // Check 6: Issue validity
+    // Check 7: Issue validity
     const validityCheck = this.checkIssueValidity(issues);
     checks.push(validityCheck);
 
@@ -97,6 +102,44 @@ class DoctorHandler extends BaseCommand {
         this.output.warn('Issues found that may require manual intervention.');
       }
     });
+  }
+
+  private async checkGitVersion(): Promise<CheckResult> {
+    try {
+      const { version, supported } = await checkGitVersion();
+      const versionStr = `${version.major}.${version.minor}.${version.patch}`;
+
+      if (supported) {
+        return {
+          name: 'Git version',
+          status: 'ok',
+          message: versionStr,
+        };
+      }
+
+      return {
+        name: 'Git version',
+        status: 'error',
+        message: `${versionStr} (requires ${MIN_GIT_VERSION}+)`,
+        fixable: false,
+      };
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      if (msg.includes('git') || msg.includes('not found') || msg.includes('ENOENT')) {
+        return {
+          name: 'Git version',
+          status: 'error',
+          message: 'Git not found',
+          fixable: false,
+        };
+      }
+      return {
+        name: 'Git version',
+        status: 'warn',
+        message: `Unable to check: ${msg}`,
+        fixable: false,
+      };
+    }
   }
 
   private async checkConfig(): Promise<CheckResult> {
