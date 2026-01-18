@@ -142,6 +142,7 @@
       - [Decision 7: Hidden worktree for sync branch](#decision-7-hidden-worktree-for-sync-branch)
     - [7.2 Future Enhancements](#72-future-enhancements)
       - [Additional Dependency Types (High Priority)](#additional-dependency-types-high-priority)
+      - [Ripgrep-Based Search (Performance)](#ripgrep-based-search-performance)
       - [Agent Registry](#agent-registry)
       - [Comments/Messages](#commentsmessages)
       - [GitHub Bridge](#github-bridge)
@@ -1794,6 +1795,7 @@ Options:
   --sort <field>            Sort by: priority, created, updated (default: priority)
                             (created/updated are shorthand for created_at/updated_at)
   --limit <n>               Limit results
+  --pretty                  Tree format showing parent-child hierarchy
   --json                    Output as JSON
 ```
 
@@ -1815,11 +1817,47 @@ tbd list --deferred
 **Output (human-readable):**
 
 ```
-ID        PRI  STATUS       TITLE
-proj-a1b2   1    in_progress  Fix authentication bug
-proj-f14c   2    open         Add OAuth support
-proj-c3d4   3    blocked      Write API tests
+ID          PRI  STATUS           TITLE
+proj-a1b2   P1   ◐ in_progress    Fix authentication bug
+proj-f14c   P2   ○ open           Add OAuth support
+proj-c3d4   P3   ● blocked        Write API tests
 ```
+
+**Output (--pretty):**
+
+The `--pretty` flag displays issues in a tree format showing parent-child relationships.
+Issues with children are shown with their children indented below them using tree
+characters.
+
+```
+proj-1875  P1  ✓ closed  epic  Phase 24 Epic: Installation and Agent Integration
+├── proj-1876  P1  ✓ closed  task  Implement tbd prime command
+└── proj-1877  P1  ✓ closed  task  Implement tbd setup claude command
+proj-a1b2  P1  ◐ in_progress  bug  Fix authentication bug
+proj-f14c  P2  ○ open  feature  Add OAuth support
+├── proj-c3d4  P2  ● blocked  task  Write OAuth tests
+└── proj-e5f6  P2  ○ open  task  Update OAuth docs
+```
+
+**Pretty format columns (left to right):**
+
+| Column | Color | Notes |
+| --- | --- | --- |
+| Tree prefix | dim | `├── ` or `└── ` for children, with indentation for deeper levels |
+| ID | cyan | Display ID (e.g., `proj-a1b2`) |
+| Priority | P0=red, P1=yellow, P2+=default | Always with P prefix |
+| Status | per status | Icon + word (e.g., `✓ closed`, `◐ in_progress`) |
+| Type | dim | Issue kind (bug, feature, task, epic, chore) |
+| Title | default | Issue title |
+
+**Tree structure rules:**
+
+- Issues without a parent appear at root level (no indentation)
+- Children are grouped under their parent with tree lines
+- `├── ` prefix for middle children
+- `└── ` prefix for last child in a group
+- Multi-level nesting uses additional indentation (`│ ` or ` `)
+- Children sorted by priority within each parent group
 
 **Output (--json):**
 

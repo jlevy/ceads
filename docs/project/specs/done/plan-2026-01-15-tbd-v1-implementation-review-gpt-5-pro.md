@@ -649,6 +649,29 @@ The plan’s described setup is broadly aligned:
   - Start with 4 chars, extend to 5+ only when collision detected
   - Update schema regex to `[a-z0-9]`
 
+- [ ] **Implement shared formatting utilities for consistent output**
+  - `formatStatus(status)` → icon + word (e.g., `● blocked`, `○ open`, `◐ in_progress`,
+    `✓ closed`)
+  - `formatPriority(priority)` → P-prefixed (e.g., `P0`, `P1`, `P2`)
+  - `getStatusColor(status)` → semantic color for status
+  - `getPriorityColor(priority)` → semantic color for priority
+  - Must work consistently across all display modes (text, JSON, quiet, verbose, debug)
+  - Status icons: `○` open, `◐` in_progress, `●` blocked, `✓` closed, `○` deferred
+  - Rule: Always display status with icon + word together, never icon-only or word-only
+  - Extract to shared location (e.g., `lib/formatting.ts` or `cli/lib/output.ts`)
+  - All commands must use these utilities instead of ad-hoc formatting
+
+- [ ] **Implement shared issue line formatting utilities**
+  - Create `cli/lib/issueFormat.ts` with consistent issue display formats
+  - `ISSUE_COLUMNS` constants: ID=12, PRIORITY=5, STATUS=16, KIND=9, ASSIGNEE=10
+  - `formatIssueLine(issue, colors)` → Standard table row: `{ID} {PRI} {STATUS} {TITLE}`
+  - `formatIssueCompact(issue, colors)` → Compact reference: `{ID} {ICON} {TITLE}`
+  - `formatIssueInline(issue, colors)` → Inline mention: `{ID} ({TITLE})`
+  - `formatIssueHeader(colors)` → Table header row in dim
+  - `formatIssueLineExtended(issue, colors)` → Extended with kind/assignee
+  - Update all commands (list, show, ready, blocked, search) to use these utilities
+  - Ensures consistent column widths, colors, and formatting across all views
+
 ### P1 implementation tasks
 
 - [ ] Merge-by-id for dependencies; deterministic sort.

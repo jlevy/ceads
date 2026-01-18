@@ -238,15 +238,26 @@ Syncing with remote...                       # info - dim (verbose only)
 | `dim` | Gray | Secondary info, metadata, closed states |
 | `bold` | Bold | Titles, headers, emphasis |
 
-**Status-Specific Colors:**
+**Status Icons and Colors:**
 
-| Status | Color | Rationale |
-| --- | --- | --- |
-| `open` | Blue | Neutral, awaiting action |
-| `in_progress` | Green | Active, positive |
-| `blocked` | Red | Needs attention |
-| `deferred` | Dim | Low priority, background |
-| `closed` | Dim | Complete, historical |
+**Rule**: Always display status with both icon and word together, never icon-only or
+word-only.
+
+| Status | Icon | Display | Color | Rationale |
+| --- | --- | --- | --- | --- |
+| `open` | `○` (U+25CB) | `○ open` | Blue | Neutral, awaiting action |
+| `in_progress` | `◐` (U+25D0) | `◐ in_progress` | Green | Active, positive |
+| `blocked` | `●` (U+25CF) | `● blocked` | Red | Needs attention |
+| `deferred` | `○` (U+25CB) | `○ deferred` | Dim | Low priority, background |
+| `closed` | `✓` (U+2713) | `✓ closed` | Dim | Complete, historical |
+
+**Status Icon Rules:**
+- `○` - Open/deferred (empty circle = not started)
+- `◐` - In progress (half-filled = partially complete)
+- `●` - Blocked (filled circle = stopped)
+- `✓` - Closed (checkmark = done)
+- Never use alternative characters
+- Icon always followed by single space before status word
 
 **Priority Colors:**
 
@@ -301,6 +312,56 @@ Syncing with remote...                       # info - dim (verbose only)
 - ISO 8601 for JSON: `2026-01-17T14:30:00Z`
 - Relative for text: `2 hours ago`, `yesterday`
 - Full date for older: `Jan 15, 2026`
+
+#### Issue Line Formats
+
+**Rule**: Use consistent issue line formatting across all commands.
+
+**Standard Line (list/table view):**
+```
+{ID}  {PRI}  {STATUS}  {TITLE}
+```
+
+| Column | Width | Format | Color |
+| --- | --- | --- | --- |
+| ID | 12 chars | Display ID | Cyan |
+| PRI | 5 chars | P-prefixed | P0=red, P1=yellow |
+| STATUS | 16 chars | Icon + word | Per status |
+| TITLE | Remaining | Plain text | Default |
+
+**Example:**
+```
+bd-a1b2     P0   ● blocked        Fix authentication timeout
+bd-c3d4     P1   ◐ in_progress    Add dark mode support
+```
+
+**Compact Line (references, dependencies):**
+```
+{ID} {STATUS_ICON} {TITLE}
+```
+
+**Example:**
+```
+Blocked by:
+  bd-a1b2 ● Fix authentication timeout
+```
+
+**Inline Reference (messages):**
+```
+{ID} ({TITLE})
+```
+
+**Example:**
+```
+✓ Created issue bd-a1b2 (Fix authentication timeout)
+```
+
+**Required utilities** (in `cli/lib/issueFormat.ts`):
+- `formatIssueLine()` - Standard table row
+- `formatIssueCompact()` - Compact reference
+- `formatIssueInline()` - Inline mention
+- `formatIssueHeader()` - Table header
+- `ISSUE_COLUMNS` - Column width constants
 
 ### 2.5 Verbose vs Debug Mode
 
@@ -560,7 +621,23 @@ data<T>(data: T, textFormatter?: (data: T) => void): void {
 - [ ] Add `count()` method for consistent count output
 - [ ] Create `formatPriority()` utility for P0/P1/P2 display format
 - [ ] Create `parsePriority()` utility accepting “P1” or “1” input
+- [ ] Create `formatStatus()` utility for icon + word format (e.g., `● blocked`)
+- [ ] Create `getStatusIcon()` utility for status icons
 - [ ] Update all commands to use `formatPriority()` for display
+- [ ] Update all commands to use `formatStatus()` for display
+- [ ] Create `cli/lib/issueFormat.ts` with shared issue line formatting utilities:
+  - [ ] `ISSUE_COLUMNS` constants (ID=12, PRIORITY=5, STATUS=16, KIND=9, ASSIGNEE=10)
+  - [ ] `formatIssueLine()` - Standard table row format
+  - [ ] `formatIssueCompact()` - Compact reference format (ID + icon + title)
+  - [ ] `formatIssueInline()` - Inline mention format (ID + title in parens)
+  - [ ] `formatIssueHeader()` - Table header row
+  - [ ] `formatIssueLineExtended()` - Extended format with kind/assignee
+- [ ] Update `list.ts` to use `formatIssueLine()` and `formatIssueHeader()`
+- [ ] Update `show.ts` to use issue formatting utilities for dependencies
+- [ ] Update `ready.ts` to use `formatIssueLine()`
+- [ ] Update `blocked.ts` to use `formatIssueLine()` and `formatIssueCompact()`
+- [ ] Update `search.ts` to use `formatIssueLine()`
+- [ ] Update success/notice messages to use `formatIssueInline()` consistently
 
 #### 2.3 API Design Principles
 
@@ -617,8 +694,9 @@ data<T>(data: T, textFormatter?: (data: T) => void): void {
 6. Table formatting is uniform
 7. Priorities always display as P0-P4 (never raw numbers)
 8. Icons used consistently: ✓ for success, ✗ for error, ⚠ for warning
-9. Sync operations show immediate progress (spinner before any delay)
-10. Sync summaries show new/updated/deleted tallies (not vague “pushed/pulled”)
+9. Status always displays with icon + word (○ open, ◐ in_progress, ● blocked, ✓ closed)
+10. Sync operations show immediate progress (spinner before any delay)
+11. Sync summaries show new/updated/deleted tallies (not vague “pushed/pulled”)
 
 **Testing Approach:**
 

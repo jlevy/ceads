@@ -355,11 +355,14 @@ One protocol, always the same:
 | Search | ✅ | ✅ | Full parity |
 | Sync | ✅ | ✅ | Different mechanism |
 | Agent hooks | ✅ | ✅ | `setup claude` command |
+| Tree view (`--pretty`) | ✅ | ✅ | Parent-child hierarchy display |
 | Daemon | Required | Not needed | Major simplification |
 | SQLite | Yes | No | Files instead |
 | Molecules/Wisps | ✅ | ❌ | Intentionally omitted |
 | Agent Mail | ✅ | ❌ | Use issue comments instead |
 | `bd edit` | ✅ | ❌ | Opens $EDITOR, blocks agents |
+| `bd graph` | ✅ | ❌ | Execution layer visualization |
+| `bd dep tree` | ✅ | ❌ | Dependency tree with directions |
 
 ### Intentionally Omitted Features
 

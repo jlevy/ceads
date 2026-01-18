@@ -210,15 +210,35 @@ console.log(colors.error('Failed to sync'));
 console.log(colors.dim(`Updated 2 hours ago`));
 ```
 
-### Status Colors
+### Status Icons and Colors
 
-| Status | Color | Rationale |
-| --- | --- | --- |
-| `open` | Blue (info) | Neutral, awaiting action |
-| `in_progress` | Green (success) | Active, positive progress |
-| `blocked` | Red (error) | Needs attention, problem |
-| `deferred` | Gray (dim) | Low priority, background |
-| `closed` | Gray (dim) | Complete, historical |
+**Rule**: Always display status with both icon and word together, never icon-only or
+word-only.
+
+| Status | Icon | Display | Color | Rationale |
+| --- | --- | --- | --- | --- |
+| `open` | `○` (U+25CB) | `○ open` | Blue (info) | Neutral, awaiting action |
+| `in_progress` | `◐` (U+25D0) | `◐ in_progress` | Green (success) | Active, positive progress |
+| `blocked` | `●` (U+25CF) | `● blocked` | Red (error) | Needs attention, problem |
+| `deferred` | `○` (U+25CB) | `○ deferred` | Gray (dim) | Low priority, background |
+| `closed` | `✓` (U+2713) | `✓ closed` | Gray (dim) | Complete, historical |
+
+**Display Examples:**
+```
+ID          PRI  STATUS           TITLE
+bd-a1b2     P0   ● blocked        Fix authentication timeout
+bd-c3d4     P1   ◐ in_progress    Add dark mode support
+bd-e5f6     P2   ○ open           Update documentation
+bd-g7h8     P3   ✓ closed         Initial setup
+```
+
+**Icon Rules:**
+- `○` (U+25CB) - Open/deferred (empty circle = not started)
+- `◐` (U+25D0) - In progress (half-filled = partially complete)
+- `●` (U+25CF) - Blocked (filled circle = stopped)
+- `✓` (U+2713) - Closed (checkmark = done)
+- Never use alternative characters
+- Icon always followed by single space before status word
 
 ### Priority Colors
 
@@ -234,10 +254,10 @@ console.log(colors.dim(`Updated 2 hours ago`));
 
 **Display Examples:**
 ```
-ID          PRI  STATUS        TITLE
-bd-a1b2     P0   blocked       Fix authentication timeout
-bd-c3d4     P1   in_progress   Add dark mode support
-bd-e5f6     P2   open          Update documentation
+ID          PRI  STATUS           TITLE
+bd-a1b2     P0   ● blocked        Fix authentication timeout
+bd-c3d4     P1   ◐ in_progress    Add dark mode support
+bd-e5f6     P2   ○ open           Update documentation
 ```
 
 **Parsing Rules:**
@@ -403,13 +423,196 @@ Examples:
 
 ## Data Formatting
 
-### Tables
+### Issue Line Format
+
+**Rule**: Use consistent issue line formatting across all commands and contexts.
+
+#### Standard Issue Line (List/Table View)
+
+The canonical format for displaying issues in lists and tables:
 
 ```
-ID          PRI  STATUS        TITLE
-bd-a1b2     P0   blocked       Fix authentication timeout
-bd-c3d4     P1   in_progress   Add dark mode support
-bd-e5f6     P2   open          Update documentation
+{ID}  {PRI}  {STATUS}  {TITLE}
+```
+
+**Column specifications:**
+
+| Column | Width | Alignment | Format | Color |
+| --- | --- | --- | --- | --- |
+| ID | 12 chars | Left | Display ID | Cyan (`id`) |
+| PRI | 5 chars | Left | P-prefixed | P0=red, P1=yellow, P2+=default |
+| STATUS | 16 chars | Left | Icon + word | Per status color |
+| TITLE | Remaining | Left | Plain text | Default |
+
+**Example:**
+```
+ID          PRI  STATUS           TITLE
+bd-a1b2     P0   ● blocked        Fix authentication timeout
+bd-c3d4     P1   ◐ in_progress    Add dark mode support
+bd-e5f6     P2   ○ open           Update documentation
+bd-g7h8     P3   ✓ closed         Initial setup
+```
+
+#### Compact Issue Line (References)
+
+For inline references, dependency lists, blocked-by lists, and search results where
+space is limited:
+
+```
+{ID} {STATUS_ICON} {TITLE}
+```
+
+**Examples:**
+```
+Blocked by:
+  bd-a1b2 ● Fix authentication timeout
+  bd-c3d4 ◐ Add dark mode support
+
+Blocks:
+  bd-e5f6 ○ Update documentation
+```
+
+**Rules:**
+- ID in cyan
+- Status icon only (no word) - colored per status
+- Single space between elements
+- Used for secondary/nested issue references
+
+#### Extended Issue Line (Verbose)
+
+For `--verbose` mode or detailed views showing additional metadata:
+
+```
+{ID}  {PRI}  {STATUS}  {KIND}  {ASSIGNEE}  {TITLE}
+```
+
+**Additional columns:**
+
+| Column | Width | Alignment | Format | Color |
+| --- | --- | --- | --- | --- |
+| KIND | 9 chars | Left | Issue type | Dim |
+| ASSIGNEE | 10 chars | Left | @username or - | Default |
+
+**Example:**
+```
+ID          PRI  STATUS           KIND      ASSIGNEE    TITLE
+bd-a1b2     P0   ● blocked        bug       @alice      Fix authentication timeout
+bd-c3d4     P1   ◐ in_progress    feature   @bob        Add dark mode support
+bd-e5f6     P2   ○ open           task      -           Update documentation
+```
+
+#### Issue Line with Labels
+
+When labels are relevant (search results, filtered views):
+
+```
+{ID}  {PRI}  {STATUS}  {TITLE}  [{LABELS}]
+```
+
+**Example:**
+```
+bd-a1b2     P0   ● blocked        Fix authentication timeout  [urgent, security]
+bd-c3d4     P1   ◐ in_progress    Add dark mode support       [ui]
+```
+
+**Rules:**
+- Labels in square brackets, comma-separated
+- Labels in magenta (`label`) color
+- Only show if issue has labels
+
+#### Single Issue Reference (Inline)
+
+For mentioning an issue inline in messages or logs:
+
+```
+{ID} ({TITLE})
+```
+
+**Examples:**
+```
+✓ Created issue bd-a1b2 (Fix authentication timeout)
+✓ Closed bd-c3d4 (Add dark mode support)
+• Skipped bd-e5f6 (Update documentation) - already up to date
+```
+
+#### Formatting Utility Functions
+
+**File(s)**: `packages/tbd-cli/src/cli/lib/issueFormat.ts`
+
+All commands MUST use these shared utilities for consistent formatting:
+
+```typescript
+/** Column widths for consistent table alignment */
+export const ISSUE_COLUMNS = {
+  ID: 12,
+  PRIORITY: 5,
+  STATUS: 16,
+  KIND: 9,
+  ASSIGNEE: 10,
+} as const;
+
+/** Format a standard issue line for list/table view */
+export function formatIssueLine(
+  issue: { id: string; priority: number; status: string; title: string },
+  colors: ColorFunctions,
+): string;
+
+/** Format a compact issue reference (for dependency lists, etc.) */
+export function formatIssueCompact(
+  issue: { id: string; status: string; title: string },
+  colors: ColorFunctions,
+): string;
+
+/** Format an inline issue reference */
+export function formatIssueInline(
+  issue: { id: string; title: string },
+  colors: ColorFunctions,
+): string;
+
+/** Format table header row */
+export function formatIssueHeader(colors: ColorFunctions): string;
+
+/** Format extended issue line with kind and assignee */
+export function formatIssueLineExtended(
+  issue: { id: string; priority: number; status: string; kind: string; assignee?: string; title: string },
+  colors: ColorFunctions,
+): string;
+```
+
+**Usage example:**
+```typescript
+import {
+  formatIssueLine,
+  formatIssueHeader,
+  formatIssueCompact,
+  formatIssueInline,
+} from '../lib/issueFormat.js';
+
+// List view
+console.log(formatIssueHeader(colors));
+for (const issue of issues) {
+  console.log(formatIssueLine(issue, colors));
+}
+
+// Dependency list (compact)
+console.log('Blocked by:');
+for (const dep of blockedBy) {
+  console.log(`  ${formatIssueCompact(dep, colors)}`);
+}
+
+// Success message (inline)
+output.success(`Created issue ${formatIssueInline(issue, colors)}`);
+```
+
+### Tables
+
+The standard issue table format (see Issue Line Format above):
+
+```
+ID          PRI  STATUS           TITLE
+bd-a1b2     P0   ● blocked        Fix authentication timeout
+bd-c3d4     P1   ◐ in_progress    Add dark mode support
+bd-e5f6     P2   ○ open           Update documentation
 
 3 issue(s)
 ```
@@ -418,7 +621,53 @@ bd-e5f6     P2   open          Update documentation
 - Header row in dim color
 - Column widths consistent within table
 - Priorities always as P0-P4 (never raw numbers)
+- Status always with icon + word (e.g., `● blocked`, never just `blocked`)
 - Left-align text columns (ID, PRI, TITLE, STATUS)
+- Count summary at bottom in dim color
+
+### Tree View (--pretty)
+
+The `--pretty` flag displays issues in a tree format showing parent-child relationships:
+
+```
+bd-1875  P1  ✓ closed  epic  Phase 24 Epic: Installation and Agent Integration
+├── bd-1876  P1  ✓ closed  task  Implement tbd prime command
+└── bd-1877  P1  ✓ closed  task  Implement tbd setup claude command
+bd-a1b2  P1  ◐ in_progress  bug  Fix authentication bug
+bd-f14c  P2  ○ open  feature  Add OAuth support
+├── bd-c3d4  P2  ● blocked  task  Write OAuth tests
+└── bd-e5f6  P2  ○ open  task  Update OAuth docs
+
+7 issue(s)
+```
+
+**Column layout (left to right):**
+
+| Column | Color | Notes |
+| --- | --- | --- |
+| Tree prefix | dim | `├── ` or `└── ` for children |
+| ID | cyan | Display ID |
+| Priority | P0=red, P1=yellow, P2+=default | Always with P prefix |
+| Status | per status | Icon + word together |
+| Type | dim | Issue kind |
+| Title | default | Issue title |
+
+**Tree characters:**
+
+| Character | Unicode | Usage |
+| --- | --- | --- |
+| `├── ` | U+251C, U+2500 | Middle child |
+| `└── ` | U+2514, U+2500 | Last child |
+| `│   ` | U+2502 | Continuation line for deeper nesting |
+| `    ` | (spaces) | Spacing after last child at a level |
+
+**Rules:**
+- Root issues (no parent) appear at left margin
+- Children grouped under their parent with tree lines
+- Children sorted by priority within each parent group
+- Multi-level nesting supported with proper indentation
+- Tree prefix in dim color
+- No header row (unlike table format)
 - Count summary at bottom in dim color
 
 ### Lists
@@ -883,6 +1132,43 @@ export function parsePriority(input: string): number {
   }
   return num;
 }
+```
+
+#### 2b. Status Formatting Utilities
+
+**File(s)**: `packages/tbd-cli/src/lib/status.ts`
+
+Format status with icon consistently:
+
+```typescript
+/** Status icons - always use with status word */
+const STATUS_ICONS: Record<string, string> = {
+  open: '○',        // U+25CB - empty circle
+  in_progress: '◐', // U+25D0 - half-filled circle
+  blocked: '●',     // U+25CF - filled circle
+  deferred: '○',    // U+25CB - empty circle (same as open)
+  closed: '✓',      // U+2713 - checkmark
+} as const;
+
+/** Format status for display - always includes icon */
+export function formatStatus(status: string): string {
+  const icon = STATUS_ICONS[status] ?? '○';
+  return `${icon} ${status}`;
+}
+
+/** Get status icon only (for special cases) */
+export function getStatusIcon(status: string): string {
+  return STATUS_ICONS[status] ?? '○';
+}
+```
+
+**Usage:**
+```typescript
+// Always use formatStatus() for display
+console.log(formatStatus('blocked'));     // "● blocked"
+console.log(formatStatus('in_progress')); // "◐ in_progress"
+console.log(formatStatus('open'));        // "○ open"
+console.log(formatStatus('closed'));      // "✓ closed"
 ```
 
 #### 3. CommandContext
