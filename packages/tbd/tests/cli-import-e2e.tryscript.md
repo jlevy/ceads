@@ -21,31 +21,31 @@ before: |
   # Initialize tbd
   tbd init --prefix=test
 ---
-# tbd CLI: Import E2E Test (Real Beads Database)
+# tbd CLI: Import E2E Test (Beads Fixture)
 
-End-to-end test for importing from a real Beads database with 100+ issues.
-This test uses the actual beads database from the tbd repository.
+End-to-end test for importing from a Beads database with 100+ issues.
+This test uses a self-contained fixture in tests/fixtures/beads-sample/.
 
 * * *
 
-## Verify Source Beads Repository
+## Verify Source Beads Fixture
 
-# Test: Source beads database exists
+# Test: Source beads fixture exists
 
 ```console
-$ ls $TRYSCRIPT_TEST_DIR/../../../.beads/issues.jsonl
+$ ls $TRYSCRIPT_TEST_DIR/fixtures/beads-sample/issues.jsonl
 [..]/issues.jsonl
 ? 0
 ```
 
 * * *
 
-## Import from Real Repository
+## Import from Fixture
 
-# Test: Import from source beads
+# Test: Import from source beads fixture
 
 ```console
-$ tbd import --from-beads --beads-dir=$TRYSCRIPT_TEST_DIR/../../../.beads 2>&1 | grep "Import complete"
+$ tbd import --from-beads --beads-dir=$TRYSCRIPT_TEST_DIR/fixtures/beads-sample 2>&1 | grep "Import complete"
 ✓ Import complete from [..]
 ? 0
 ```
@@ -125,7 +125,7 @@ $ tbd list --all --count > count_before.txt && cat count_before.txt
 # Test: Re-import does not create duplicates
 
 ```console
-$ tbd import --from-beads --beads-dir=$TRYSCRIPT_TEST_DIR/../../../.beads >/dev/null 2>&1 && tbd list --all --count > count_after.txt && diff count_before.txt count_after.txt && echo "Idempotent: YES"
+$ tbd import --from-beads --beads-dir=$TRYSCRIPT_TEST_DIR/fixtures/beads-sample >/dev/null 2>&1 && tbd list --all --count > count_after.txt && diff count_before.txt count_after.txt && echo "Idempotent: YES"
 Idempotent: YES
 ? 0
 ```

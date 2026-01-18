@@ -64,6 +64,8 @@ async function initRepoWithRemote(
   await gitInDir(repoPath, 'init', '-b', 'main');
   await gitInDir(repoPath, 'config', 'user.email', 'test@test.com');
   await gitInDir(repoPath, 'config', 'user.name', 'Test User');
+  // Disable commit signing in test repos (may fail in sandbox environments)
+  await gitInDir(repoPath, 'config', 'commit.gpgsign', 'false');
   await gitInDir(repoPath, 'remote', 'add', remoteName, remotePath);
 
   // Create initial commit on main branch

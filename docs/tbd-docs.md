@@ -153,14 +153,17 @@ blocked/deferred
 Initialize tbd in a git repository.
 
 ```bash
-tbd init                           # Use defaults
-tbd init --sync-branch=my-sync     # Custom sync branch name
-tbd init --remote=upstream         # Use different remote
+tbd init --prefix=proj             # Initialize with prefix (required)
+tbd init --prefix=myapp --sync-branch=my-sync  # Custom sync branch name
+tbd init --prefix=tk --remote=upstream         # Use different remote
 ```
 
 Options:
+- `--prefix <name>` - **Required.** Project prefix for display IDs (e.g., "proj", "myapp")
 - `--sync-branch <name>` - Sync branch name (default: tbd-sync)
 - `--remote <name>` - Remote name (default: origin)
+
+Note: When importing from Beads (`tbd import --from-beads`), the prefix is auto-detected.
 
 ### create
 
@@ -218,6 +221,9 @@ tbd list --sort=created                     # Sort by creation date
 tbd list --sort=updated                     # Sort by last update
 tbd list --limit=10                         # Limit results
 tbd list --count                            # Just show count
+tbd list --long                             # Show descriptions
+tbd list --pretty                           # Tree view with parent-child hierarchy
+tbd list --pretty --long                    # Tree view with descriptions
 
 # JSON output for scripting
 tbd list --json | jq '.[].title'
@@ -236,6 +242,8 @@ Options:
 - `--sort <field>` - Sort by: priority, created, updated (default: priority)
 - `--limit <n>` - Limit number of results
 - `--count` - Output only the count of matching issues
+- `--long` - Show issue descriptions on a second line
+- `--pretty` - Show tree view with parent-child relationships
 
 ### show
 
@@ -318,11 +326,13 @@ List issues ready to work on (open, unblocked, unassigned).
 tbd ready                                   # All ready issues
 tbd ready --type=bug                        # Ready bugs
 tbd ready --limit=5                         # Top 5 ready issues
+tbd ready --long                            # Show descriptions
 ```
 
 Options:
 - `--type <type>` - Filter by type
 - `--limit <n>` - Limit results
+- `--long` - Show issue descriptions
 
 ### blocked
 
@@ -331,10 +341,12 @@ List issues that are blocked by dependencies.
 ```bash
 tbd blocked                                 # All blocked issues
 tbd blocked --limit=10                      # Limit results
+tbd blocked --long                          # Show descriptions
 ```
 
 Options:
 - `--limit <n>` - Limit results
+- `--long` - Show issue descriptions
 
 ### stale
 
@@ -586,7 +598,38 @@ tbd setup cursor --remove                   # Remove Cursor rules
 tbd setup codex                             # Create/update AGENTS.md
 tbd setup codex --check                     # Verify AGENTS.md
 tbd setup codex --remove                    # Remove tbd section from AGENTS.md
+
+tbd setup auto                              # Auto-detect and configure all integrations
+tbd setup beads --disable                   # Disable Beads (for migration)
 ```
+
+### Documentation Commands
+
+Built-in documentation viewers:
+
+```bash
+tbd readme                                  # Display README (same as GitHub landing page)
+tbd docs                                    # Display CLI reference documentation
+tbd docs --list                             # List available documentation sections
+tbd design                                  # Display design documentation
+tbd design --list                           # List design doc sections
+tbd closing                                 # Display session closing protocol reminder
+```
+
+### uninstall
+
+Remove tbd from a repository.
+
+```bash
+tbd uninstall --confirm                     # Remove tbd (requires --confirm)
+tbd uninstall --confirm --keep-branch       # Keep local sync branch
+tbd uninstall --confirm --remove-remote     # Also remove remote sync branch
+```
+
+Options:
+- `--confirm` - Required to proceed with removal
+- `--keep-branch` - Keep the local sync branch
+- `--remove-remote` - Also remove the remote sync branch
 
 ## Global Options
 

@@ -38,8 +38,9 @@ export const ExternalIssueIdInput = z.string().regex(/^([a-z]+-)?[0-9a-z]+$/);
 
 /**
  * Edit counter - incremented on every local change.
- * NOTE: Version is NOT used for conflict detection (content hash is used instead).
- * Version is informational only.
+ * NOTE: Version is NOT used for conflict detection (Git push rejection is used).
+ * Content hash is used as tiebreaker during merge resolution.
+ * Version is informational only - set to max(local, remote) + 1 after merges.
  */
 export const Version = z.number().int().nonnegative();
 

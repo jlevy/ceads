@@ -222,7 +222,7 @@ It does *not* aim to be a full solution for real-time agent coordination.
 Git works best when latency is seconds, not milliseconds, and volume is thousands of
 issues, not millions.
 
-That said, it may for the base for future coordiation layers.
+That said, it may be the base for future coordination layers.
 Real-time agent coordination (such as used by
 [Agent Mail](https://github.com/Dicklesworthstone/mcp_agent_mail),
 [Gas Town](https://github.com/steveyegge/gastown)) is a separate problem—one that can be
@@ -400,7 +400,7 @@ tbd addresses specific requirements:
 
 2. **No data loss**: Conflicts preserve both versions via attic mechanism
 
-3. **Works anywhere**: Just `npm install -g tbd` anywhere: local dev, CI, cloud IDEs
+3. **Works anywhere**: Just `npm install -g tbd-git` anywhere: local dev, CI, cloud IDEs
    (Claude Code, Codespaces), network filesystems
 
 4. **Simple architecture**: Easy to understand, debug, and maintain
@@ -560,6 +560,10 @@ Found the issue in session.ts line 42. Working on fix.
 - Body is the description (Markdown)
 
 - `## Notes` section separates working notes from description
+
+> **Note:** The example above shows fields in a human-friendly logical order for
+> readability. Actual files use canonical serialization (alphabetical key ordering) as
+> specified below.
 
 #### Canonical Serialization
 
@@ -1195,6 +1199,7 @@ display:
 # Runtime settings
 settings:
   auto_sync: false # Auto-sync after write operations
+  index_enabled: true # Enable search indexing
 ```
 
 ```typescript
@@ -1213,6 +1218,7 @@ const ConfigSchema = z.object({
   settings: z
     .object({
       auto_sync: z.boolean().default(false),
+      index_enabled: z.boolean().default(true),
     })
     .default({}),
 });
@@ -1238,6 +1244,9 @@ const MetaSchema = z.object({
 
 Per-node state stored in `.tbd/cache/state.yml` (gitignored, never synced).
 Each machine maintains its own local state:
+
+> **Implementation note:** Current implementation uses `state.json` for simplicity.
+> Migration to YAML planned for consistency with other config files.
 
 ```typescript
 const LocalStateSchema = z.object({
@@ -1336,7 +1345,7 @@ main branch:                    tbd-sync branch:
 
 ```
 .tbd/config.yml       # Project configuration (YAML)
-.tbd/.gitignore       # Ignores cache/ directory
+.tbd/.gitignore       # Ignores cache/, data-sync-worktree/, data-sync/
 ```
 
 #### .tbd/.gitignore Contents
@@ -1344,6 +1353,10 @@ main branch:                    tbd-sync branch:
 ```gitignore
 # Local cache (rebuildable)
 cache/
+# Hidden worktree for search access
+data-sync-worktree/
+# Reserved for potential future "simple mode" (issues on main branch)
+data-sync/
 ```
 
 #### Files Tracked on tbd-sync Branch
@@ -1351,7 +1364,9 @@ cache/
 ```
 .tbd/data-sync/issues/     # Issue entities
 .tbd/data-sync/attic/      # Conflict archive
-.tbd/data-sync/meta.yml   # Metadata
+.tbd/data-sync/mappings/   # ID mappings
+  ids.yml                  # Short ID → ULID mapping (includes preserved import IDs)
+.tbd/data-sync/meta.yml    # Metadata
 ```
 
 ### 3.3 Sync Operations
@@ -1833,6 +1848,8 @@ Options:
   --sort <field>            Sort by: priority, created, updated (default: priority)
                             (created/updated are shorthand for created_at/updated_at)
   --limit <n>               Limit results
+  --count                   Output only the count of matching issues
+  --long                    Show descriptions
   --pretty                  Tree format showing parent-child hierarchy
   --json                    Output as JSON
 ```
@@ -2207,6 +2224,9 @@ tbd sync --push
 
 # Show sync status
 tbd sync --status
+
+# Force sync (overwrite conflicts)
+tbd sync --force
 ```
 
 **Output (sync):**
@@ -2237,15 +2257,19 @@ issues. (The worktree also enables manual use of ripgrep/grep if needed.)
 tbd search <pattern> [options]
 
 Options:
-  --field <field>           Search only in specific field (title, description, notes)
-  --type <type>             Filter by issue type (bug, feature, task, epic, chore)
+  --field <field>           Search only in specific field (title, description, notes, labels)
   --status <status>         Filter by status
-  --label <label>           Filter by label
   --case-sensitive          Case-sensitive search (default: case-insensitive)
-  --context <n>             Show n lines of context (default: 2)
-  --files-only              Only show matching file paths
-  --count                   Show match count only
+  --limit <n>               Limit results
+  --no-refresh              Skip worktree refresh
   --json                    JSON output
+
+# Future options (not yet implemented):
+#   --type <type>           Filter by issue type
+#   --label <label>         Filter by label
+#   --context <n>           Show n lines of context
+#   --files-only            Only show matching file paths
+#   --count                 Show match count only
 ```
 
 **Examples:**
@@ -2257,17 +2281,11 @@ tbd search "authentication"
 # Search in specific field
 tbd search "timeout" --field description
 
-# Search only bugs
-tbd search "error" --type=bug
-
 # Search open issues only
 tbd search "TODO" --status open
 
-# Show file paths only
-tbd search "security" --files-only
-
-# Count matches
-tbd search "FIXME" --count
+# Limit results
+tbd search "error" --limit 10
 ```
 
 **Output (default):**
@@ -2521,16 +2539,18 @@ Compaction is a future enhancement.
 #### Config
 
 ```bash
-tbd config <key> [value]
-tbd config --list
+tbd config show                    # Show all configuration
+tbd config get <key>               # Get a configuration value
+tbd config set <key> <value>       # Set a configuration value
 ```
 
 **Examples:**
 
 ```bash
-tbd config sync.remote upstream
-tbd config display.id_prefix cd
-tbd config --list
+tbd config show
+tbd config get display.id_prefix
+tbd config set sync.remote upstream
+tbd config set display.id_prefix cd
 ```
 
 ### 4.10 Global Options
@@ -2545,10 +2565,11 @@ Available on all commands:
 --no-sync                   Disable auto-sync (per command)
 --json                      JSON output
 --color <when>              Colorize output: auto, always, never (default: auto)
---actor <name>              Override actor name
+--actor <name>              Override actor name (not yet implemented)
 --dry-run                   Show what would be done without making changes
 --verbose                   Enable verbose output
 --quiet                     Suppress non-essential output
+--debug                     Show internal IDs alongside public IDs for debugging
 --non-interactive           Disable all prompts, fail if input required
 --yes                       Assume yes to confirmation prompts
 ```
@@ -2567,18 +2588,23 @@ This follows the same convention as `git`, `ls`, `grep`, and other Unix tools.
 
 **Actor Resolution Order:**
 
+> **Implementation note:** The `--actor` flag and `TBD_ACTOR` environment variable are
+> not yet implemented.
+> Currently, actor defaults to git user.email or system username.
+> Full actor system design is tracked as future work.
+
 The actor name (used for `created_by` and recorded in sync commits) is resolved in this
 order:
 
-1. `--actor <name>` CLI flag (highest priority)
+1. `--actor <name>` CLI flag (highest priority) — *not yet implemented*
 
-2. `tbd_ACTOR` environment variable
+2. `TBD_ACTOR` environment variable — *not yet implemented*
 
 3. Git user.email from git config
 
 4. System username + hostname (fallback)
 
-Example: `tbd_ACTOR=claude-agent-1 tbd create "Fix bug"`
+Example: `TBD_ACTOR=claude-agent-1 tbd create "Fix bug"`
 
 > **Note:** `--db` is retained for Beads compatibility.
 > Prefer `--dir` for new usage.
@@ -2671,7 +2697,7 @@ TIMESTAMP                  ISSUE      FIELD        WINNER
 
 ```bash
 # Show attic entry details
-tbd attic show <entry-id> [options]
+tbd attic show <id> <timestamp> [options]
 
 Options:
   --json                    JSON output
@@ -2699,7 +2725,7 @@ Context:
 
 ```bash
 # Restore value from attic
-tbd attic restore <entry-id> [options]
+tbd attic restore <id> <timestamp> [options]
 
 Options:
   --dry-run                 Show what would be restored
@@ -2710,10 +2736,10 @@ Options:
 
 ```bash
 # Preview restoration
-tbd attic restore 2025-01-07T10-30-00Z_description --dry-run
+tbd attic restore proj-a1b2 2025-01-07T10-30-00Z --dry-run
 
 # Apply restoration (creates new version with restored value)
-tbd attic restore 2025-01-07T10-30-00Z_description
+tbd attic restore proj-a1b2 2025-01-07T10-30-00Z
 ```
 
 > **Note:** Restore creates a new version of the issue with the attic value applied to
@@ -3270,7 +3296,7 @@ tbd sync
 | `bd label remove` | `tbd label remove` | ✅ Full | Identical |
 | `bd label list` | `tbd label list` | ✅ Full | Lists all labels |
 | `bd dep add` | `tbd dep add` | ✅ Full | Only "blocks" type |
-| `bd dep tree` | `tbd dep tree` | ✅ Full | Visualize dependencies |
+| `bd dep tree` | `tbd dep tree` | 🔄 Future | Visualize dependencies |
 | `bd sync` | `tbd sync` | ✅ Full | Different mechanism, same UX |
 | `bd stats` | `tbd stats` | ✅ Full | Same statistics |
 | `bd doctor` | `tbd doctor` | ✅ Full | Different checks |
@@ -3698,11 +3724,16 @@ This script:
 tbd setup claude [options]
 
 Options:
-  --project       Install to .claude/settings.local.json (project-specific)
-  --global        Install to ~/.claude/settings.json (user-wide)
   --check         Verify installation status
   --remove        Remove tbd hooks
+
+# Future options (not yet implemented):
+#   --project     Install to .claude/settings.local.json (project-specific)
+#   --global      Install to ~/.claude/settings.json (user-wide)
 ```
+
+> **Note:** Currently installs to project-level settings only.
+> Global installation planned for future release.
 
 #### 6.4.3 The `tbd prime` Command
 
@@ -4372,7 +4403,7 @@ Also available via update: `tbd update <id> --add-label X` and `--remove-label X
 | `bd dep add <a> <b> --type related` | *(not yet)* | ⏳ Future | Only blocks |
 | `bd dep add <a> <b> --type discovered-from` | *(not yet)* | ⏳ Future | Only blocks |
 | `bd dep remove <a> <b>` | `tbd dep remove <id> <target>` | ✅ Full | Identical |
-| `bd dep tree <id>` | `tbd dep tree <id>` | ✅ Full | Visualize deps |
+| `bd dep tree <id>` | `tbd dep tree <id>` | 🔄 Future | Visualize deps |
 
 **Note:** Currently supports only `blocks` dependency type.
 This is sufficient for the `ready` command algorithm.
@@ -4412,7 +4443,7 @@ This is sufficient for the `ready` command algorithm.
 | `--version` | `--version` | ✅ Full | Version info |
 | `--db <path>` | `--db <path>` | ✅ Full | Custom .tbd path |
 | `--no-sync` | `--no-sync` | ✅ Full | Skip auto-sync |
-| `--actor <name>` | `--actor <name>` | ✅ Full | Override actor |
+| `--actor <name>` | `--actor <name>` | 🔄 Future | Override actor |
 | *(n/a)* | `--dry-run` | ✅ tbd | Preview changes |
 | *(n/a)* | `--verbose` | ✅ tbd | Debug output |
 | *(n/a)* | `--quiet` | ✅ tbd | Minimal output |
@@ -4680,13 +4711,13 @@ Comments will be a separate entity type in the future:
 
 ### B.6 Editor Integration Commands
 
-| Beads Command | Why Not Included |
-| --- | --- |
-| `bd setup claude` | Editor hooks - not planned |
-| `bd setup cursor` | Editor rules - not planned |
-| `bd setup aider` | Editor config - not planned |
-| `bd setup factory` | AGENTS.md - not planned |
-| `bd edit` | Interactive edit (human only) - not planned |
+| Beads Command | tbd Equivalent | Status |
+| --- | --- | --- |
+| `bd setup claude` | `tbd setup claude` | ✅ Implemented |
+| `bd setup cursor` | `tbd setup cursor` | ✅ Implemented |
+| `bd setup aider` | *(not implemented)* | Not planned |
+| `bd setup factory` | `tbd setup codex` | ✅ Implemented (renamed) |
+| `bd edit` | *(not implemented)* | Not planned (use `tbd show` + editor) |
 
 ### B.7 Additional Dependency Types
 
@@ -4748,7 +4779,52 @@ Currently only `blocks` is supported:
 These items from the design review need further discussion before implementation.
 See `tbd-design-v2-phase1-tracking.md` for full context.
 
-### 8.1 Git Operations
+### 8.1 Actor System Design
+
+**Status:** Partially designed, not implemented.
+
+The actor system tracks who creates and modifies issues.
+Current implementation status:
+
+**Implemented:**
+- Schema fields: `created_by` and `assignee` exist in IssueSchema
+- CLI option: `--assignee` can be set when creating/updating issues
+- Display: `assignee` shown in list and show commands
+
+**NOT Implemented:**
+- `created_by` field is never populated when creating issues
+- `--actor` CLI flag does not exist
+- `TBD_ACTOR` environment variable not checked
+- No git user.email fallback for actor resolution
+- No system username fallback
+
+**Design Questions:**
+
+1. **Actor vs Assignee distinction:**
+   - `created_by`: Who created the issue (tracked automatically)
+   - `assignee`: Who is working on it (set explicitly)
+   - Should these always use the same resolution?
+
+2. **Multi-agent workflows:**
+   - Should agents be assigned random ULID-based actor IDs?
+   - How should agents claim/release issues?
+   - Is advisory claiming sufficient or do we need atomic claims?
+
+3. **Actor resolution order:**
+   - Design doc specifies: `--actor` > `TBD_ACTOR` > git user.email > username+hostname
+   - Is this order correct?
+     Should git user.name be considered?
+
+4. **Sync commit authorship:**
+   - Should sync commits use the actor name?
+   - How does this interact with git commit signing?
+
+**Recommendation:** Defer full implementation until multi-agent coordination patterns
+are better understood.
+Current fallback to git user.email is sufficient for single-user and simple multi-agent
+scenarios.
+
+### 8.2 Git Operations
 
 **V2-004: Remote vs local branch reference ambiguity**
 
