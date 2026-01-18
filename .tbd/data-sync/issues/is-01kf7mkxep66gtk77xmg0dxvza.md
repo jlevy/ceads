@@ -1,4 +1,6 @@
 ---
+close_reason: Created lib/status.ts with getStatusIcon(), formatStatus(), getStatusColor() and 17 unit tests
+closed_at: 2026-01-18T04:32:39.837Z
 created_at: 2026-01-18T04:08:09.429Z
 dependencies:
   - target: is-01kf7mmaqg5nsqjkh5phewrt5h
@@ -9,11 +11,11 @@ id: is-01kf7mkxep66gtk77xmg0dxvza
 kind: task
 labels: []
 priority: 2
-status: in_progress
+status: closed
 title: Create status utilities
 type: is
-updated_at: 2026-01-18T04:32:00.704Z
-version: 6
+updated_at: 2026-01-18T04:32:39.838Z
+version: 7
 ---
 Create lib/status.ts with:
 - formatStatus() utility for icon + word format (e.g., '● blocked')
