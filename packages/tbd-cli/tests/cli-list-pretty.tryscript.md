@@ -186,3 +186,27 @@ test-[SHORTID]  P3  [..]  [task] Child Task 2
 3 issue(s)
 ? 0
 ```
+
+* * *
+
+## Test: --pretty with --long (descriptions)
+
+Create an issue with a description to test --long:
+
+```console
+$ tbd create "Task With Description" --type=task --priority=1 --description="This is a detailed description that will be wrapped across multiple lines when displayed in long format." --json | node -e "console.log('Created')"
+Created
+? 0
+```
+
+The --long flag shows descriptions under each issue:
+
+```console
+$ tbd list --pretty --long --priority=1 --type=task
+test-[SHORTID]  P1  [..]  [task] Task With Description
+      This is a detailed description that will be wrapped across multiple lines
+      when displayed in long format.
+
+1 issue(s)
+? 0
+```

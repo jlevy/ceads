@@ -7,7 +7,17 @@
 import type { createColors } from './output.js';
 import { formatPriority, getPriorityColor } from '../../lib/priority.js';
 import { getStatusIcon, getStatusColor } from '../../lib/status.js';
-import { formatKind, type IssueForDisplay } from './issueFormat.js';
+import { formatKind, wrapDescription, type IssueForDisplay } from './issueFormat.js';
+
+/**
+ * Options for tree rendering.
+ */
+export interface TreeRenderOptions {
+  /** Show descriptions (--long mode) */
+  long?: boolean;
+  /** Terminal width for description wrapping */
+  maxWidth?: number;
+}
 
 /**
  * Tree node representing an issue with its children.
@@ -91,20 +101,38 @@ function formatTreeIssueLine(
  * @param node - The tree node to render
  * @param colors - Color functions for formatting
  * @param prefix - Current line prefix (for nested indentation)
- * @param isLast - Whether this is the last sibling at its level
+ * @param options - Rendering options (long mode, max width)
  * @returns Array of formatted lines
  */
 function renderTreeNode(
   node: TreeNode,
   colors: ReturnType<typeof createColors>,
   prefix = '',
-  _isLast = true,
+  options: TreeRenderOptions = {},
 ): string[] {
   const lines: string[] = [];
+  const { long = false, maxWidth = 80 } = options;
 
   // Render this node
   const issueLine = formatTreeIssueLine(node.issue, colors);
   lines.push(prefix + issueLine);
+
+  // Render description if --long and description exists
+  if (long && node.issue.description) {
+    // Calculate indent: prefix length + 6 spaces for description alignment
+    const descIndent = prefix.length + 6;
+    const descWidth = maxWidth - descIndent;
+    if (descWidth > 20) {
+      const wrapped = wrapDescription(node.issue.description, 6, 2, descWidth + 6);
+      if (wrapped) {
+        // Add prefix to each description line
+        const descLines = wrapped.split('\n');
+        for (const descLine of descLines) {
+          lines.push(prefix + colors.dim(descLine));
+        }
+      }
+    }
+  }
 
   // Render children
   const childCount = node.children.length;
@@ -119,7 +147,7 @@ function renderTreeNode(
     const childPrefix = prefix + (isLastChild ? TREE_CHARS.SPACE : TREE_CHARS.VERTICAL);
 
     // Render child with its prefix
-    const childLines = renderTreeNode(child, colors, '', isLastChild);
+    const childLines = renderTreeNode(child, colors, '', options);
 
     // Add connector to first line, maintain prefix for continuation lines
     childLines.forEach((line, lineIndex) => {
@@ -139,16 +167,18 @@ function renderTreeNode(
  *
  * @param roots - Array of root tree nodes
  * @param colors - Color functions for formatting
+ * @param options - Rendering options (long mode, max width)
  * @returns Array of formatted lines (without header, count is separate)
  */
 export function renderIssueTree(
   roots: TreeNode[],
   colors: ReturnType<typeof createColors>,
+  options: TreeRenderOptions = {},
 ): string[] {
   const lines: string[] = [];
 
   for (const root of roots) {
-    const rootLines = renderTreeNode(root, colors, '', true);
+    const rootLines = renderTreeNode(root, colors, '', options);
     lines.push(...rootLines);
   }
 

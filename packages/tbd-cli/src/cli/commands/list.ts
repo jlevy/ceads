@@ -109,10 +109,11 @@ class ListHandler extends BaseCommand {
 
       if (options.pretty) {
         // Tree view: show parent-child relationships
-        const tree = buildIssueTree(
-          displayIssues as (IssueForDisplay & { parentId?: string })[],
-        );
-        const lines = renderIssueTree(tree, colors);
+        const tree = buildIssueTree(displayIssues as (IssueForDisplay & { parentId?: string })[]);
+        const lines = renderIssueTree(tree, colors, {
+          long: options.long,
+          maxWidth: process.stdout.columns ?? 80,
+        });
         for (const line of lines) {
           console.log(line);
         }
