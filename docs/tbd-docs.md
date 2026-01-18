@@ -516,9 +516,9 @@ Options:
 Beads migration utilities.
 
 ```bash
-tbd beads                                   # Show usage
-tbd beads --disable                         # Preview what will be moved
-tbd beads --disable --confirm               # Actually disable Beads
+tbd setup beads                             # Show usage
+tbd setup beads --disable                   # Preview what will be moved
+tbd setup beads --disable --confirm         # Actually disable Beads
 ```
 
 The `--disable` option safely moves all Beads files to `.beads-disabled/`:
@@ -772,8 +772,8 @@ bd sync                                 # Final Beads sync
 tbd import --from-beads --verbose       # Import all issues
 
 # 3. Disable Beads (moves files to .beads-disabled/)
-tbd beads --disable                     # Preview what will be moved
-tbd beads --disable --confirm           # Actually disable Beads
+tbd setup beads --disable               # Preview what will be moved
+tbd setup beads --disable --confirm     # Actually disable Beads
 
 # 4. Install tbd integrations
 tbd setup claude                        # Install Claude Code hooks
@@ -785,8 +785,8 @@ tbd stats
 tbd list --all
 ```
 
-The `tbd beads --disable` command safely moves all Beads files to `.beads-disabled/` for
-potential rollback, including:
+The `tbd setup beads --disable` command safely moves all Beads files to
+`.beads-disabled/` for potential rollback, including:
 
 - `.beads/` directory (data and config)
 - `.beads-hooks/` directory (git hooks)

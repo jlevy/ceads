@@ -1,4 +1,6 @@
-# tbd Design V3: Beads Replacement
+# tbd Design Specification
+
+Git-native issue tracking for AI agents and humans.
 
 **Author:** Joshua Levy (github.com/jlevy) and various LLMs
 
@@ -10,7 +12,7 @@
 
 ## Table of Contents
 
-- [tbd Design V3: Beads Replacement](#tbd-design-v3-beads-replacement)
+- [tbd Design Specification](#tbd-design-specification)
   - [Table of Contents](#table-of-contents)
   - [1. Introduction](#1-introduction)
     - [1.1 What is tbd?](#11-what-is-tbd)
@@ -201,17 +203,36 @@
 
 ### 1.1 What is tbd?
 
-**tbd** is an alternative to [Beads](https://github.com/steveyegge/beads) that
-eliminates some rough edges and architectural complexity while maintaining CLI
-compatibility.
+**tbd** ("To Be Done" or “TypeScript Beads”) is a git-native issue tracker designed for
+simplicity and reliability.
+It stores issues as Markdown files with YAML frontmatter on a dedicated sync branch,
+enabling conflict-free collaboration without daemons or databases.
 
-The `tbd` CLI stands for “To Be Done” or “TypeScript Beads,” depending on your
-preference.
+tbd is the **durable persistence layer** for issues, with four core principles:
+
+- **Durable storage in git** — Issues are version-controlled and distributed via
+  standard git
+- **Works in almost any environment** — No daemon, no SQLite, no file locking issues on
+  network drives
+- **Simple, self-documenting CLI** — Designed for both AI agents and humans
+- **Transparent internal format** — Markdown/YAML files that are debuggable and friendly
+  to other tooling
+
+It does *not* aim to be a full solution for real-time agent coordination.
+Git works best when latency is seconds, not milliseconds, and volume is thousands of
+issues, not millions.
+
+That said, it may for the base for future coordiation layers.
+Real-time agent coordination (such as used by
+[Agent Mail](https://github.com/Dicklesworthstone/mcp_agent_mail),
+[Gas Town](https://github.com/steveyegge/gastown)) is a separate problem—one that can be
+layered on top of tbd or handled by other tools.
 
 **Key characteristics:**
 
-- **Drop-in replacement**: Compatible with core Beads CLI commands and workflows at the
-  CLI level (have agents use `tbd` instead of `bd`)
+- **Drop-in replacement**: Compatible with core
+  [Beads](https://github.com/steveyegge/beads) CLI commands and workflows (have agents
+  use `tbd` instead of `bd`)
 
 - **Simpler architecture**: No daemon changing your `.beads` directory, no SQLite and
   associated file locking
@@ -231,6 +252,20 @@ preference.
 
 - **Cross-environment**: Works on local machines, CI, cloud sandboxes, network
   filesystems
+
+**Related Projects:**
+
+- [Beads](https://github.com/steveyegge/beads) — The original git-backed issue tracker
+  tbd is designed to replace
+- [Agent Mail](https://github.com/Dicklesworthstone/mcp_agent_mail) — Real-time agent
+  messaging via MCP (complementary to tbd for coordination)
+- [Gas Town](https://github.com/steveyegge/gastown) — Multi-agent orchestration platform
+  (complementary to tbd for real-time coordination)
+- [ticket](https://github.com/wedow/ticket) — Bash-based Markdown+YAML tracker (~1900
+  tickets in production)
+- [git-bug](https://github.com/git-bug/git-bug) — Issues stored as git objects
+- [git-issue](https://github.com/dspinellis/git-issue) — Shell-based with optional
+  GitHub sync
 
 ### 1.2 When to Use tbd vs Beads
 
@@ -341,6 +376,24 @@ The common thread: **simplicity, no background services, git for distribution**.
 builds on these proven patterns, adding multi-environment sync and conflict resolution.
 
 ### 1.4 Design Goals
+
+Agents perform *far* better when they can track tasks reliably and stay organized.
+Sometimes they can use external issue trackers (GitHub Issues, Linear, Jira), but as
+Beads has shown, there is great benefit to lightweight tracking of tasks via CLI.
+
+tbd addresses specific requirements:
+
+| Requirement | Solution |
+| --- | --- |
+| Works in cloud sandboxes like Claude Code Cloud | Easy setup, no daemon or SQLite, which is incompatible with some network drives |
+| Git commit log noise | Issues stored on separate `tbd-sync` branch |
+| Synchronized state across Git branches | Always sync from the `tbd-sync` branch |
+| Git merging conflicts | One file per issue eliminates most merge conflicts |
+| Agent-friendly | Self-documenting, skill-compatible, non-interactive, simple commands |
+| Transparent formats | Issues internally are Markdown files with YAML frontmatter |
+| Reliable | Clear specs, golden testing of end-to-end use scenarios |
+
+**Design goals:**
 
 1. **Beads CLI compatibility**: Existing workflows and scripts work with minimal changes
    for the most common beads commands
@@ -620,8 +673,7 @@ tbd uses three directory locations:
 ├── .gitignore              # Ignores cache/, data-sync-worktree/, data-sync/ (tracked)
 │
 ├── cache/                  # Gitignored - local state
-│   ├── state.yml           # Per-node sync state (last_sync, node_id)
-│   ├── index.json          # Optional query index (rebuildable)
+│   ├── state.yml           # Per-node sync state (last_sync_at)
 │   └── sync.lock           # Sync coordination file
 │
 └── data-sync-worktree/     # Gitignored - hidden worktree
@@ -1143,7 +1195,6 @@ display:
 # Runtime settings
 settings:
   auto_sync: false # Auto-sync after write operations
-  index_enabled: true # Use optional query index
 ```
 
 ```typescript
@@ -1162,7 +1213,6 @@ const ConfigSchema = z.object({
   settings: z
     .object({
       auto_sync: z.boolean().default(false),
-      index_enabled: z.boolean().default(true),
     })
     .default({}),
 });
@@ -1179,7 +1229,7 @@ const MetaSchema = z.object({
 });
 ```
 
-> **Note**: `last_sync` is intentionally NOT stored in `meta.yml`. Syncing this file
+> **Note**: `last_sync_at` is intentionally NOT stored in `meta.yml`. Syncing this file
 > would create a conflict hotspot—every node updates it on every sync, causing constant
 > merge conflicts. Instead, sync timestamps are tracked locally in `.tbd/cache/state.yml`
 > (gitignored).
@@ -1191,30 +1241,18 @@ Each machine maintains its own local state:
 
 ```typescript
 const LocalStateSchema = z.object({
-  node_id: z.string().optional(), // Unique identifier for this node
-  last_sync: Timestamp.optional(), // When this node last synced successfully
-  last_push: Timestamp.optional(), // When this node last pushed
-  last_pull: Timestamp.optional(), // When this node last pulled
-  last_synced_commit: z.string().optional(), // Git commit hash of last successful sync
+  last_sync_at: Timestamp.optional(), // When this node last synced successfully
 });
 ```
 
-> **Why local?** The `last_sync` timestamp is inherently per-node.
+> **Why local?** The `last_sync_at` timestamp is inherently per-node.
 > Storing it in synced state would cause every sync to modify the same file, creating a
 > guaranteed conflict generator.
 > Keeping it local eliminates this hotspot.
 
-**Sync Baseline:** The `last_synced_commit` field stores the git commit hash on
-`tbd-sync` that was last successfully synced.
-This enables:
-
-- `tbd sync --status` to compute pending changes via
-  `git diff --name-status <baseline>..origin/tbd-sync`
-
-- Incremental sync operations without full scans
-
-- Clear definition of “local changes” (modified since baseline) and “remote changes”
-  (commits after baseline on remote)
+> **Future extensions:** Additional fields like `node_id`, `last_synced_commit` (for
+> incremental sync), or separate `last_push`/`last_pull` timestamps may be added as
+> needed.
 
 #### 2.6.7 AtticEntrySchema
 
@@ -3551,8 +3589,8 @@ bd sync
 tbd import --from-beads --verbose
 
 # 3. Disable Beads (moves files to .beads-disabled/)
-tbd beads --disable                     # Preview what will be moved
-tbd beads --disable --confirm           # Actually disable
+tbd setup beads --disable               # Preview what will be moved
+tbd setup beads --disable --confirm     # Actually disable
 
 # 4. Install tbd integrations
 tbd setup claude                        # Claude Code hooks
@@ -3565,7 +3603,7 @@ git add .tbd/ && git commit -m "Migrate from Beads to tbd"
 git push origin tbd-sync
 ```
 
-**What `tbd beads --disable` does:**
+**What `tbd setup beads --disable` does:**
 
 The command safely moves all Beads files to `.beads-disabled/` for potential rollback:
 
@@ -3582,13 +3620,13 @@ To restore Beads, move files back from `.beads-disabled/`.
 
 **Gradual rollout alternative:**
 
-- Keep Beads running alongside tbd initially (don’t run `tbd beads --disable`)
+- Keep Beads running alongside tbd initially (don’t run `tbd setup beads --disable`)
 
 - Compare outputs (`bd list` vs `tbd list`)
 
 - Migrate one team/agent at a time
 
-- Run `tbd beads --disable --confirm` for full cutover when confident
+- Run `tbd setup beads --disable --confirm` for full cutover when confident
 
 ### 6.4 Installation and Agent Integration
 

@@ -204,13 +204,12 @@ export const MetaSchema = z.object({
 
 /**
  * Per-node state stored in .tbd/cache/state.yml (gitignored).
+ *
+ * Note: Current implementation uses state.json (see tbd-hckf to change to YAML).
+ * Only last_sync_at is currently used. Additional fields reserved for future.
  */
 export const LocalStateSchema = z.object({
-  node_id: z.string().optional(),
-  last_sync: Timestamp.optional(),
-  last_push: Timestamp.optional(),
-  last_pull: Timestamp.optional(),
-  last_synced_commit: z.string().optional(),
+  last_sync_at: Timestamp.optional(), // When this node last synced successfully
 });
 
 // =============================================================================

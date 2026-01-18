@@ -40,7 +40,7 @@ tbd has working migration and integration features:
 
 Implement safe Beads migration workflow:
 
-1. **`tbd beads --disable`** - Move Beads files to `.beads-disabled/` for safe
+1. **`tbd setup beads --disable`** - Move Beads files to `.beads-disabled/` for safe
    deactivation
 2. **Documentation updates** - Fix incorrect `--global` flag reference
 3. **Integration verification** - Ensure `tbd setup claude` properly replaces old hooks
@@ -53,7 +53,7 @@ Implement safe Beads migration workflow:
 | --- | --- | --- |
 | `tbd import --from-beads` | Maintain | Existing import continues to work |
 | `tbd setup claude` | Maintain | Existing behavior preserved |
-| New `tbd beads` command | Additive | New command, no breaking changes |
+| New `tbd setup beads` command | Additive | New command, no breaking changes |
 
 ### Breaking Changes
 
@@ -67,7 +67,7 @@ Implement safe Beads migration workflow:
 
 **In Scope:**
 
-- [x] `tbd beads --disable` command to safely deactivate Beads
+- [x] `tbd setup beads --disable` command to safely deactivate Beads
 - [x] Move Beads files to `.beads-disabled/` directory (preserves for rollback)
 - [x] Handle: `.beads/`, `.beads-hooks/`, `.cursor/rules/beads.mdc`
 - [x] Handle: Claude Code project hooks with `bd` commands
@@ -84,15 +84,15 @@ Implement safe Beads migration workflow:
 
 ### 1.2 Success Criteria
 
-- [x] `tbd beads --disable` shows preview of what will be moved
-- [x] `tbd beads --disable --confirm` moves files to `.beads-disabled/`
+- [x] `tbd setup beads --disable` shows preview of what will be moved
+- [x] `tbd setup beads --disable --confirm` moves files to `.beads-disabled/`
 - [x] Preserves all Beads data for potential rollback
 - [x] Removes bd hooks from `.claude/settings.local.json`
 - [x] Removes Beads section from AGENTS.md (with backup)
 - [ ] Tests pass
 - [ ] Documentation updated
 
-### 1.3 Files Handled by `tbd beads --disable`
+### 1.3 Files Handled by `tbd setup beads --disable`
 
 | Source | Destination | Description |
 | --- | --- | --- |
@@ -109,7 +109,7 @@ Implement safe Beads migration workflow:
 ### 2.1 Command Design
 
 ```
-tbd beads --disable [--confirm]
+tbd setup beads --disable [--confirm]
 ```
 
 **Behavior:**
@@ -135,7 +135,7 @@ Complete migration from Beads to tbd:
 tbd import --from-beads
 
 # 2. Disable Beads (moves files to .beads-disabled/)
-tbd beads --disable --confirm
+tbd setup beads --disable --confirm
 
 # 3. Install tbd integrations
 tbd setup claude   # Global Claude Code hooks
@@ -162,7 +162,7 @@ tbd setup codex    # AGENTS.md section (optional)
 
 - [x] Fix `--global` flag documentation bug in `tbd-docs.md`
 - [ ] Create tryscript test `cli-beads.tryscript.md`
-- [ ] Update tbd-docs.md with `tbd beads` command
+- [ ] Update tbd-docs.md with `tbd setup beads` command
 - [ ] Update tbd-design.md migration section
 
 ### Phase 3: Validation
@@ -186,9 +186,9 @@ tbd setup codex    # AGENTS.md section (optional)
 
 ### Acceptance Criteria
 
-- [ ] `tbd beads` shows usage help
-- [ ] `tbd beads --disable` shows preview without modifying files
-- [ ] `tbd beads --disable --confirm` moves all Beads files
+- [ ] `tbd setup beads` shows usage help
+- [ ] `tbd setup beads --disable` shows preview without modifying files
+- [ ] `tbd setup beads --disable --confirm` moves all Beads files
 - [ ] `.beads-disabled/` contains all backup files
 - [ ] bd hooks removed from `.claude/settings.local.json`
 - [ ] Beads section removed from AGENTS.md
@@ -199,7 +199,7 @@ tbd setup codex    # AGENTS.md section (optional)
 ## Open Questions
 
 1. **Should `tbd import --from-beads` automatically suggest running
-   `tbd beads --disable`?**
+   `tbd setup beads --disable`?**
    - Current: No, commands are independent
    - Could add a hint in import output
 

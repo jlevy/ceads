@@ -92,8 +92,7 @@ The hidden worktree provides read access to the sync branch without affecting yo
 working checkout, enabling direct file access and search across all issues.
 
 The cache directory (`.tbd/cache/`) stores local-only data that is never synced:
-- `state.yml` — last sync timestamp, node ID
-- `index.json` — optional query cache (rebuildable)
+- `state.yml` — last sync timestamp
 - `sync.lock` — prevents concurrent sync operations
 
 ### Configuration
@@ -112,7 +111,6 @@ display:
 
 settings:
   auto_sync: false    # Auto-sync after write operations
-  index_enabled: true # Use optional query index
 ```
 
 The `display.id_prefix` is required and set during `tbd init --prefix=<name>` or
@@ -460,8 +458,8 @@ bd sync
 tbd import --from-beads --verbose
 
 # 3. Disable Beads (moves files to .beads-disabled/)
-tbd beads --disable                     # Preview
-tbd beads --disable --confirm           # Execute
+tbd setup beads --disable                     # Preview
+tbd setup beads --disable --confirm           # Execute
 
 # 4. Install tbd integrations
 tbd setup claude                        # Claude Code hooks
@@ -471,10 +469,10 @@ tbd stats
 tbd list --all
 ```
 
-The `tbd beads --disable` command safely moves all Beads files to `.beads-disabled/`
-including `.beads/`, `.beads-hooks/`, Cursor rules, removes bd hooks from Claude
-settings, and removes beads merge driver lines from `.gitattributes`. This preserves
-data for potential rollback.
+The `tbd setup beads --disable` command safely moves all Beads files to
+`.beads-disabled/` including `.beads/`, `.beads-hooks/`, Cursor rules, removes bd hooks
+from Claude settings, and removes beads merge driver lines from `.gitattributes`. This
+preserves data for potential rollback.
 
 Import preserves:
 - Issue IDs (numeric portion preserved, prefix from config)
