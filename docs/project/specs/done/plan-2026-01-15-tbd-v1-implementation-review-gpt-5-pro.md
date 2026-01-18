@@ -340,7 +340,7 @@ await writeFile(path, content, { encoding: 'utf-8' });
 
 **Action items:**
 
-- [ ] Add `atomically` to tbd-cli dependencies
+- [ ] Add `atomically` to tbd dependencies
 - [ ] Use `atomically.writeFile()` for all issue file writes
 - [ ] Add orphan `.tmp.*` cleanup in `doctor` command
 

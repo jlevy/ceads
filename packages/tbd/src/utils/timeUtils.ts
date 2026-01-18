@@ -1,5 +1,5 @@
 /**
- * Time utilities for tbd-cli.
+ * Time utilities for tbd.
  *
  * All timestamps should be ISO 8601 UTC format with Z suffix.
  * Use these functions instead of raw Date calls for consistency.

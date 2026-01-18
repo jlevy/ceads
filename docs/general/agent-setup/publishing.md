@@ -17,7 +17,7 @@ The package must exist on npm before automated releases can work.
 Run from the package directory:
 
 ```bash
-cd packages/tbd-cli
+cd packages/tbd
 pnpm build
 npm publish --access public
 ```
@@ -244,4 +244,4 @@ After pushing a tag:
 **First publish?**
 
 - The package must already exist on npm before the workflow can publish
-- Do a manual `npm publish --access public` first from `packages/tbd-cli` directory
+- Do a manual `npm publish --access public` first from `packages/tbd` directory

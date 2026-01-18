@@ -117,9 +117,9 @@ describe('truncateMiddle', () => {
   describe('path truncation', () => {
     it('truncates long paths preserving start and end', () => {
       // 30 chars: 15 start + ellipsis + 14 end
-      expect(
-        truncateMiddle('/Users/levy/wrk/github/tbd/packages/tbd-cli/src/lib/output.ts', 30),
-      ).toBe('/Users/levy/wrk…/lib/output.ts');
+      expect(truncateMiddle('/Users/levy/wrk/github/tbd/packages/tbd/src/lib/output.ts', 30)).toBe(
+        '/Users/levy/wrk…/lib/output.ts',
+      );
     });
 
     it('preserves file extension when truncating paths', () => {

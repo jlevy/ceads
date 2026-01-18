@@ -1,5 +1,5 @@
 /**
- * tbd-cli: Git-native issue tracking for AI agents and humans
+ * tbd: Git-native issue tracking for AI agents and humans
  *
  * This is the library entry point. All exports here should be node-free
  * to support browser/edge runtime usage. CLI-specific code is in ./cli/.

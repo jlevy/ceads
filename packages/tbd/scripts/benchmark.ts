@@ -1,6 +1,6 @@
 #!/usr/bin/env npx tsx
 /**
- * Performance benchmark for tbd-cli.
+ * Performance benchmark for tbd.
  *
  * Measures:
  * 1. Startup time (--version, --help) - pure CLI initialization cost

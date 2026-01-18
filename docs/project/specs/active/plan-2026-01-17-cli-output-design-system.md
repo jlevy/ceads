@@ -12,7 +12,7 @@ output modes.
 **Current State:**
 
 tbd has a functional CLI output system built on:
-- `OutputManager` class in [output.ts](packages/tbd-cli/src/cli/lib/output.ts)
+- `OutputManager` class in [output.ts](packages/tbd/src/cli/lib/output.ts)
 - `CommandContext` with modes: `verbose`, `debug`, `quiet`, `json`
 - Color support via `picocolors` with `--color=auto|always|never`
 - Markdown rendering via `marked-terminal`
@@ -27,9 +27,9 @@ tbd has a functional CLI output system built on:
 
 **Reference Documentation:**
 
-- [output.ts](packages/tbd-cli/src/cli/lib/output.ts) - Current OutputManager
-- [context.ts](packages/tbd-cli/src/cli/lib/context.ts) - Command context and modes
-- [errors.ts](packages/tbd-cli/src/cli/lib/errors.ts) - Error types
+- [output.ts](packages/tbd/src/cli/lib/output.ts) - Current OutputManager
+- [context.ts](packages/tbd/src/cli/lib/context.ts) - Command context and modes
+- [errors.ts](packages/tbd/src/cli/lib/errors.ts) - Error types
 - [tbd-design.md](docs/tbd-design.md) - Overall product design
 
 ## Summary of Task
@@ -59,17 +59,13 @@ Each subtask below is designed to be a separate issue/bead:
 9. tbd-y0a1: Migrate commands to use formatPriority/formatStatus
 10. tbd-lss5: Migrate commands to use issue formatting utilities
 
-**Phase 3: Sync Output Improvements**
-11. ✓ tbd-2tuo: Implement sync progress indicator
-12. tbd-gr1e: Implement sync summary tallies
-13. tbd-4z1q: Debug mode git log output
+**Phase 3: Sync Output Improvements** 11. ✓ tbd-2tuo: Implement sync progress indicator
+12\. tbd-gr1e: Implement sync summary tallies 13. tbd-4z1q: Debug mode git log output
 
-**Phase 4: Command Audit**
-14. tbd-ar25: Audit commands for design system compliance
+**Phase 4: Command Audit** 14. tbd-ar25: Audit commands for design system compliance
 
-**Phase 5: Testing**
-15. tbd-b7b0: Output mode testing
-16. tbd-jgwp: Message format testing
+**Phase 5: Testing** 15. tbd-b7b0: Output mode testing 16. tbd-jgwp: Message format
+testing
 
 ## Backward Compatibility
 

@@ -39,7 +39,7 @@ importers:
         specifier: ^8.53.0
         version: 8.53.0(eslint@9.39.2(jiti@2.6.1))(typescript@5.9.3)
 
-  packages/tbd-cli:
+  packages/tbd:
     dependencies:
       atomically:
         specifier: ^2.1.0

@@ -29,9 +29,9 @@ tbd has working migration and integration features:
 
 **Reference Documentation:**
 
-- [beads.ts](packages/tbd-cli/src/cli/commands/beads.ts) - New beads command
-- [setup.ts](packages/tbd-cli/src/cli/commands/setup.ts) - Setup commands
-- [import.ts](packages/tbd-cli/src/cli/commands/import.ts) - Import command
+- [beads.ts](packages/tbd/src/cli/commands/beads.ts) - New beads command
+- [setup.ts](packages/tbd/src/cli/commands/setup.ts) - Setup commands
+- [import.ts](packages/tbd/src/cli/commands/import.ts) - Import command
 - [tbd-design.md](docs/tbd-design.md) - Overall product design
 - [Beads uninstall gist](https://gist.github.com/banteg/1a539b88b3c8945cd71e4b958f319d8d)
   \- Reference for Beads file locations
@@ -122,9 +122,9 @@ tbd beads --disable [--confirm]
 
 ### 2.2 Implementation Location
 
-New file: `packages/tbd-cli/src/cli/commands/beads.ts`
+New file: `packages/tbd/src/cli/commands/beads.ts`
 
-Registered in: `packages/tbd-cli/src/cli/cli.ts` under Maintenance group
+Registered in: `packages/tbd/src/cli/cli.ts` under Maintenance group
 
 ### 2.3 Migration Workflow
 

@@ -43,7 +43,7 @@ class ReadmeHandler extends BaseCommand {
         try {
           const __filename = fileURLToPath(import.meta.url);
           const __dirname = dirname(__filename);
-          // From packages/tbd-cli/src/cli/commands -> packages/tbd-cli/README.md
+          // From packages/tbd/src/cli/commands -> packages/tbd/README.md
           const pkgPath = join(__dirname, '..', '..', '..', 'README.md');
           content = await readFile(pkgPath, 'utf-8');
         } catch {

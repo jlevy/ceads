@@ -31,7 +31,7 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/jlevy/tbd.git",
-    "directory": "packages/tbd-cli"
+    "directory": "packages/tbd"
   },
   "homepage": "https://github.com/jlevy/tbd#readme",
   "bugs": {

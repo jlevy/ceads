@@ -7,12 +7,12 @@ Maintenance: When revising this doc you must follow instructions in
 
 ## Overview
 
-This document describes the comprehensive testing architecture for tbd-cli, following
-the Golden Testing Philosophy for maximum coverage with minimal maintenance burden.
+This document describes the comprehensive testing architecture for tbd, following the
+Golden Testing Philosophy for maximum coverage with minimal maintenance burden.
 The approach prioritizes **transparent box testing** - capturing every meaningful detail
 of execution so behavioral changes show up immediately in diffs.
 
-**Scope**: Testing patterns, infrastructure, and guidelines for tbd-cli.
+**Scope**: Testing patterns, infrastructure, and guidelines for tbd.
 Covers unit tests, integration tests, and golden tests.
 Does not cover manual validation procedures.
 
@@ -284,7 +284,7 @@ Performance tests validate operation timing targets with 1000+ issues:
 
 ## Test File Organization
 
-**Files**: `packages/tbd-cli/tests/`
+**Files**: `packages/tbd/tests/`
 
 ```
 tests/

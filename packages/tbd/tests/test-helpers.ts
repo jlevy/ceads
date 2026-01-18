@@ -1,5 +1,5 @@
 /**
- * Test helpers and constants for tbd-cli tests.
+ * Test helpers and constants for tbd tests.
  *
  * Provides valid ULID-format IDs for use in tests.
  * All ULIDs MUST be exactly 26 lowercase alphanumeric characters (a-z, 0-9).

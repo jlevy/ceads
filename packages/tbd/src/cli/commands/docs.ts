@@ -1,8 +1,8 @@
 /**
- * `tbd design` - Display design documentation.
+ * `tbd docs` - Display CLI documentation.
  *
- * Shows the bundled design documentation for tbd,
- * including architecture, design decisions, and Beads comparison.
+ * Shows the bundled documentation for tbd CLI.
+ * Documentation can be filtered by section.
  */
 
 import { Command } from 'commander';
@@ -21,45 +21,45 @@ interface Section {
 }
 
 /**
- * Get the path to the bundled design doc file.
- * The design doc is copied to dist/docs/ during build.
+ * Get the path to the bundled docs file.
+ * The docs file is copied to dist/docs/ during build.
  */
-function getDesignPath(): string {
+function getDocsPath(): string {
   const __filename = fileURLToPath(import.meta.url);
   const __dirname = dirname(__filename);
   // When bundled, runs from dist/bin.mjs or dist/cli.mjs
-  // Docs are at dist/docs/tbd-design.md (same level as the bundle)
-  return join(__dirname, 'docs', 'tbd-design.md');
+  // Docs are at dist/docs/tbd-docs.md (same level as the bundle)
+  return join(__dirname, 'docs', 'tbd-docs.md');
 }
 
-interface DesignOptions {
+interface DocsOptions {
   section?: string;
   list?: boolean;
 }
 
-class DesignHandler extends BaseCommand {
-  async run(topic: string | undefined, options: DesignOptions): Promise<void> {
+class DocsHandler extends BaseCommand {
+  async run(topic: string | undefined, options: DocsOptions): Promise<void> {
     let content: string;
     try {
-      content = await readFile(getDesignPath(), 'utf-8');
+      content = await readFile(getDocsPath(), 'utf-8');
     } catch {
       // Fallback: try to read from source location during development
       try {
         const __filename = fileURLToPath(import.meta.url);
         const __dirname = dirname(__filename);
         // During development without bundle: src/cli/commands -> src/docs
-        const devPath = join(__dirname, '..', '..', 'docs', 'tbd-design.md');
+        const devPath = join(__dirname, '..', '..', 'docs', 'tbd-docs.md');
         content = await readFile(devPath, 'utf-8');
       } catch {
         // Last fallback: repo-level docs
         try {
           const __filename = fileURLToPath(import.meta.url);
           const __dirname = dirname(__filename);
-          // From packages/tbd-cli/dist -> packages/tbd-cli/../../docs
-          const repoPath = join(__dirname, '..', '..', '..', 'docs', 'tbd-design.md');
+          // From packages/tbd/dist -> packages/tbd/../../docs
+          const repoPath = join(__dirname, '..', '..', '..', 'docs', 'tbd-docs.md');
           content = await readFile(repoPath, 'utf-8');
         } catch {
-          throw new CLIError('Design documentation file not found. Please rebuild the CLI.');
+          throw new CLIError('Documentation file not found. Please rebuild the CLI.');
         }
       }
     }
@@ -70,7 +70,7 @@ class DesignHandler extends BaseCommand {
     if (options.list) {
       this.output.data(sections, () => {
         const colors = this.output.getColors();
-        console.log(colors.bold('Available design documentation sections:'));
+        console.log(colors.bold('Available documentation sections:'));
         console.log('');
         // Calculate max slug length for alignment
         const maxSlugLen = Math.max(...sections.map((s) => s.slug.length));
@@ -79,7 +79,7 @@ class DesignHandler extends BaseCommand {
           console.log(`  ${colors.id(paddedSlug)}  ${section.title}`);
         }
         console.log('');
-        console.log(`Use ${colors.dim('tbd design <topic>')} to view a specific section.`);
+        console.log(`Use ${colors.dim('tbd docs <topic>')} to view a specific section.`);
       });
       return;
     }
@@ -179,12 +179,12 @@ class DesignHandler extends BaseCommand {
   }
 }
 
-export const designCommand = new Command('design')
-  .description('Display design documentation and Beads comparison')
-  .argument('[topic]', 'Topic to display (e.g., "architecture", "tbd-vs-beads")')
-  .option('--section <name>', 'Show specific section')
+export const docsCommand = new Command('docs')
+  .description('Display CLI documentation')
+  .argument('[topic]', 'Topic to display (e.g., "commands", "id-system")')
+  .option('--section <name>', 'Show specific section (e.g., "commands", "workflows")')
   .option('--list', 'List available sections')
-  .action(async (topic: string | undefined, options: DesignOptions, command: Command) => {
-    const handler = new DesignHandler(command);
+  .action(async (topic: string | undefined, options: DocsOptions, command: Command) => {
+    const handler = new DocsHandler(command);
     await handler.run(topic, options);
   });

@@ -1,5 +1,5 @@
 /**
- * Performance tests for tbd-cli.
+ * Performance tests for tbd.
  *
  * These tests verify that operations complete within acceptable time limits
  * when working with large numbers of issues (1000+).

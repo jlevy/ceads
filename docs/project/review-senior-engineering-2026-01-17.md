@@ -380,8 +380,8 @@ tbd list --format=yaml
 - `README.md` - Project overview
 - `docs/tbd-docs.md` - CLI reference
 - `docs/development.md` - Development guide
-- `packages/tbd-cli/src/cli/commands/*.ts` - All commands
-- `packages/tbd-cli/src/file/git.ts` - Git operations
+- `packages/tbd/src/cli/commands/*.ts` - All commands
+- `packages/tbd/src/file/git.ts` - Git operations
 - `attic/beads/cmd/bd/prime.go` - Beads prime (432 lines)
 - `attic/beads/cmd/bd/setup/claude.go` - Beads Claude setup
 - All test files (15 files, 187 tests)

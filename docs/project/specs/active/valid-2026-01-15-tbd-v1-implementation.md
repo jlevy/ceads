@@ -3,7 +3,7 @@
 ## Purpose
 
 This validation spec documents all testing performed (automated and manual) and lists
-remaining items for human review before merging the tbd-cli implementation.
+remaining items for human review before merging the tbd implementation.
 
 **Feature Plan:**
 [plan-2026-01-15-tbd-v1-implementation.md](plan-2026-01-15-tbd-v1-implementation.md)

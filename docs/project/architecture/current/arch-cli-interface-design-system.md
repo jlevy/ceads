@@ -18,8 +18,8 @@ verbose/debug logging, and progress indicators.
 
 - [plan-2026-01-17-cli-output-design-system.md](../specs/active/plan-2026-01-17-cli-output-design-system.md)
   \- Implementation plan
-- [output.ts](packages/tbd-cli/src/cli/lib/output.ts) - OutputManager implementation
-- [context.ts](packages/tbd-cli/src/cli/lib/context.ts) - Command context and modes
+- [output.ts](packages/tbd/src/cli/lib/output.ts) - OutputManager implementation
+- [context.ts](packages/tbd/src/cli/lib/context.ts) - Command context and modes
 
 ## Terminology
 
@@ -32,7 +32,7 @@ verbose/debug logging, and progress indicators.
 
 ## Output Modes
 
-**File(s)**: `packages/tbd-cli/src/cli/lib/context.ts`
+**File(s)**: `packages/tbd/src/cli/lib/context.ts`
 
 tbd supports multiple output modes that can be combined:
 
@@ -120,7 +120,7 @@ Syncing with remote...                       # info - dim (verbose only)
 
 ## Output Channels
 
-**File(s)**: `packages/tbd-cli/src/cli/lib/output.ts`
+**File(s)**: `packages/tbd/src/cli/lib/output.ts`
 
 ### Channel Rules
 
@@ -183,7 +183,7 @@ output.spinner("Syncing...")
 
 ## Color System
 
-**File(s)**: `packages/tbd-cli/src/cli/lib/output.ts`
+**File(s)**: `packages/tbd/src/cli/lib/output.ts`
 
 ### Semantic Colors
 
@@ -752,7 +752,7 @@ For mentioning an issue inline in messages or logs:
 
 #### Formatting Utility Functions
 
-**File(s)**: `packages/tbd-cli/src/cli/lib/issueFormat.ts`
+**File(s)**: `packages/tbd/src/cli/lib/issueFormat.ts`
 
 All commands MUST use these shared utilities for consistent formatting:
 
@@ -1125,7 +1125,7 @@ git log --stat HEAD@{1}..HEAD
 
 ## JSON Mode
 
-**File(s)**: `packages/tbd-cli/src/cli/lib/output.ts`
+**File(s)**: `packages/tbd/src/cli/lib/output.ts`
 
 ### Data Output
 
@@ -1313,7 +1313,7 @@ $ tbd sync
 
 #### 1. OutputManager
 
-**File(s)**: `packages/tbd-cli/src/cli/lib/output.ts`
+**File(s)**: `packages/tbd/src/cli/lib/output.ts`
 
 Central class for all output operations:
 
@@ -1352,7 +1352,7 @@ export class OutputManager {
 
 #### 2. Priority Utilities
 
-**File(s)**: `packages/tbd-cli/src/lib/priority.ts`
+**File(s)**: `packages/tbd/src/lib/priority.ts`
 
 Format and parse priorities consistently:
 
@@ -1375,7 +1375,7 @@ export function parsePriority(input: string): number {
 
 #### 2b. Status Formatting Utilities
 
-**File(s)**: `packages/tbd-cli/src/lib/status.ts`
+**File(s)**: `packages/tbd/src/lib/status.ts`
 
 Format status with icon consistently:
 
@@ -1412,7 +1412,7 @@ console.log(formatStatus('closed'));      // "✓ closed"
 
 #### 2c. Text Truncation Utility
 
-**File(s)**: `packages/tbd-cli/src/lib/truncate.ts`
+**File(s)**: `packages/tbd/src/lib/truncate.ts`
 
 A standalone, reusable utility for truncating text with Unicode ellipsis.
 This utility MUST be used everywhere text needs truncation for consistent behavior.
@@ -1532,7 +1532,7 @@ const wasTruncated = result.endsWith(ELLIPSIS);
 
 #### 3. CommandContext
 
-**File(s)**: `packages/tbd-cli/src/cli/lib/context.ts`
+**File(s)**: `packages/tbd/src/cli/lib/context.ts`
 
 Tracks output mode settings:
 
@@ -1550,7 +1550,7 @@ export interface CommandContext {
 
 #### 4. Color Functions
 
-**File(s)**: `packages/tbd-cli/src/cli/lib/output.ts`
+**File(s)**: `packages/tbd/src/cli/lib/output.ts`
 
 Semantic color helpers:
 

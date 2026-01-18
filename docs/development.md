@@ -164,8 +164,8 @@ chore: Update dependencies
 
 ### Notes
 
-- **No scope by default**: Don’t include a scope like `fix(tbd-cli):` for the main
-  codebase. Only use a scope when it provides key disambiguation or clarification (e.g.,
+- **No scope by default**: Don’t include a scope like `fix(tbd):` for the main codebase.
+  Only use a scope when it provides key disambiguation or clarification (e.g.,
   `fix(parser):` vs `fix(cli):` when the distinction matters).
 - Keep the first line under 72 characters
 - Use imperative mood ("Add feature" not “Added feature”)

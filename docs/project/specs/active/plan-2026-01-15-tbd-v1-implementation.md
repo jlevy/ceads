@@ -634,7 +634,7 @@ directory structures like `.tbd/data-sync/issues/`.
 - Critical for data integrity in git-synced files
 
 **Solution:** The existing `atomicWriteFile()` in
-[storage.ts](packages/tbd-cli/src/file/storage.ts:21-43) already implements both atomic
+[storage.ts](packages/tbd/src/file/storage.ts:21-43) already implements both atomic
 write AND parent directory creation.
 The fix was to ensure all file writes use this utility consistently.
 
@@ -3609,13 +3609,13 @@ The following gaps in the existing test suite allowed these bugs to slip through
 - Should show short public IDs (e.g., `bd-a7k2`) from ID mapping file
 - For beads imports, should preserve original IDs from `extensions.beads.original_id`
   (e.g., `tbd-401`)
-- Root cause in [list.ts:57](packages/tbd-cli/src/cli/commands/list.ts#L57):
+- Root cause in [list.ts:57](packages/tbd/src/cli/commands/list.ts#L57):
   `id: \`bd-${i.id.slice(3)}\`` just strips “is-” prefix
 
 **tbd-1812: Extra newline in serialization**
 - Issue files have extra blank line between YAML frontmatter `---` and markdown body
 - Body should start immediately after closing `---`
-- See serialization code in [storage.ts](packages/tbd-cli/src/file/storage.ts)
+- See serialization code in [storage.ts](packages/tbd/src/file/storage.ts)
 
 **tbd-1813: Status mapping incomplete** (CRITICAL)
 - The `mapStatus` function in import.ts doesn’t map beads ‘done’ status to tbd ‘closed’
@@ -3623,7 +3623,7 @@ The following gaps in the existing test suite allowed these bugs to slip through
   ‘tombstone’
 - Results: 127 ‘done’ issues imported as ‘open’ instead of ‘closed’
 - Fix: Add `done: 'closed'` to statusMap in
-  [import.ts:94](packages/tbd-cli/src/cli/commands/import.ts#L94)
+  [import.ts:94](packages/tbd/src/cli/commands/import.ts#L94)
 
 * * *
 
