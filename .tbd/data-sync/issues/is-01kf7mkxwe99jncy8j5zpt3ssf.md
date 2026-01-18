@@ -7,11 +7,11 @@ id: is-01kf7mkxwe99jncy8j5zpt3ssf
 kind: task
 labels: []
 priority: 2
-status: open
+status: in_progress
 title: Create truncation utility
 type: is
-updated_at: 2026-01-18T04:10:39.419Z
-version: 2
+updated_at: 2026-01-18T04:18:22.821Z
+version: 3
 ---
 Create lib/truncate.ts with:
 - ELLIPSIS constant (… U+2026) - never use '...'

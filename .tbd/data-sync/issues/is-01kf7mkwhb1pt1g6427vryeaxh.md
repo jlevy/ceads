@@ -1,4 +1,6 @@
 ---
+close_reason: Added ICONS constants to output.ts with message icons (SUCCESS, ERROR, WARN, NOTICE) and status icons (OPEN, IN_PROGRESS, BLOCKED, CLOSED, DEFERRED). Updated OutputManager methods to use constants. Added unit tests.
+closed_at: 2026-01-18T04:18:17.712Z
 created_at: 2026-01-18T04:08:08.490Z
 dependencies:
   - target: is-01kf7mkwzmemprqp952cwyryk1
@@ -9,11 +11,11 @@ id: is-01kf7mkwhb1pt1g6427vryeaxh
 kind: task
 labels: []
 priority: 2
-status: in_progress
+status: closed
 title: Define icon constants
 type: is
-updated_at: 2026-01-18T04:16:17.119Z
-version: 4
+updated_at: 2026-01-18T04:18:17.713Z
+version: 5
 ---
 Define icon constants in OutputManager:
 - SUCCESS_ICON: ✓ (U+2713)
