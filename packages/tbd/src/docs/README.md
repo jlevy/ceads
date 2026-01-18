@@ -63,7 +63,7 @@ npm install -g tbd-git@latest
 
 # Initialize in your repo
 cd my-project
-tbd init  # New project
+tbd init --prefix=proj  # New project (prefix required, e.g., "proj", "myapp")
 tbd import --from-beads  # Migrate issues from an existing Beads setup
 
 # Create issues
@@ -159,14 +159,6 @@ tbd setup claude             # Install hooks (one-time)
 
 This runs `tbd prime` at session start, injecting workflow context so the agent
 remembers to use tbd.
-
-### Actor Identity
-
-```bash
-TBD_ACTOR=claude-agent tbd create "Fix bug" --type=bug
-```
-
-Resolution order: `--actor` flag → `TBD_ACTOR` env → git user.email → system username.
 
 ## Documentation
 
