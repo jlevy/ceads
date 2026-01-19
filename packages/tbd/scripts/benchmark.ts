@@ -55,7 +55,6 @@ display:
   id_prefix: bd
 settings:
   auto_sync: false
-  index_enabled: true
 `,
   );
 
