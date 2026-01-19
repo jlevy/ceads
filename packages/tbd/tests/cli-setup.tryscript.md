@@ -268,7 +268,7 @@ $ cd uninit-repo && tbd status 2>&1
 Not a tbd repository.
 
 Detected:
-  ✓ Git repository (main branch)
+  ✓ Git repository
   ✓ Git [..]
   ✗ Beads not detected
   ✗ tbd not initialized
