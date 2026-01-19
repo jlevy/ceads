@@ -5,6 +5,20 @@ allowed-tools: Bash(tbd:*), Read, Write
 ---
 # tbd Workflow
 
+## Installation
+
+If `tbd` is not installed, install it globally:
+
+```bash
+npm install -g tbd-git@latest
+```
+
+Confirm it is initialized in this repository:
+
+```bash
+tbd init 2>/dev/null || echo "tbd already initialized"
+```
+
 `tbd` provides lightweight, git-native task and issue tracking using beads, which are
 just lightweight issues managed from the CLI.
 
@@ -61,7 +75,7 @@ Every session must end with tbd in a clean state:
 
 ### Creating & Updating
 
-- `tbd create "title" --type task|bug|feature --priority P2` - New issue
+- `tbd create "title" --type task|bug|feature --priority=P2` - New issue
   - Priority: P0-P4 (P0=critical, P2=medium, P4=backlog).
     Do NOT use "high"/"medium"/"low"
 - `tbd update <id> --status in_progress` - Claim work

@@ -3,14 +3,15 @@
 ## Purpose
 
 This is a technical design doc for adding transactional workflow support and agent
-registration to tbd. These features enable agents to batch changes and commit them
-atomically, rather than syncing immediately after each operation.
+registration to tbd.
+These features enable agents to batch changes and commit them atomically, rather than
+syncing immediately after each operation.
 
 ## Background
 
 **Current State:**
 
-tbd operates in "immediate mode" - changes are written to the worktree and synced on
+tbd operates in “immediate mode” - changes are written to the worktree and synced on
 demand via `tbd sync`. The sync flow is:
 
 1. Agent makes changes (create, update, close issues)
@@ -26,7 +27,7 @@ When an agent works on a feature branch for extended periods, it may want to:
 - Review changes before making them visible
 - Test/validate before committing
 - Abort all changes if something goes wrong
-- Have a clean "all-or-nothing" semantic
+- Have a clean “all-or-nothing” semantic
 
 **Reference Documentation:**
 
@@ -75,7 +76,7 @@ tbd agent unregister                  # Clear agent registration
 ```
 
 **Behavior:**
-- Agent provides optional human-friendly name (e.g., "claude-code-cloud")
+- Agent provides optional human-friendly name (e.g., “claude-code-cloud”)
 - tbd returns unique agent ID: `ag-{slugified-name}-{ulid}`
 - Agent ID stored in `.tbd/cache/agent.yml` (local, gitignored)
 - Agent ID used to scope transactions and for audit trail
@@ -114,9 +115,9 @@ tx-01hx5zzkbkactav9wevgemmvrz
 
 **Use Case 1: Exploratory agent work that might be abandoned**
 
-An agent works on a feature branch, creating and updating issues as it explores
-a solution. The work might be abandoned if the approach doesn't pan out or the
-PR is rejected.
+An agent works on a feature branch, creating and updating issues as it explores a
+solution. The work might be abandoned if the approach doesn’t pan out or the PR is
+rejected.
 
 ```bash
 tbd agent register --name claude-feature-work
@@ -133,14 +134,14 @@ tbd tx abort
 # → No issue changes visible to other agents or in tbd-sync
 ```
 
-Without transactions, these exploratory issue updates would pollute `tbd-sync`,
-creating noise for other agents and humans reviewing the issue history.
+Without transactions, these exploratory issue updates would pollute `tbd-sync`, creating
+noise for other agents and humans reviewing the issue history.
 
 **Use Case 2: Batch creation of plan/epic hierarchy**
 
-An agent is planning work by creating a structured hierarchy: an epic with
-multiple child tasks. During planning, the structure might change or the entire
-plan might be abandoned.
+An agent is planning work by creating a structured hierarchy: an epic with multiple
+child tasks. During planning, the structure might change or the entire plan might be
+abandoned.
 
 ```bash
 tbd agent register --name claude-planner
@@ -161,8 +162,8 @@ tbd tx commit
 # → All issues appear atomically in tbd-sync
 ```
 
-Without transactions, partial plans would be visible during creation, and
-abandoned plans would leave orphaned issues that need manual cleanup.
+Without transactions, partial plans would be visible during creation, and abandoned
+plans would leave orphaned issues that need manual cleanup.
 
 ### 1.2 Scope Definition
 
@@ -302,9 +303,10 @@ base_commit: abc123...  # tbd-sync commit when tx started
 - Matches constraint of one transaction at a time
 - During transaction, agent wants to see tx state anyway
 
-**Trade-off:** During a transaction, viewing "original" tbd-sync state requires
-`git show tbd-sync:path` rather than file reads. This is acceptable since it's
-a rare need - agents typically want to see their pending changes.
+**Trade-off:** During a transaction, viewing “original” tbd-sync state requires
+`git show tbd-sync:path` rather than file reads.
+This is acceptable since it’s a rare need - agents typically want to see their pending
+changes.
 
 ### 2.5 Implementation Location
 
@@ -320,8 +322,9 @@ a rare need - agents typically want to see their pending changes.
 ### 2.6 Worktree Branch Switching
 
 Since the worktree is already on the correct branch (either `tbd-sync` or
-`tbd-sync-tx-{id}`), existing commands work without modification. The worktree
-path resolution remains unchanged - only the branch it's checked out to changes.
+`tbd-sync-tx-{id}`), existing commands work without modification.
+The worktree path resolution remains unchanged - only the branch it’s checked out to
+changes.
 
 **On `tx begin`:**
 ```bash
@@ -349,8 +352,8 @@ git checkout tbd-sync
 git branch -D tbd-sync-tx-{id}
 ```
 
-**Key insight:** No changes needed to create/update/close commands - they already
-write to the worktree, which is now on the transaction branch.
+**Key insight:** No changes needed to create/update/close commands - they already write
+to the worktree, which is now on the transaction branch.
 
 * * *
 
@@ -455,7 +458,7 @@ Add to key characteristics:
 
 #### §1.2 When to Use tbd (add transactional use cases)
 
-Add new rows to the "Use tbd when" table:
+Add new rows to the “Use tbd when” table:
 
 | Scenario | Why tbd |
 | --- | --- |
@@ -833,4 +836,5 @@ journal-based transactions with append-only event logs, enabling:
 
 - [tbd-design.md](docs/tbd-design.md) - Current design specification
 - [Git worktree documentation](https://git-scm.com/docs/git-worktree)
-- [Event sourcing patterns](https://martinfowler.com/eaaDev/EventSourcing.html) - Future enhancement reference
+- [Event sourcing patterns](https://martinfowler.com/eaaDev/EventSourcing.html) - Future
+  enhancement reference
