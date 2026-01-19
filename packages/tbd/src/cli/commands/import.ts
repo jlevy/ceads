@@ -35,6 +35,7 @@ import {
   CACHE_DIR,
   WORKTREE_DIR_NAME,
   DATA_SYNC_DIR_NAME,
+  SYNC_BRANCH,
 } from '../../lib/paths.js';
 import { now, normalizeTimestamp } from '../../utils/timeUtils.js';
 import { initConfig, isInitialized, readConfig, writeConfig } from '../../file/config.js';
@@ -609,7 +610,7 @@ class ImportHandler extends BaseCommand {
       await mkdir(join(cwd, CACHE_DIR), { recursive: true });
 
       // Initialize worktree
-      await initWorktree(cwd, 'origin', 'tbd-sync');
+      await initWorktree(cwd, 'origin', SYNC_BRANCH);
 
       this.output.success('Initialized tbd repository');
     }

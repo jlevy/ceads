@@ -15,7 +15,13 @@ import { BaseCommand } from '../lib/baseCommand.js';
 import { CLIError, ValidationError } from '../lib/errors.js';
 import { VERSION } from '../lib/version.js';
 import { initConfig } from '../../file/config.js';
-import { TBD_DIR, CACHE_DIR, WORKTREE_DIR_NAME, DATA_SYNC_DIR_NAME } from '../../lib/paths.js';
+import {
+  TBD_DIR,
+  CACHE_DIR,
+  WORKTREE_DIR_NAME,
+  DATA_SYNC_DIR_NAME,
+  SYNC_BRANCH,
+} from '../../lib/paths.js';
 import { initWorktree, checkGitVersion, MIN_GIT_VERSION } from '../../file/git.js';
 
 interface InitOptions {
@@ -85,7 +91,7 @@ class InitHandler extends BaseCommand {
       // 4. Initialize the hidden worktree for tbd-sync branch
       // This creates .tbd/data-sync-worktree/ with the sync branch checkout
       const remote = options.remote ?? 'origin';
-      const syncBranch = options.syncBranch ?? 'tbd-sync';
+      const syncBranch = options.syncBranch ?? SYNC_BRANCH;
 
       // Check Git version before attempting worktree creation
       // Git 2.42+ is required for --orphan worktree support

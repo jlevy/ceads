@@ -12,6 +12,7 @@ import { join } from 'node:path';
 import { BaseCommand } from '../lib/baseCommand.js';
 import { NotInitializedError, CLIError } from '../lib/errors.js';
 import { readConfig } from '../../file/config.js';
+import { SYNC_BRANCH } from '../../lib/paths.js';
 
 interface UninstallOptions {
   confirm?: boolean;
@@ -38,7 +39,7 @@ class UninstallHandler extends BaseCommand {
       config = null;
     }
 
-    const syncBranch = config?.sync.branch ?? 'tbd-sync';
+    const syncBranch = config?.sync.branch ?? SYNC_BRANCH;
     const remote = config?.sync.remote ?? 'origin';
     const worktreePath = join('.tbd', 'data-sync-worktree');
 
