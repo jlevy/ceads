@@ -20,7 +20,13 @@ import { BaseCommand } from '../lib/baseCommand.js';
 import { formatHeading } from '../lib/output.js';
 import { readConfig } from '../../file/config.js';
 import { TBD_DIR, WORKTREE_DIR } from '../../lib/paths.js';
-import { git, getCurrentBranch, checkWorktreeHealth } from '../../file/git.js';
+import {
+  git,
+  getCurrentBranch,
+  checkWorktreeHealth,
+  checkGitVersion,
+  MIN_GIT_VERSION,
+} from '../../file/git.js';
 
 interface StatusData {
   initialized: boolean;
@@ -30,6 +36,8 @@ interface StatusData {
   // Git info (always available)
   git_repository: boolean;
   git_branch: string | null;
+  git_version: string | null;
+  git_version_supported: boolean;
 
   // Beads detection (pre-init only)
   beads_detected: boolean;
@@ -62,6 +70,8 @@ class StatusHandler extends BaseCommand {
       working_directory: cwd,
       git_repository: false,
       git_branch: null,
+      git_version: null,
+      git_version_supported: false,
       beads_detected: false,
       beads_issue_count: null,
       sync_branch: null,
@@ -86,6 +96,17 @@ class StatusHandler extends BaseCommand {
     const gitInfo = await this.checkGitRepo();
     statusData.git_repository = gitInfo.isRepo;
     statusData.git_branch = gitInfo.branch;
+
+    // Check git version (only if git is available)
+    if (gitInfo.isRepo) {
+      try {
+        const { version, supported } = await checkGitVersion();
+        statusData.git_version = `${version.major}.${version.minor}.${version.patch}`;
+        statusData.git_version_supported = supported;
+      } catch {
+        // Git version check failed - leave as null/false
+      }
+    }
 
     // Check for beads
     const beadsInfo = await this.checkBeads(cwd);
@@ -233,6 +254,14 @@ class StatusHandler extends BaseCommand {
       if (data.git_repository) {
         const branchInfo = data.git_branch ? ` (${data.git_branch} branch)` : '';
         console.log(`  ${colors.success('✓')} Git repository${branchInfo}`);
+        // Show git version
+        if (data.git_version) {
+          const versionStatus = data.git_version_supported ? colors.success('✓') : colors.warn('⚠');
+          const versionNote = data.git_version_supported
+            ? ''
+            : ` ${colors.dim(`(requires ${MIN_GIT_VERSION}+)`)}`;
+          console.log(`  ${versionStatus} Git ${data.git_version}${versionNote}`);
+        }
       } else {
         console.log(`  ${colors.error('✗')} Git repository not found`);
       }
@@ -269,6 +298,14 @@ class StatusHandler extends BaseCommand {
     if (data.git_repository) {
       const branchInfo = data.git_branch ? ` (${data.git_branch})` : '';
       console.log(`  ${colors.success('✓')} Git repository${branchInfo}`);
+      // Show git version
+      if (data.git_version) {
+        const versionStatus = data.git_version_supported ? colors.success('✓') : colors.warn('⚠');
+        const versionNote = data.git_version_supported
+          ? ''
+          : ` ${colors.dim(`(requires ${MIN_GIT_VERSION}+)`)}`;
+        console.log(`  ${versionStatus} Git ${data.git_version}${versionNote}`);
+      }
     }
 
     // Beads coexistence warning
