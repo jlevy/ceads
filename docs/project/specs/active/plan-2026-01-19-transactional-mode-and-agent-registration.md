@@ -111,6 +111,60 @@ tx-01hx5zzkbkactav9wevgemmvrz
 - `tx abort` deletes the transaction branch
 - Transaction state stored in `.tbd/cache/transaction.yml`
 
+#### Use Cases
+
+**Use Case 1: Exploratory agent work that might be abandoned**
+
+An agent works on a feature branch, creating and updating issues as it explores
+a solution. The work might be abandoned if the approach doesn't pan out or the
+PR is rejected.
+
+```bash
+tbd agent register --name claude-feature-work
+tbd tx begin --name "auth-refactor-attempt"
+
+# Agent works, tracking progress in issues
+tbd create "Refactor auth middleware" --type task
+tbd create "Update session handling" --type task
+tbd update bd-xyz --status in_progress
+tbd update bd-xyz --notes "Tried approach A, hitting issues..."
+
+# Approach didn't work - abort everything
+tbd tx abort
+# → No issue changes visible to other agents or in tbd-sync
+```
+
+Without transactions, these exploratory issue updates would pollute `tbd-sync`,
+creating noise for other agents and humans reviewing the issue history.
+
+**Use Case 2: Batch creation of plan/epic hierarchy**
+
+An agent is planning work by creating a structured hierarchy: an epic with
+multiple child tasks. During planning, the structure might change or the entire
+plan might be abandoned.
+
+```bash
+tbd agent register --name claude-planner
+tbd tx begin --name "q1-auth-epic"
+
+# Create epic and all child tasks
+tbd create "Q1 Auth Improvements" --type epic
+tbd create "Add OAuth support" --type task --parent bd-epic
+tbd create "Implement MFA" --type task --parent bd-epic
+tbd create "Audit logging" --type task --parent bd-epic
+tbd dep add bd-mfa bd-oauth --type blocks
+
+# User reviews plan, requests changes...
+# Agent adjusts structure...
+
+# Plan finalized - commit all at once
+tbd tx commit --message "Q1 auth roadmap with 4 tasks"
+# → All issues appear atomically in tbd-sync
+```
+
+Without transactions, partial plans would be visible during creation, and
+abandoned plans would leave orphaned issues that need manual cleanup.
+
 ### 1.2 Scope Definition
 
 **In Scope:**
