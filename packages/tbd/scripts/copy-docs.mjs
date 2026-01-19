@@ -7,7 +7,7 @@
  * Uses atomic writes to prevent partial/corrupted files if process crashes.
  */
 
-import { mkdirSync, readFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, statSync, chmodSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { writeFile } from 'atomically';
@@ -30,10 +30,17 @@ const DOCS_FILES = [
 
 /**
  * Atomically copy a file by reading content and writing via atomically library.
+ * @param {string} src - Source file path
+ * @param {string} dest - Destination file path
+ * @param {boolean} preserveMode - If true, preserves source file's mode (permissions)
  */
-async function atomicCopy(src, dest) {
+async function atomicCopy(src, dest, preserveMode = false) {
   const content = readFileSync(src);
   await writeFile(dest, content);
+  if (preserveMode) {
+    const srcStat = statSync(src);
+    chmodSync(dest, srcStat.mode);
+  }
 }
 
 const phase = process.argv[2] || 'prebuild';
@@ -59,6 +66,6 @@ if (phase === 'prebuild') {
     await atomicCopy(join(srcDocs, file.dest), join(distDocs, file.dest));
   }
 
-  // Copy bin.mjs to tbd for shebang-based execution (atomic write)
-  await atomicCopy(join(root, 'dist', 'bin.mjs'), join(root, 'dist', 'tbd'));
+  // Copy bin.mjs to tbd for shebang-based execution (atomic write, preserve execute permission)
+  await atomicCopy(join(root, 'dist', 'bin.mjs'), join(root, 'dist', 'tbd'), true);
 }
