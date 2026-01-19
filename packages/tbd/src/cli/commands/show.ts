@@ -7,46 +7,31 @@
 import { Command } from 'commander';
 
 import { BaseCommand } from '../lib/baseCommand.js';
-import { requireInit, NotFoundError } from '../lib/errors.js';
+import { NotFoundError } from '../lib/errors.js';
+import { loadFullContext } from '../lib/dataContext.js';
 import { readIssue } from '../../file/storage.js';
 import { serializeIssue } from '../../file/parser.js';
-import { formatDisplayId, formatDebugId } from '../../lib/ids.js';
-import { resolveDataSyncDir } from '../../lib/paths.js';
-import { loadIdMapping, resolveToInternalId } from '../../file/idMapping.js';
-import { readConfig } from '../../file/config.js';
 import { formatPriority, getPriorityColor } from '../../lib/priority.js';
 import { getStatusColor } from '../../lib/status.js';
 import type { IssueStatusType } from '../../lib/types.js';
 
 class ShowHandler extends BaseCommand {
-  async run(id: string): Promise<void> {
-    await requireInit();
+  async run(id: string, command: Command): Promise<void> {
+    // Load unified context with data and helpers
+    const ctx = await loadFullContext(command);
 
-    const dataSyncDir = await resolveDataSyncDir();
-
-    // Load ID mapping for resolution and display
-    const mapping = await loadIdMapping(dataSyncDir);
-
-    // Resolve input ID to internal ID
-    let internalId: string;
-    try {
-      internalId = resolveToInternalId(id, mapping);
-    } catch {
-      throw new NotFoundError('Issue', id);
-    }
+    // Resolve input ID to internal ID using helper
+    const internalId = ctx.resolveId(id);
 
     let issue;
     try {
-      issue = await readIssue(dataSyncDir, internalId);
+      issue = await readIssue(ctx.dataSyncDir, internalId);
     } catch {
       throw new NotFoundError('Issue', id);
     }
-    const showDebug = this.ctx.debug;
-    const config = await readConfig(process.cwd());
-    const prefix = config.display.id_prefix;
-    const displayId = showDebug
-      ? formatDebugId(issue.id, mapping, prefix)
-      : formatDisplayId(issue.id, mapping, prefix);
+
+    // Format display ID using helper (respects debug mode automatically)
+    const displayId = ctx.displayId(issue.id);
 
     // Create display version with short display ID
     const displayIssue = {
@@ -94,5 +79,5 @@ export const showCommand = new Command('show')
   .argument('<id>', 'Issue ID')
   .action(async (id, _options, command) => {
     const handler = new ShowHandler(command);
-    await handler.run(id);
+    await handler.run(id, command);
   });
