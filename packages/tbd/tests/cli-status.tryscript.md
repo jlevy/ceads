@@ -36,7 +36,7 @@ $ tbd status
 Not a tbd repository.
 
 Detected:
-  ✓ Git repository (main branch)
+  ✓ Git repository
   ✗ Beads not detected
   ✗ tbd not initialized
 
@@ -55,6 +55,8 @@ $ tbd status --json
   "working_directory": [..],
   "git_repository": true,
   "git_branch": "main",
+  "git_version": [..],
+  "git_version_supported": true,
   "beads_detected": false,
   "beads_issue_count": null,
 ...
@@ -80,7 +82,7 @@ $ tbd status
 Not a tbd repository.
 
 Detected:
-  ✓ Git repository (main branch)
+  ✓ Git repository
   ✓ Beads repository (.beads/ with 1 issues)
   ✗ tbd not initialized
 
@@ -150,6 +152,8 @@ $ tbd status --json
   "working_directory": [..],
   "git_repository": true,
   "git_branch": "main",
+  "git_version": [..],
+  "git_version_supported": true,
   "beads_detected": true,
   "beads_issue_count": 1,
   "sync_branch": "tbd-sync",
