@@ -513,12 +513,12 @@ $ tbd close $(cat dryclose_id.txt) --dry-run
 ? 0
 ```
 
-# Test: Close already closed issue
+# Test: Close already closed issue (idempotent - succeeds silently)
 
 ```console
-$ tbd close $(cat close_id.txt) 2>&1
-Error: Issue[..]already closed
-? 1
+$ tbd close $(cat close_id.txt)
+✓ Closed [..]
+? 0
 ```
 
 * * *

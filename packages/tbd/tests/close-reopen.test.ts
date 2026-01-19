@@ -96,8 +96,9 @@ describe('close command logic', () => {
     expect(result.close_reason).toBeNull();
   });
 
-  it('validates closing already closed issue', async () => {
+  it('closing already closed issue is idempotent (no change)', async () => {
     const issueId = testId(TEST_ULIDS.CLOSE_3);
+    const closedAt = '2025-01-10T00:00:00Z';
     const issue: Issue = {
       type: 'is',
       id: issueId,
@@ -110,14 +111,19 @@ describe('close command logic', () => {
       dependencies: [],
       created_at: '2025-01-01T00:00:00Z',
       updated_at: '2025-01-10T00:00:00Z',
-      closed_at: '2025-01-10T00:00:00Z',
+      closed_at: closedAt,
+      close_reason: 'original reason',
     };
 
     await writeIssue(issuesDir, issue);
 
     const loaded = await readIssue(issuesDir, issueId);
     expect(loaded.status).toBe('closed');
-    // In real command, this would trigger an error
+    expect(loaded.closed_at).toBe(closedAt);
+    expect(loaded.close_reason).toBe('original reason');
+    expect(loaded.version).toBe(2);
+    // Idempotent close should succeed silently - issue remains unchanged
+    // The close command should not throw an error, and should not modify the issue
   });
 });
 

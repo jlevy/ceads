@@ -66,7 +66,7 @@ describe('config operations', () => {
         tbd_version: '3.1.0',
         sync: { branch: 'custom-branch', remote: 'upstream' },
         display: { id_prefix: 'td' },
-        settings: { auto_sync: true, index_enabled: false },
+        settings: { auto_sync: true },
       };
 
       await writeConfig(tempDir, config);
@@ -77,7 +77,6 @@ describe('config operations', () => {
       expect(read.sync.remote).toBe('upstream');
       expect(read.display.id_prefix).toBe('td');
       expect(read.settings.auto_sync).toBe(true);
-      expect(read.settings.index_enabled).toBe(false);
     });
   });
 });

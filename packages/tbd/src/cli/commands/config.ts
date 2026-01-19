@@ -34,7 +34,6 @@ class ConfigShowHandler extends BaseCommand {
       console.log(`  ${colors.dim('id_prefix:')} ${config.display.id_prefix}`);
       console.log(`${colors.dim('settings:')}`);
       console.log(`  ${colors.dim('auto_sync:')} ${config.settings.auto_sync}`);
-      console.log(`  ${colors.dim('index_enabled:')} ${config.settings.index_enabled}`);
     });
   }
 }

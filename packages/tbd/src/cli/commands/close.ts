@@ -7,7 +7,7 @@
 import { Command } from 'commander';
 
 import { BaseCommand } from '../lib/baseCommand.js';
-import { requireInit, NotFoundError, CLIError } from '../lib/errors.js';
+import { requireInit, NotFoundError } from '../lib/errors.js';
 import { readIssue, writeIssue } from '../../file/storage.js';
 import { formatDisplayId, formatDebugId } from '../../lib/ids.js';
 import { resolveDataSyncDir } from '../../lib/paths.js';
@@ -44,9 +44,20 @@ class CloseHandler extends BaseCommand {
       throw new NotFoundError('Issue', id);
     }
 
-    // Check if already closed
+    // Get display ID for output
+    const showDebug = this.ctx.debug;
+    const config = await readConfig(process.cwd());
+    const prefix = config.display.id_prefix;
+    const displayId = showDebug
+      ? formatDebugId(issue.id, mapping, prefix)
+      : formatDisplayId(issue.id, mapping, prefix);
+
+    // Idempotent: if already closed, succeed silently without modification
     if (issue.status === 'closed') {
-      throw new CLIError(`Issue ${id} is already closed`);
+      this.output.data({ id: displayId, closed: true, alreadyClosed: true }, () => {
+        this.output.success(`Closed ${displayId}`);
+      });
+      return;
     }
 
     if (this.checkDryRun('Would close issue', { id: internalId, reason: options.reason })) {
@@ -64,14 +75,6 @@ class CloseHandler extends BaseCommand {
     await this.execute(async () => {
       await writeIssue(dataSyncDir, issue);
     }, 'Failed to close issue');
-
-    // Use already loaded mapping for display
-    const showDebug = this.ctx.debug;
-    const config = await readConfig(process.cwd());
-    const prefix = config.display.id_prefix;
-    const displayId = showDebug
-      ? formatDebugId(issue.id, mapping, prefix)
-      : formatDisplayId(issue.id, mapping, prefix);
 
     this.output.data({ id: displayId, closed: true }, () => {
       this.output.success(`Closed ${displayId}`);

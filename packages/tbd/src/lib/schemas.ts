@@ -182,7 +182,6 @@ export const ConfigSchema = z.object({
   settings: z
     .object({
       auto_sync: z.boolean().default(false),
-      index_enabled: z.boolean().default(true),
     })
     .default({}),
 });
@@ -205,8 +204,6 @@ export const MetaSchema = z.object({
 
 /**
  * Per-node state stored in .tbd/cache/state.yml (gitignored).
- *
- * Note: Current implementation uses state.json (see tbd-hckf to change to YAML).
  * Only last_sync_at is currently used. Additional fields reserved for future.
  */
 export const LocalStateSchema = z.object({

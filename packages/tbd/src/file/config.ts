@@ -35,7 +35,6 @@ function createDefaultConfig(version: string, prefix: string): Config {
     },
     settings: {
       auto_sync: false,
-      index_enabled: true,
     },
   });
 }
