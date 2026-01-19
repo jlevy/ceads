@@ -165,8 +165,7 @@ export default [
     rules: {
       '@typescript-eslint/no-explicit-any': 'off',
       'no-console': 'off',
-      // Scripts run in controlled build environments
-      '@typescript-eslint/no-restricted-imports': 'off',
+      // Note: Atomic writes are still enforced for scripts
     },
   },
 
