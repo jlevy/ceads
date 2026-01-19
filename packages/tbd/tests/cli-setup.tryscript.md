@@ -190,6 +190,8 @@ $ tbd status --json
   "working_directory": [..],
   "git_repository": true,
   "git_branch": "main",
+  "git_version": [..],
+  "git_version_supported": true,
   "beads_detected": false,
 ...
 }
@@ -267,6 +269,7 @@ Not a tbd repository.
 
 Detected:
   ✓ Git repository
+  ✓ Git [..]
   ✗ Beads not detected
   ✗ tbd not initialized
 

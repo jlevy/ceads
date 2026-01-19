@@ -18,6 +18,7 @@ import { stripFrontmatter } from '../../utils/markdownUtils.js';
 
 interface PrimeOptions {
   export?: boolean;
+  brief?: boolean;
 }
 
 /**
@@ -77,6 +78,32 @@ export async function loadPrimeContent(): Promise<string> {
   return content.replace(/^# tbd Workflow\b/, '# tbd Workflow Context');
 }
 
+/**
+ * Brief prime content for minimal context (~200 tokens).
+ * Useful for constrained context windows.
+ */
+const BRIEF_PRIME_CONTENT = `# tbd Quick Reference
+
+\`tbd\` = git-native issue tracking. Use tbd commands, NOT bd commands.
+
+## Session Closing Checklist (REQUIRED)
+
+1. git add + git commit
+2. git push
+3. gh pr checks <PR> --watch  # WAIT for completion
+4. tbd close/update <id>     # for issues worked on
+5. tbd sync
+
+## Key Commands
+
+- \`tbd list --pretty\` - view open issues
+- \`tbd show <id>\` - issue details
+- \`tbd update <id> --status in_progress\` - claim issue
+- \`tbd close <id>\` - complete issue
+- \`tbd sync\` - sync with remote
+
+Run \`tbd prime\` for full context.`;
+
 class PrimeHandler extends BaseCommand {
   async run(options: PrimeOptions): Promise<void> {
     const cwd = process.cwd();
@@ -92,6 +119,12 @@ class PrimeHandler extends BaseCommand {
     if (beadsWarning) {
       console.log(beadsWarning);
       console.log('');
+    }
+
+    // Brief mode: output minimal context (~200 tokens)
+    if (options.brief) {
+      console.log(BRIEF_PRIME_CONTENT);
+      return;
     }
 
     // Check for custom override file
@@ -136,6 +169,7 @@ class PrimeHandler extends BaseCommand {
 export const primeCommand = new Command('prime')
   .description('Context-efficient instructions for agents, for use in every session')
   .option('--export', 'Output default content (ignores PRIME.md override)')
+  .option('--brief', 'Output minimal context (~200 tokens) for constrained contexts')
   .action(async (options, command) => {
     const handler = new PrimeHandler(command);
     await handler.run(options);

@@ -605,6 +605,25 @@ tbd setup auto                              # Auto-detect and configure all inte
 tbd setup beads --disable                   # Disable Beads (for migration)
 ```
 
+#### setup auto
+
+The `setup auto` command detects which coding agents are available and configures
+integrations automatically:
+
+- **Claude Code**: Checks for `~/.claude/` directory, installs SessionStart hooks
+- **Cursor**: Checks for `.cursor/` directory, creates rules file
+- **Codex**: Checks for `AGENTS.md`, adds tbd integration section
+
+This is the recommended way to set up tbd in a new project:
+
+```bash
+tbd init --prefix=myproj
+tbd setup auto                              # Configure all detected integrations
+```
+
+For already-configured integrations, `setup auto` reports them as “Already configured”
+and skips reinstallation.
+
 ### Documentation Commands
 
 Built-in documentation viewers:

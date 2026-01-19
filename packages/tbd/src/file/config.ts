@@ -13,11 +13,13 @@ import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
 
 import type { Config } from '../lib/types.js';
 import { ConfigSchema } from '../lib/schemas.js';
+import { CONFIG_FILE, SYNC_BRANCH } from '../lib/paths.js';
 
 /**
  * Path to config file relative to project root.
+ * Re-exported from paths.ts for backwards compatibility.
  */
-export const CONFIG_FILE_PATH = '.tbd/config.yml';
+export const CONFIG_FILE_PATH = CONFIG_FILE;
 
 /**
  * Create default config for a new project.
@@ -27,7 +29,7 @@ function createDefaultConfig(version: string, prefix: string): Config {
   return ConfigSchema.parse({
     tbd_version: version,
     sync: {
-      branch: 'tbd-sync',
+      branch: SYNC_BRANCH,
       remote: 'origin',
     },
     display: {
@@ -35,7 +37,6 @@ function createDefaultConfig(version: string, prefix: string): Config {
     },
     settings: {
       auto_sync: false,
-      index_enabled: true,
     },
   });
 }

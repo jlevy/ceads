@@ -12,7 +12,8 @@
  * Usage: pnpm bench
  */
 
-import { mkdtemp, rm, mkdir, writeFile } from 'node:fs/promises';
+import { mkdtemp, rm, mkdir } from 'node:fs/promises';
+import { writeFile } from 'atomically';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { execFile } from 'node:child_process';
@@ -55,7 +56,6 @@ display:
   id_prefix: bd
 settings:
   auto_sync: false
-  index_enabled: true
 `,
   );
 

@@ -259,7 +259,6 @@ display:
   id_prefix: test
 settings:
   auto_sync: false
-  index_enabled: true
 ? 0
 ```
 
@@ -277,8 +276,7 @@ $ tbd config show --json
     "id_prefix": "test"
   },
   "settings": {
-    "auto_sync": false,
-    "index_enabled": true
+    "auto_sync": false
   }
 }
 ? 0

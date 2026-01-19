@@ -6,6 +6,7 @@
 
 import { Command } from 'commander';
 import { readFile } from 'node:fs/promises';
+import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
 
 import { writeFile } from 'atomically';
 
@@ -24,8 +25,8 @@ import { formatIssueCompact, type IssueForDisplay } from '../lib/issueFormat.js'
 // Staleness threshold for worktree (5 minutes)
 const STALE_THRESHOLD_MS = 5 * 60 * 1000;
 
-// State file path
-const STATE_FILE = '.tbd/cache/state.json';
+// State file path (YAML for consistency with other tbd config files)
+const STATE_FILE = '.tbd/cache/state.yml';
 
 interface SearchOptions {
   status?: string;
@@ -51,7 +52,7 @@ interface LocalState {
 async function readState(): Promise<LocalState> {
   try {
     const content = await readFile(STATE_FILE, 'utf-8');
-    return JSON.parse(content) as LocalState;
+    return parseYaml(content) as LocalState;
   } catch {
     return {};
   }
@@ -63,7 +64,7 @@ async function readState(): Promise<LocalState> {
 async function updateState(updates: Partial<LocalState>): Promise<void> {
   const state = await readState();
   const newState = { ...state, ...updates };
-  await writeFile(STATE_FILE, JSON.stringify(newState, null, 2));
+  await writeFile(STATE_FILE, stringifyYaml(newState));
 }
 
 /**

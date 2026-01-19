@@ -141,7 +141,7 @@ describe('exit codes', () => {
       await mkdir(join(testDir, '.tbd'), { recursive: true });
       await writeFile(
         join(testDir, '.tbd', 'config.yml'),
-        'tbd_version: "1"\nsync:\n  branch: tbd-sync\n  remote: origin\ndisplay:\n  id_prefix: tbd\nsettings:\n  auto_sync: false\n  index_enabled: false\n',
+        'tbd_version: "1"\nsync:\n  branch: tbd-sync\n  remote: origin\ndisplay:\n  id_prefix: tbd\nsettings:\n  auto_sync: false\n',
       );
       await mkdir(join(testDir, '.tbd', 'data-sync-worktree', '.tbd', 'data-sync', 'issues'), {
         recursive: true,

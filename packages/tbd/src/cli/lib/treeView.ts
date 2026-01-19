@@ -7,7 +7,7 @@
 import type { createColors } from './output.js';
 import { formatPriority, getPriorityColor } from '../../lib/priority.js';
 import { getStatusIcon, getStatusColor } from '../../lib/status.js';
-import { formatKind, wrapDescription, type IssueForDisplay } from './issueFormat.js';
+import { formatKind, wrapDescription, ISSUE_COLUMNS, type IssueForDisplay } from './issueFormat.js';
 
 /**
  * Options for tree rendering.
@@ -81,12 +81,14 @@ export function buildIssueTree(issues: (IssueForDisplay & { parentId?: string })
  * Format a single issue line for tree view (no header, compact format).
  *
  * Format: {ID}  {PRI}  {STATUS}  [kind] {TITLE}
+ *
+ * ID column is padded to ISSUE_COLUMNS.ID width for consistent alignment.
  */
 function formatTreeIssueLine(
   issue: IssueForDisplay,
   colors: ReturnType<typeof createColors>,
 ): string {
-  const id = colors.id(issue.id);
+  const id = colors.id(issue.id.padEnd(ISSUE_COLUMNS.ID));
   const pri = getPriorityColor(issue.priority, colors)(formatPriority(issue.priority));
   const statusText = `${getStatusIcon(issue.status)} ${issue.status}`;
   const status = getStatusColor(issue.status, colors)(statusText);

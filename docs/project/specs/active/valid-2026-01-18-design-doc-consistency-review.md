@@ -3,8 +3,8 @@
 ## Purpose
 
 This validation spec documents the comprehensive review of tbd-design.md against the
-actual CLI implementation and tbd-docs.md. All inconsistencies were tracked as tbd beads
-and resolved through documentation fixes.
+actual CLI implementation and tbd-docs.md.
+All inconsistencies were tracked as tbd beads and resolved through documentation fixes.
 
 **Feature Plan:** N/A (ad-hoc review task)
 
@@ -14,8 +14,8 @@ and resolved through documentation fixes.
 
 ## Validation Planning
 
-This was a documentation consistency review, not a feature implementation. The goal was
-to ensure tbd-design.md accurately reflects the actual CLI implementation.
+This was a documentation consistency review, not a feature implementation.
+The goal was to ensure tbd-design.md accurately reflects the actual CLI implementation.
 
 ## Automated Validation (Testing Performed)
 
@@ -36,7 +36,7 @@ The user should review the following documentation changes to confirm accuracy:
 The following sections of `docs/tbd-design.md` were updated:
 
 | Section | Changes Made |
-|---------|--------------|
+| --- | --- |
 | §1.1 Introduction | Fixed typos ("may for the base" → "may be the base", "coordiation" → "coordination") |
 | §2.1 Issue File Format | Added note clarifying example uses human-friendly order, not canonical |
 | §2.6.4 ConfigSchema | Added `index_enabled: z.boolean().default(true)` |
@@ -55,14 +55,14 @@ The following sections of `docs/tbd-design.md` were updated:
 ### 2. Code Comment Fixes
 
 | File | Change |
-|------|--------|
+| --- | --- |
 | `packages/tbd/src/lib/schemas.ts` | Fixed Version comment: "Git push rejection" not "content hash" for conflict detection |
 | `packages/tbd/src/file/hash.ts` | Fixed module comment: "merge resolution tiebreaking" not "conflict detection" |
 
 ### 3. tbd-docs.md Updates
 
 | Section | Changes Made |
-|---------|--------------|
+| --- | --- |
 | init command | Added --prefix requirement |
 | list command | Added --long and --pretty options |
 | ready/blocked | Added --long option |
@@ -110,12 +110,13 @@ tbd list --status deferred
 
 ### 6. Review New Open Questions Section
 
-Review `docs/tbd-design.md` §8.1 "Actor System Design" to confirm:
+Review `docs/tbd-design.md` §8.1 “Actor System Design” to confirm:
 - Implementation status is accurately documented
 - Design questions are relevant and complete
 - Recommendation to defer is appropriate
 
 ## Open Questions
 
-None - all documentation inconsistencies have been addressed. The actor system design
-(tbd-fbt2) is intentionally deferred pending further design work on multi-agent workflows.
+None - all documentation inconsistencies have been addressed.
+The actor system design (tbd-fbt2) is intentionally deferred pending further design work
+on multi-agent workflows.

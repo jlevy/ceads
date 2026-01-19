@@ -112,6 +112,36 @@ export default [
             'Inline import() type expressions are not allowed. Use a proper import statement at the top of the file instead.',
         },
       ],
+
+      // === Atomic File Writes ===
+      // Enforce use of 'atomically' library for file writes to prevent data corruption
+      '@typescript-eslint/no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: 'fs',
+              importNames: ['writeFile', 'writeFileSync'],
+              message: 'Use writeFile from "atomically" instead for atomic writes.',
+            },
+            {
+              name: 'node:fs',
+              importNames: ['writeFile', 'writeFileSync'],
+              message: 'Use writeFile from "atomically" instead for atomic writes.',
+            },
+            {
+              name: 'fs/promises',
+              importNames: ['writeFile'],
+              message: 'Use writeFile from "atomically" instead for atomic writes.',
+            },
+            {
+              name: 'node:fs/promises',
+              importNames: ['writeFile'],
+              message: 'Use writeFile from "atomically" instead for atomic writes.',
+            },
+          ],
+        },
+      ],
     },
   },
 
@@ -124,6 +154,8 @@ export default [
       '@typescript-eslint/no-unsafe-assignment': 'off',
       '@typescript-eslint/no-unsafe-member-access': 'off',
       '@typescript-eslint/no-unsafe-call': 'off',
+      // Test files create temporary fixtures where atomic writes aren't critical
+      '@typescript-eslint/no-restricted-imports': 'off',
     },
   },
 
@@ -133,6 +165,7 @@ export default [
     rules: {
       '@typescript-eslint/no-explicit-any': 'off',
       'no-console': 'off',
+      // Note: Atomic writes are still enforced for scripts
     },
   },
 
