@@ -456,6 +456,74 @@ Add to key characteristics:
 - **Transactional mode**: Optional batched commits for agents working on features
 ```
 
+#### §1.2 When to Use tbd (add transactional use cases)
+
+Add new rows to the "Use tbd when" table:
+
+| Scenario | Why tbd |
+| --- | --- |
+| Agent doing exploratory work | Transactions let you abort all changes if approach fails |
+| Batch creation of issue hierarchies | Atomic commits prevent partial/orphaned issues |
+| Long-running agent sessions | Batch changes until work is validated |
+
+#### NEW §1.X Transactional Mode (Motivation)
+
+Add a new section after §1.2 explaining transactional mode:
+
+```markdown
+### 1.X Transactional Mode
+
+By default, tbd operates in **immediate mode**: changes are written to the worktree
+and synced on demand. This works well for simple workflows.
+
+For more complex agent workflows, tbd supports **transactional mode**: batch all
+changes and commit them atomically, or abort them entirely.
+
+**When to use transactional mode:**
+
+| Use Case | Problem Without Transactions | Solution |
+| --- | --- | --- |
+| Exploratory work | Abandoned experiments pollute issue history | `tx abort` discards all changes |
+| Plan/epic creation | Partial hierarchies visible during creation | `tx commit` makes all issues appear atomically |
+| Feature branch work | Issue updates persist even if PR rejected | Changes only committed when work is finalized |
+
+**Example: Exploratory work that might be abandoned**
+
+An agent explores a solution approach, tracking progress in issues. If the approach
+fails, all changes are discarded:
+
+​```bash
+tbd tx begin --name "auth-refactor-attempt"
+tbd create "Refactor auth middleware" --type task
+tbd update bd-xyz --status in_progress
+tbd update bd-xyz --notes "Tried approach A, hitting issues..."
+
+# Approach didn't work - abort everything
+tbd tx abort
+# → No changes visible in tbd-sync
+​```
+
+**Example: Batch creation of plan hierarchy**
+
+An agent creates a structured epic with child tasks. The entire hierarchy appears
+atomically when finalized:
+
+​```bash
+tbd tx begin --name "q1-roadmap"
+tbd create "Q1 Auth Improvements" --type epic
+tbd create "Add OAuth support" --type task --parent bd-epic
+tbd create "Implement MFA" --type task --parent bd-epic
+tbd dep add bd-mfa bd-oauth --type blocks
+
+# Plan finalized
+tbd tx commit --message "Q1 auth roadmap"
+# → All issues appear atomically in tbd-sync
+​```
+
+Without transactions, partial plans would be visible during creation, and abandoned
+plans would leave orphaned issues requiring manual cleanup.
+```
+
 #### §2.2 Directory Structure (new section or update)
 
 Add cache files:
@@ -488,23 +556,226 @@ Add §3.3.4 Transactional Sync:
 ```markdown
 #### 3.3.4 Transactional Sync
 
-Transactional mode provides atomic batch commits:
+Transactional mode provides atomic batch commits using git branches.
 
-1. `tbd tx begin` creates branch `tbd-sync-tx-{tx-id}` from current `tbd-sync`
-2. All write operations go to transaction worktree
-3. `tbd tx commit`:
-   a. Commits transaction worktree to tx branch
-   b. Merges tx branch into local tbd-sync
-   c. Pushes tbd-sync to remote (with retry on conflict)
-   d. Deletes tx branch and worktree
-4. `tbd tx abort` deletes tx branch and worktree without merging
+**Architecture:**
+
+​```
+.tbd/data-sync-worktree/
+    │
+    ├── normally checked out to: tbd-sync
+    │
+    └── during transaction: tbd-sync-tx-{tx-id}
+​```
+
+**Transaction Lifecycle:**
+
+1. **Begin**: `tbd tx begin` creates branch `tbd-sync-tx-{tx-id}` from current
+   `tbd-sync` HEAD and checks it out in the worktree
+
+2. **Work**: All write operations (create, update, close, etc.) write to the
+   worktree, which is now on the transaction branch. No changes to existing
+   commands required.
+
+3. **Commit**: `tbd tx commit`:
+   a. Commits any uncommitted changes in worktree to tx branch
+   b. Checks out `tbd-sync` in worktree
+   c. Merges tx branch into `tbd-sync`
+   d. Pushes `tbd-sync` to remote (with retry on conflict)
+   e. Deletes tx branch
+
+4. **Abort**: `tbd tx abort`:
+   a. Checks out `tbd-sync` in worktree (discarding uncommitted changes)
+   b. Force-deletes tx branch
+
+**Key Design Decision:** Single worktree with branch switching (not separate
+worktrees). This is simpler and matches the constraint of one transaction at a
+time per machine.
+
+**Conflict Handling:** On `tx commit`, if the remote `tbd-sync` has diverged,
+the standard sync conflict resolution applies (field-level merge, attic for
+losers). The transaction's changes are treated as local changes in the merge.
+
+**State Persistence:** Transaction state stored in `.tbd/cache/transaction.yml`
+(gitignored). If agent crashes mid-transaction, `tbd tx list` shows orphaned
+branches for recovery.
 ```
 
 #### §4 CLI Layer (new sections)
 
-Add:
-- §4.X Agent Commands
-- §4.Y Transaction Commands
+Add §4.X Agent Commands:
+```markdown
+### 4.X Agent Commands
+
+Agent registration provides identity for audit trails and transaction scoping.
+
+#### Register
+
+​```bash
+tbd agent register [--name <name>]
+
+Options:
+  --name <name>    Human-friendly name (e.g., "claude-code-cloud")
+​```
+
+Registers the current session as an agent. Returns a unique agent ID.
+
+**Output:**
+​```
+Registered agent: ag-claude-code-cloud-01hx5zzkbk...
+​```
+
+If no name provided, uses "anonymous":
+​```
+Registered agent: ag-anonymous-01hx5zzkbk...
+​```
+
+#### Status
+
+​```bash
+tbd agent status
+​```
+
+Shows current agent registration.
+
+**Output (registered):**
+​```
+Agent: claude-code-cloud (ag-claude-code-cloud-01hx5zzkbk...)
+Registered: 2025-01-19T10:00:00Z (2 hours ago)
+​```
+
+**Output (not registered):**
+​```
+No agent registered.
+Run 'tbd agent register' to register.
+​```
+
+#### Unregister
+
+​```bash
+tbd agent unregister
+​```
+
+Clears agent registration for this session.
+```
+
+Add §4.Y Transaction Commands:
+```markdown
+### 4.Y Transaction Commands
+
+Transactions batch changes for atomic commit or rollback.
+
+#### Begin
+
+​```bash
+tbd tx begin [--name <name>]
+
+Options:
+  --name <name>    Human-friendly name for the transaction
+​```
+
+Starts a new transaction. Creates a transaction branch and switches the worktree
+to it.
+
+**Output:**
+​```
+Transaction started: auth-feature (tx-01hx5zzkbk...)
+All changes will be batched until 'tbd tx commit' or 'tbd tx abort'.
+​```
+
+**Error (transaction already active):**
+​```
+Error: Transaction already active: auth-feature (tx-01hx5zzkbk...)
+Run 'tbd tx commit' or 'tbd tx abort' first.
+​```
+
+#### Status
+
+​```bash
+tbd tx status
+​```
+
+Shows current transaction state and pending changes.
+
+**Output (active transaction):**
+​```
+Transaction: auth-feature (tx-01hx5zzkbk...)
+Started: 2025-01-19T10:30:00Z (2 hours ago)
+Agent: ag-claude-01hx5zzkbk...
+
+Pending changes:
+  new:      2 issues
+  updated:  3 issues
+  deleted:  0 issues
+
+Run 'tbd tx diff' for details, 'tbd tx commit' to finalize.
+​```
+
+**Output (no transaction):**
+​```
+No active transaction.
+Run 'tbd tx begin' to start one.
+​```
+
+#### Diff
+
+​```bash
+tbd tx diff
+​```
+
+Shows detailed changes that would be committed.
+
+#### Commit
+
+​```bash
+tbd tx commit [--message <msg>]
+
+Options:
+  --message <msg>    Commit message (default: "tbd tx commit")
+​```
+
+Commits the transaction: merges changes to tbd-sync and syncs to remote.
+
+**Output:**
+​```
+Committed transaction: auth-feature
+  new:      2 issues
+  updated:  3 issues
+Synced to origin/tbd-sync
+​```
+
+#### Abort
+
+​```bash
+tbd tx abort
+​```
+
+Discards all changes and ends the transaction.
+
+**Output:**
+​```
+Aborted transaction: auth-feature
+All changes discarded.
+​```
+
+#### List
+
+​```bash
+tbd tx list
+​```
+
+Shows transaction branches (for recovering orphaned transactions).
+
+**Output:**
+​```
+Transaction branches:
+  tbd-sync-tx-01hx5zzkbk... (no state file - orphaned)
+  tbd-sync-tx-01hx6aabcd... (active)
+
+To clean up orphaned transactions:
+  git branch -D tbd-sync-tx-01hx5zzkbk...
+​```
+```
 
 #### §7.2 Future Enhancements
 
