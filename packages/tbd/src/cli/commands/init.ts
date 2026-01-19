@@ -11,7 +11,7 @@ import { spawnSync } from 'node:child_process';
 
 import { writeFile } from 'atomically';
 
-import { BaseCommand } from '../lib/baseCommand.js';
+import { BaseCommand } from '../lib/base-command.js';
 import { CLIError, ValidationError } from '../lib/errors.js';
 import { VERSION } from '../lib/version.js';
 import { initConfig } from '../../file/config.js';

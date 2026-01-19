@@ -207,7 +207,7 @@ export function normalizeIssueId(input: string): string {
   return lower;
 }
 
-import type { IdMapping } from '../file/idMapping.js';
+import type { IdMapping } from '../file/id-mapping.js';
 
 /**
  * Format an internal ID for display with the configured prefix.

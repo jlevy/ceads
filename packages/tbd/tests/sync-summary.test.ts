@@ -11,7 +11,7 @@ import {
   formatSyncSummary,
   parseGitStatus,
   parseGitDiff,
-} from '../src/lib/syncSummary.js';
+} from '../src/lib/sync-summary.js';
 
 describe('emptyTallies', () => {
   it('returns zeroed tallies', () => {

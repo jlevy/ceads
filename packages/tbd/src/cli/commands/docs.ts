@@ -10,15 +10,11 @@ import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
-import { BaseCommand } from '../lib/baseCommand.js';
+import { BaseCommand } from '../lib/base-command.js';
 import { CLIError, NotFoundError } from '../lib/errors.js';
 import { renderMarkdown } from '../lib/output.js';
+import type { DocSection } from '../../lib/types.js';
 import GithubSlugger from 'github-slugger';
-
-interface Section {
-  title: string;
-  slug: string;
-}
 
 /**
  * Get the path to the bundled docs file.
@@ -108,8 +104,8 @@ class DocsHandler extends BaseCommand {
    * Sections are top-level headers (## ).
    * Returns title and slugified ID for each section.
    */
-  private extractSections(content: string): Section[] {
-    const sections: Section[] = [];
+  private extractSections(content: string): DocSection[] {
+    const sections: DocSection[] = [];
     const lines = content.split('\n');
     const slugger = new GithubSlugger();
 
@@ -129,7 +125,7 @@ class DocsHandler extends BaseCommand {
    * Matches by slug or partial title match.
    * Returns content from the section header to the next section header.
    */
-  private extractSection(content: string, sections: Section[], query: string): string | null {
+  private extractSection(content: string, sections: DocSection[], query: string): string | null {
     const lowerQuery = query.toLowerCase();
 
     // Find matching section - first try exact slug match, then partial title match

@@ -16,10 +16,11 @@ import { join, dirname } from 'node:path';
 import { homedir } from 'node:os';
 import { writeFile } from 'atomically';
 
-import { BaseCommand } from '../lib/baseCommand.js';
+import { BaseCommand } from '../lib/base-command.js';
 import { CLIError } from '../lib/errors.js';
 import { loadSkillContent } from './prime.js';
-import { stripFrontmatter } from '../../utils/markdownUtils.js';
+import { stripFrontmatter } from '../../utils/markdown-utils.js';
+import { pathExists } from '../../utils/file-utils.js';
 import { type DiagnosticResult, renderDiagnostics } from '../lib/diagnostics.js';
 
 /**
@@ -870,7 +871,7 @@ class SetupBeadsHandler extends BaseCommand {
 
     // 1. Check .beads/ directory
     const beadsDir = join(cwd, '.beads');
-    const beadsDirExists = await this.pathExists(beadsDir);
+    const beadsDirExists = await pathExists(beadsDir);
     if (beadsDirExists) {
       const stats = await this.getDirectoryStats(beadsDir);
       items.push({
@@ -885,7 +886,7 @@ class SetupBeadsHandler extends BaseCommand {
 
     // 2. Check .beads-hooks/ directory
     const beadsHooksDir = join(cwd, '.beads-hooks');
-    const beadsHooksDirExists = await this.pathExists(beadsHooksDir);
+    const beadsHooksDirExists = await pathExists(beadsHooksDir);
     if (beadsHooksDirExists) {
       const stats = await this.getDirectoryStats(beadsHooksDir);
       items.push({
@@ -900,7 +901,7 @@ class SetupBeadsHandler extends BaseCommand {
 
     // 3. Check .cursor/rules/beads.mdc
     const cursorBeadsFile = join(cwd, '.cursor', 'rules', 'beads.mdc');
-    const cursorBeadsExists = await this.pathExists(cursorBeadsFile);
+    const cursorBeadsExists = await pathExists(cursorBeadsFile);
     if (cursorBeadsExists) {
       items.push({
         source: '.cursor/rules/beads.mdc',
@@ -1125,15 +1126,6 @@ class SetupBeadsHandler extends BaseCommand {
     console.log(colors.dim('  tbd setup claude   # Install tbd hooks'));
     console.log(colors.dim('  tbd setup cursor   # Install tbd Cursor rules (optional)'));
     console.log(colors.dim('  tbd setup codex    # Update AGENTS.md for tbd (optional)'));
-  }
-
-  private async pathExists(path: string): Promise<boolean> {
-    try {
-      await access(path);
-      return true;
-    } catch {
-      return false;
-    }
   }
 
   private async getDirectoryStats(dirPath: string): Promise<{ files: number; size: number }> {
@@ -1521,7 +1513,7 @@ class SetupAutoHandler extends BaseCommand {
 
     // Detect Claude Code: check for ~/.claude/ directory or CLAUDE_* env vars
     const claudeDir = join(homedir(), '.claude');
-    const hasClaudeDir = await this.pathExists(claudeDir);
+    const hasClaudeDir = await pathExists(claudeDir);
     const hasClaudeEnv = Object.keys(process.env).some((k) => k.startsWith('CLAUDE_'));
 
     if (!hasClaudeDir && !hasClaudeEnv) {
@@ -1536,7 +1528,7 @@ class SetupAutoHandler extends BaseCommand {
 
     try {
       // Check for existing tbd hooks in global settings
-      if (await this.pathExists(settingsPath)) {
+      if (await pathExists(settingsPath)) {
         const content = await readFile(settingsPath, 'utf-8');
         const settings = JSON.parse(content) as Record<string, unknown>;
         const hooks = settings.hooks as Record<string, unknown> | undefined;
@@ -1545,7 +1537,7 @@ class SetupAutoHandler extends BaseCommand {
           const hasTbdHook = sessionStart?.some((h) =>
             h.hooks?.some((hook) => hook.command?.includes('tbd prime')),
           );
-          if (hasTbdHook && (await this.pathExists(skillPath))) {
+          if (hasTbdHook && (await pathExists(skillPath))) {
             result.alreadyInstalled = true;
             result.installed = true;
             return result;
@@ -1574,7 +1566,7 @@ class SetupAutoHandler extends BaseCommand {
 
     // Detect Cursor: check for .cursor/ directory
     const cursorDir = join(cwd, '.cursor');
-    if (!(await this.pathExists(cursorDir))) {
+    if (!(await pathExists(cursorDir))) {
       return result;
     }
 
@@ -1582,7 +1574,7 @@ class SetupAutoHandler extends BaseCommand {
 
     // Check if already installed
     const rulesPath = join(cwd, '.cursor', 'rules', 'tbd.mdc');
-    if (await this.pathExists(rulesPath)) {
+    if (await pathExists(rulesPath)) {
       result.alreadyInstalled = true;
       result.installed = true;
       return result;
@@ -1609,7 +1601,7 @@ class SetupAutoHandler extends BaseCommand {
 
     // Detect Codex: check for existing AGENTS.md or CODEX_* env vars
     const agentsPath = join(cwd, 'AGENTS.md');
-    const hasAgentsMd = await this.pathExists(agentsPath);
+    const hasAgentsMd = await pathExists(agentsPath);
     const hasCodexEnv = Object.keys(process.env).some((k) => k.startsWith('CODEX_'));
 
     if (!hasAgentsMd && !hasCodexEnv) {
@@ -1637,15 +1629,6 @@ class SetupAutoHandler extends BaseCommand {
     }
 
     return result;
-  }
-
-  private async pathExists(path: string): Promise<boolean> {
-    try {
-      await access(path);
-      return true;
-    } catch {
-      return false;
-    }
   }
 }
 

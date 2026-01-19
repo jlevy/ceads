@@ -6,21 +6,21 @@
 
 import { Command } from 'commander';
 
-import { BaseCommand } from '../lib/baseCommand.js';
+import { BaseCommand } from '../lib/base-command.js';
 import { requireInit, NotInitializedError, ValidationError } from '../lib/errors.js';
 import { listIssues } from '../../file/storage.js';
 import { IssueKind } from '../../lib/schemas.js';
 import type { Issue, IssueKindType } from '../../lib/types.js';
 import { resolveDataSyncDir } from '../../lib/paths.js';
 import { formatDisplayId, formatDebugId } from '../../lib/ids.js';
-import { loadIdMapping } from '../../file/idMapping.js';
+import { loadIdMapping } from '../../file/id-mapping.js';
 import { readConfig } from '../../file/config.js';
 import {
   formatIssueLine,
   formatIssueLong,
   formatIssueHeader,
   type IssueForDisplay,
-} from '../lib/issueFormat.js';
+} from '../lib/issue-format.js';
 
 interface ReadyOptions {
   type?: string;

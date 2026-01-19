@@ -10,7 +10,7 @@ import { Command } from 'commander';
 import { access, readdir, readFile, unlink } from 'node:fs/promises';
 import { join } from 'node:path';
 
-import { BaseCommand } from '../lib/baseCommand.js';
+import { BaseCommand } from '../lib/base-command.js';
 import { requireInit } from '../lib/errors.js';
 import { listIssues } from '../../file/storage.js';
 import { readConfig } from '../../file/config.js';

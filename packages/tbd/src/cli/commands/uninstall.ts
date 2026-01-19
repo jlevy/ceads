@@ -9,7 +9,7 @@ import { rm, access, readdir, stat } from 'node:fs/promises';
 import { execSync } from 'node:child_process';
 import { join } from 'node:path';
 
-import { BaseCommand } from '../lib/baseCommand.js';
+import { BaseCommand } from '../lib/base-command.js';
 import { NotInitializedError, CLIError } from '../lib/errors.js';
 import { readConfig } from '../../file/config.js';
 import { SYNC_BRANCH } from '../../lib/paths.js';

@@ -6,13 +6,13 @@
 
 import { Command } from 'commander';
 
-import { BaseCommand } from '../lib/baseCommand.js';
+import { BaseCommand } from '../lib/base-command.js';
 import { requireInit, NotFoundError, CLIError } from '../lib/errors.js';
 import { readIssue, writeIssue } from '../../file/storage.js';
 import { formatDisplayId, formatDebugId } from '../../lib/ids.js';
 import { resolveDataSyncDir } from '../../lib/paths.js';
-import { now } from '../../utils/timeUtils.js';
-import { loadIdMapping, resolveToInternalId } from '../../file/idMapping.js';
+import { now } from '../../utils/time-utils.js';
+import { loadIdMapping, resolveToInternalId } from '../../file/id-mapping.js';
 import { readConfig } from '../../file/config.js';
 
 interface ReopenOptions {

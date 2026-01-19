@@ -368,7 +368,7 @@ import {
   calculateOptimalLength,
   generateUniqueShortId,
   type IdMapping,
-} from '../src/file/idMapping.js';
+} from '../src/file/id-mapping.js';
 
 describe('calculateOptimalLength', () => {
   it('returns 4 chars for databases under 50K issues', () => {

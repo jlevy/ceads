@@ -3,10 +3,10 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { buildIssueTree, renderIssueTree, countTreeIssues } from '../src/cli/lib/treeView.js';
+import { buildIssueTree, renderIssueTree, countTreeIssues } from '../src/cli/lib/tree-view.js';
 import { createColors } from '../src/cli/lib/output.js';
-import { ISSUE_COLUMNS } from '../src/cli/lib/issueFormat.js';
-import type { IssueForDisplay } from '../src/cli/lib/issueFormat.js';
+import { ISSUE_COLUMNS } from '../src/cli/lib/issue-format.js';
+import type { IssueForDisplay } from '../src/cli/lib/issue-format.js';
 
 // Use colors with 'never' to get predictable output without ANSI codes
 const colors = createColors('never');

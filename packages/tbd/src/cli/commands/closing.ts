@@ -10,7 +10,7 @@ import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
-import { BaseCommand } from '../lib/baseCommand.js';
+import { BaseCommand } from '../lib/base-command.js';
 import { CLIError } from '../lib/errors.js';
 import { renderMarkdown } from '../lib/output.js';
 

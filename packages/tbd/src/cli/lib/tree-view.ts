@@ -7,7 +7,12 @@
 import type { createColors } from './output.js';
 import { formatPriority, getPriorityColor } from '../../lib/priority.js';
 import { getStatusIcon, getStatusColor } from '../../lib/status.js';
-import { formatKind, wrapDescription, ISSUE_COLUMNS, type IssueForDisplay } from './issueFormat.js';
+import {
+  formatKind,
+  wrapDescription,
+  ISSUE_COLUMNS,
+  type IssueForDisplay,
+} from './issue-format.js';
 
 /**
  * Options for tree rendering.

@@ -10,7 +10,7 @@ import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { writeFile } from 'atomically';
 
-import { BaseCommand } from '../lib/baseCommand.js';
+import { BaseCommand } from '../lib/base-command.js';
 import { requireInit, ValidationError, NotFoundError } from '../lib/errors.js';
 import { writeIssue, listIssues } from '../../file/storage.js';
 import {
@@ -26,7 +26,7 @@ import {
   addIdMapping,
   hasShortId,
   generateUniqueShortId,
-} from '../../file/idMapping.js';
+} from '../../file/id-mapping.js';
 import { IssueStatus, IssueKind } from '../../lib/schemas.js';
 import type { Issue, IssueStatusType, IssueKindType, DependencyType } from '../../lib/types.js';
 import {
@@ -37,7 +37,7 @@ import {
   DATA_SYNC_DIR_NAME,
   SYNC_BRANCH,
 } from '../../lib/paths.js';
-import { now, normalizeTimestamp } from '../../utils/timeUtils.js';
+import { now, normalizeTimestamp } from '../../utils/time-utils.js';
 import { initConfig, isInitialized, readConfig, writeConfig } from '../../file/config.js';
 import { initWorktree } from '../../file/git.js';
 import { VERSION } from '../lib/version.js';

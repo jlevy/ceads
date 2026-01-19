@@ -6,15 +6,15 @@
 
 import { Command } from 'commander';
 
-import { BaseCommand } from '../lib/baseCommand.js';
+import { BaseCommand } from '../lib/base-command.js';
 import { requireInit, NotInitializedError, ValidationError } from '../lib/errors.js';
 import { listIssues } from '../../file/storage.js';
 import { IssueStatus } from '../../lib/schemas.js';
 import type { Issue, IssueStatusType } from '../../lib/types.js';
 import { resolveDataSyncDir } from '../../lib/paths.js';
-import { nowDate, parseDate } from '../../utils/timeUtils.js';
+import { nowDate, parseDate } from '../../utils/time-utils.js';
 import { formatDisplayId, formatDebugId } from '../../lib/ids.js';
-import { loadIdMapping } from '../../file/idMapping.js';
+import { loadIdMapping } from '../../file/id-mapping.js';
 import { readConfig } from '../../file/config.js';
 
 interface StaleOptions {

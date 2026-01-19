@@ -14,7 +14,7 @@ import {
   formatIssueHeader,
   formatIssueLong,
   wrapDescription,
-} from '../src/cli/lib/issueFormat.js';
+} from '../src/cli/lib/issue-format.js';
 import { createColors } from '../src/cli/lib/output.js';
 
 // Use colors with 'never' to get predictable output without ANSI codes

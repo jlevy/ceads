@@ -6,14 +6,14 @@
 
 import { Command } from 'commander';
 
-import { BaseCommand } from '../lib/baseCommand.js';
+import { BaseCommand } from '../lib/base-command.js';
 import { requireInit, NotFoundError, ValidationError } from '../lib/errors.js';
 import { readIssue, writeIssue, listIssues } from '../../file/storage.js';
 import { formatDisplayId, formatDebugId } from '../../lib/ids.js';
 import type { Issue } from '../../lib/types.js';
 import { resolveDataSyncDir } from '../../lib/paths.js';
-import { now } from '../../utils/timeUtils.js';
-import { loadIdMapping, resolveToInternalId } from '../../file/idMapping.js';
+import { now } from '../../utils/time-utils.js';
+import { loadIdMapping, resolveToInternalId } from '../../file/id-mapping.js';
 import { readConfig } from '../../file/config.js';
 
 // Add dependency: "A depends on B" means B blocks A

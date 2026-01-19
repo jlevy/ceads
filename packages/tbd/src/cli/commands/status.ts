@@ -16,7 +16,7 @@ import { join } from 'node:path';
 import { homedir } from 'node:os';
 
 import { VERSION } from '../lib/version.js';
-import { BaseCommand } from '../lib/baseCommand.js';
+import { BaseCommand } from '../lib/base-command.js';
 import { formatHeading } from '../lib/output.js';
 import { readConfig } from '../../file/config.js';
 import { TBD_DIR, WORKTREE_DIR } from '../../lib/paths.js';

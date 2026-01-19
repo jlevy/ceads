@@ -7,7 +7,7 @@
 import { Command } from 'commander';
 import { readFile } from 'node:fs/promises';
 
-import { BaseCommand } from '../lib/baseCommand.js';
+import { BaseCommand } from '../lib/base-command.js';
 import { requireInit, ValidationError, CLIError } from '../lib/errors.js';
 import type { Issue, IssueKindType, PriorityType } from '../../lib/types.js';
 import { generateInternalId, extractUlidFromInternalId } from '../../lib/ids.js';
@@ -18,11 +18,11 @@ import {
   generateUniqueShortId,
   addIdMapping,
   resolveToInternalId,
-} from '../../file/idMapping.js';
+} from '../../file/id-mapping.js';
 import { IssueKind } from '../../lib/schemas.js';
 import { parsePriority } from '../../lib/priority.js';
 import { resolveDataSyncDir } from '../../lib/paths.js';
-import { now } from '../../utils/timeUtils.js';
+import { now } from '../../utils/time-utils.js';
 import { readConfig } from '../../file/config.js';
 
 interface CreateOptions {

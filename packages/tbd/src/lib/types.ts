@@ -131,3 +131,16 @@ export interface SearchIssuesOptions {
   status?: IssueStatusType | IssueStatusType[];
   limit?: number;
 }
+
+// =============================================================================
+// CLI Utility Types
+// =============================================================================
+
+/**
+ * A documentation section with title and slug.
+ * Used by docs and design commands.
+ */
+export interface DocSection {
+  title: string;
+  slug: string;
+}

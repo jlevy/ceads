@@ -17,7 +17,7 @@ import { join } from 'node:path';
 import { writeFile } from 'atomically';
 
 import type { Issue } from '../lib/types.js';
-import { now, nowFilenameTimestamp } from '../utils/timeUtils.js';
+import { now, nowFilenameTimestamp } from '../utils/time-utils.js';
 
 const execFileAsync = promisify(execFile);
 

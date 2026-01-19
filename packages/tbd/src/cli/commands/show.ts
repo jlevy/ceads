@@ -6,9 +6,9 @@
 
 import { Command } from 'commander';
 
-import { BaseCommand } from '../lib/baseCommand.js';
+import { BaseCommand } from '../lib/base-command.js';
 import { NotFoundError } from '../lib/errors.js';
-import { loadFullContext } from '../lib/dataContext.js';
+import { loadFullContext } from '../lib/data-context.js';
 import { readIssue } from '../../file/storage.js';
 import { serializeIssue } from '../../file/parser.js';
 import { formatPriority, getPriorityColor } from '../../lib/priority.js';

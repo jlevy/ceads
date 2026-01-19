@@ -14,8 +14,8 @@
  */
 
 import type { Command } from 'commander';
-import type { IdMapping } from '../../file/idMapping.js';
-import { loadIdMapping, resolveToInternalId } from '../../file/idMapping.js';
+import type { IdMapping } from '../../file/id-mapping.js';
+import { loadIdMapping, resolveToInternalId } from '../../file/id-mapping.js';
 import { readConfig } from '../../file/config.js';
 import type { Config } from '../../lib/types.js';
 import { resolveDataSyncDir } from '../../lib/paths.js';

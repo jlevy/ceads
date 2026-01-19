@@ -6,7 +6,7 @@
 
 import { Command } from 'commander';
 
-import { BaseCommand } from '../lib/baseCommand.js';
+import { BaseCommand } from '../lib/base-command.js';
 import { requireInit, NotInitializedError } from '../lib/errors.js';
 import { listIssues } from '../../file/storage.js';
 import type { Issue, IssueStatusType, IssueKindType } from '../../lib/types.js';

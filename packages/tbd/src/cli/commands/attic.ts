@@ -11,32 +11,15 @@ import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
 
 import { writeFile } from 'atomically';
 
-import { BaseCommand } from '../lib/baseCommand.js';
+import { BaseCommand } from '../lib/base-command.js';
 import { requireInit, NotFoundError, ValidationError } from '../lib/errors.js';
 import { readIssue, writeIssue } from '../../file/storage.js';
 import { normalizeIssueId, formatDisplayId, formatDebugId } from '../../lib/ids.js';
 import { resolveDataSyncDir, resolveAtticDir } from '../../lib/paths.js';
-import { now } from '../../utils/timeUtils.js';
-import { loadIdMapping } from '../../file/idMapping.js';
+import { now } from '../../utils/time-utils.js';
+import { loadIdMapping } from '../../file/id-mapping.js';
 import { readConfig } from '../../file/config.js';
-
-/**
- * Attic entry structure for storing lost values during conflicts.
- */
-interface AtticEntry {
-  entity_id: string;
-  timestamp: string;
-  field: string;
-  lost_value: string;
-  winner_source: string;
-  loser_source: string;
-  context: {
-    local_version: number;
-    remote_version: number;
-    local_updated_at: string;
-    remote_updated_at: string;
-  };
-}
+import type { AtticEntry } from '../../lib/types.js';
 
 /**
  * Get attic entry filename from components.

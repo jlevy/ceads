@@ -220,8 +220,8 @@ export const LocalStateSchema = z.object({
 export const AtticEntrySchema = z.object({
   entity_id: IssueId,
   timestamp: Timestamp,
-  field: z.string().optional(),
-  lost_value: z.unknown(),
+  field: z.string(),
+  lost_value: z.string(),
   winner_source: z.enum(['local', 'remote']),
   loser_source: z.enum(['local', 'remote']),
   context: z.object({

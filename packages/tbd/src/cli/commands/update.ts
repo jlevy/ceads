@@ -7,7 +7,7 @@
 import { Command } from 'commander';
 import { readFile } from 'node:fs/promises';
 
-import { BaseCommand } from '../lib/baseCommand.js';
+import { BaseCommand } from '../lib/base-command.js';
 import { requireInit, NotFoundError, ValidationError, CLIError } from '../lib/errors.js';
 import { readIssue, writeIssue } from '../../file/storage.js';
 import { formatDisplayId, formatDebugId } from '../../lib/ids.js';
@@ -15,8 +15,8 @@ import { IssueStatus, IssueKind } from '../../lib/schemas.js';
 import { parsePriority } from '../../lib/priority.js';
 import type { IssueStatusType, IssueKindType, PriorityType } from '../../lib/types.js';
 import { resolveDataSyncDir } from '../../lib/paths.js';
-import { now } from '../../utils/timeUtils.js';
-import { loadIdMapping, resolveToInternalId, type IdMapping } from '../../file/idMapping.js';
+import { now } from '../../utils/time-utils.js';
+import { loadIdMapping, resolveToInternalId, type IdMapping } from '../../file/id-mapping.js';
 import { readConfig } from '../../file/config.js';
 
 interface UpdateOptions {

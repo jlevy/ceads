@@ -6,7 +6,7 @@
 
 import { Command } from 'commander';
 
-import { BaseCommand } from '../lib/baseCommand.js';
+import { BaseCommand } from '../lib/base-command.js';
 import { requireInit, NotInitializedError, ValidationError } from '../lib/errors.js';
 import { readConfig, writeConfig } from '../../file/config.js';
 import type { Config } from '../../lib/types.js';

@@ -6,7 +6,7 @@
 
 import { Command } from 'commander';
 
-import { BaseCommand } from '../lib/baseCommand.js';
+import { BaseCommand } from '../lib/base-command.js';
 import { requireInit, NotInitializedError, SyncError } from '../lib/errors.js';
 import { readConfig } from '../../file/config.js';
 import { listIssues, readIssue, writeIssue } from '../../file/storage.js';
@@ -29,7 +29,7 @@ import {
   formatSyncSummary,
   parseGitStatus,
   parseGitDiff,
-} from '../../lib/syncSummary.js';
+} from '../../lib/sync-summary.js';
 
 interface SyncOptions {
   push?: boolean;

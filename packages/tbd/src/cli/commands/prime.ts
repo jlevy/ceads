@@ -12,9 +12,9 @@ import { readFile, access } from 'node:fs/promises';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { BaseCommand } from '../lib/baseCommand.js';
+import { BaseCommand } from '../lib/base-command.js';
 import { isInitialized } from '../../file/config.js';
-import { stripFrontmatter } from '../../utils/markdownUtils.js';
+import { stripFrontmatter } from '../../utils/markdown-utils.js';
 
 interface PrimeOptions {
   export?: boolean;

@@ -6,23 +6,23 @@
 
 import { Command } from 'commander';
 
-import { BaseCommand } from '../lib/baseCommand.js';
+import { BaseCommand } from '../lib/base-command.js';
 import { requireInit, CLIError } from '../lib/errors.js';
-import { loadDataContext, type TbdDataContext } from '../lib/dataContext.js';
+import { loadDataContext, type TbdDataContext } from '../lib/data-context.js';
 import type { Issue, IssueStatusType, IssueKindType } from '../../lib/types.js';
 import { listIssues } from '../../file/storage.js';
 import { formatDisplayId, formatDebugId, extractUlidFromInternalId } from '../../lib/ids.js';
-import type { IdMapping } from '../../file/idMapping.js';
-import { resolveToInternalId } from '../../file/idMapping.js';
+import type { IdMapping } from '../../file/id-mapping.js';
+import { resolveToInternalId } from '../../file/id-mapping.js';
 import { naturalCompare } from '../../lib/sort.js';
 import {
   formatIssueLine,
   formatIssueLong,
   formatIssueHeader,
   type IssueForDisplay,
-} from '../lib/issueFormat.js';
+} from '../lib/issue-format.js';
 import { parsePriority } from '../../lib/priority.js';
-import { buildIssueTree, renderIssueTree } from '../lib/treeView.js';
+import { buildIssueTree, renderIssueTree } from '../lib/tree-view.js';
 
 interface ListOptions {
   status?: IssueStatusType;
