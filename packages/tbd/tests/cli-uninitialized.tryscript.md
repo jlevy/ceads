@@ -36,7 +36,8 @@ $ tbd status
 Not a tbd repository.
 
 Detected:
-  ✓ Git repository
+  ✓ Git repository (main branch)
+  ✓ Git [..]
   ✗ Beads not detected
   ✗ tbd not initialized
 

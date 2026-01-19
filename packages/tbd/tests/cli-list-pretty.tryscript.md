@@ -68,10 +68,10 @@ Children are sorted by priority (P2 before P3):
 
 ```console
 $ tbd list --pretty
-test-[SHORTID]  P0  [STATUS]  [bug] Standalone Bug
-test-[SHORTID]  P1  [STATUS]  [epic] Parent Epic
-├── test-[SHORTID]  P2  [STATUS]  [task] Child Task 1
-└── test-[SHORTID]  P3  [STATUS]  [task] Child Task 2
+test-[SHORTID][..]P0[..][STATUS]  [bug] Standalone Bug
+test-[SHORTID][..]P1[..][STATUS]  [epic] Parent Epic
+├── test-[SHORTID][..]P2[..][STATUS]  [task] Child Task 1
+└── test-[SHORTID][..]P3[..][STATUS]  [task] Child Task 2
 
 4 issue(s)
 ? 0
@@ -92,7 +92,7 @@ Created
 
 ```console
 $ tbd list --pretty --type=feature
-test-[SHORTID]  P2  [STATUS]  [feature] Feature Parent
+test-[SHORTID][..]P2[..][STATUS]  [feature] Feature Parent
 
 1 issue(s)
 ? 0
@@ -116,7 +116,7 @@ results (e.g., filtering by type):
 
 ```console
 $ tbd list --pretty --parent=$(cat child1_id.txt)
-test-[SHORTID]  P4  [STATUS]  [task] Grandchild Task
+test-[SHORTID][..]P4[..][STATUS]  [task] Grandchild Task
 
 1 issue(s)
 ? 0
@@ -154,8 +154,8 @@ Limit should still work:
 
 ```console
 $ tbd list --pretty --limit=2
-test-[SHORTID]  P0  [STATUS]  [bug] Standalone Bug
-test-[SHORTID]  P1  [STATUS]  [epic] Parent Epic
+test-[SHORTID][..]P0[..][STATUS]  [bug] Standalone Bug
+test-[SHORTID][..]P1[..][STATUS]  [epic] Parent Epic
 
 2 issue(s)
 ? 0
@@ -182,9 +182,9 @@ When filtering by type=task, the epic parent is excluded, so children become roo
 
 ```console
 $ tbd list --pretty --type=task
-test-[SHORTID]  P2  [STATUS]  [task] Child Task 1
-└── test-[SHORTID]  P4  [STATUS]  [task] Grandchild Task
-test-[SHORTID]  P3  [STATUS]  [task] Child Task 2
+test-[SHORTID][..]P2[..][STATUS]  [task] Child Task 1
+└── test-[SHORTID][..]P4[..][STATUS]  [task] Grandchild Task
+test-[SHORTID][..]P3[..][STATUS]  [task] Child Task 2
 
 3 issue(s)
 ? 0
@@ -206,7 +206,7 @@ The --long flag shows descriptions under each issue:
 
 ```console
 $ tbd list --pretty --long --priority=1 --type=task
-test-[SHORTID]  P1  [STATUS]  [task] Task With Description
+test-[SHORTID][..]P1[..][STATUS]  [task] Task With Description
       This is a detailed description that will be wrapped across multiple lines
       when displayed in long format.
 

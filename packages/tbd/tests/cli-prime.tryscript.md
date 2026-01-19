@@ -174,6 +174,8 @@ Context-efficient instructions for agents, for use in every session
 
 Options:
   --export           Output default content (ignores PRIME.md override)
+  --brief            Output minimal context (~200 tokens) for constrained
+                     contexts
   -h, --help         display help for command
 
 Global Options:
