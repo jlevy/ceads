@@ -92,11 +92,10 @@ ag-anonymous-01hx5zzkbkcdtav9wevgemmvrz  # If no name provided
 **Commands:**
 ```bash
 tbd tx begin [--name <name>]     # Start transaction, get tx ID
-tbd tx status                     # Show pending changes in current tx
-tbd tx diff                       # Show what would change on commit
+tbd tx status                     # Show tx info and pending changes summary
 tbd tx commit                     # Apply all changes, merge to tbd-sync
 tbd tx abort                      # Discard all changes
-tbd tx list                       # Show active transactions (for recovery)
+tbd tx list                       # Show orphaned tx branches (for recovery)
 ```
 
 **Transaction ID Format:**
@@ -402,8 +401,7 @@ write to the worktree, which is now on the transaction branch.
 
 - [ ] Create `packages/tbd/src/cli/commands/tx.ts`
   - [ ] `tx begin [--name <name>]` command
-  - [ ] `tx status` command - shows active tx name, id, started_at, pending changes
-  - [ ] `tx diff` command - shows uncommitted changes in worktree
+  - [ ] `tx status` command - shows tx info + changes summary (like git status)
   - [ ] `tx commit` command - error if no changes
   - [ ] `tx abort` command
   - [ ] `tx list` command - shows orphaned tx branches for recovery
@@ -416,12 +414,11 @@ Transaction: auth-feature (tx-01hx5zzkbk...)
 Started: 2025-01-19T10:30:00Z (2 hours ago)
 Agent: ag-claude-01hx5zzkbk...
 
-Pending changes:
-  new:      2 issues
-  updated:  3 issues
-  deleted:  0 issues
+Changes (5 issues):
+  new:      is-01hx5zzkbk..., is-01hx5zzkbl...
+  updated:  is-01hx5zzkbm..., is-01hx5zzkbn..., is-01hx5zzkbo...
 
-Run 'tbd tx diff' for details, 'tbd tx commit' to finalize.
+Run 'tbd tx commit' to finalize, 'tbd tx abort' to discard.
 ```
 
 **When no transaction active:**
@@ -704,12 +701,11 @@ Transaction: auth-feature (tx-01hx5zzkbk...)
 Started: 2025-01-19T10:30:00Z (2 hours ago)
 Agent: ag-claude-01hx5zzkbk...
 
-Pending changes:
-  new:      2 issues
-  updated:  3 issues
-  deleted:  0 issues
+Changes (5 issues):
+  new:      is-01hx5zzkbk..., is-01hx5zzkbl...
+  updated:  is-01hx5zzkbm..., is-01hx5zzkbn..., is-01hx5zzkbo...
 
-Run 'tbd tx diff' for details, 'tbd tx commit' to finalize.
+Run 'tbd tx commit' to finalize, 'tbd tx abort' to discard.
 ​```
 
 **Output (no transaction):**
@@ -718,13 +714,8 @@ No active transaction.
 Run 'tbd tx begin' to start one.
 ​```
 
-#### Diff
-
-​```bash
-tbd tx diff
-​```
-
-Shows detailed changes that would be committed.
+> **Note:** For detailed content diffs, use `git diff` directly in the worktree
+> (`.tbd/data-sync-worktree/`). tbd doesn't wrap git diff - it's already available.
 
 #### Commit
 
