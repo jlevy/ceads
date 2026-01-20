@@ -130,15 +130,19 @@ tbd import <file>             # Import from exported JSONL file
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-### Deprecated Commands
+### Command Changes (No Deprecations)
 
-| Command | Status |
+This is a new tool - we’re designing it correctly from the start, not maintaining
+backward compatibility with confusing patterns.
+
+| Command | New Behavior |
 | --- | --- |
-| `tbd init` | **KEPT** - surgical option, no longer calls setup auto |
-| `tbd init --prefix=x` | **KEPT** - prefix now optional (auto-detect) |
-| `tbd setup auto` | Deprecated → use `tbd setup` |
-| `tbd import --from-beads` | Deprecated → use `tbd setup --from-beads` |
-| `tbd setup beads --disable` | Removed (integrated into migration flow) |
+| `tbd init` | Surgical init only (no longer calls setup auto) |
+| `tbd init --prefix=x` | Prefix now optional (auto-detect if omitted) |
+| `tbd setup` | Full setup (init if needed + integrations) |
+| `tbd setup auto` | **Removed** - use `tbd setup --auto` instead |
+| `tbd import --from-beads` | **Removed** - use `tbd setup --from-beads` instead |
+| `tbd setup beads --disable` | **Removed** - integrated into `--from-beads` flow |
 
 ### User Journeys (New)
 
@@ -155,15 +159,70 @@ tbd import <file>             # Import from exported JSONL file
 
 ### Detailed Behavior Specifications
 
-#### 1. Help Footer
+#### 1. Help Footer & README
 
-Add to bottom of `tbd --help`:
+**The one-liner for README and top-level help:**
+
+```
+npm install -g tbd-git@latest && tbd setup --auto
+```
+
+**Help footer for `tbd`, `tbd --help`, `tbd readme`, `tbd docs`:**
 
 ```
 Getting Started:
-  New to tbd? Run:  npm install -g tbd-git && tbd setup
+  npm install -g tbd-git@latest && tbd setup --auto
 
-  This will guide you through setup and configure your coding agents.
+  This initializes tbd and configures your coding agents automatically.
+  For interactive setup: tbd setup
+  For manual control: tbd init --help
+```
+
+**Help for `tbd setup --help`:**
+
+```
+Usage: tbd setup [options] [command]
+
+Full setup: initialize tbd (if needed) and configure agent integrations.
+
+Options:
+  --auto              Non-interactive mode with smart defaults (recommended)
+  --from-beads        Migrate from Beads to tbd
+  --prefix <name>     Override auto-detected project prefix
+
+Commands:
+  claude              Configure Claude Code integration only
+  cursor              Configure Cursor IDE integration only
+  codex               Configure AGENTS.md only
+  check               Check status of all integrations
+
+Examples:
+  tbd setup --auto          # Recommended: full automatic setup
+  tbd setup                 # Interactive setup with prompts
+  tbd setup claude          # Add just Claude integration
+  tbd setup --from-beads    # Migrate from Beads
+
+For surgical initialization without integrations, see: tbd init --help
+```
+
+**Help for `tbd init --help`:**
+
+```
+Usage: tbd init [options]
+
+Surgical initialization: create .tbd/ directory only, no integrations.
+
+Use this when you need precise control over the setup process, such as in
+CI pipelines or scripts where integrations are configured separately.
+
+Options:
+  --prefix <name>     Project prefix for issue IDs (auto-detected if omitted)
+
+Examples:
+  tbd init                  # Auto-detect prefix from git remote
+  tbd init --prefix=myapp   # Use specific prefix
+
+For full setup with integrations, use: tbd setup --auto
 ```
 
 #### 2. `tbd setup` Decision Tree
@@ -416,32 +475,42 @@ function isValidPrefix(s: string): boolean {
 | `--from-beads` but no .beads/ | Error: "No .beads/ directory found" |
 | CI environment (no TTY) | Auto-detect non-interactive, use defaults |
 
-### What Happens to Old Commands?
+### Clean Command Model (No Deprecations)
 
-| Old Command | New Behavior |
-| --- | --- |
-| `tbd init` | **KEPT** - surgical init, no longer calls setup auto |
-| `tbd init --prefix=x` | **KEPT** - prefix now optional (auto-detect if omitted) |
-| `tbd setup auto` | Deprecated, prints notice → use `tbd setup` |
-| `tbd import --from-beads` | Deprecated, prints notice → use `tbd setup --from-beads` |
-| `tbd setup beads --disable` | Removed (integrated into `--from-beads` flow) |
+This is a new tool. We remove confusing patterns entirely rather than deprecating them.
 
-**`tbd init` is NOT deprecated** - it’s the surgical option for:
+**Removed commands:**
 
+- `tbd setup auto` → Use `tbd setup --auto` (flag, not subcommand)
+- `tbd import --from-beads` → Use `tbd setup --from-beads`
+- `tbd setup beads --disable` → Integrated into `--from-beads` flow
+
+**Clean two-tier model:**
+
+| Tier | Command | Purpose |
+| --- | --- | --- |
+| High-level | `tbd setup --auto` | **Recommended**: full automatic setup |
+| High-level | `tbd setup` | Interactive setup with prompts |
+| High-level | `tbd setup claude` | Add specific integration |
+| Low-level | `tbd init` | Surgical: just create .tbd/ |
+
+**When to use `tbd init` (surgical):**
+
+- CI pipelines where integrations are configured separately
 - Scripts that need predictable, minimal behavior
-- CI pipelines where integrations are handled separately
 - Users who want explicit control over each step
 - Testing and development workflows
 
 Example surgical workflow:
 
 ```bash
-# Script that sets up tbd without agent integrations
+# CI script that sets up tbd without agent integrations
 tbd init --prefix=myapp
 git add .tbd/
 git commit -m "Initialize tbd"
-# Later, optionally:
-tbd setup claude  # Add just Claude integration
+
+# Later, add integrations as needed:
+tbd setup claude
 ```
 
 ## Stage 2: Architecture Stage
@@ -517,27 +586,30 @@ class SetupDefaultHandler extends BaseCommand {
 - [ ] Add `--from-beads` flag for explicit migration
 - [ ] Integrate beads disable into migration flow
 
-### Phase 4: Command Updates
+### Phase 4: Command Cleanup
 
 - [ ] Update `tbd init` to NOT call `setup auto` (make it surgical)
 - [ ] Update `tbd init` to use prefix auto-detection (--prefix optional)
-- [ ] Add deprecation notice to `tbd setup auto` → use `tbd setup`
-- [ ] Add deprecation notice to `tbd import --from-beads` → use `tbd setup --from-beads`
-- [ ] Remove `tbd setup beads --disable` (folded into migration)
+- [ ] Remove `tbd setup auto` subcommand (use `--auto` flag instead)
+- [ ] Remove `tbd import --from-beads` (use `tbd setup --from-beads`)
+- [ ] Remove `tbd setup beads --disable` (folded into migration flow)
 
 ### Phase 5: Documentation & Help
 
-- [ ] Update help footer in cli.ts
-- [ ] Update SKILL.md to reference `tbd setup`
+- [ ] Update help footer in cli.ts with one-liner
+- [ ] Add help text for `tbd setup --help` showing surgical option
+- [ ] Add help text for `tbd init --help` explaining when to use it
+- [ ] Update SKILL.md to reference `tbd setup --auto`
 - [ ] Update design doc §6.4
-- [ ] Update README if exists
+- [ ] Update README with prominent one-liner:
+  `npm install -g tbd-git@latest && tbd setup --auto`
 
 ### Phase 6: Testing
 
 - [ ] Unit tests for prefix auto-detection
 - [ ] Integration tests for all setup flows
 - [ ] Golden tests for output formats
-- [ ] Test deprecation notice display
+- [ ] Test removed commands show helpful error with correct alternative
 
 ## Open Questions (Resolved)
 
