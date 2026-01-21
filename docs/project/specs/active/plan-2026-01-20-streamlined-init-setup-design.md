@@ -480,17 +480,349 @@ $ tbd setup --from-beads
 # Same as beads migration flow, but skips the "Migrate?" prompt
 ```
 
-#### 8. Surgical Init (`tbd init`)
+### Complete Scenario Matrix for `tbd setup`
 
-For scripts or users who just need .tbd/ created without integrations:
+This section details every possible scenario and the exact prompts/behavior for each.
+
+#### Context Detection Matrix
+
+| In Git Repo? | Has .tbd/? | Has .beads/? | Scenario |
+| --- | --- | --- | --- |
+| No | N/A | N/A | Global-only setup |
+| Yes | No | No | Fresh setup |
+| Yes | No | Yes | Beads migration |
+| Yes | Yes | No | Already initialized |
+| Yes | Yes | Yes | Already initialized (beads ignored) |
+
+* * *
+
+#### Scenario A: Outside Git Repository (Global-Only Setup)
+
+**Detection:** Not in a git repository (no `.git/` found)
+
+**Interactive mode (`tbd setup`):**
 
 ```
-$ tbd init
+$ tbd setup
+
+Warning: Not in a git repository.
+
+I can only perform global setup (user-level configuration).
+Repository initialization will be skipped.
+
+This will:
+  1. Install tbd skill file to ~/.claude/skills/tbd/
+  2. Configure global Claude Code settings
+
+? Proceed with global-only setup? (Y/n)
+
+Performing global setup...
+  ✓ Installed global Claude Code skill
+
+Global setup complete!
+
+To set up tbd in a specific repository:
+  1. cd /path/to/your/repo
+  2. tbd setup --auto
+```
+
+**Auto mode (`tbd setup --auto`):**
+
+```
+$ tbd setup --auto
+
+Warning: Not in a git repository. Performing global-only setup.
+
+Performing global setup...
+  ✓ Installed global Claude Code skill
+
+Global setup complete!
+To initialize a repository, run 'tbd setup' from within a git repo.
+```
+
+* * *
+
+#### Scenario B: Fresh Setup (Git repo, no .tbd/, no .beads/)
+
+**Detection:** In git repo, no `.tbd/` directory, no `.beads/` directory
+
+**Interactive prompts:**
+
+| Prompt | Default | Purpose |
+| --- | --- | --- |
+| "Proceed with setup?" | Y | Confirm user wants to set up tbd |
+| "Use prefix 'X'?" | Y | Confirm auto-detected prefix |
+| "Install Claude Code integration?" | Y | Confirm hook + skill installation |
+| "Install Cursor integration?" | Y (if detected) | Confirm Cursor rules |
+
+**Interactive mode (`tbd setup`):**
+
+```
+$ tbd setup
+
+tbd: Git-native issue tracking for AI agents and humans
+
+I'll help you set up tbd in this repository. Here's what I'll do:
+
+  1. Initialize tbd tracking (.tbd/ directory)
+  2. Auto-detect your project prefix from git remote
+  3. Configure detected integrations
+
+? Proceed with setup? (Y/n)
 
 Detecting project prefix...
-  Repository: github.com/jlevy/tbd → "tbd"
+  Repository: github.com/jlevy/myapp → "myapp"
 
-Initialized tbd repository (prefix: tbd)
+? Use prefix "myapp" for issue IDs (e.g., myapp-a7k2)? (Y/n)
+
+Initializing tbd...
+  ✓ Created .tbd/config.yml
+  ✓ Created .tbd/.gitignore
+  ✓ Initialized sync branch
+
+Checking for integrations...
+  Claude Code detected.
+  ? Install hooks and skill file? (Y/n)
+  ✓ Installed Claude Code integration
+
+  Cursor IDE detected.
+  ? Install tbd rules? (Y/n)
+  ✓ Installed Cursor rules
+
+Setup complete! Next steps:
+  1. git add .tbd/ .claude/ && git commit -m "Initialize tbd"
+  2. tbd create "My first issue" --type=task
+```
+
+**Auto mode (`tbd setup --auto`):**
+
+```
+$ tbd setup --auto
+
+tbd: Git-native issue tracking for AI agents and humans
+
+Checking repository...
+  ✓ Git repository detected
+  ✗ tbd not initialized
+
+Initializing with auto-detected prefix "myapp"...
+  ✓ Created .tbd/config.yml
+  ✓ Created .tbd/.gitignore
+  ✓ Initialized sync branch
+
+Configuring integrations...
+  ✓ Claude Code - Installed hooks and skill
+  ✓ Cursor IDE - Installed rules
+
+Setup complete!
+  Run: git add .tbd/ .claude/ .cursor/ && git commit -m "Initialize tbd"
+```
+
+**Auto mode when prefix cannot be detected:**
+
+```
+$ tbd setup --auto
+
+Error: Could not auto-detect project prefix.
+No git remote found and directory name is not a valid prefix.
+
+Please specify a prefix:
+  tbd setup --auto --prefix=myapp
+```
+
+* * *
+
+#### Scenario C: Beads Migration (Git repo, no .tbd/, has .beads/)
+
+**Detection:** In git repo, no `.tbd/` directory, has `.beads/` directory
+
+**Interactive prompts:**
+
+| Prompt | Default | Purpose |
+| --- | --- | --- |
+| "Migrate from Beads?" | Y | Confirm migration |
+| "Use prefix 'X'?" | Y | Confirm prefix (from beads or auto-detect) |
+| "Install integrations?" | Y | Confirm integration setup |
+
+**Interactive mode (`tbd setup`):**
+
+```
+$ tbd setup
+
+tbd: Git-native issue tracking for AI agents and humans
+
+Checking repository...
+  ✓ Git repository detected
+  ✗ tbd not initialized
+  ! Beads detected (.beads/ directory found)
+
+Beads migration will:
+  • Import all beads issues to tbd
+  • Preserve issue IDs and relationships
+  • Disable beads (move to .beads-disabled/)
+
+? Migrate from Beads to tbd? (Y/n)
+
+Importing from Beads...
+  ✓ Found 47 issues in .beads/
+  ✓ Detected prefix "proj" from beads config
+
+? Use prefix "proj" for issue IDs? (Y/n)
+
+  ✓ Imported 47 issues
+  ✓ Disabled beads (moved to .beads-disabled/)
+
+Checking for integrations...
+  Claude Code detected.
+  ? Install hooks and skill file? (Y/n)
+  ✓ Installed Claude Code integration
+
+Setup complete! Next steps:
+  1. git add .tbd/ .claude/ .beads-disabled/ && git commit -m "Migrate to tbd"
+  2. tbd list   # See your imported issues
+```
+
+**If user declines migration:**
+
+```
+? Migrate from Beads to tbd? (Y/n) n
+
+Migration declined.
+
+To set up tbd alongside beads (not recommended):
+  tbd setup --prefix=<name>
+
+To migrate later:
+  tbd setup --from-beads
+```
+
+**Auto mode (`tbd setup --auto`):**
+
+```
+$ tbd setup --auto
+
+tbd: Git-native issue tracking for AI agents and humans
+
+Checking repository...
+  ✓ Git repository detected
+  ! Beads detected - auto-migrating
+
+Importing from Beads...
+  ✓ Found 47 issues in .beads/
+  ✓ Imported 47 issues (prefix: proj)
+  ✓ Disabled beads (moved to .beads-disabled/)
+
+Configuring integrations...
+  ✓ Claude Code - Installed hooks and skill
+
+Setup complete!
+  Run: git add .tbd/ .claude/ .beads-disabled/ && git commit -m "Migrate to tbd"
+```
+
+* * *
+
+#### Scenario D: Already Initialized (Git repo, has .tbd/)
+
+**Detection:** In git repo, has `.tbd/` directory
+
+**Interactive prompts:**
+
+| Prompt | Default | Purpose |
+| --- | --- | --- |
+| "Update integration?" | Y | If integration is outdated |
+
+**Interactive mode (`tbd setup`):**
+
+```
+$ tbd setup
+
+tbd: Git-native issue tracking for AI agents and humans
+
+Checking repository...
+  ✓ Git repository detected
+  ✓ tbd initialized (prefix: myapp, 12 issues)
+
+Checking integrations...
+  ✓ Claude Code - Configured
+  - Cursor IDE - Not detected
+  - AGENTS.md - Not detected
+
+All set! Run `tbd status` for details.
+```
+
+**If integration needs updating:**
+
+```
+$ tbd setup
+
+Checking repository...
+  ✓ Git repository detected
+  ✓ tbd initialized (prefix: myapp, 12 issues)
+
+Checking integrations...
+  ! Claude Code - Skill file outdated (v0.1.2 → v0.1.4)
+
+? Update Claude Code skill file? (Y/n)
+  ✓ Updated skill file
+
+All integrations up to date!
+```
+
+**Auto mode (`tbd setup --auto`):**
+
+```
+$ tbd setup --auto
+
+Checking repository...
+  ✓ Git repository detected
+  ✓ tbd initialized (prefix: myapp, 12 issues)
+
+Checking integrations...
+  ✓ Claude Code - Up to date
+  - Cursor IDE - Not detected
+
+All set!
+```
+
+**Auto mode with outdated integration:**
+
+```
+$ tbd setup --auto
+
+Checking repository...
+  ✓ Git repository detected
+  ✓ tbd initialized (prefix: myapp)
+
+Updating integrations...
+  ✓ Claude Code - Updated skill file (v0.1.2 → v0.1.4)
+
+All set!
+```
+
+* * *
+
+### Summary: Interactive Prompts Reference
+
+| Scenario | Prompts in Interactive Mode | Behavior in Auto Mode |
+| --- | --- | --- |
+| **Outside git repo** | "Proceed with global-only setup?" (Y) | Warn, proceed with global setup |
+| **Fresh setup** | "Proceed?" (Y), "Use prefix X?" (Y), "Install X integration?" (Y) | Auto-detect prefix, install all integrations |
+| **Beads migration** | "Migrate from Beads?" (Y), "Use prefix X?" (Y), "Install X?" (Y) | Auto-migrate, use beads prefix |
+| **Already initialized** | "Update X integration?" (Y) only if outdated | Auto-update outdated integrations |
+| **Prefix not detectable** | "Enter prefix:" (required) | Error with instructions |
+
+* * *
+
+#### 8. Surgical Init (`tbd init`)
+
+For scripts or CI pipelines that need precise control over .tbd/ creation.
+
+**Successful initialization:**
+
+```
+$ tbd init --prefix=myapp
+
+Initialized tbd repository (prefix: myapp)
   ✓ Created .tbd/config.yml
   ✓ Created .tbd/.gitignore
   ✓ Initialized sync branch
@@ -500,17 +832,53 @@ Next steps:
   tbd setup   # Optional: configure agent integrations
 ```
 
-With explicit prefix:
+**Error: No prefix provided:**
+
+```
+$ tbd init
+
+Error: --prefix is required for tbd init
+
+Example:
+  tbd init --prefix=myapp
+
+For automatic prefix detection, use: tbd setup --auto
+```
+
+**Error: Not in a git repository:**
 
 ```
 $ tbd init --prefix=myapp
 
-Initialized tbd repository (prefix: myapp)
-  ✓ Created .tbd/config.yml
-  ✓ Initialized sync branch
+Error: Not a git repository.
 
-Next steps:
-  git add .tbd/ && git commit -m "Initialize tbd"
+tbd init requires a git repository. Either:
+  1. Run 'git init' first to create a repository
+  2. Navigate to an existing git repository
+```
+
+**Already initialized (no prefix provided) - no-op:**
+
+```
+$ tbd init --prefix=myapp    # First time: initializes
+$ tbd init --prefix=myapp    # Second time: already initialized
+
+Already initialized (prefix: myapp). Nothing to do.
+```
+
+**Already initialized with different prefix - update with warning:**
+
+```
+$ tbd init --prefix=myapp    # First time: initializes with myapp
+$ tbd init --prefix=newapp   # Different prefix provided
+
+Warning: Updating prefix from "myapp" to "newapp".
+Existing issue IDs (myapp-xxxx) will remain unchanged.
+New issues will use prefix "newapp".
+
+  ✓ Updated .tbd/config.yml (prefix: newapp)
+
+Note: Consider renaming existing issue IDs for consistency.
 ```
 
 **Key difference from current `tbd init`:** No longer auto-calls `tbd setup auto`. It’s
