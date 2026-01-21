@@ -61,6 +61,7 @@ Git-native issue tracking for AI agents and humans.
       - [2.7.4 Visualization Commands](#274-visualization-commands)
       - [2.7.5 Comparison with Beads](#275-comparison-with-beads)
       - [2.7.6 Future Dependency Types](#276-future-dependency-types)
+      - [2.7.7 Future: Transitive Blocking Option](#277-future-transitive-blocking-option)
   - [3. Git Layer](#3-git-layer)
     - [3.1 Overview](#31-overview)
     - [3.2 Sync Branch Architecture](#32-sync-branch-architecture)
@@ -1426,7 +1427,8 @@ func (d DependencyType) AffectsReadyWork() bool {
 ```
 
 However, this does NOT mean children are blocked until their parent closes.
-The actual behavior (from `blocked_cache.go`) is **transitive blocking**:
+The actual behavior (from `attic/beads/internal/storage/sqlite/blocked_cache.go`) is
+**transitive blocking**:
 
 1. Only `blocks` (and similar types) can DIRECTLY block an issue
 2. `parent-child` PROPAGATES blockage: if a parent is blocked, children inherit that
@@ -1473,6 +1475,40 @@ Planned additions:
 
 - **`discovered-from`**: Track issue provenance when work reveals new issues
 - **`related`**: Soft links for “see also” references
+
+#### 2.7.7 Future: Transitive Blocking Option
+
+**Current design:** `parent_id` is purely organizational with no blocking effects.
+Blocking is explicit via `blocks` dependencies only.
+
+**Potential future enhancement:** Add opt-in transitive blocking through parent-child
+hierarchy, similar to Beads’ model.
+
+**How it would work:**
+
+```yaml
+# .tbd/config.yml
+blocking:
+  transitive_parent_child: true  # default: false
+```
+
+When enabled:
+- If a parent epic is blocked (by a `blocks` dependency), children inherit that blockage
+- Children are NOT blocked just because their parent is open
+- Closing the blocker on the parent automatically unblocks all children
+
+**Use case:** Large projects where blocking an epic should cascade to all child tasks,
+preventing work on children when the parent is gated by external factors.
+
+**Trade-offs:**
+
+| Approach | Pros | Cons |
+| --- | --- | --- |
+| Current (explicit only) | Simpler, predictable | Must manually block children |
+| Transitive (opt-in) | Automatic cascading | Hidden transitive effects |
+
+**Decision:** Start with explicit-only blocking (simpler).
+Add transitive blocking as an opt-in feature if users request it after real-world usage.
 
 * * *
 
@@ -4709,13 +4745,18 @@ This is sufficient for the `ready` command algorithm.
 
 **Parent-child model difference:**
 
-- **Beads**: `parent-child` is a dependency type that **blocks the ready queue**
-  (children wait for parent to close)
-- **tbd**: `parent_id` is a separate field for **organizational hierarchy only**
-  (children can be ready while parent is open)
+- **Beads**: `parent-child` enables **transitive blocking**—if a parent is blocked (by a
+  `blocks` dependency), children inherit that blockage.
+  Children are NOT blocked just because their parent is open.
+  (See `attic/beads/internal/storage/sqlite/blocked_cache.go` for implementation
+  details.)
+- **tbd**: `parent_id` is a separate field for **organizational hierarchy only** (no
+  blocking effects, no transitive propagation)
 
-This is intentional—tbd’s model allows working on tasks to complete an epic, rather than
-waiting for the epic to close first.
+This is intentional—tbd’s simpler model avoids hidden transitive effects while still
+allowing organizational hierarchy.
+See [§2.7.7](#277-future-transitive-blocking-option) for discussion of adding opt-in
+transitive blocking in the future.
 
 ### A.4 Architecture Comparison
 
