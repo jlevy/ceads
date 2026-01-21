@@ -10,6 +10,18 @@
           }
         ]
       }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/scripts/ensure-gh-cli.sh",
+            "timeout": 120
+          }
+        ]
+      }
     ]
   }
 }

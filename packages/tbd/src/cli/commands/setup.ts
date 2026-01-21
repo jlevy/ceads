@@ -11,7 +11,7 @@
 
 import { Command } from 'commander';
 import { readFile, mkdir, access, rm, rename, readdir, stat, chmod } from 'node:fs/promises';
-import { execSync } from 'node:child_process';
+import { execSync, spawnSync } from 'node:child_process';
 import { join, dirname } from 'node:path';
 import { homedir } from 'node:os';
 import { writeFile } from 'atomically';
@@ -1598,12 +1598,27 @@ class SetupDefaultHandler extends BaseCommand {
       process.exit(1);
     }
 
-    // Import beads issues
-    console.log('Importing from Beads...');
-
-    // For now, just initialize tbd without importing (import will be added in Phase 3)
-    // The actual import logic will be added when we implement Phase 3: Beads Migration
+    // Initialize tbd first
     await this.initializeTbd(cwd, prefix);
+
+    // Import beads issues from the JSONL file
+    console.log('Importing from Beads...');
+    const beadsDir = join(cwd, '.beads');
+    const jsonlPath = join(beadsDir, 'issues.jsonl');
+
+    try {
+      await access(jsonlPath);
+      // Import directly from the JSONL file (tbd is already initialized)
+      const result = spawnSync('tbd', ['import', jsonlPath, '--verbose'], {
+        cwd,
+        stdio: 'inherit',
+      });
+      if (result.status !== 0) {
+        console.log(colors.warn('Warning: Some issues may not have imported correctly'));
+      }
+    } catch {
+      console.log(colors.dim('  No issues.jsonl found - skipping import'));
+    }
 
     // Disable beads
     await this.disableBeads(cwd);
@@ -1617,6 +1632,10 @@ class SetupDefaultHandler extends BaseCommand {
 
     console.log('');
     console.log(colors.success('Setup complete!'));
+    console.log('');
+
+    // Show dashboard after setup
+    spawnSync('tbd', ['prime'], { stdio: 'inherit' });
   }
 
   private async handleFreshSetup(
@@ -1651,6 +1670,10 @@ class SetupDefaultHandler extends BaseCommand {
 
     console.log('');
     console.log(colors.success('Setup complete!'));
+    console.log('');
+
+    // Show dashboard after setup
+    spawnSync('tbd', ['prime'], { stdio: 'inherit' });
   }
 
   private async initializeTbd(cwd: string, prefix: string): Promise<void> {

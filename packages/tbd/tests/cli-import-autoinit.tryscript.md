@@ -44,7 +44,7 @@ Not initialized
 
 ```console
 $ tbd list 2>&1
-Error: Not a tbd repository (run 'tbd init' or 'tbd import --from-beads' first)
+Error: Not a tbd repository (run 'tbd setup --auto' first)
 ? 1
 ```
 

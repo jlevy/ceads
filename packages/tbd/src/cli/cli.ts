@@ -39,6 +39,7 @@ import { designCommand } from './commands/design.js';
 import { readmeCommand } from './commands/readme.js';
 import { uninstallCommand } from './commands/uninstall.js';
 import { primeCommand } from './commands/prime.js';
+import { skillCommand } from './commands/skill.js';
 import { setupCommand } from './commands/setup.js';
 import { CLIError } from './lib/errors.js';
 
@@ -74,6 +75,7 @@ function createProgram(): Command {
   program.commandsGroup('Documentation:');
   program.addCommand(readmeCommand);
   program.addCommand(primeCommand);
+  program.addCommand(skillCommand);
   program.addCommand(closeProtocolCommand);
   program.addCommand(docsCommand);
   program.addCommand(designCommand);
@@ -172,10 +174,35 @@ function outputError(message: string, error?: Error): void {
 }
 
 /**
+ * Check if running with no command (just options or nothing).
+ * Returns true if: `tbd`, `tbd --help`, `tbd --version`
+ * Returns false if there's a command: `tbd list`, `tbd show foo`
+ */
+function hasNoCommand(): boolean {
+  // process.argv is: [node, script, ...args]
+  // Filter out options (start with -)
+  const args = process.argv.slice(2).filter((arg) => !arg.startsWith('-'));
+  return args.length === 0;
+}
+
+/**
  * Run the CLI. This is the main entry point.
  */
 export async function runCli(): Promise<void> {
   const program = createProgram();
+
+  // If no command specified (and not help/version), run prime by default
+  // But only if no --help or --version flags
+  const isHelpOrVersion =
+    process.argv.includes('--help') ||
+    process.argv.includes('-h') ||
+    process.argv.includes('--version') ||
+    process.argv.includes('-V');
+
+  if (hasNoCommand() && !isHelpOrVersion) {
+    // Insert 'prime' as the command
+    process.argv.splice(2, 0, 'prime');
+  }
 
   try {
     await program.parseAsync(process.argv);

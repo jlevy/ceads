@@ -259,7 +259,7 @@ Create a git repo outside any tbd directory hierarchy to test uninitialized beha
 ```console
 $ mkdir -p /tmp/tbd-uninit-test && cd /tmp/tbd-uninit-test && rm -rf .git .tbd && git init --initial-branch=main && git config user.email "test@example.com" && git config user.name "Test" && tbd list 2>&1
 Initialized empty Git repository in [..]
-Error: Not a tbd repository (run 'tbd init' or 'tbd import --from-beads' first)
+Error: Not a tbd repository (run 'tbd setup --auto' first)
 ? 1
 ```
 
@@ -276,6 +276,7 @@ Detected:
   ✗ tbd not initialized
 
 To get started:
-  tbd init                  # Start fresh
+  tbd setup --auto          # Full setup with auto-detection
+  tbd init --prefix=X       # Surgical init only
 ? 0
 ```

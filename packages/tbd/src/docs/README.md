@@ -63,8 +63,9 @@ npm install -g tbd-git@latest
 
 # Initialize in your repo
 cd my-project
-tbd init --prefix=proj  # New project (prefix required, e.g., "proj", "myapp")
-tbd import --from-beads  # Migrate issues from an existing Beads setup
+tbd setup --auto         # Full setup with auto-detection (recommended)
+tbd setup --from-beads   # Migrate from existing Beads setup
+tbd init --prefix=proj   # Surgical init only (advanced)
 
 # Create issues
 tbd create "API returns 500 on malformed input" --type=bug --priority=P1
@@ -154,11 +155,12 @@ tbd sync                                  # Push
 ### Claude Code Integration
 
 ```bash
-tbd setup claude             # Install hooks (one-time)
+tbd setup --auto             # Recommended: full setup including Claude hooks
+tbd setup claude             # Install Claude hooks only
 ```
 
-This runs `tbd prime` at session start, injecting workflow context so the agent
-remembers to use tbd.
+This configures a SessionStart hook that runs `tbd prime` at session start, injecting
+workflow context so the agent remembers to use tbd.
 
 ## Documentation
 
@@ -174,15 +176,18 @@ Or read online:
 ## Migration from Beads
 
 ```bash
-# One-step migration (auto-initializes tbd, uses beads prefix)
-tbd import --from-beads
+# Recommended: full setup with migration
+tbd setup --auto             # Auto-detects beads and migrates
+
+# Or explicit migration
+tbd setup --from-beads       # Migrate from beads with full setup
 
 # Verify
 tbd stats
 tbd list --all
 
-# If you wish to disable beads, instructions here
-tbd setup beads --disable 
+# If you wish to disable beads after migration
+tbd setup beads --disable
 ```
 
 Issue IDs are preserved: `proj-123` in beads becomes `proj-123` in tbd.

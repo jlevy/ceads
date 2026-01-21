@@ -148,9 +148,33 @@ blocked/deferred
 
 ## Commands
 
+### setup
+
+The recommended way to initialize tbd and configure agent integrations.
+
+```bash
+tbd setup --auto                  # Full setup with auto-detection (recommended)
+tbd setup --interactive           # Interactive setup with prompts
+tbd setup --from-beads            # Migrate from existing Beads setup
+```
+
+Options:
+- `--auto` - Automatic mode: auto-detect prefix, migrate beads if present
+- `--interactive` - Interactive mode: prompt for all options
+- `--from-beads` - Migrate issues from existing Beads setup
+- `--prefix <name>` - Override auto-detected prefix
+
+Subcommands for specific integrations:
+```bash
+tbd setup claude                  # Install Claude Code hooks
+tbd setup cursor                  # Install Cursor rules
+tbd setup codex                   # Install Codex AGENTS.md
+tbd setup beads --disable         # Disable coexisting Beads
+```
+
 ### init
 
-Initialize tbd in a git repository.
+Surgical initialization: creates `.tbd/` directory only (no integrations).
 
 ```bash
 tbd init --prefix=proj             # Initialize with prefix (required)
@@ -164,8 +188,8 @@ Options:
 - `--sync-branch <name>` - Sync branch name (default: tbd-sync)
 - `--remote <name>` - Remote name (default: origin)
 
-Note: When importing from Beads (`tbd import --from-beads`), the prefix is
-auto-detected.
+Note: For most users, `tbd setup --auto` is recommended instead.
+It auto-detects the prefix and configures agent integrations.
 
 ### create
 
@@ -507,22 +531,21 @@ Subcommands:
 
 ### import
 
-Import issues from Beads or JSONL file.
+Import issues from JSONL file.
 
 ```bash
 tbd import issues.jsonl                     # Import from JSONL file
-tbd import --from-beads                     # Import directly from Beads
-tbd import --from-beads --beads-dir=~/.beads # Custom Beads directory
 tbd import issues.jsonl --merge             # Merge with existing
 tbd import --validate                       # Validate existing import
 tbd import issues.jsonl --verbose           # Show detailed progress
 ```
 
 Options:
-- `--from-beads` - Import directly from Beads database
-- `--beads-dir <path>` - Beads data directory
 - `--merge` - Merge with existing issues instead of skipping duplicates
 - `--verbose` - Show detailed import progress
+
+> **Note:** `tbd import --from-beads` is deprecated.
+> Use `tbd setup --auto` or `tbd setup --from-beads` instead for migrating from Beads.
 - `--validate` - Validate existing import against Beads source
 
 ### beads
@@ -566,8 +589,8 @@ Detected:
   ✓ Beads repository (.beads/ with 142 issues)
 
 To get started:
-  tbd import --from-beads   # Migrate from Beads
-  tbd init                  # Start fresh
+  tbd setup --auto          # Full setup with auto-detection
+  tbd init --prefix=X       # Surgical init only
 ```
 
 ### prime
@@ -584,9 +607,9 @@ Behavior:
 - Silent exit (code 0) if not in a tbd project
 - Custom output: create `.tbd/PRIME.md` to override default content
 
-### setup
+### setup (subcommands)
 
-Configure editor and agent integrations.
+Configure specific editor and agent integrations.
 
 ```bash
 tbd setup claude                            # Install Claude Code hooks
@@ -607,21 +630,20 @@ tbd setup beads --disable                   # Disable Beads (for migration)
 
 #### setup auto
 
-The `setup auto` command detects which coding agents are available and configures
-integrations automatically:
+The `tbd setup --auto` command (or `tbd setup auto`) detects which coding agents are
+available and configures integrations automatically:
 
 - **Claude Code**: Checks for `~/.claude/` directory, installs SessionStart hooks
 - **Cursor**: Checks for `.cursor/` directory, creates rules file
 - **Codex**: Checks for `AGENTS.md`, adds tbd integration section
 
-This is the recommended way to set up tbd in a new project:
+This is the recommended way to set up tbd:
 
 ```bash
-tbd init --prefix=myproj
-tbd setup auto                              # Configure all detected integrations
+tbd setup --auto                            # Full setup: init + integrations
 ```
 
-For already-configured integrations, `setup auto` reports them as “Already configured”
+For already-configured integrations, `setup --auto` reports them as “Already configured”
 and skips reinstallation.
 
 ### Documentation Commands
@@ -829,22 +851,19 @@ tbd search "review" --status=open
 ### Migration from Beads
 
 ```bash
-# 1. Stop Beads daemon and sync
+# Recommended: one-step migration
+tbd setup --auto                        # Auto-detects beads, imports, sets up integrations
+
+# Or explicit migration
+tbd setup --from-beads                  # Migrate from beads with prompts
+
+# Manual step-by-step migration
 bd sync                                 # Final Beads sync
+tbd init --prefix=myproj                # Initialize tbd
+tbd import issues.jsonl                 # Import from exported JSONL
+tbd setup beads --disable --confirm     # Disable Beads
 
-# 2. Import issues to tbd (optional, preserves history)
-tbd import --from-beads --verbose       # Import all issues
-
-# 3. Disable Beads (moves files to .beads-disabled/)
-tbd setup beads --disable               # Preview what will be moved
-tbd setup beads --disable --confirm     # Actually disable Beads
-
-# 4. Install tbd integrations
-tbd setup claude                        # Install Claude Code hooks
-tbd setup cursor                        # Cursor rules (optional)
-tbd setup codex                         # AGENTS.md section (optional)
-
-# 5. Verify migration
+# Verify migration
 tbd stats
 tbd list --all
 ```

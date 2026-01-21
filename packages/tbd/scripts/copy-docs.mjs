@@ -25,6 +25,7 @@ const DOCS_FILES = [
   { src: 'docs/tbd-design.md', dest: 'tbd-design.md' },
   { src: 'docs/tbd-closing.md', dest: 'tbd-closing.md' },
   { src: 'docs/SKILL.md', dest: 'SKILL.md' },
+  { src: 'docs/skill-brief.md', dest: 'skill-brief.md' },
   { src: 'docs/CURSOR.mdc', dest: 'CURSOR.mdc' },
   { src: 'README.md', dest: 'README.md' },
 ];

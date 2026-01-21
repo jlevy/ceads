@@ -52,9 +52,7 @@ export class ValidationError extends CLIError {
  * Uses the stable error message defined in design spec §5.6.
  */
 export class NotInitializedError extends CLIError {
-  constructor(
-    message = "Not a tbd repository (run 'tbd init' or 'tbd import --from-beads' first)",
-  ) {
+  constructor(message = "Not a tbd repository (run 'tbd setup --auto' first)") {
     super(message, 1);
     this.name = 'NotInitializedError';
   }
