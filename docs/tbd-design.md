@@ -1293,9 +1293,10 @@ const AtticEntrySchema = z.object({
 
 ### 2.7 Relationship Types
 
-tbd supports two distinct types of relationships between issues: **parent-child** (hierarchical
-containment) and **dependencies** (blocking relationships). This section documents the model,
-compares it to Beads, and explains the design rationale.
+tbd supports two distinct types of relationships between issues: **parent-child**
+(hierarchical containment) and **dependencies** (blocking relationships).
+This section documents the model, compares it to Beads, and explains the design
+rationale.
 
 #### 2.7.1 Relationship Model Overview
 
@@ -1410,29 +1411,41 @@ tbd and Beads have different models for parent-child relationships:
 | Aspect | tbd | Beads |
 | --- | --- | --- |
 | Parent-child storage | `parent_id` field | `dependencies[].type: parent-child` |
-| Parent-child blocking | **No** (organizational only) | **Yes** (affects ready queue) |
+| Parent-child blocking | **No** (organizational only) | **Transitive** (inherits parent's blocked state) |
 | Dependency types | `blocks` only (more planned) | `blocks`, `parent-child`, `related`, `discovered-from`, + more |
 
-**Why tbd uses a different model:**
+**Understanding Beads’ parent-child behavior:**
 
-In Beads, `parent-child` is a dependency type that blocks work:
+In Beads, `parent-child` is listed as affecting ready work:
 
 ```go
-// Beads: parent-child blocks the ready queue
+// Beads: AffectsReadyWork includes parent-child
 func (d DependencyType) AffectsReadyWork() bool {
   return d == DepBlocks || d == DepParentChild || ...
 }
 ```
 
-This means a task can't be "ready" until its parent epic closes—which is counterintuitive,
-since you typically work on tasks **to complete** the epic.
+However, this does NOT mean children are blocked until their parent closes.
+The actual behavior (from `blocked_cache.go`) is **transitive blocking**:
 
-tbd separates these concepts:
+1. Only `blocks` (and similar types) can DIRECTLY block an issue
+2. `parent-child` PROPAGATES blockage: if a parent is blocked, children inherit that
+   blockage
 
-- **`parent_id`**: Organizational containment (non-blocking)
+So in Beads:
+- Creating a task under an open epic does NOT block the task
+- If the epic itself becomes blocked (by a `blocks` dependency), children are
+  transitively blocked
+- If the epic is open (not blocked), children CAN be ready to work on
+
+**tbd’s simpler model:**
+
+tbd separates these concepts entirely:
+
+- **`parent_id`**: Organizational containment (non-blocking, no transitive effects)
 - **`blocks`**: Temporal ordering (blocking)
 
-This allows natural workflows where:
+This is simpler because:
 
 ```
 Epic: "Build Auth System" (open)
@@ -1441,9 +1454,13 @@ Epic: "Build Auth System" (open)
 └── Task: "Write tests" (blocked by OAuth) ← Must wait for OAuth
 ```
 
+In tbd, blocking is explicit via `blocks` dependencies only.
+There’s no transitive blocking through the parent-child hierarchy.
+This makes the blocking model easier to reason about.
+
 #### 2.7.6 Future Dependency Types
 
-Based on real-world Beads usage data (from Beads' own issue tracker):
+Based on real-world Beads usage data (from Beads’ own issue tracker):
 
 | Type | Beads Usage | Priority | Notes |
 | --- | --- | --- | --- |
@@ -1455,7 +1472,7 @@ Based on real-world Beads usage data (from Beads' own issue tracker):
 Planned additions:
 
 - **`discovered-from`**: Track issue provenance when work reveals new issues
-- **`related`**: Soft links for "see also" references
+- **`related`**: Soft links for “see also” references
 
 * * *
 
@@ -4679,8 +4696,9 @@ This is sufficient for the `ready` command algorithm.
 
 #### A.3.4 Dependency Types
 
-> **See also:** [§2.7 Relationship Types](#27-relationship-types) for detailed documentation of tbd's
-> relationship model, including rationale for differences from Beads.
+> **See also:** [§2.7 Relationship Types](#27-relationship-types) for detailed
+> documentation of tbd’s relationship model, including rationale for differences from
+> Beads.
 
 | Beads Type | tbd Type | Status | Notes |
 | --- | --- | --- | --- |
@@ -4696,8 +4714,8 @@ This is sufficient for the `ready` command algorithm.
 - **tbd**: `parent_id` is a separate field for **organizational hierarchy only**
   (children can be ready while parent is open)
 
-This is intentional—tbd's model allows working on tasks to complete an epic,
-rather than waiting for the epic to close first.
+This is intentional—tbd’s model allows working on tasks to complete an epic, rather than
+waiting for the epic to close first.
 
 ### A.4 Architecture Comparison
 
@@ -4907,9 +4925,11 @@ Comments will be a separate entity type in the future:
 
 ### B.7 Additional Dependency Types
 
-> **See also:** [§2.7 Relationship Types](#27-relationship-types) for tbd's complete relationship model.
+> **See also:** [§2.7 Relationship Types](#27-relationship-types) for tbd’s complete
+> relationship model.
 
-Currently only `blocks` is supported. Based on real-world Beads usage data:
+Currently only `blocks` is supported.
+Based on real-world Beads usage data:
 
 | Beads Type | Usage | tbd Status | Rationale |
 | --- | --- | --- | --- |
@@ -4920,8 +4940,10 @@ Currently only `blocks` is supported. Based on real-world Beads usage data:
 | `waits-for` | — | ⏳ Future | Fanout gates (advanced) |
 | `conditional-blocks` | — | ⏳ Future | Error handling (advanced) |
 
-**Note:** `parent-child` in Beads blocks work (children wait for parent), but tbd's `parent_id`
-is organizational only. See [§2.7.5](#275-comparison-with-beads) for rationale.
+**Note:** In Beads, `parent-child` enables transitive blocking (if parent is blocked,
+children inherit that blockage), while tbd’s `parent_id` is purely organizational with
+no blocking effects.
+See [§2.7.5](#275-comparison-with-beads) for details.
 
 ### B.8 State Label Commands
 
