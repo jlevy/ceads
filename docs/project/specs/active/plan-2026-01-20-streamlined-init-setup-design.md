@@ -1077,6 +1077,62 @@ tbd setup claude
 | `SKILL.md` | Update to mention `tbd setup` as entry point |
 | `docs/tbd-design.md` | Update §6.4 Installation section |
 
+### Integration File Formats
+
+Each integration has specific file format requirements.
+These must be correct for the integration to work properly.
+
+#### Claude Code Integration
+
+**Files created:**
+- `.claude/settings.json` - Hook configuration
+- `.claude/skills/tbd/SKILL.md` - Skill file (plain markdown)
+
+**Hook configuration format:**
+```json
+{
+  "hooks": {
+    "SessionStart": [{ "matcher": "", "hooks": [{ "type": "command", "command": "tbd prime" }] }],
+    "PreCompact": [{ "matcher": "", "hooks": [{ "type": "command", "command": "tbd prime" }] }]
+  }
+}
+```
+
+**Skill file:** Plain markdown, copied from `docs/skill.md`.
+
+#### Cursor IDE Integration
+
+**Files created:**
+- `.cursor/rules/tbd.mdc` - MDC rules file
+
+**IMPORTANT (fixes #23):** Cursor MDC files MUST have YAML frontmatter to be recognized.
+Without frontmatter, Cursor will not activate the rules.
+
+**Correct MDC format:**
+```markdown
+---
+description: Lightweight git-native issue tracking. Invoke when user mentions tbd, beads, tasks, issues, or bugs.
+alwaysApply: false
+---
+
+# tbd Workflow
+
+[Rest of skill content...]
+```
+
+**Frontmatter fields:**
+- `description`: Brief description for Cursor’s rule selector (required)
+- `alwaysApply`: Whether to always include in context (default: false)
+- `globs`: Optional file patterns to auto-apply (e.g., `[".tbd/**"]`)
+
+#### AGENTS.md Integration
+
+**Files created:**
+- `AGENTS.md` - Plain markdown file at repo root
+
+**Format:** Plain markdown, similar to SKILL.md but adapted for generic agents.
+No frontmatter required.
+
 ### New Module: prefix-detection.ts
 
 ```typescript
@@ -1139,10 +1195,17 @@ class SetupDefaultHandler extends BaseCommand {
 ### Phase 4: Command Cleanup
 
 - [ ] Update `tbd init` to NOT call `setup auto` (make it surgical)
-- [ ] Update `tbd init` to use prefix auto-detection (--prefix optional)
+- [ ] Update `tbd init` to REQUIRE `--prefix` (no auto-detection for surgical init)
+- [ ] Add `tbd init` error handling for already-initialized repos (see spec)
 - [ ] Remove `tbd setup auto` subcommand (use `--auto` flag instead)
 - [ ] Remove `tbd import --from-beads` (use `tbd setup --from-beads`)
 - [ ] Remove `tbd setup beads --disable` (folded into migration flow)
+
+### Phase 4.5: Integration File Format Fixes
+
+- [ ] Fix Cursor MDC frontmatter (fixes #23) - add required YAML frontmatter
+- [ ] Ensure Claude Code skill file uses correct markdown format
+- [ ] Add tests for integration file format correctness
 
 ### Phase 5: Documentation & Help
 
