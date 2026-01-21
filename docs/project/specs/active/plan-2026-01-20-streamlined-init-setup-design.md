@@ -813,6 +813,43 @@ All set!
 
 * * *
 
+### Integration Upgrade Behavior
+
+When running `tbd setup` on an already-initialized repository, the command should
+**always check for and apply integration updates**. This ensures users get fixes and
+improvements when they upgrade tbd.
+
+**Upgrade scenarios:**
+
+| Integration | Upgrade Trigger | What Gets Updated |
+| --- | --- | --- |
+| Claude Code | Skill file content changed | `.claude/skills/tbd/SKILL.md` |
+| Claude Code | Hook config improved | `.claude/settings.json` (merges, doesn't overwrite) |
+| Cursor IDE | MDC content or format changed | `.cursor/rules/tbd.mdc` |
+| AGENTS.md | Content changed | `AGENTS.md` (tbd section only) |
+
+**Version tracking:** Each integration file should include a version comment that allows
+`tbd setup` to detect when an update is needed:
+
+```markdown
+<!-- tbd-version: 0.1.5 -->
+```
+
+**Upgrade flow (`tbd setup --auto`):**
+1. Check each installed integration’s version against current tbd version
+2. If outdated, automatically update the file
+3. Report what was updated
+
+**Interactive upgrade flow (`tbd setup`):**
+1. Check each installed integration’s version
+2. If outdated, prompt user: “Update X? (Y/n)”
+3. Default is Y (upgrade)
+
+**Important:** The `--auto` flag should always apply updates without prompting.
+This ensures CI/CD pipelines and agents always have the latest integration files.
+
+* * *
+
 #### 8. Surgical Init (`tbd init`)
 
 For scripts or CI pipelines that need precise control over .tbd/ creation.
@@ -1108,7 +1145,17 @@ These must be correct for the integration to work properly.
 **IMPORTANT (fixes #23):** Cursor MDC files MUST have YAML frontmatter to be recognized.
 Without frontmatter, Cursor will not activate the rules.
 
-**Correct MDC format:**
+**Source file:** `packages/tbd/src/docs/CURSOR.mdc`
+
+This file contains the complete MDC content with proper frontmatter.
+The content after the frontmatter should be the same as SKILL.md (or a cursor-specific
+variant if needed).
+
+**Implementation note:** The frontmatter must NOT be hardcoded in TypeScript.
+All content should be stored in content files (`src/docs/`) and loaded at runtime.
+This keeps content maintainable and avoids mixing prose with code.
+
+**Required MDC format:**
 ```markdown
 ---
 description: Lightweight git-native issue tracking. Invoke when user mentions tbd, beads, tasks, issues, or bugs.
@@ -1117,7 +1164,7 @@ alwaysApply: false
 
 # tbd Workflow
 
-[Rest of skill content...]
+[Rest of skill content from SKILL.md...]
 ```
 
 **Frontmatter fields:**
@@ -1203,9 +1250,13 @@ class SetupDefaultHandler extends BaseCommand {
 
 ### Phase 4.5: Integration File Format Fixes
 
-- [ ] Fix Cursor MDC frontmatter (fixes #23) - add required YAML frontmatter
+- [ ] Create `src/docs/CURSOR.mdc` with proper MDC frontmatter (fixes #23)
+- [ ] Update `getCursorRulesContent()` to load from CURSOR.mdc file
+- [ ] Ensure all integration content is in `src/docs/` files, NOT hardcoded in
+  TypeScript
 - [ ] Ensure Claude Code skill file uses correct markdown format
 - [ ] Add tests for integration file format correctness
+- [ ] Ensure `tbd setup` upgrades existing integrations with corrected formats
 
 ### Phase 5: Documentation & Help
 
