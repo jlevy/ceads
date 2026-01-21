@@ -44,6 +44,22 @@ export const MIN_GIT_VERSION = '2.42.0';
 /**
  * Parsed Git version information.
  */
+/**
+ * Check if the current directory is inside a git repository.
+ */
+export async function isInGitRepo(cwd?: string): Promise<boolean> {
+  try {
+    const args = ['rev-parse', '--is-inside-work-tree'];
+    if (cwd) {
+      args.unshift('-C', cwd);
+    }
+    const result = await git(...args);
+    return result === 'true';
+  } catch {
+    return false;
+  }
+}
+
 export interface GitVersion {
   major: number;
   minor: number;

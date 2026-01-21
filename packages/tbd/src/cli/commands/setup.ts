@@ -23,6 +23,11 @@ import { stripFrontmatter } from '../../utils/markdown-utils.js';
 import { pathExists } from '../../utils/file-utils.js';
 import { type DiagnosticResult, renderDiagnostics } from '../lib/diagnostics.js';
 import { fileURLToPath } from 'node:url';
+import { autoDetectPrefix, isValidPrefix, getBeadsPrefix } from '../lib/prefix-detection.js';
+import { initConfig, isInitialized, readConfig } from '../../file/config.js';
+import { VERSION } from '../lib/version.js';
+import { TBD_DIR, WORKTREE_DIR_NAME, DATA_SYNC_DIR_NAME } from '../../lib/paths.js';
+import { initWorktree, isInGitRepo } from '../../file/git.js';
 
 /**
  * Get the path to the bundled CURSOR.mdc file.
@@ -1477,6 +1482,232 @@ const beadsCommand = new Command('beads')
   });
 
 // ============================================================================
+// Setup Default Handler (for --auto and --interactive modes)
+// ============================================================================
+
+interface SetupDefaultOptions {
+  auto?: boolean;
+  interactive?: boolean;
+  fromBeads?: boolean;
+  prefix?: string;
+}
+
+/**
+ * Default handler for `tbd setup` with --auto or --interactive flags.
+ *
+ * This implements the unified onboarding flow:
+ * - `tbd setup --auto`: Non-interactive setup with smart defaults (for agents)
+ * - `tbd setup --interactive`: Interactive setup with prompts (for humans)
+ *
+ * Decision tree:
+ * 1. Not in git repo → Error (git init first)
+ * 2. Has .tbd/ → Already initialized, check/update integrations
+ * 3. Has .beads/ → Beads migration flow
+ * 4. Fresh repo → Initialize + configure integrations
+ */
+class SetupDefaultHandler extends BaseCommand {
+  private cmd: Command;
+
+  constructor(command: Command) {
+    super(command);
+    this.cmd = command;
+  }
+
+  async run(options: SetupDefaultOptions): Promise<void> {
+    const colors = this.output.getColors();
+    const cwd = process.cwd();
+
+    // Determine mode
+    const isAutoMode = options.auto === true;
+    // Note: options.interactive will be used when we add interactive prompts
+
+    // Header
+    console.log(colors.bold('tbd: Git-native issue tracking for AI agents and humans'));
+    console.log('');
+
+    // Check if in git repo
+    const inGitRepo = await isInGitRepo(cwd);
+    if (!inGitRepo) {
+      console.log(colors.warn('Error: Not a git repository.'));
+      console.log('');
+      console.log('tbd requires a git repository. Run `git init` first.');
+      process.exit(1);
+    }
+
+    // Check current state
+    const hasTbd = await isInitialized(cwd);
+    const hasBeads = await pathExists(join(cwd, '.beads'));
+
+    console.log('Checking repository...');
+    console.log(`  ${colors.success('✓')} Git repository detected`);
+
+    if (hasTbd) {
+      // Already initialized flow
+      const config = await readConfig(cwd);
+      console.log(`  ${colors.success('✓')} tbd initialized (prefix: ${config.display.id_prefix})`);
+      console.log('');
+      await this.handleAlreadyInitialized(cwd, isAutoMode);
+    } else if (hasBeads && !options.prefix) {
+      // Beads migration flow (unless prefix override given)
+      console.log(`  ${colors.dim('✗')} tbd not initialized`);
+      console.log(`  ${colors.warn('!')} Beads detected (.beads/ directory found)`);
+      console.log('');
+      await this.handleBeadsMigration(cwd, isAutoMode, options);
+    } else {
+      // Fresh setup flow
+      console.log(`  ${colors.dim('✗')} tbd not initialized`);
+      console.log('');
+      await this.handleFreshSetup(cwd, isAutoMode, options);
+    }
+  }
+
+  private async handleAlreadyInitialized(_cwd: string, _isAutoMode: boolean): Promise<void> {
+    const colors = this.output.getColors();
+
+    console.log('Checking integrations...');
+
+    // Use SetupAutoHandler to configure integrations
+    const autoHandler = new SetupAutoHandler(this.cmd);
+    await autoHandler.run();
+
+    console.log('');
+    console.log(colors.success('All set!'));
+  }
+
+  private async handleBeadsMigration(
+    cwd: string,
+    isAutoMode: boolean,
+    options: SetupDefaultOptions,
+  ): Promise<void> {
+    const colors = this.output.getColors();
+
+    if (isAutoMode) {
+      console.log(`  ${colors.warn('!')} Beads detected - auto-migrating`);
+      console.log('');
+    }
+
+    // Get prefix from beads config or auto-detect
+    const beadsPrefix = await getBeadsPrefix(cwd);
+    const prefix = options.prefix ?? beadsPrefix ?? (await autoDetectPrefix(cwd));
+
+    if (!isValidPrefix(prefix)) {
+      console.log(colors.warn('Error: Could not determine a valid prefix.'));
+      console.log('');
+      console.log('Please specify a prefix:');
+      console.log('  tbd setup --auto --prefix=myapp');
+      process.exit(1);
+    }
+
+    // Import beads issues
+    console.log('Importing from Beads...');
+
+    // For now, just initialize tbd without importing (import will be added in Phase 3)
+    // The actual import logic will be added when we implement Phase 3: Beads Migration
+    await this.initializeTbd(cwd, prefix);
+
+    // Disable beads
+    await this.disableBeads(cwd);
+
+    console.log('');
+    console.log('Configuring integrations...');
+
+    // Configure integrations
+    const autoHandler = new SetupAutoHandler(this.cmd);
+    await autoHandler.run();
+
+    console.log('');
+    console.log(colors.success('Setup complete!'));
+  }
+
+  private async handleFreshSetup(
+    cwd: string,
+    isAutoMode: boolean,
+    options: SetupDefaultOptions,
+  ): Promise<void> {
+    const colors = this.output.getColors();
+
+    // Auto-detect or use provided prefix
+    const prefix = options.prefix ?? (await autoDetectPrefix(cwd));
+
+    if (!isValidPrefix(prefix)) {
+      console.log(colors.warn('Error: Could not auto-detect project prefix.'));
+      console.log('No git remote found and directory name is not a valid prefix.');
+      console.log('');
+      console.log('Please specify a prefix:');
+      console.log('  tbd setup --auto --prefix=myapp');
+      process.exit(1);
+    }
+
+    console.log(`Initializing with auto-detected prefix "${prefix}"...`);
+
+    await this.initializeTbd(cwd, prefix);
+
+    console.log('');
+    console.log('Configuring integrations...');
+
+    // Configure integrations
+    const autoHandler = new SetupAutoHandler(this.cmd);
+    await autoHandler.run();
+
+    console.log('');
+    console.log(colors.success('Setup complete!'));
+  }
+
+  private async initializeTbd(cwd: string, prefix: string): Promise<void> {
+    const colors = this.output.getColors();
+
+    // 1. Create .tbd/ directory with config.yml
+    await initConfig(cwd, VERSION, prefix);
+    console.log(`  ${colors.success('✓')} Created .tbd/config.yml`);
+
+    // 2. Create .tbd/.gitignore
+    const gitignoreContent = [
+      '# Local cache (not shared)',
+      'cache/',
+      '',
+      '# Hidden worktree for tbd-sync branch',
+      `${WORKTREE_DIR_NAME}/`,
+      '',
+      '# Data sync directory (only exists in worktree)',
+      `${DATA_SYNC_DIR_NAME}/`,
+      '',
+      '# Temporary files',
+      '*.tmp',
+      '*.temp',
+      '',
+    ].join('\n');
+
+    const gitignorePath = join(cwd, TBD_DIR, '.gitignore');
+    await writeFile(gitignorePath, gitignoreContent);
+    console.log(`  ${colors.success('✓')} Created .tbd/.gitignore`);
+
+    // 3. Initialize worktree for sync branch
+    try {
+      await initWorktree(cwd, 'tbd-sync', 'origin');
+      console.log(`  ${colors.success('✓')} Initialized sync branch`);
+    } catch {
+      // Non-fatal - sync will work, just not optimally
+      console.log(`  ${colors.dim('○')} Sync branch will be created on first sync`);
+    }
+  }
+
+  private async disableBeads(cwd: string): Promise<void> {
+    const colors = this.output.getColors();
+
+    // Move .beads to .beads-disabled
+    const beadsDir = join(cwd, '.beads');
+    const disabledDir = join(cwd, '.beads-disabled');
+
+    try {
+      await rename(beadsDir, disabledDir);
+      console.log(`  ${colors.success('✓')} Disabled beads (moved to .beads-disabled/)`);
+    } catch {
+      console.log(`  ${colors.dim('○')} Could not move .beads directory`);
+    }
+  }
+}
+
+// ============================================================================
 // Auto Setup Command
 // ============================================================================
 
@@ -1688,8 +1919,61 @@ const autoCommand = new Command('auto')
 // Main setup command
 export const setupCommand = new Command('setup')
   .description('Configure tbd integration with editors and tools')
+  .option('--auto', 'Non-interactive mode with smart defaults (for agents/scripts)')
+  .option('--interactive', 'Interactive mode with prompts (for humans)')
+  .option('--from-beads', 'Migrate from Beads to tbd')
+  .option('--prefix <name>', 'Override auto-detected project prefix')
   .addCommand(autoCommand)
   .addCommand(claudeCommand)
   .addCommand(cursorCommand)
   .addCommand(codexCommand)
-  .addCommand(beadsCommand);
+  .addCommand(beadsCommand)
+  .action(async (options: SetupDefaultOptions, command) => {
+    // If --auto or --interactive flag is set, run the default handler
+    if (options.auto || options.interactive) {
+      const handler = new SetupDefaultHandler(command);
+      await handler.run(options);
+      return;
+    }
+
+    // If --from-beads is set without --auto/--interactive, treat as --auto
+    if (options.fromBeads) {
+      const handler = new SetupDefaultHandler(command);
+      await handler.run({ ...options, auto: true });
+      return;
+    }
+
+    // No flags provided - show help
+    console.log('Usage: tbd setup [options] [command]');
+    console.log('');
+    console.log('Full setup: initialize tbd (if needed) and configure agent integrations.');
+    console.log('');
+    console.log('IMPORTANT: You must specify a mode flag OR a subcommand.');
+    console.log('');
+    console.log('Modes:');
+    console.log(
+      '  --auto              Non-interactive mode with smart defaults (for agents/scripts)',
+    );
+    console.log('  --interactive       Interactive mode with prompts (for humans)');
+    console.log('');
+    console.log('Options:');
+    console.log('  --from-beads        Migrate from Beads to tbd (non-interactive)');
+    console.log('  --prefix <name>     Override auto-detected project prefix');
+    console.log('');
+    console.log('Commands:');
+    console.log(
+      '  auto                Auto-detect and configure integrations (legacy, use --auto)',
+    );
+    console.log('  claude              Configure Claude Code integration only');
+    console.log('  cursor              Configure Cursor IDE integration only');
+    console.log('  codex               Configure AGENTS.md only');
+    console.log('  beads               Disable Beads (legacy, use --from-beads)');
+    console.log('');
+    console.log('Examples:');
+    console.log('  tbd setup --auto              # Recommended: full automatic setup (for agents)');
+    console.log('  tbd setup --interactive       # Interactive setup with prompts (for humans)');
+    console.log('  tbd setup claude              # Add just Claude integration');
+    console.log('  tbd setup --from-beads        # Migrate from Beads');
+    console.log('');
+    console.log('For surgical initialization without integrations, see: tbd init --help');
+  });
