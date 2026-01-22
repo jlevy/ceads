@@ -1,3 +1,8 @@
+---
+title: New Plan Spec
+description: Create a new feature planning specification document
+---
+
 Shortcut: New Plan Spec
 
 Instructions:
@@ -11,7 +16,7 @@ Create a to-do list with the following items then perform all of them:
    @docs/project/specs/active/plan-YYYY-MM-DD-feature-some-description.md (filling in
    the date and an appropriate description of the feature)
 
-3. Begin to fill in the new feature plan doc based on the user’s instructions, stopping
+3. Begin to fill in the new feature plan doc based on the user's instructions, stopping
    and asking for clarifications as soon as you need them.
 
    Rules:
@@ -19,5 +24,5 @@ Create a to-do list with the following items then perform all of them:
    - You may break work into a few phases (phases) if it helps with incremental testing.
      But **use as few phases as possible.** If it is straightforward, use one phase.
 
-   - NEVER GIVE TIME FRAMES IN PLANS, like “4-6 hours” or “1 week”.
+   - NEVER GIVE TIME FRAMES IN PLANS, like "4-6 hours" or "1 week".
      Work will be done in one day.
