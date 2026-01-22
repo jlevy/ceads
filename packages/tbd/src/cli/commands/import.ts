@@ -43,7 +43,6 @@ import { initWorktree } from '../../file/git.js';
 import { VERSION } from '../lib/version.js';
 
 interface ImportOptions {
-  fromBeads?: boolean;
   beadsDir?: string;
   merge?: boolean;
   verbose?: boolean;
@@ -177,8 +176,11 @@ class ImportHandler extends BaseCommand {
 
   async run(file: string | undefined, options: ImportOptions): Promise<void> {
     // Validate input first
-    if (!file && !options.fromBeads && !options.validate) {
-      throw new ValidationError('Provide a file path or use --from-beads');
+    if (!file && !options.validate) {
+      throw new ValidationError(
+        'Provide a JSONL file path to import.\n\n' +
+          'For Beads migration, use: tbd setup --from-beads',
+      );
     }
 
     // Handle validation mode - requires init
@@ -186,18 +188,6 @@ class ImportHandler extends BaseCommand {
       await requireInit();
       this.dataSyncDir = await resolveDataSyncDir();
       await this.validateImport(options);
-      return;
-    }
-
-    // --from-beads auto-initializes if needed
-    if (options.fromBeads) {
-      // Deprecation notice
-      const colors = this.output.getColors();
-      console.log(colors.warn('Note: `tbd import --from-beads` is deprecated.'));
-      console.log(colors.dim('Use `tbd setup --auto` or `tbd setup --from-beads` instead.'));
-      console.log('');
-
-      await this.importFromBeads(options);
       return;
     }
 
@@ -732,12 +722,10 @@ class ImportHandler extends BaseCommand {
 
 export const importCommand = new Command('import')
   .description(
-    'Import issues from Beads or JSONL file.\n' +
-      'Tip: Run "bd sync" and stop the beads daemon before importing for best results.',
+    'Import issues from JSONL file.\n' + 'For Beads migration, use: tbd setup --from-beads',
   )
   .argument('[file]', 'JSONL file to import')
-  .option('--from-beads', 'Import directly from Beads database')
-  .option('--beads-dir <path>', 'Beads data directory')
+  .option('--beads-dir <path>', 'Beads data directory (for --validate)')
   .option('--merge', 'Merge with existing issues instead of skipping duplicates')
   .option('--verbose', 'Show detailed import progress')
   .option('--validate', 'Validate existing import against Beads source')

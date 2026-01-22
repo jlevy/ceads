@@ -1316,12 +1316,9 @@ class SetupDefaultHandler extends BaseCommand {
 - [x] Update `tbd init` to NOT call `setup auto` (make it surgical)
 - [x] Update `tbd init` to REQUIRE `--prefix` (no auto-detection for surgical init)
 - [x] Add `tbd init` error handling for already-initialized repos (see spec)
-- [ ] Remove `tbd setup auto` subcommand (use `--auto` flag instead) - kept for
-  backwards compatibility
-- [ ] Remove `tbd import --from-beads` (use `tbd setup --from-beads`) - deprecated, not
-  removed
-- [ ] Remove `tbd setup beads --disable` (folded into migration flow) - kept for manual
-  use
+- [x] Remove `tbd setup auto` subcommand (use `--auto` flag instead)
+- [x] Remove `tbd import --from-beads` (use `tbd setup --from-beads`)
+- [x] Remove `tbd setup beads --disable` (folded into migration flow)
 
 ### Phase 4.5: Integration File Format Fixes
 

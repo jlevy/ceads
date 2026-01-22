@@ -206,10 +206,10 @@ $ tbd doctor --help | grep -c "\-\-fix"
 ? 0
 ```
 
-# Test: import --help shows from-beads option
+# Test: import --help shows validate option
 
 ```console
-$ tbd import --help | grep -c "\-\-from-beads"
+$ tbd import --help | grep -c "\-\-validate"
 1
 ? 0
 ```

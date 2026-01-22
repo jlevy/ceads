@@ -105,13 +105,24 @@ export function createColoredHelpConfig(colorOption: ColorOption = 'auto') {
 
 /**
  * Create the help epilog text with color.
+ * Includes "Getting Started" section per spec.
  *
  * @param colorOption - Color option to determine if colors should be enabled
  * @returns Colored epilog string
  */
 export function createHelpEpilog(colorOption: ColorOption = 'auto'): string {
   const colors = pc.createColors(shouldColorize(colorOption));
-  return colors.blue('For more on tbd, see: https://github.com/jlevy/tbd');
+  const lines = [
+    colors.bold('Getting Started:'),
+    `  ${colors.green('npm install -g tbd-git@latest && tbd setup --auto')}`,
+    '',
+    '  This initializes tbd and configures your coding agents automatically.',
+    `  For interactive setup: ${colors.dim('tbd setup --interactive')}`,
+    `  For manual control: ${colors.dim('tbd init --help')}`,
+    '',
+    colors.blue('For more on tbd, see: https://github.com/jlevy/tbd'),
+  ];
+  return lines.join('\n');
 }
 
 /**
