@@ -96,12 +96,12 @@ Implement `tbd shortcut <name>` that:
    }
    ```
 
-4. **Shortcut Command** (with subcommands)
-   - `tbd shortcut` - Show help and explanation (from `shortcut-explanation.md`)
-   - `tbd shortcut list` - List available shortcuts with titles/descriptions
-   - `tbd shortcut get <name>` - Output named shortcut content
-   - `tbd shortcut search <query>` - Fuzzy search and show matches
-   - All subcommands support `--json` for structured output
+4. **Shortcut Command** (single command with flags)
+   - `tbd shortcut` - Show explanation (from `shortcut-explanation.md`) + help
+   - `tbd shortcut <name-or-description>` - Find and output shortcut (exact match first, then fuzzy)
+   - `tbd shortcut --list` - List active shortcuts with source path in muted text
+   - `tbd shortcut --list --all` - Include shadowed shortcuts (aliased by earlier path)
+   - Supports `--json` for structured output
 
 5. **Configuration**
    - Default doc path: `['.tbd/docs/shortcuts']`
@@ -117,12 +117,13 @@ Implement `tbd shortcut <name>` that:
 
 ### Acceptance Criteria
 
-1. `tbd shortcut` outputs help plus the shortcut-explanation.md content
-2. `tbd shortcut get new-plan-spec` outputs the new-plan-spec template
-3. `tbd shortcut search "plan"` shows matching shortcuts ranked by relevance
-4. `tbd shortcut list` shows all available shortcuts with titles
-5. User-added docs in `.tbd/docs/custom/` take precedence when configured first
-6. All paths configured in settings.ts, not hardcoded
+1. `tbd shortcut` outputs shortcut-explanation.md content + command help
+2. `tbd shortcut new-plan-spec` outputs the new-plan-spec template (exact match)
+3. `tbd shortcut "create a plan"` fuzzy-matches and outputs best match
+4. `tbd shortcut --list` shows active shortcuts with source path in muted text
+5. `tbd shortcut --list --all` includes shadowed shortcuts from later paths
+6. User-added docs in earlier paths take precedence (shadow later paths)
+7. All paths configured in settings.ts, not hardcoded
 
 ## Stage 2: Architecture Stage
 
@@ -159,7 +160,7 @@ packages/tbd/src/
 │   ├── doc-cache.ts          # DocCache class
 │   └── settings.ts           # Path constants (NEW)
 ├── cli/commands/
-│   └── shortcut.ts           # Shortcut command with subcommands
+│   └── shortcut.ts           # Shortcut command
 └── docs/
     └── shortcuts/            # Built-in shortcut templates
         ├── shortcut-explanation.md     # Explains shortcuts to agents
@@ -237,13 +238,14 @@ export interface DocMatch {
 
 export class DocCache {
   private docs: CachedDoc[] = [];
+  private allDocs: CachedDoc[] = [];  // Including shadowed
   private loaded = false;
 
   constructor(private paths: string[]) {}
 
   async load(): Promise<void> {
     // Load all .md files from paths in order
-    // Earlier paths take precedence (for same filename)
+    // Track both active docs (first occurrence) and all docs (including shadowed)
   }
 
   get(name: string): DocMatch | null {
@@ -256,73 +258,117 @@ export class DocCache {
     // Returns matches sorted by score descending
   }
 
-  list(): CachedDoc[] {
-    // Return all cached documents
+  list(includeAll = false): CachedDoc[] {
+    // Return active documents (default) or all including shadowed
+    return includeAll ? this.allDocs : this.docs;
+  }
+
+  isShadowed(doc: CachedDoc): boolean {
+    // Check if this doc is shadowed by an earlier path
   }
 }
 ```
 
 ### Shortcut Command Design
 
-The shortcut command uses subcommands rather than positional arguments, following the
-pattern of other tbd commands like `tbd config`.
+The shortcut command uses a single argument (name or description) with optional flags.
 
 ```typescript
 // packages/tbd/src/cli/commands/shortcut.ts
 export function registerShortcutCommand(program: Command): void {
-  const shortcut = program
-    .command('shortcut')
-    .description('Find and use documentation shortcuts')
-    .action(async () => {
-      // Default action: show help + explanation
-      const cache = await loadDocCache();
-      const explanation = cache.get('shortcut-explanation');
-      if (explanation) {
-        console.log(explanation.doc.content);
-      }
-      shortcut.help();
-    });
-
-  shortcut
-    .command('list')
-    .description('List all available shortcuts')
-    .option('--json', 'Output as JSON')
-    .action(async (options) => {
-      const cache = await loadDocCache();
-      const docs = cache.list();
-      // Output formatted list with title, description
-    });
-
-  shortcut
-    .command('get <name>')
-    .description('Output a shortcut by name (exact match)')
-    .option('--json', 'Output as JSON with metadata')
-    .action(async (name, options) => {
-      const cache = await loadDocCache();
-      const match = cache.get(name);
-      if (!match) {
-        throw new CLIError(`Shortcut not found: ${name}`);
-      }
-      // Output document content (the instructions for the agent)
-    });
-
-  shortcut
-    .command('search <query>')
-    .description('Fuzzy search for shortcuts')
-    .option('--limit <n>', 'Maximum results', '10')
+  program
+    .command('shortcut [query]')
+    .description('Find and output documentation shortcuts')
+    .option('--list', 'List all available shortcuts')
+    .option('--all', 'Include shadowed shortcuts (use with --list)')
     .option('--json', 'Output as JSON')
     .action(async (query, options) => {
       const cache = await loadDocCache();
-      const matches = cache.search(query, parseInt(options.limit));
-      // Output matches with scores
+      await cache.load();
+
+      if (options.list) {
+        // List mode: show all shortcuts with source paths
+        const docs = cache.list(options.all);
+        for (const doc of docs) {
+          const shadowed = cache.isShadowed(doc);
+          const title = doc.frontmatter?.title ?? doc.name;
+          const source = relativePath(doc.path);  // e.g., ".tbd/docs/shortcuts"
+
+          if (shadowed) {
+            // Muted style for shadowed entries
+            console.log(muted(`  ${title}  (${source}) [shadowed]`));
+          } else {
+            console.log(`${title}`);
+            console.log(muted(`  ${source}`));
+          }
+        }
+        return;
+      }
+
+      if (!query) {
+        // No query: show explanation + help
+        const explanation = cache.get('shortcut-explanation');
+        if (explanation) {
+          console.log(explanation.doc.content);
+        }
+        program.commands.find(c => c.name() === 'shortcut')?.help();
+        return;
+      }
+
+      // Query provided: try exact match first, then fuzzy
+      const exactMatch = cache.get(query);
+      if (exactMatch) {
+        console.log(exactMatch.doc.content);
+        return;
+      }
+
+      // Fuzzy match
+      const matches = cache.search(query, 1);
+      if (matches.length === 0) {
+        throw new CLIError(`No shortcut found matching: ${query}`);
+      }
+
+      const best = matches[0];
+      if (best.score < 0.5) {
+        // Low confidence - show suggestions instead
+        console.log(`No exact match for "${query}". Did you mean:`);
+        for (const m of cache.search(query, 5)) {
+          console.log(`  ${m.doc.frontmatter?.title ?? m.doc.name} (score: ${m.score.toFixed(2)})`);
+        }
+        return;
+      }
+
+      // Good fuzzy match - output it
+      console.log(best.doc.content);
     });
 }
+```
+
+### Example Output
+
+```
+$ tbd shortcut --list
+new-plan-spec
+  .tbd/docs/shortcuts
+new-research-brief
+  .tbd/docs/shortcuts
+commit-code
+  .tbd/docs/custom
+
+$ tbd shortcut --list --all
+new-plan-spec
+  .tbd/docs/shortcuts
+new-research-brief
+  .tbd/docs/shortcuts
+commit-code
+  .tbd/docs/custom
+  commit-code  (.tbd/docs/shortcuts) [shadowed]
 ```
 
 ### Shortcut Explanation File
 
 A special file `shortcut-explanation.md` is displayed when running `tbd shortcut` with
-no subcommand. This explains the shortcut system to agents:
+no argument. This explains the shortcut system to agents:
 
 ```markdown
 ---
@@ -332,14 +378,15 @@ description: How tbd shortcuts work for agents
 
 # tbd Shortcuts
 
-Shortcuts are reusable instructions for common tasks. When you need to perform a
-standard workflow, use `tbd shortcut get <name>` to retrieve the instructions.
+Shortcuts are reusable instructions for common tasks. Give a name or description
+and tbd will find the matching shortcut and output its instructions.
 
 ## How to Use
 
-1. **Find a shortcut**: `tbd shortcut search "plan spec"` or `tbd shortcut list`
-2. **Get instructions**: `tbd shortcut get new-plan-spec`
-3. **Follow the instructions**: The shortcut content tells you what to do
+1. **Find by name**: `tbd shortcut new-plan-spec` (exact match)
+2. **Find by description**: `tbd shortcut "create a plan"` (fuzzy match)
+3. **List all**: `tbd shortcut --list`
+4. **Follow the instructions**: The shortcut content tells you what to do
 
 ## What Shortcuts Contain
 
@@ -353,7 +400,7 @@ Each shortcut is a markdown document with step-by-step instructions. These may i
 
 User: "I want to create a new research brief"
 Agent:
-1. Run `tbd shortcut get new-research-brief`
+1. Run `tbd shortcut new-research-brief`
 2. Follow the instructions in the output
 3. The instructions may say to create a bead, copy a template, etc.
 ```
@@ -455,11 +502,11 @@ file-based data. DocCache should follow similar patterns.
 ### Phase 3: Shortcut Command
 
 - [ ] Create `packages/tbd/src/cli/commands/shortcut.ts`
-- [ ] Implement default action (show explanation + help)
-- [ ] Implement `list` subcommand with title/description output
-- [ ] Implement `get <name>` subcommand for exact lookup
-- [ ] Implement `search <query>` subcommand for fuzzy matching
-- [ ] Add --json flag support to all subcommands
+- [ ] Implement default action (show explanation + help when no args)
+- [ ] Implement query matching (exact first, then fuzzy)
+- [ ] Implement `--list` flag with source path in muted text
+- [ ] Implement `--list --all` to include shadowed shortcuts
+- [ ] Add --json flag support
 - [ ] Register command in cli.ts
 - [ ] Create `shortcut-explanation.md` explaining how shortcuts work for agents
 
@@ -556,8 +603,8 @@ Future optimization if needed:
 | `DocCache` | Path-ordered markdown document cache with lookup |
 | `settings.ts` | Centralized path constants |
 | `config.yml` docs.paths | User-configurable doc directories |
-| `tbd shortcut` | CLI command with `list`, `get`, `search` subcommands |
-| `shortcut-explanation.md` | Explains shortcuts to agents (shown by default) |
+| `tbd shortcut` | CLI command: `<query>`, `--list`, `--list --all` |
+| `shortcut-explanation.md` | Explains shortcuts to agents (shown when no args) |
 | `.tbd/docs/shortcuts/` | User-editable copy of built-in shortcuts |
 
 **Key principle**: Configuration in `config.yml`, constants in `settings.ts`, no
@@ -566,8 +613,8 @@ hardcoded paths in command implementations.
 **Usage flow**:
 1. User runs `tbd setup --auto` → shortcuts installed to `.tbd/docs/shortcuts/`
 2. User asks agent "I want a new plan spec"
-3. Agent runs `tbd shortcut` to understand the system (first time)
-4. Agent runs `tbd shortcut get new-plan-spec`
+3. Agent runs `tbd shortcut` to understand the system (first time, optional)
+4. Agent runs `tbd shortcut new-plan-spec` (or `tbd shortcut "plan spec"`)
 5. DocCache finds `shortcut-new-plan-spec.md` → outputs content
 6. Agent follows the instructions, which may include:
    - Creating beads with `tbd create`
