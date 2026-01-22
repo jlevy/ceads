@@ -7,6 +7,7 @@ import { describe, it, expect } from 'vitest';
 import { readFile } from 'node:fs/promises';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { parseFrontmatter } from '../src/utils/markdown-utils.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const docsDir = join(__dirname, '..', 'src', 'docs');
@@ -17,17 +18,8 @@ describe('integration file formats', () => {
       const cursorPath = join(docsDir, 'CURSOR.mdc');
       const content = await readFile(cursorPath, 'utf-8');
 
-      // Normalize line endings for cross-platform compatibility
-      const normalizedContent = content.replace(/\r\n/g, '\n');
-
-      // MDC files must start with YAML frontmatter
-      expect(normalizedContent.startsWith('---\n')).toBe(true);
-
-      // Extract frontmatter
-      const endOfFrontmatter = normalizedContent.indexOf('\n---\n', 4);
-      expect(endOfFrontmatter).toBeGreaterThan(0);
-
-      const frontmatter = normalizedContent.slice(4, endOfFrontmatter);
+      const frontmatter = parseFrontmatter(content);
+      expect(frontmatter).not.toBeNull();
 
       // Required MDC fields
       expect(frontmatter).toContain('description:');
@@ -50,17 +42,8 @@ describe('integration file formats', () => {
       const skillPath = join(docsDir, 'SKILL.md');
       const content = await readFile(skillPath, 'utf-8');
 
-      // Normalize line endings for cross-platform compatibility
-      const normalizedContent = content.replace(/\r\n/g, '\n');
-
-      // Skill files must start with YAML frontmatter
-      expect(normalizedContent.startsWith('---\n')).toBe(true);
-
-      // Extract frontmatter
-      const endOfFrontmatter = normalizedContent.indexOf('\n---\n', 4);
-      expect(endOfFrontmatter).toBeGreaterThan(0);
-
-      const frontmatter = normalizedContent.slice(4, endOfFrontmatter);
+      const frontmatter = parseFrontmatter(content);
+      expect(frontmatter).not.toBeNull();
 
       // Required Claude Code skill fields
       expect(frontmatter).toContain('name:');

@@ -45,6 +45,24 @@ Description`;
 
     expect(() => parseMarkdownWithFrontmatter(content)).toThrow('missing front matter');
   });
+
+  it('handles CRLF line endings', () => {
+    const content =
+      '---\r\ntitle: Test Issue\r\nstatus: open\r\n---\r\n\r\nThis is the description.';
+
+    const result = parseMarkdownWithFrontmatter(content);
+    expect(result.frontmatter.title).toBe('Test Issue');
+    expect(result.frontmatter.status).toBe('open');
+    expect(result.description).toBe('This is the description.');
+  });
+
+  it('handles mixed LF and CRLF line endings', () => {
+    const content = '---\r\ntitle: Mixed\nstatus: open\r\n---\n\nDescription here.';
+
+    const result = parseMarkdownWithFrontmatter(content);
+    expect(result.frontmatter.title).toBe('Mixed');
+    expect(result.frontmatter.status).toBe('open');
+  });
 });
 
 describe('parseIssue', () => {

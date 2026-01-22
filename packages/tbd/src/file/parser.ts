@@ -33,18 +33,19 @@ export interface ParsedIssueFile {
 
 /**
  * Parse a Markdown file with YAML front matter.
+ * Handles both LF and CRLF line endings.
  */
 export function parseMarkdownWithFrontmatter(content: string): ParsedIssueFile {
   const lines = content.split('\n');
 
-  // Find front matter boundaries
-  if (lines[0] !== '---') {
+  // Find front matter boundaries (use trim() to handle CRLF)
+  if (lines[0]?.trim() !== '---') {
     throw new Error('Invalid format: missing front matter opening delimiter');
   }
 
   let endIndex = -1;
   for (let i = 1; i < lines.length; i++) {
-    if (lines[i] === '---') {
+    if (lines[i]?.trim() === '---') {
       endIndex = i;
       break;
     }
@@ -54,8 +55,11 @@ export function parseMarkdownWithFrontmatter(content: string): ParsedIssueFile {
     throw new Error('Invalid format: missing front matter closing delimiter');
   }
 
-  // Parse front matter
-  const frontmatterYaml = lines.slice(1, endIndex).join('\n');
+  // Parse front matter (strip \r from CRLF line endings)
+  const frontmatterYaml = lines
+    .slice(1, endIndex)
+    .map((line) => line.replace(/\r$/, ''))
+    .join('\n');
   const frontmatter = parseYaml(frontmatterYaml) as Record<string, unknown>;
 
   // Parse body - split into description and notes
