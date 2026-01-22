@@ -104,6 +104,8 @@ Implement `tbd shortcut <name>` that:
    - Supports `--json` for structured output
 
 5. **Configuration**
+   - Doc paths are **relative to the tbd root** (parent of `.tbd/`)
+   - Also supports absolute paths and `~/` home-relative paths
    - Default doc path: `['.tbd/docs/shortcuts/system', '.tbd/docs/shortcuts/standard']`
    - User can add paths in config.yml under `docs.paths`
    - Built-in docs installed to `.tbd/docs/shortcuts/system/` and `.tbd/docs/shortcuts/standard/`
@@ -181,15 +183,18 @@ Both `system/` and `standard/` directories are in the default doc path.
 ```typescript
 // packages/tbd/src/lib/settings.ts
 
-// Directory names (relative to .tbd/)
+// All paths are relative to the parent of .tbd/ (the "tbd root")
+
+// Directory names
+export const TBD_DIR = '.tbd';
 export const DOCS_DIR = 'docs';
 export const SHORTCUTS_DIR = 'shortcuts';
 export const SYSTEM_DIR = 'system';
 export const STANDARD_DIR = 'standard';
 
-// Full paths relative to .tbd/
-export const TBD_DOCS_DIR = join(DOCS_DIR);                              // .tbd/docs/
-export const TBD_SHORTCUTS_DIR = join(DOCS_DIR, SHORTCUTS_DIR);          // .tbd/docs/shortcuts/
+// Full paths relative to tbd root (parent of .tbd/)
+export const TBD_DOCS_DIR = join(TBD_DIR, DOCS_DIR);                     // .tbd/docs/
+export const TBD_SHORTCUTS_DIR = join(TBD_DOCS_DIR, SHORTCUTS_DIR);      // .tbd/docs/shortcuts/
 export const TBD_SHORTCUTS_SYSTEM = join(TBD_SHORTCUTS_DIR, SYSTEM_DIR); // .tbd/docs/shortcuts/system/
 export const TBD_SHORTCUTS_STANDARD = join(TBD_SHORTCUTS_DIR, STANDARD_DIR); // .tbd/docs/shortcuts/standard/
 
@@ -197,7 +202,7 @@ export const TBD_SHORTCUTS_STANDARD = join(TBD_SHORTCUTS_DIR, STANDARD_DIR); // 
 export const BUILTIN_SHORTCUTS_SYSTEM = join('shortcuts', 'system');
 export const BUILTIN_SHORTCUTS_STANDARD = join('shortcuts', 'standard');
 
-// Default doc lookup paths (searched in order)
+// Default doc lookup paths (searched in order, relative to repo root)
 // System docs first, then standard shortcuts
 export const DEFAULT_DOC_PATHS = [
   TBD_SHORTCUTS_SYSTEM,    // .tbd/docs/shortcuts/system/
@@ -207,6 +212,11 @@ export const DEFAULT_DOC_PATHS = [
 
 ### Config Schema Extension
 
+Paths in `docs.paths` support three formats:
+- **Relative paths** - resolved relative to the parent of `.tbd/` (e.g., `.tbd/docs/shortcuts/system`)
+- **Absolute paths** - used as-is (e.g., `/usr/share/tbd/shortcuts`)
+- **Home-relative paths** - expanded from `~` (e.g., `~/my-shortcuts`)
+
 ```yaml
 # .tbd/config.yml
 display:
@@ -215,9 +225,11 @@ settings:
   auto_sync: false
 docs:
   paths:
-    - .tbd/docs/shortcuts/system    # System docs (skill, explanation)
-    - .tbd/docs/shortcuts/standard  # Standard shortcut templates
-    - .tbd/docs/custom              # User-added custom docs (optional)
+    - .tbd/docs/shortcuts/system    # Relative to repo root
+    - .tbd/docs/shortcuts/standard  # Relative to repo root
+    - .tbd/docs/custom              # User-added custom docs
+    - ~/my-global-shortcuts         # Home-relative path
+    - /opt/team/shared-shortcuts    # Absolute path
   # Future: could add remote sources, caching options, etc.
 ```
 
@@ -226,6 +238,7 @@ docs:
 export const ConfigSchema = z.object({
   // ... existing fields ...
   docs: z.object({
+    // Paths relative to repository root
     paths: z.array(z.string()).default([
       '.tbd/docs/shortcuts/system',
       '.tbd/docs/shortcuts/standard',
@@ -546,8 +559,11 @@ file-based data. DocCache should follow similar patterns.
 
 - [ ] Extend ConfigSchema with `docs.paths` field
 - [ ] Update settings.ts with doc path constants
-- [ ] Resolve doc paths relative to tbd root directory
-- [ ] Support absolute and relative paths in config
+- [ ] Implement path resolution:
+  - Relative paths resolved from tbd root (parent of `.tbd/`)
+  - Absolute paths used as-is
+  - `~/` paths expanded to user home directory
+- [ ] Add `resolvePath()` utility for consistent path handling
 
 ### Phase 5: Built-in Shortcuts Installation
 
