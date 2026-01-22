@@ -104,9 +104,9 @@ Implement `tbd shortcut <name>` that:
    - Supports `--json` for structured output
 
 5. **Configuration**
-   - Default doc path: `['.tbd/docs/shortcuts']`
+   - Default doc path: `['.tbd/docs/shortcuts/system', '.tbd/docs/shortcuts/standard']`
    - User can add paths in config.yml under `docs.paths`
-   - Built-in shortcuts installed from package to `.tbd/docs/shortcuts/`
+   - Built-in docs installed to `.tbd/docs/shortcuts/system/` and `.tbd/docs/shortcuts/standard/`
 
 ### Not in Scope
 
@@ -162,12 +162,19 @@ packages/tbd/src/
 ├── cli/commands/
 │   └── shortcut.ts           # Shortcut command
 └── docs/
-    └── shortcuts/            # Built-in shortcut templates
-        ├── shortcut-explanation.md     # Explains shortcuts to agents
-        ├── shortcut-new-plan-spec.md
-        ├── shortcut-new-research-brief.md
-        └── ...
+    └── shortcuts/
+        ├── system/           # System docs (skill.md, shortcut-explanation.md)
+        │   ├── skill.md                  # Main SKILL.md content
+        │   ├── skill-brief.md            # Brief skill summary
+        │   └── shortcut-explanation.md   # Explains shortcuts to agents
+        └── standard/         # Standard shortcut templates
+            ├── new-plan-spec.md
+            ├── new-research-brief.md
+            ├── commit-code.md
+            └── ...
 ```
+
+Both `system/` and `standard/` directories are in the default doc path.
 
 ### New Module: settings.ts
 
@@ -177,17 +184,24 @@ packages/tbd/src/
 // Directory names (relative to .tbd/)
 export const DOCS_DIR = 'docs';
 export const SHORTCUTS_DIR = 'shortcuts';
+export const SYSTEM_DIR = 'system';
+export const STANDARD_DIR = 'standard';
 
 // Full paths relative to .tbd/
-export const TBD_DOCS_DIR = join(DOCS_DIR);                    // .tbd/docs/
-export const TBD_SHORTCUTS_DIR = join(DOCS_DIR, SHORTCUTS_DIR); // .tbd/docs/shortcuts/
+export const TBD_DOCS_DIR = join(DOCS_DIR);                              // .tbd/docs/
+export const TBD_SHORTCUTS_DIR = join(DOCS_DIR, SHORTCUTS_DIR);          // .tbd/docs/shortcuts/
+export const TBD_SHORTCUTS_SYSTEM = join(TBD_SHORTCUTS_DIR, SYSTEM_DIR); // .tbd/docs/shortcuts/system/
+export const TBD_SHORTCUTS_STANDARD = join(TBD_SHORTCUTS_DIR, STANDARD_DIR); // .tbd/docs/shortcuts/standard/
 
 // Built-in docs source (in package)
-export const BUILTIN_SHORTCUTS_DIR = 'shortcuts';  // Relative to src/docs/
+export const BUILTIN_SHORTCUTS_SYSTEM = join('shortcuts', 'system');
+export const BUILTIN_SHORTCUTS_STANDARD = join('shortcuts', 'standard');
 
 // Default doc lookup paths (searched in order)
+// System docs first, then standard shortcuts
 export const DEFAULT_DOC_PATHS = [
-  TBD_SHORTCUTS_DIR,  // .tbd/docs/shortcuts/
+  TBD_SHORTCUTS_SYSTEM,    // .tbd/docs/shortcuts/system/
+  TBD_SHORTCUTS_STANDARD,  // .tbd/docs/shortcuts/standard/
 ];
 ```
 
@@ -201,8 +215,9 @@ settings:
   auto_sync: false
 docs:
   paths:
-    - .tbd/docs/shortcuts     # Default, can be removed
-    - .tbd/docs/custom        # User-added custom docs
+    - .tbd/docs/shortcuts/system    # System docs (skill, explanation)
+    - .tbd/docs/shortcuts/standard  # Standard shortcut templates
+    - .tbd/docs/custom              # User-added custom docs (optional)
   # Future: could add remote sources, caching options, etc.
 ```
 
@@ -211,8 +226,11 @@ docs:
 export const ConfigSchema = z.object({
   // ... existing fields ...
   docs: z.object({
-    paths: z.array(z.string()).default(['.tbd/docs/shortcuts']),
-  }).default({ paths: ['.tbd/docs/shortcuts'] }),
+    paths: z.array(z.string()).default([
+      '.tbd/docs/shortcuts/system',
+      '.tbd/docs/shortcuts/standard',
+    ]),
+  }).default({ paths: ['.tbd/docs/shortcuts/system', '.tbd/docs/shortcuts/standard'] }),
 });
 ```
 
@@ -348,21 +366,33 @@ export function registerShortcutCommand(program: Command): void {
 
 ```
 $ tbd shortcut --list
+skill
+  .tbd/docs/shortcuts/system
+skill-brief
+  .tbd/docs/shortcuts/system
+shortcut-explanation
+  .tbd/docs/shortcuts/system
 new-plan-spec
-  .tbd/docs/shortcuts
+  .tbd/docs/shortcuts/standard
 new-research-brief
-  .tbd/docs/shortcuts
+  .tbd/docs/shortcuts/standard
 commit-code
   .tbd/docs/custom
 
 $ tbd shortcut --list --all
+skill
+  .tbd/docs/shortcuts/system
+skill-brief
+  .tbd/docs/shortcuts/system
+shortcut-explanation
+  .tbd/docs/shortcuts/system
 new-plan-spec
-  .tbd/docs/shortcuts
+  .tbd/docs/shortcuts/standard
 new-research-brief
-  .tbd/docs/shortcuts
+  .tbd/docs/shortcuts/standard
 commit-code
   .tbd/docs/custom
-  commit-code  (.tbd/docs/shortcuts) [shadowed]
+  commit-code  (.tbd/docs/shortcuts/standard) [shadowed]
 ```
 
 ### Shortcut Explanation File
@@ -409,9 +439,11 @@ Agent:
 
 During `tbd init` or `tbd setup`:
 
-1. Create `.tbd/docs/shortcuts/` directory
-2. Copy built-in shortcuts from package to that directory
-3. Add `docs.paths` to config.yml with default value
+1. Create `.tbd/docs/shortcuts/system/` directory
+2. Create `.tbd/docs/shortcuts/standard/` directory
+3. Copy built-in system docs (skill.md, skill-brief.md, shortcut-explanation.md) to system/
+4. Copy built-in shortcut templates to standard/
+5. Add `docs.paths` to config.yml with default paths
 
 This allows users to:
 - Modify shipped shortcuts (they're in their repo)
@@ -519,10 +551,11 @@ file-based data. DocCache should follow similar patterns.
 
 ### Phase 5: Built-in Shortcuts Installation
 
-- [ ] Move/copy existing shortcuts to `packages/tbd/src/docs/shortcuts/`
+- [ ] Create `packages/tbd/src/docs/shortcuts/system/` with skill.md, skill-brief.md, shortcut-explanation.md
+- [ ] Create `packages/tbd/src/docs/shortcuts/standard/` with workflow shortcuts
 - [ ] Add frontmatter (title, description) to all shortcut files
-- [ ] Update `tbd init` to create `.tbd/docs/shortcuts/` directory
-- [ ] Update `tbd setup` to copy built-in shortcuts to `.tbd/docs/shortcuts/`
+- [ ] Update `tbd init` to create `.tbd/docs/shortcuts/{system,standard}/` directories
+- [ ] Update `tbd setup` to copy built-in docs to respective directories
 - [ ] Add version comment for upgrade detection
 
 ### Phase 6: Documentation & Testing
@@ -604,20 +637,24 @@ Future optimization if needed:
 | `settings.ts` | Centralized path constants |
 | `config.yml` docs.paths | User-configurable doc directories |
 | `tbd shortcut` | CLI command: `<query>`, `--list`, `--list --all` |
-| `shortcut-explanation.md` | Explains shortcuts to agents (shown when no args) |
-| `.tbd/docs/shortcuts/` | User-editable copy of built-in shortcuts |
+| `.tbd/docs/shortcuts/system/` | System docs (skill.md, shortcut-explanation.md) |
+| `.tbd/docs/shortcuts/standard/` | Standard shortcut templates (new-plan-spec.md, etc.) |
 
 **Key principle**: Configuration in `config.yml`, constants in `settings.ts`, no
 hardcoded paths in command implementations.
 
 **Usage flow**:
-1. User runs `tbd setup --auto` → shortcuts installed to `.tbd/docs/shortcuts/`
+1. User runs `tbd setup --auto` → shortcuts installed to `.tbd/docs/shortcuts/{system,standard}/`
 2. User asks agent "I want a new plan spec"
 3. Agent runs `tbd shortcut` to understand the system (first time, optional)
 4. Agent runs `tbd shortcut new-plan-spec` (or `tbd shortcut "plan spec"`)
-5. DocCache finds `shortcut-new-plan-spec.md` → outputs content
+5. DocCache searches system/ then standard/ → finds `standard/new-plan-spec.md`
 6. Agent follows the instructions, which may include:
    - Creating beads with `tbd create`
    - Running other shortcuts
    - Copying template files
    - Asking the user for clarification
+
+**System vs Standard docs**:
+- `system/` - Core docs like skill.md, skill-brief.md, shortcut-explanation.md
+- `standard/` - Workflow shortcuts like new-plan-spec.md, commit-code.md
