@@ -10,15 +10,15 @@ The DocCache enables:
 
 1. **Path-ordered lookups** - Like shell `$PATH`, directories are searched in order with
    earlier paths taking precedence
-2. **Exact and fuzzy matching** - Find documents by filename or by fuzzy matching against
-   frontmatter metadata
+2. **Exact and fuzzy matching** - Find documents by filename or by fuzzy matching
+   against frontmatter metadata
 3. **Template distribution** - Pre-built shortcuts installed with tbd that users can
    customize or extend
 
 ## Background
 
 tbd needs a way to provide reusable prompt templates and documentation that agents can
-invoke by name. For example, when a user says "I want a new plan spec", the agent should
+invoke by name. For example, when a user says “I want a new plan spec”, the agent should
 be able to run `tbd shortcut new-plan-spec` which finds and outputs the appropriate
 template.
 
@@ -41,7 +41,7 @@ The system should:
 
 Create a `DocCache` class that:
 
-1. Takes an ordered list of directory paths (the "doc path")
+1. Takes an ordered list of directory paths (the “doc path”)
 2. Loads all `*.md` files from those directories
 3. Parses YAML frontmatter (if present) for metadata
 4. Supports exact lookup by filename (with/without `.md` extension)
@@ -63,7 +63,8 @@ Implement `tbd shortcut <name>` that:
 
 ## Backward Compatibility
 
-- **New Feature**: This is entirely new functionality, no backward compatibility concerns
+- **New Feature**: This is entirely new functionality, no backward compatibility
+  concerns
 - **Config Extension**: Adds new `docs` section to config.yml, existing configs remain
   valid
 
@@ -98,7 +99,8 @@ Implement `tbd shortcut <name>` that:
 
 4. **Shortcut Command** (single command with flags)
    - `tbd shortcut` - Show explanation (from `shortcut-explanation.md`) + help
-   - `tbd shortcut <name-or-description>` - Find and output shortcut (exact match first, then fuzzy)
+   - `tbd shortcut <name-or-description>` - Find and output shortcut (exact match first,
+     then fuzzy)
    - `tbd shortcut --list` - List active shortcuts with source path in muted text
    - `tbd shortcut --list --all` - Include shadowed shortcuts (aliased by earlier path)
    - Supports `--json` for structured output
@@ -108,7 +110,8 @@ Implement `tbd shortcut <name>` that:
    - Also supports absolute paths and `~/` home-relative paths
    - Default doc path: `['.tbd/docs/shortcuts/system', '.tbd/docs/shortcuts/standard']`
    - User can add paths in config.yml under `docs.paths`
-   - Built-in docs installed to `.tbd/docs/shortcuts/system/` and `.tbd/docs/shortcuts/standard/`
+   - Built-in docs installed to `.tbd/docs/shortcuts/system/` and
+     `.tbd/docs/shortcuts/standard/`
 
 ### Not in Scope
 
@@ -140,10 +143,10 @@ Options considered:
 | **fast-fuzzy** | 12KB | Fast, good scoring | Good balance of features/size |
 | **simple-fuzzy** | 2KB | Very minimal | Optimized for <1000 items |
 
-**Recommendation**: Use **microfuzz** for its minimal size and simplicity. With dozens to
-hundreds of documents, we don't need Fuse.js's advanced features. If microfuzz proves
-insufficient, we can upgrade to fast-fuzzy or implement a simple Levenshtein-based
-approach ourselves.
+**Recommendation**: Use **microfuzz** for its minimal size and simplicity.
+With dozens to hundreds of documents, we don’t need Fuse.js’s advanced features.
+If microfuzz proves insufficient, we can upgrade to fast-fuzzy or implement a simple
+Levenshtein-based approach ourselves.
 
 Alternative approach: Implement our own simple scoring:
 1. Exact filename match = 1.0
@@ -213,7 +216,8 @@ export const DEFAULT_DOC_PATHS = [
 ### Config Schema Extension
 
 Paths in `docs.paths` support three formats:
-- **Relative paths** - resolved relative to the parent of `.tbd/` (e.g., `.tbd/docs/shortcuts/system`)
+- **Relative paths** - resolved relative to the parent of `.tbd/` (e.g.,
+  `.tbd/docs/shortcuts/system`)
 - **Absolute paths** - used as-is (e.g., `/usr/share/tbd/shortcuts`)
 - **Home-relative paths** - expanded from `~` (e.g., `~/my-shortcuts`)
 
@@ -454,12 +458,13 @@ During `tbd init` or `tbd setup`:
 
 1. Create `.tbd/docs/shortcuts/system/` directory
 2. Create `.tbd/docs/shortcuts/standard/` directory
-3. Copy built-in system docs (skill.md, skill-brief.md, shortcut-explanation.md) to system/
+3. Copy built-in system docs (skill.md, skill-brief.md, shortcut-explanation.md) to
+   system/
 4. Copy built-in shortcut templates to standard/
 5. Add `docs.paths` to config.yml with default paths
 
 This allows users to:
-- Modify shipped shortcuts (they're in their repo)
+- Modify shipped shortcuts (they’re in their repo)
 - Add new shortcuts alongside shipped ones
 - Override shipped shortcuts by adding same-named file earlier in path
 
@@ -503,8 +508,9 @@ Return sorted by score, apply path order for tie-breaking.
 
 **Pattern to follow:**
 
-The existing `loadDataContext()` pattern in `data-context.ts` shows how to load and cache
-file-based data. DocCache should follow similar patterns.
+The existing `loadDataContext()` pattern in `data-context.ts` shows how to load and
+cache file-based data.
+DocCache should follow similar patterns.
 
 ### Simplification Decisions
 
@@ -514,13 +520,14 @@ file-based data. DocCache should follow similar patterns.
    - Contains all query words = 0.8
    - Contains some query words = 0.7 × (matched/total)
 
-   This covers 90% of use cases. Add microfuzz later if needed.
+   This covers 90% of use cases.
+   Add microfuzz later if needed.
 
-2. **Eager loading** - With dozens of files, load all upfront. No need for lazy loading
-   complexity.
+2. **Eager loading** - With dozens of files, load all upfront.
+   No need for lazy loading complexity.
 
 3. **Filename normalization** - Strip `shortcut-` prefix automatically for lookups:
-   - `shortcut-new-plan-spec.md` matches "new-plan-spec"
+   - `shortcut-new-plan-spec.md` matches “new-plan-spec”
    - This allows clean command syntax: `tbd shortcut new-plan-spec`
 
 4. **Copy on init, not on every run** - Shortcuts are copied once during init/setup.
@@ -528,59 +535,65 @@ file-based data. DocCache should follow similar patterns.
 
 ## Stage 4: Implementation
 
+**Epic**: tbd-d847 - DocCache Abstraction and Shortcut System
+
 ### Phase 1: DocCache Core + Exact Matching
 
-- [ ] Create `packages/tbd/src/lib/settings.ts` with path constants
-- [ ] Create `packages/tbd/src/lib/doc-cache.ts` with DocCache class
-- [ ] Implement `load()` method to scan directories and parse markdown
-- [ ] Implement `get()` method for exact filename matching
-- [ ] Implement `list()` method to return all documents
-- [ ] Add unit tests for DocCache
+- [ ] **tbd-gf16** Create `packages/tbd/src/lib/settings.ts` with path constants
+- [ ] **tbd-nwhc** Create `packages/tbd/src/lib/doc-cache.ts` with DocCache class
+  - Depends on: tbd-gf16
+- [ ] **tbd-y92x** Implement `get()` and `list()` methods for exact filename matching
+  - Depends on: tbd-nwhc
+- [ ] **tbd-oorb** Add unit tests for DocCache
+  - Depends on: tbd-y92x
 
-### Phase 2: Fuzzy Matching (Optional)
+### Phase 2: Fuzzy Matching
 
-- [ ] Implement simple scoring algorithm in DocCache
-- [ ] Implement `search()` method for fuzzy lookups
-- [ ] Add tests for fuzzy matching edge cases
-- [ ] Evaluate if external library needed, add microfuzz if so
+- [ ] **tbd-bgin** Implement simple scoring algorithm in DocCache
+  - Depends on: tbd-y92x
+- [ ] **tbd-ioch** Implement `search()` method for fuzzy lookups
+  - Depends on: tbd-bgin
+- [ ] **tbd-e103** Add tests for fuzzy matching edge cases
+  - Depends on: tbd-ioch
 
 ### Phase 3: Shortcut Command
 
-- [ ] Create `packages/tbd/src/cli/commands/shortcut.ts`
-- [ ] Implement default action (show explanation + help when no args)
-- [ ] Implement query matching (exact first, then fuzzy)
-- [ ] Implement `--list` flag with source path in muted text
-- [ ] Implement `--list --all` to include shadowed shortcuts
-- [ ] Add --json flag support
-- [ ] Register command in cli.ts
-- [ ] Create `shortcut-explanation.md` explaining how shortcuts work for agents
+- [ ] **tbd-7iy1** Create shortcut command with default action (show explanation + help)
+  - Depends on: tbd-y92x
+- [ ] **tbd-vc4l** Implement query matching (exact first, then fuzzy)
+  - Depends on: tbd-7iy1, tbd-ioch
+- [ ] **tbd-pkok** Implement `--list` and `--all` flags with source path display
+  - Depends on: tbd-7iy1
+- [ ] **tbd-93dz** Create `shortcut-explanation.md` system doc
 
 ### Phase 4: Configuration Integration
 
-- [ ] Extend ConfigSchema with `docs.paths` field
-- [ ] Update settings.ts with doc path constants
-- [ ] Implement path resolution:
-  - Relative paths resolved from tbd root (parent of `.tbd/`)
-  - Absolute paths used as-is
-  - `~/` paths expanded to user home directory
-- [ ] Add `resolvePath()` utility for consistent path handling
+- [ ] **tbd-8irw** Extend ConfigSchema with `docs.paths` field
+- [ ] **tbd-s12p** Implement path resolution utility (relative, absolute, ~/ paths)
+  - Depends on: tbd-8irw
 
 ### Phase 5: Built-in Shortcuts Installation
 
-- [ ] Create `packages/tbd/src/docs/shortcuts/system/` with skill.md, skill-brief.md, shortcut-explanation.md
-- [ ] Create `packages/tbd/src/docs/shortcuts/standard/` with workflow shortcuts
-- [ ] Add frontmatter (title, description) to all shortcut files
-- [ ] Update `tbd init` to create `.tbd/docs/shortcuts/{system,standard}/` directories
-- [ ] Update `tbd setup` to copy built-in docs to respective directories
-- [ ] Add version comment for upgrade detection
+- [ ] **tbd-s12m** Create built-in system docs directory (skill.md, skill-brief.md,
+  shortcut-explanation.md)
+- [ ] **tbd-nvvg** Create built-in standard shortcuts directory (new-plan-spec.md, etc.)
+- [ ] **tbd-ukbi** Update `tbd init` to create `.tbd/docs/shortcuts/{system,standard}/`
+  - Depends on: tbd-s12m, tbd-nvvg, tbd-s12p
+- [ ] **tbd-z6ke** Update `tbd setup` to copy built-in docs with version comment
+  - Depends on: tbd-ukbi
 
 ### Phase 6: Documentation & Testing
 
-- [ ] Add shortcut command to CLI help
-- [ ] Update SKILL.md with shortcut usage
-- [ ] Add integration tests for shortcut command
-- [ ] Add golden tests for shortcut output formats
-- [ ] Document configuration options in tbd-design.md
+- [ ] **tbd-lvae** Add shortcut command to CLI help
+  - Depends on: tbd-7iy1
+- [ ] **tbd-ls9y** Update SKILL.md with shortcut usage
+  - Depends on: tbd-7iy1
+- [ ] **tbd-x3zq** Add integration tests for shortcut command
+  - Depends on: tbd-vc4l, tbd-pkok
+- [ ] **tbd-cgb8** Add golden tests for shortcut output formats
+  - Depends on: tbd-pkok
+- [ ] **tbd-z26l** Document configuration options in tbd-design.md
+  - Depends on: tbd-8irw
 
 ## Open Questions
 
@@ -592,8 +605,8 @@ file-based data. DocCache should follow similar patterns.
 
 2. **Should shortcuts be editable by users?**
 
-   **Recommendation**: Yes, copy to user's repo so they can customize. Provide
-   `tbd setup --auto` to refresh/update if needed.
+   **Recommendation**: Yes, copy to user’s repo so they can customize.
+   Provide `tbd setup --auto` to refresh/update if needed.
 
 3. **How to handle shortcut updates when tbd is upgraded?**
 
@@ -605,8 +618,8 @@ file-based data. DocCache should follow similar patterns.
 
 4. **Should we support subdirectories in doc paths?**
 
-   **Recommendation**: Phase 1: No, flat directories only. Phase 2: Add recursive
-   option if needed.
+   **Recommendation**: Phase 1: No, flat directories only.
+   Phase 2: Add recursive option if needed.
 
 ## Implementation Notes
 
@@ -623,12 +636,12 @@ tags:
 ---
 ```
 
-The `title` and `description` are used for fuzzy matching. Tags are optional metadata
-for future categorization/filtering.
+The `title` and `description` are used for fuzzy matching.
+Tags are optional metadata for future categorization/filtering.
 
 ### Error Handling
 
-- Missing directory: Log warning, skip (don't fail)
+- Missing directory: Log warning, skip (don’t fail)
 - Invalid markdown: Log warning, skip file
 - No frontmatter: Document still works, just no metadata for fuzzy search
 - Empty doc path: Use default paths from settings.ts
@@ -660,8 +673,9 @@ Future optimization if needed:
 hardcoded paths in command implementations.
 
 **Usage flow**:
-1. User runs `tbd setup --auto` → shortcuts installed to `.tbd/docs/shortcuts/{system,standard}/`
-2. User asks agent "I want a new plan spec"
+1. User runs `tbd setup --auto` → shortcuts installed to
+   `.tbd/docs/shortcuts/{system,standard}/`
+2. User asks agent “I want a new plan spec”
 3. Agent runs `tbd shortcut` to understand the system (first time, optional)
 4. Agent runs `tbd shortcut new-plan-spec` (or `tbd shortcut "plan spec"`)
 5. DocCache searches system/ then standard/ → finds `standard/new-plan-spec.md`
