@@ -78,6 +78,47 @@ export const META_FILE = join(DATA_SYNC_DIR, 'meta.yml');
 /** The sync branch name */
 export const SYNC_BRANCH = 'tbd-sync';
 
+// =============================================================================
+// Documentation/Shortcuts Paths
+// =============================================================================
+
+/** Docs directory name within .tbd/ */
+export const DOCS_DIR = 'docs';
+
+/** Shortcuts directory name within docs/ */
+export const SHORTCUTS_DIR = 'shortcuts';
+
+/** System shortcuts directory name (core docs like skill.md) */
+export const SYSTEM_DIR = 'system';
+
+/** Standard shortcuts directory name (workflow shortcuts) */
+export const STANDARD_DIR = 'standard';
+
+/** Full path to docs directory: .tbd/docs/ */
+export const TBD_DOCS_DIR = join(TBD_DIR, DOCS_DIR);
+
+/** Full path to shortcuts directory: .tbd/docs/shortcuts/ */
+export const TBD_SHORTCUTS_DIR = join(TBD_DOCS_DIR, SHORTCUTS_DIR);
+
+/** Full path to system shortcuts: .tbd/docs/shortcuts/system/ */
+export const TBD_SHORTCUTS_SYSTEM = join(TBD_SHORTCUTS_DIR, SYSTEM_DIR);
+
+/** Full path to standard shortcuts: .tbd/docs/shortcuts/standard/ */
+export const TBD_SHORTCUTS_STANDARD = join(TBD_SHORTCUTS_DIR, STANDARD_DIR);
+
+/** Built-in docs source paths (relative to package src/docs/) */
+export const BUILTIN_SHORTCUTS_SYSTEM = join(SHORTCUTS_DIR, SYSTEM_DIR);
+export const BUILTIN_SHORTCUTS_STANDARD = join(SHORTCUTS_DIR, STANDARD_DIR);
+
+/**
+ * Default doc lookup paths (searched in order, relative to tbd root).
+ * Earlier paths take precedence over later paths.
+ */
+export const DEFAULT_DOC_PATHS = [
+  TBD_SHORTCUTS_SYSTEM, // .tbd/docs/shortcuts/system/
+  TBD_SHORTCUTS_STANDARD, // .tbd/docs/shortcuts/standard/
+];
+
 /**
  * Get the full path to an issue file.
  */

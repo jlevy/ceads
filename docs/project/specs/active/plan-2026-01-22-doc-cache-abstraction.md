@@ -629,87 +629,88 @@ DocCache should follow similar patterns.
 
 ## Stage 4: Implementation
 
-**Epic**: tbd-d847 - DocCache Abstraction and Shortcut System
+**Epic**: tbd-o9ck - DocCache Abstraction and Shortcut System
 
 ### Phase 1: DocCache Core + Exact Matching
 
-- [ ] **tbd-gf16** Extend `packages/tbd/src/lib/paths.ts` with doc path constants
-- [ ] **tbd-nwhc** Create `packages/tbd/src/file/doc-cache.ts` with DocCache class
+- [ ] **tbd-60jc** Extend `packages/tbd/src/lib/paths.ts` with doc path constants
+- [ ] **tbd-35h1** Create `packages/tbd/src/file/doc-cache.ts` with DocCache class
   - Define scoring constants (SCORE_EXACT_MATCH, etc.)
     with docstrings
   - Define DocFrontmatter interface with typed fields
-  - Depends on: tbd-gf16
-- [ ] **tbd-y92x** Implement `load()`, `get()`, and `list()` methods
-  - Use existing `parseFrontmatter()` from parser.ts
-  - Depends on: tbd-nwhc
-- [ ] **tbd-oorb** Add unit tests for DocCache
-  - Depends on: tbd-y92x
+  - Depends on: tbd-60jc
+- [ ] **tbd-g06m** Implement `load()`, `get()`, and `list()` methods
+  - Use yaml package to parse frontmatter (parseFrontmatter in markdown-utils.ts returns
+    raw string)
+  - Depends on: tbd-35h1
+- [ ] **tbd-xbtf** Add unit tests for DocCache
+  - Depends on: tbd-g06m
 
 ### Phase 2: Fuzzy Matching
 
-- [ ] **tbd-bgin** Implement simple scoring algorithm in DocCache
-  - Depends on: tbd-y92x
-- [ ] **tbd-ioch** Implement `search()` method for fuzzy lookups
-  - Depends on: tbd-bgin
-- [ ] **tbd-e103** Add tests for fuzzy matching edge cases
-  - Depends on: tbd-ioch
+- [ ] **tbd-ssm9** Implement simple scoring algorithm in DocCache
+  - Depends on: tbd-g06m
+- [ ] **tbd-0zzj** Implement `search()` method for fuzzy lookups
+  - Depends on: tbd-ssm9
+- [ ] **tbd-l6bu** Add tests for fuzzy matching edge cases
+  - Depends on: tbd-0zzj
 
 ### Phase 3: Shortcut Command
 
-- [ ] **tbd-7iy1** Create shortcut command with default action (show explanation + help)
-  - Depends on: tbd-y92x
-- [ ] **tbd-vc4l** Implement query matching (exact first, then fuzzy)
-  - Depends on: tbd-7iy1, tbd-ioch
-- [ ] **tbd-pkok** Implement `--list` and `--all` flags with source path display
-  - Depends on: tbd-7iy1
-- [ ] **tbd-93dz** Create `shortcut-explanation.md` system doc
+- [ ] **tbd-cnp3** Create shortcut command with default action (show explanation + help)
+  - Depends on: tbd-g06m
+- [ ] **tbd-0hiz** Implement query matching (exact first, then fuzzy)
+  - Depends on: tbd-cnp3, tbd-0zzj
+- [ ] **tbd-z5vj** Implement `--list` and `--all` flags with source path display
+  - Depends on: tbd-cnp3
+- [ ] **tbd-31on** Create `shortcut-explanation.md` system doc
 
 ### Phase 4: Configuration Integration
 
-- [ ] **tbd-8irw** Extend ConfigSchema in `schemas.ts` with `docs.paths` field
-- [ ] **tbd-s12p** Implement path resolution utility in `paths.ts`
+- [ ] **tbd-7du6** Extend ConfigSchema in `schemas.ts` with `docs.paths` field
+- [ ] **tbd-vpaq** Implement path resolution utility in `paths.ts`
   - Add `resolveDocPath()` for relative, absolute, ~/ paths
-  - Depends on: tbd-8irw
+  - Depends on: tbd-7du6
 
 ### Phase 5: Built-in Shortcuts Installation
 
-- [ ] **tbd-s12m** Create `packages/tbd/src/docs/shortcuts/system/` with skill.md,
+- [ ] **tbd-xooc** Create `packages/tbd/src/docs/shortcuts/system/` with skill.md,
   skill-brief.md, shortcut-explanation.md
-- [ ] **tbd-nvvg** Create `packages/tbd/src/docs/shortcuts/standard/` with workflow
+- [ ] **tbd-8bk2** Create `packages/tbd/src/docs/shortcuts/standard/` with workflow
   shortcuts (plain names, no prefix)
-- [ ] **tbd-ukbi** Update `tbd init` to create `.tbd/docs/shortcuts/{system,standard}/`
-  - Depends on: tbd-s12m, tbd-nvvg, tbd-s12p
-- [ ] **tbd-z6ke** Update `tbd setup` to copy built-in docs using `atomically` library
+- [ ] **tbd-c9zf** Update `tbd init` to create `.tbd/docs/shortcuts/{system,standard}/`
+  - Depends on: tbd-xooc, tbd-8bk2, tbd-vpaq
+- [ ] **tbd-bh1u** Update `tbd setup` to copy built-in docs using `atomically` library
   - Add version comment (<!-- tbd-version: X.Y.Z -->)
-  - Depends on: tbd-ukbi
+  - Depends on: tbd-c9zf
 
 ### Phase 6: Documentation & Testing
 
 Per testing guidelines, include specific test types:
 
-- [ ] **tbd-lvae** Add shortcut command to CLI help
-  - Depends on: tbd-7iy1
-- [ ] **tbd-ls9y** Update SKILL.md with shortcut usage
-  - Depends on: tbd-7iy1
-- [ ] **tbd-z26l** Document configuration options in tbd-design.md
-  - Depends on: tbd-8irw
-- [ ] **tbd-oorb** Unit tests (`doc-cache.test.ts`):
+- [ ] **tbd-lod1** Add shortcut command to CLI help
+  - Depends on: tbd-cnp3
+- [ ] **tbd-nq76** Update SKILL.md with shortcut usage
+  - Depends on: tbd-cnp3
+- [ ] **tbd-qz3e** Document configuration options in tbd-design.md
+  - Depends on: tbd-7du6
+- [ ] **tbd-xbtf** Unit tests (`doc-cache.test.ts`):
   - Test `get()` exact matching with/without .md extension
   - Test `search()` scoring algorithm with various queries
   - Test `list()` with and without shadowed docs
   - Test path ordering (earlier paths take precedence)
   - Test error handling (missing dirs, invalid markdown)
-- [ ] **tbd-cgb8** Golden tests (`shortcut.golden.test.ts`):
+- [ ] **tbd-owx8** Golden tests (`shortcut.golden.test.ts`):
   - Capture CLI output for `tbd shortcut --list`
   - Capture CLI output for `tbd shortcut <name>`
   - Capture CLI output for `tbd shortcut --list --all` (with shadowed)
   - Capture JSON output mode
-  - Depends on: tbd-pkok
-- [ ] **tbd-x3zq** Integration tests (`shortcut.integration.test.ts`):
+  - Depends on: tbd-z5vj
+- [ ] **tbd-vqn2** Integration tests (`shortcut.integration.test.ts`):
   - Full command flow from CLI to file system
   - Config loading with custom doc paths
   - Installation flow (copying shortcuts during setup)
-  - Depends on: tbd-vc4l, tbd-pkok
+  - Depends on: tbd-0hiz, tbd-z5vj
 
 ## Open Questions
 
