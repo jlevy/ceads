@@ -10,8 +10,8 @@
  * - docs/shortcuts/ - system and standard shortcuts
  *
  * During build:
- * - prebuild: Compose SKILL.md and CURSOR.mdc, copy README.md to package root
- * - postbuild: Copy all docs to dist/docs/ for bundled CLI
+ * - prebuild: Copy README.md to package root for npm publishing
+ * - postbuild: Compose and copy all docs to dist/docs/ for bundled CLI
  *
  * Uses atomic writes to prevent partial/corrupted files if process crashes.
  */
@@ -99,23 +99,9 @@ async function copyDir(srcDir, destDir) {
 const phase = process.argv[2] || 'prebuild';
 
 if (phase === 'prebuild') {
-  // Ensure src/docs exists for generated files
-  const srcDocs = join(root, 'src', 'docs');
-  mkdirSync(srcDocs, { recursive: true });
-
-  // Compose SKILL.md and CURSOR.mdc from headers + shared content
-  for (const file of COMPOSED_FILES) {
-    await composeFile(
-      file.header,
-      file.content,
-      join(srcDocs, file.dest),
-    );
-  }
-
   // Copy README to package root for npm publishing
   await atomicCopy(join(repoRoot, 'README.md'), join(root, 'README.md'));
 } else if (phase === 'postbuild') {
-  const srcDocs = join(root, 'src', 'docs');
   const distDocs = join(root, 'dist', 'docs');
   mkdirSync(distDocs, { recursive: true });
 
@@ -127,9 +113,13 @@ if (phase === 'prebuild') {
     }
   }
 
-  // Copy composed files from src/docs to dist/docs
+  // Compose SKILL.md and CURSOR.mdc directly to dist/docs
   for (const file of COMPOSED_FILES) {
-    await atomicCopy(join(srcDocs, file.dest), join(distDocs, file.dest));
+    await composeFile(
+      file.header,
+      file.content,
+      join(distDocs, file.dest),
+    );
   }
 
   // Copy skill-brief.md from shortcuts/system to dist/docs

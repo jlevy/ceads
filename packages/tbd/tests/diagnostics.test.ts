@@ -134,12 +134,12 @@ describe('DiagnosticResult', () => {
           name: 'Skill file',
           status: 'warn',
           message: 'not installed',
-          suggestion: 'Run: tbd setup claude',
+          suggestion: 'Run: tbd setup --auto',
         };
         renderDiagnostic(result, colors);
         expect(consoleLog).toHaveBeenCalledTimes(2);
         expect(consoleLog).toHaveBeenNthCalledWith(1, '⚠ Skill file - not installed');
-        expect(consoleLog).toHaveBeenNthCalledWith(2, '    Run: tbd setup claude');
+        expect(consoleLog).toHaveBeenNthCalledWith(2, '    Run: tbd setup --auto');
       });
 
       it('does not show suggestion when status is ok', () => {

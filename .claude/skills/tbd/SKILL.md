@@ -20,10 +20,8 @@ The command `tbd setup` without flags shows help and requires a mode flag.
 Use `--interactive` for humans, `--auto` for agents.
 Agents should ALWAYS run `tbd setup --auto`.
 
-Other non-interactive commands for agents:
+Other non-interactive options:
 - `tbd setup --from-beads` - Migrate from beads without prompts
-- `tbd setup claude` - Add Claude integration only
-- `tbd setup cursor` - Add Cursor integration only
 
 `tbd` provides lightweight, git-native task and issue tracking using beads, which are
 just lightweight issues managed from the CLI.
@@ -135,10 +133,9 @@ tbd dep add <tests-id> <feature-id>   # Tests depend on feature
 
 ## Setup Commands
 
-- `tbd setup claude` - Install Claude Code hooks and skill file
-- `tbd setup cursor` - Create Cursor IDE rules file
-- `tbd setup codex` - Create/update AGENTS.md for Codex
-- `tbd setup beads --disable` - Migrate from Beads to tbd
+- `tbd setup --auto` - Non-interactive setup with smart defaults (for agents/scripts)
+- `tbd setup --interactive` - Interactive setup with prompts (for humans)
+- `tbd setup --from-beads` - Migrate from Beads to tbd
 
 ## Quick Reference
 

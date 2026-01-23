@@ -156,7 +156,6 @@ tbd sync                                  # Push
 
 ```bash
 tbd setup --auto             # Recommended: full setup including Claude hooks
-tbd setup claude             # Install Claude hooks only
 ```
 
 This configures a SessionStart hook that runs `tbd prime` at session start, injecting

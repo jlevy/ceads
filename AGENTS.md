@@ -29,7 +29,6 @@ Work is NOT complete until `git push` succeeds.
 - NEVER say “ready to push when you are” - YOU must push
 - If push fails, resolve and retry until it succeeds
 
-
 <!-- BEGIN TBD INTEGRATION -->
 # tbd Workflow
 
@@ -143,10 +142,9 @@ tbd dep add <tests-id> <feature-id>   # Tests depend on feature
 
 ## Setup Commands
 
-- `tbd setup claude` - Install Claude Code hooks and skill file
-- `tbd setup cursor` - Create Cursor IDE rules file
-- `tbd setup codex` - Create/update AGENTS.md for Codex
-- `tbd setup beads --disable` - Migrate from Beads to tbd
+- `tbd setup --auto` - Non-interactive setup with smart defaults (for agents/scripts)
+- `tbd setup --interactive` - Interactive setup with prompts (for humans)
+- `tbd setup --from-beads` - Migrate from Beads to tbd
 
 ## Quick Reference
 
@@ -154,4 +152,5 @@ tbd dep add <tests-id> <feature-id>   # Tests depend on feature
 - **Issue types**: task, bug, feature, epic
 - **Status values**: open, in_progress, closed
 - **JSON output**: Add `--json` to any command for machine-readable output
+
 <!-- END TBD INTEGRATION -->

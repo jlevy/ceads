@@ -115,10 +115,9 @@ tbd dep add <tests-id> <feature-id>   # Tests depend on feature
 
 ## Setup Commands
 
-- `tbd setup claude` - Install Claude Code hooks and skill file
-- `tbd setup cursor` - Create Cursor IDE rules file
-- `tbd setup codex` - Create/update AGENTS.md for Codex
-- `tbd setup beads --disable` - Migrate from Beads to tbd
+- `tbd setup --auto` - Non-interactive setup with smart defaults (for agents/scripts)
+- `tbd setup --interactive` - Interactive setup with prompts (for humans)
+- `tbd setup --from-beads` - Migrate from Beads to tbd
 
 ## Quick Reference
 

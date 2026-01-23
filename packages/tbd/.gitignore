@@ -1,2 +1,6 @@
 # README is copied from repo root during build
 README.md
+
+# Generated files in src/docs (composed during build from docs/)
+# These are generated during postbuild and should not be committed
+src/docs/
