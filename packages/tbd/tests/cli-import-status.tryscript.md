@@ -15,6 +15,7 @@ before: |
   git init --initial-branch=main
   git config user.email "test@example.com"
   git config user.name "Test User"
+  git config commit.gpgsign false
   echo "# Test repo" > README.md
   git add README.md
   git commit -m "Initial commit"
@@ -72,16 +73,16 @@ found
 The “done” status should be mapped to “closed” during import.
 
 ```console
-$ tbd list --status=closed --json | node -e "d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log(d.filter(i => i.title.includes('done status')).length > 0 ? 'mapped' : 'not mapped')"
-mapped
+$ tbd list --all --json | node -e "d=JSON.parse(require('fs').readFileSync(0,'utf8')); const done=d.find(i => i.title.includes('done status')); console.log(done ? 'status:'+done.status : 'not found')"
+status:closed
 ? 0
 ```
 
 # Test: Closed status preserved
 
 ```console
-$ tbd list --status=closed --json | node -e "d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log(d.filter(i => i.title.includes('closed status')).length > 0 ? 'found' : 'not found')"
-found
+$ tbd list --all --json | node -e "d=JSON.parse(require('fs').readFileSync(0,'utf8')); const closed=d.find(i => i.title.includes('closed status')); console.log(closed ? 'status:'+closed.status : 'not found')"
+status:closed
 ? 0
 ```
 

@@ -15,6 +15,7 @@ before: |
   git init --initial-branch=main
   git config user.email "test@example.com"
   git config user.name "Test User"
+  git config commit.gpgsign false
   echo "# Test repo" > README.md
   git add README.md
   git commit -m "Initial commit"
@@ -477,6 +478,13 @@ Commands:
   list                     List all labels in use
   help [command]           display help for command
 
+Getting Started:
+  npm install -g tbd-git@latest && tbd setup --auto
+
+  This initializes tbd and configures your coding agents automatically.
+  For interactive setup: tbd setup --interactive
+  For manual control: tbd init --help
+
 For more on tbd, see: https://github.com/jlevy/tbd
 ? 0
 ```
@@ -513,6 +521,13 @@ Commands:
   list <id>                    List dependencies for an issue
   help [command]               display help for command
 
+Getting Started:
+  npm install -g tbd-git@latest && tbd setup --auto
+
+  This initializes tbd and configures your coding agents automatically.
+  For interactive setup: tbd setup --interactive
+  For manual control: tbd init --help
+
 For more on tbd, see: https://github.com/jlevy/tbd
 ? 0
 ```
@@ -545,6 +560,13 @@ Commands:
   set <key> <value>  Set a configuration value
   get <key>          Get a configuration value
   help [command]     display help for command
+
+Getting Started:
+  npm install -g tbd-git@latest && tbd setup --auto
+
+  This initializes tbd and configures your coding agents automatically.
+  For interactive setup: tbd setup --interactive
+  For manual control: tbd init --help
 
 For more on tbd, see: https://github.com/jlevy/tbd
 ? 0
@@ -579,6 +601,13 @@ Commands:
   show <id> <timestamp>     Show attic entry details
   restore <id> <timestamp>  Restore lost value from attic
   help [command]            display help for command
+
+Getting Started:
+  npm install -g tbd-git@latest && tbd setup --auto
+
+  This initializes tbd and configures your coding agents automatically.
+  For interactive setup: tbd setup --interactive
+  For manual control: tbd init --help
 
 For more on tbd, see: https://github.com/jlevy/tbd
 ? 0

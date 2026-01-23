@@ -15,6 +15,7 @@ before: |
   git init --initial-branch=main
   git config user.email "test@example.com"
   git config user.name "Test User"
+  git config commit.gpgsign false
   echo "# Test repo" > README.md
   git add README.md
   git commit -m "Initial commit"
@@ -60,10 +61,8 @@ Error: Not a tbd repository (run 'tbd setup --auto' first)
 The `--from-beads` flag initializes tbd and imports from Beads in one command.
 
 ```console
-$ tbd setup --from-beads 2>&1 | head -30
-...
+$ tbd setup --from-beads 2>&1 | grep "Setup complete"
 Setup complete!
-...
 ? 0
 ```
 

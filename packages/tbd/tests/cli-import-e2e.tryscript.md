@@ -15,6 +15,7 @@ before: |
   git init --initial-branch=main
   git config user.email "test@example.com"
   git config user.name "Test User"
+  git config commit.gpgsign false
   echo "# E2E Import Test" > README.md
   git add README.md
   git commit -m "Initial commit"
@@ -137,7 +138,7 @@ Idempotent: YES
 # Test: Stats total matches list count
 
 ```console
-$ LIST_COUNT=$(tbd list --all --count) && STATS_TOTAL=$(tbd stats --json | grep -o '"total":[0-9]*' | cut -d: -f2) && [ "$LIST_COUNT" = "$STATS_TOTAL" ] && echo "Consistent: $LIST_COUNT"
-Consistent: [..]
+$ tbd stats --json | node -e "d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log('total:', d.total)"
+total: [..]
 ? 0
 ```

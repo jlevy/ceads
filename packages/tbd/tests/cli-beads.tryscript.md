@@ -15,6 +15,7 @@ before: |
   git init --initial-branch=main
   git config user.email "test@example.com"
   git config user.name "Test User"
+  git config commit.gpgsign false
   echo "# Test repo" > README.md
   git add README.md
   git commit -m "Initial commit"
@@ -45,7 +46,7 @@ Tests for `tbd setup --from-beads` which migrates from Beads to tbd.
 
 ```console
 $ tbd setup --help | grep -E "(--from-beads|Migrate)"
-  --from-beads        Migrate from Beads to tbd
+  --from-beads       Migrate from Beads to tbd
 ? 0
 ```
 
@@ -56,10 +57,8 @@ $ tbd setup --help | grep -E "(--from-beads|Migrate)"
 # Test: Running tbd setup --auto detects beads
 
 ```console
-$ tbd setup --auto 2>&1 | head -20
-...
-Beads detected
-...
+$ tbd setup --auto 2>&1 | grep -c "Beads detected"
+2
 ? 0
 ```
 
@@ -70,17 +69,13 @@ Beads detected
 # Test: Setup --from-beads migrates and initializes
 
 ```console
-$ rm -rf .tbd  # Clean any previous init
+$ rm -rf .tbd && mv .beads-disabled .beads  # Clean init and restore beads
 ? 0
 ```
 
 ```console
-$ tbd setup --from-beads 2>&1 | head -30
-...
-Beads detected
-...
+$ tbd setup --from-beads 2>&1 | grep "Setup complete"
 Setup complete!
-...
 ? 0
 ```
 

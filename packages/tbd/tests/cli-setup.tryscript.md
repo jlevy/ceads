@@ -14,6 +14,7 @@ before: |
   git init --initial-branch=main
   git config user.email "test@example.com"
   git config user.name "Test User"
+  git config commit.gpgsign false
   echo "# Test repo" > README.md
   git add README.md
   git commit -m "Initial commit"
@@ -89,13 +90,19 @@ Sync and Status:
 Maintenance:
   doctor [options]          Diagnose and repair repository
   attic                     Manage conflict archive (attic)
-  import [options] [file]   Import issues from Beads or JSONL file.
-                            Tip: Run "bd sync" and stop the beads daemon before
-                            importing for best results.
+  import [options] [file]   Import issues from JSONL file.
+                            For Beads migration, use: tbd setup --from-beads
   uninstall [options]       Remove tbd from this repository
 
 Commands:
   help [command]            display help for command
+
+Getting Started:
+  npm install -g tbd-git@latest && tbd setup --auto
+
+  This initializes tbd and configures your coding agents automatically.
+  For interactive setup: tbd setup --interactive
+  For manual control: tbd init --help
 
 For more on tbd, see: https://github.com/jlevy/tbd
 ? 0
@@ -134,6 +141,13 @@ Global Options:
   --yes                 Assume yes to confirmation prompts
   --no-sync             Skip automatic sync after write operations
   --debug               Show internal IDs alongside public IDs for debugging
+
+Getting Started:
+  npm install -g tbd-git@latest && tbd setup --auto
+
+  This initializes tbd and configures your coding agents automatically.
+  For interactive setup: tbd setup --interactive
+  For manual control: tbd init --help
 
 For more on tbd, see: https://github.com/jlevy/tbd
 ? 0

@@ -72,6 +72,11 @@ $ git config user.name "Test User"
 ```
 
 ```console
+$ git config commit.gpgsign false
+? 0
+```
+
+```console
 $ echo "# Test repo" > README.md && git add README.md && git commit -m "Initial commit"
 [main (root-commit) [..]] Initial commit
  1 file changed, 1 insertion(+)
@@ -212,6 +217,13 @@ Global Options:
   --yes              Assume yes to confirmation prompts
   --no-sync          Skip automatic sync after write operations
   --debug            Show internal IDs alongside public IDs for debugging
+
+Getting Started:
+  npm install -g tbd-git@latest && tbd setup --auto
+
+  This initializes tbd and configures your coding agents automatically.
+  For interactive setup: tbd setup --interactive
+  For manual control: tbd init --help
 
 For more on tbd, see: https://github.com/jlevy/tbd
 ? 0

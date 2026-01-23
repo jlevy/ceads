@@ -114,6 +114,13 @@ Global Options:
   --no-sync          Skip automatic sync after write operations
   --debug            Show internal IDs alongside public IDs for debugging
 
+Getting Started:
+  npm install -g tbd-git@latest && tbd setup --auto
+
+  This initializes tbd and configures your coding agents automatically.
+  For interactive setup: tbd setup --interactive
+  For manual control: tbd init --help
+
 For more on tbd, see: https://github.com/jlevy/tbd
 ? 0
 ```
