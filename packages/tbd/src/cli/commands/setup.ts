@@ -861,6 +861,34 @@ class SetupCodexHandler extends BaseCommand {
   }
 }
 
+// Create subcommands
+const claudeCommand = new Command('claude')
+  .description('Configure Claude Code (skill and hooks)')
+  .option('--check', 'Verify installation status')
+  .option('--remove', 'Remove tbd hooks')
+  .action(async (options, command) => {
+    const handler = new SetupClaudeHandler(command);
+    await handler.run(options);
+  });
+
+const cursorCommand = new Command('cursor')
+  .description('Configure Cursor IDE (rules file)')
+  .option('--check', 'Verify installation status')
+  .option('--remove', 'Remove tbd rules file')
+  .action(async (options, command) => {
+    const handler = new SetupCursorHandler(command);
+    await handler.run(options);
+  });
+
+const codexCommand = new Command('codex')
+  .description('Configure Codex and compatible tools (AGENTS.md)')
+  .option('--check', 'Verify installation status')
+  .option('--remove', 'Remove tbd section from AGENTS.md')
+  .action(async (options, command) => {
+    const handler = new SetupCodexHandler(command);
+    await handler.run(options);
+  });
+
 // ============================================================================
 // Setup Default Handler (for --auto and --interactive modes)
 // ============================================================================
@@ -1250,13 +1278,14 @@ class SetupAutoHandler extends BaseCommand {
           );
           if (hasTbdHook && (await pathExists(skillPath))) {
             result.alreadyInstalled = true;
-            result.installed = true;
-            return result;
+            // Note: We still run the handler to update the skill file content
+            // even if hooks are already installed. This ensures users get the
+            // latest skill file when running `tbd setup --auto`.
           }
         }
       }
 
-      // Install Claude Code setup
+      // Install/update Claude Code setup (always runs to update skill file)
       const handler = new SetupClaudeHandler(this.cmd);
       await handler.run({});
       result.installed = true;
@@ -1287,11 +1316,13 @@ class SetupAutoHandler extends BaseCommand {
     const rulesPath = join(cwd, '.cursor', 'rules', 'tbd.mdc');
     if (await pathExists(rulesPath)) {
       result.alreadyInstalled = true;
-      result.installed = true;
-      return result;
+      // Note: We still run the handler to update the rules file content
+      // even if it already exists. This ensures users get the latest
+      // rules file when running `tbd setup --auto`.
     }
 
     try {
+      // Install/update Cursor rules (always runs to update content)
       const handler = new SetupCursorHandler(this.cmd);
       await handler.run({});
       result.installed = true;
@@ -1326,12 +1357,14 @@ class SetupAutoHandler extends BaseCommand {
       const content = await readFile(agentsPath, 'utf-8');
       if (content.includes('BEGIN TBD INTEGRATION')) {
         result.alreadyInstalled = true;
-        result.installed = true;
-        return result;
+        // Note: We still run the handler to update the AGENTS.md content
+        // even if tbd section exists. This ensures users get the latest
+        // content when running `tbd setup --auto`.
       }
     }
 
     try {
+      // Install/update Codex AGENTS.md (always runs to update content)
       const handler = new SetupCodexHandler(this.cmd);
       await handler.run({});
       result.installed = true;
@@ -1344,13 +1377,15 @@ class SetupAutoHandler extends BaseCommand {
 }
 
 // Main setup command
-// Note: No subcommands - only flags. This allows Commander.js to properly route flags.
 export const setupCommand = new Command('setup')
   .description('Configure tbd integration with editors and tools')
   .option('--auto', 'Non-interactive mode with smart defaults (for agents/scripts)')
   .option('--interactive', 'Interactive mode with prompts (for humans)')
   .option('--from-beads', 'Migrate from Beads to tbd')
   .option('--prefix <name>', 'Project prefix for issue IDs (required for fresh setup)')
+  .addCommand(claudeCommand)
+  .addCommand(cursorCommand)
+  .addCommand(codexCommand)
   .action(async (options: SetupDefaultOptions, command) => {
     // If --auto or --interactive flag is set, run the default handler
     if (options.auto || options.interactive) {
@@ -1367,24 +1402,30 @@ export const setupCommand = new Command('setup')
     }
 
     // No flags provided - show help
-    console.log('Usage: tbd setup [options]');
+    console.log('Usage: tbd setup [options] [command]');
     console.log('');
-    console.log('Initialize tbd and configure agent integrations.');
+    console.log('Full setup: initialize tbd (if needed) and configure agent integrations.');
     console.log('');
-    console.log('Modes (one required):');
+    console.log('IMPORTANT: You must specify a mode flag OR a subcommand.');
+    console.log('');
+    console.log('Modes:');
     console.log(
       '  --auto              Non-interactive mode with smart defaults (for agents/scripts)',
     );
     console.log('  --interactive       Interactive mode with prompts (for humans)');
-    console.log('  --from-beads        Migrate from Beads to tbd (implies --auto)');
     console.log('');
     console.log('Options:');
+    console.log('  --from-beads        Migrate from Beads to tbd (non-interactive)');
     console.log('  --prefix <name>     Project prefix for issue IDs (e.g., "tbd", "myapp")');
     console.log('');
-    console.log('Examples:');
-    console.log('  tbd setup --auto --prefix=tbd   # Full automatic setup with prefix');
-    console.log('  tbd setup --from-beads          # Migrate from Beads (uses beads prefix)');
-    console.log('  tbd setup --interactive         # Interactive setup with prompts');
+    console.log('Commands:');
+    console.log('  claude              Configure Claude Code integration only');
+    console.log('  cursor              Configure Cursor IDE integration only');
+    console.log('  codex               Configure AGENTS.md only');
     console.log('');
-    console.log('For surgical initialization without integrations, see: tbd init --help');
+    console.log('Examples:');
+    console.log('  tbd setup --auto --prefix=tbd   # Recommended: full automatic setup');
+    console.log('  tbd setup --interactive         # Interactive setup with prompts');
+    console.log('  tbd setup claude                # Add just Claude integration');
+    console.log('  tbd setup --from-beads          # Migrate from Beads');
   });

@@ -268,7 +268,7 @@ settings:
 ```console
 $ tbd config show --json
 {
-  "tbd_version": [..],
+  "tbd_version": "0.1.5-dev.60.578abd9-dirty",
   "sync": {
     "branch": "tbd-sync",
     "remote": "origin"
@@ -278,6 +278,12 @@ $ tbd config show --json
   },
   "settings": {
     "auto_sync": false
+  },
+  "docs": {
+    "paths": [
+      ".tbd/docs/shortcuts/system",
+      ".tbd/docs/shortcuts/standard"
+    ]
   }
 }
 ? 0

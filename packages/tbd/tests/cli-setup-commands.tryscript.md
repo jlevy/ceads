@@ -41,7 +41,7 @@ Options:
                      agents/scripts)
   --interactive      Interactive mode with prompts (for humans)
   --from-beads       Migrate from Beads to tbd
-  --prefix <name>    Override auto-detected project prefix
+  --prefix <name>    Project prefix for issue IDs (required for fresh setup)
   -h, --help         display help for command
 
 Global Options:
@@ -90,7 +90,7 @@ Global Options:
                      agents/scripts)
   --interactive      Interactive mode with prompts (for humans)
   --from-beads       Migrate from Beads to tbd
-  --prefix <name>    Override auto-detected project prefix
+  --prefix <name>    Project prefix for issue IDs (required for fresh setup)
   --version          Show version number
   --dry-run          Show what would be done without making changes
   --verbose          Enable verbose output
@@ -131,7 +131,7 @@ Global Options:
                      agents/scripts)
   --interactive      Interactive mode with prompts (for humans)
   --from-beads       Migrate from Beads to tbd
-  --prefix <name>    Override auto-detected project prefix
+  --prefix <name>    Project prefix for issue IDs (required for fresh setup)
   --version          Show version number
   --dry-run          Show what would be done without making changes
   --verbose          Enable verbose output
@@ -172,7 +172,7 @@ Global Options:
                      agents/scripts)
   --interactive      Interactive mode with prompts (for humans)
   --from-beads       Migrate from Beads to tbd
-  --prefix <name>    Override auto-detected project prefix
+  --prefix <name>    Project prefix for issue IDs (required for fresh setup)
   --version          Show version number
   --dry-run          Show what would be done without making changes
   --verbose          Enable verbose output
@@ -212,7 +212,7 @@ $ tbd setup cursor --check --verbose
 
 ```console
 $ tbd setup cursor
-✓ Created Cursor rules file[..]
+✓ Created Cursor rules file
 ? 0
 ```
 
@@ -300,7 +300,7 @@ $ tbd setup codex --check --verbose
 
 ```console
 $ tbd setup codex
-✓ Created new AGENTS.md with tbd integration[..]
+✓ Created new AGENTS.md with tbd integration
 ? 0
 ```
 
@@ -352,7 +352,7 @@ $ tbd setup codex --check --json
 
 ```console
 $ tbd setup codex
-✓ Updated existing tbd section in AGENTS.md[..]
+✓ Updated existing tbd section in AGENTS.md
 ? 0
 ```
 
@@ -402,7 +402,7 @@ $ tbd setup codex --check --verbose
 
 ```console
 $ tbd setup codex
-✓ Added tbd section to existing AGENTS.md[..]
+✓ Added tbd section to existing AGENTS.md
 ? 0
 ```
 
@@ -467,7 +467,11 @@ Use --verbose to show status messages.
 
 ```console
 $ tbd setup claude --check --verbose
-...
+✓ Global hooks - SessionStart, PreCompact (~/.claude/settings.json)
+⚠ Project hooks - not configured (.claude/settings.json)
+    Run: tbd setup claude
+⚠ Skill file - not found (.claude/skills/tbd/SKILL.md)
+    Run: tbd setup claude
 ? 0
 ```
 

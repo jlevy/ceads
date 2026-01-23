@@ -36,66 +36,68 @@ Usage: tbd [options] [command]
 Git-native issue tracking for AI agents and humans
 
 Options:
-  --version                 Show version number
-  --dry-run                 Show what would be done without making changes
-  --verbose                 Enable verbose output
-  --quiet                   Suppress non-essential output
-  --json                    Output as JSON
-  --color <when>            Colorize output: auto, always, never (default:
-                            "auto")
-  --non-interactive         Disable all prompts, fail if input required
-  --yes                     Assume yes to confirmation prompts
-  --no-sync                 Skip automatic sync after write operations
-  --debug                   Show internal IDs alongside public IDs for debugging
-  --help                    Display help for command
+  --version                   Show version number
+  --dry-run                   Show what would be done without making changes
+  --verbose                   Enable verbose output
+  --quiet                     Suppress non-essential output
+  --json                      Output as JSON
+  --color <when>              Colorize output: auto, always, never (default:
+                              "auto")
+  --non-interactive           Disable all prompts, fail if input required
+  --yes                       Assume yes to confirmation prompts
+  --no-sync                   Skip automatic sync after write operations
+  --debug                     Show internal IDs alongside public IDs for
+                              debugging
+  --help                      Display help for command
 
 Documentation:
-  readme                    Display the README (same as GitHub landing page)
-  prime [options]           Show dashboard and workflow context (default when
-                            running `tbd`)
-  skill [options]           Output AI agent skill file content
-  closing                   Display the session closing protocol reminder
-  docs [options] [topic]    Display CLI documentation
-  design [options] [topic]  Display design documentation and Beads comparison
+  readme                      Display the README (same as GitHub landing page)
+  prime [options]             Show dashboard and workflow context (default when
+                              running `tbd`)
+  skill [options]             Output AI agent skill file content
+  shortcut [options] [query]  Find and output documentation shortcuts
+  closing                     Display the session closing protocol reminder
+  docs [options] [topic]      Display CLI documentation
+  design [options] [topic]    Display design documentation and Beads comparison
 
 Setup & Configuration:
-  init [options]            Initialize tbd in a git repository
-  config                    Manage configuration
-  setup [options]           Configure tbd integration with editors and tools
+  init [options]              Initialize tbd in a git repository
+  config                      Manage configuration
+  setup [options]             Configure tbd integration with editors and tools
 
 Working With Issues:
-  create [options] [title]  Create a new issue
-  show <id>                 Show issue details
-  update [options] <id>     Update an issue
-  close [options] <id>      Close an issue
-  reopen [options] <id>     Reopen a closed issue
-  search [options] <query>  Search issues by text
+  create [options] [title]    Create a new issue
+  show <id>                   Show issue details
+  update [options] <id>       Update an issue
+  close [options] <id>        Close an issue
+  reopen [options] <id>       Reopen a closed issue
+  search [options] <query>    Search issues by text
 
 Views and Filtering:
-  ready [options]           List issues ready to work on (open, unblocked,
-                            unclaimed)
-  list [options]            List issues
-  blocked [options]         List blocked issues
-  stale [options]           List issues not updated recently
+  ready [options]             List issues ready to work on (open, unblocked,
+                              unclaimed)
+  list [options]              List issues
+  blocked [options]           List blocked issues
+  stale [options]             List issues not updated recently
 
 Labels and Dependencies:
-  dep                       Manage issue dependencies
-  label                     Manage issue labels
+  dep                         Manage issue dependencies
+  label                       Manage issue labels
 
 Sync and Status:
-  sync [options]            Synchronize with remote
-  status                    Show repository status and orientation
-  stats                     Show repository statistics
+  sync [options]              Synchronize with remote
+  status                      Show repository status and orientation
+  stats                       Show repository statistics
 
 Maintenance:
-  doctor [options]          Diagnose and repair repository
-  attic                     Manage conflict archive (attic)
-  import [options] [file]   Import issues from JSONL file.
-                            For Beads migration, use: tbd setup --from-beads
-  uninstall [options]       Remove tbd from this repository
+  doctor [options]            Diagnose and repair repository
+  attic                       Manage conflict archive (attic)
+  import [options] [file]     Import issues from JSONL file.
+                              For Beads migration, use: tbd setup --from-beads
+  uninstall [options]         Remove tbd from this repository
 
 Commands:
-  help [command]            display help for command
+  help [command]              display help for command
 
 Getting Started:
   npm install -g tbd-git@latest && tbd setup --auto --prefix=<name>
@@ -286,12 +288,12 @@ Not a tbd repository.
 
 Detected:
   ✓ Git repository
-  ✓ Git [..]
+  ✓ Git 2.50.1
   ✗ Beads not detected
   ✗ tbd not initialized
 
 To get started:
-  tbd setup --auto          # Full setup with auto-detection
+  tbd setup --auto --prefix=<name>   # Full setup with prefix
   tbd init --prefix=X       # Surgical init only
 ? 0
 ```
