@@ -62,7 +62,7 @@ Commands:
   codex [options]    Configure Codex and compatible tools (AGENTS.md)
 
 Getting Started:
-  npm install -g tbd-git@latest && tbd setup --auto
+  npm install -g tbd-git@latest && tbd setup --auto --prefix=<name>
 
   This initializes tbd and configures your coding agents automatically.
   For interactive setup: tbd setup --interactive
@@ -103,7 +103,7 @@ Global Options:
   --debug            Show internal IDs alongside public IDs for debugging
 
 Getting Started:
-  npm install -g tbd-git@latest && tbd setup --auto
+  npm install -g tbd-git@latest && tbd setup --auto --prefix=<name>
 
   This initializes tbd and configures your coding agents automatically.
   For interactive setup: tbd setup --interactive
@@ -144,7 +144,7 @@ Global Options:
   --debug            Show internal IDs alongside public IDs for debugging
 
 Getting Started:
-  npm install -g tbd-git@latest && tbd setup --auto
+  npm install -g tbd-git@latest && tbd setup --auto --prefix=<name>
 
   This initializes tbd and configures your coding agents automatically.
   For interactive setup: tbd setup --interactive
@@ -185,7 +185,7 @@ Global Options:
   --debug            Show internal IDs alongside public IDs for debugging
 
 Getting Started:
-  npm install -g tbd-git@latest && tbd setup --auto
+  npm install -g tbd-git@latest && tbd setup --auto --prefix=<name>
 
   This initializes tbd and configures your coding agents automatically.
   For interactive setup: tbd setup --interactive
