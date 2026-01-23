@@ -1,6 +1,8 @@
 ---
 created_at: 2026-01-23T01:45:47.903Z
-dependencies: []
+dependencies:
+  - target: is-01kfhvzn1vbsam9xckr0njfbqg
+    type: blocks
 id: is-01kfm8ev400c9cffbgc2njgj18
 kind: task
 labels:
@@ -10,8 +12,8 @@ priority: 3
 status: open
 title: Verify shortcut command (internal) docs consistency
 type: is
-updated_at: 2026-01-23T01:45:47.903Z
-version: 1
+updated_at: 2026-01-23T02:40:02.599Z
+version: 2
 ---
 The shortcut command is a new internal command not exposed in main CLI help. Verify:
 - Internal documentation/comments are accurate
