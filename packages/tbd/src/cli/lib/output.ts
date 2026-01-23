@@ -114,7 +114,7 @@ export function createHelpEpilog(colorOption: ColorOption = 'auto'): string {
   const colors = pc.createColors(shouldColorize(colorOption));
   const lines = [
     colors.bold('Getting Started:'),
-    `  ${colors.green('npm install -g tbd-git@latest && tbd setup --auto')}`,
+    `  ${colors.green('npm install -g tbd-git@latest && tbd setup --auto --prefix=<name>')}`,
     '',
     '  This initializes tbd and configures your coding agents automatically.',
     `  For interactive setup: ${colors.dim('tbd setup --interactive')}`,

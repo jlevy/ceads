@@ -278,7 +278,7 @@ class StatusHandler extends BaseCommand {
         );
       } else {
         console.log(
-          `  ${colors.bold('tbd setup --auto')}          # Full setup with auto-detection`,
+          `  ${colors.bold('tbd setup --auto --prefix=<name>')}   # Full setup with prefix`,
         );
       }
       console.log(`  ${colors.bold('tbd init --prefix=X')}       # Surgical init only`);

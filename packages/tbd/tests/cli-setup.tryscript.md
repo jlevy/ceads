@@ -274,7 +274,7 @@ Create a git repo outside any tbd directory hierarchy to test uninitialized beha
 ```console
 $ mkdir -p /tmp/tbd-uninit-test && cd /tmp/tbd-uninit-test && rm -rf .git .tbd && git init --initial-branch=main && git config user.email "test@example.com" && git config user.name "Test" && tbd list 2>&1
 Initialized empty Git repository in [..]
-Error: Not a tbd repository (run 'tbd setup --auto' first)
+Error: Not a tbd repository (run 'tbd setup --auto --prefix=<name>' first)
 ? 1
 ```
 

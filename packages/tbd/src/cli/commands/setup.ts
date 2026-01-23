@@ -62,14 +62,13 @@ async function loadCursorContent(): Promise<string> {
     // Fallback: try repo-level docs
   }
 
-  // Last fallback: repo-level docs
+  // Last fallback: repo-level docs (CURSOR.mdc, not SKILL.md)
+  // Cursor MDC files require frontmatter, so we don't strip it
   try {
     const __filename = fileURLToPath(import.meta.url);
     const __dirname = dirname(__filename);
-    const repoPath = join(__dirname, '..', '..', '..', '..', '..', 'docs', 'SKILL.md');
-    // Fall back to SKILL.md if CURSOR.mdc not found (strips frontmatter)
-    const content = await readFile(repoPath, 'utf-8');
-    return stripFrontmatter(content);
+    const repoPath = join(__dirname, '..', '..', '..', '..', '..', 'docs', 'CURSOR.mdc');
+    return await readFile(repoPath, 'utf-8');
   } catch {
     throw new Error('CURSOR.mdc content file not found. Please rebuild the CLI.');
   }

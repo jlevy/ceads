@@ -11,7 +11,8 @@ import { Command } from 'commander';
 import pc from 'picocolors';
 
 import { BaseCommand } from '../lib/base-command.js';
-import { DocCache, SCORE_MIN_THRESHOLD } from '../../file/doc-cache.js';
+import { requireInit } from '../lib/errors.js';
+import { DocCache, SCORE_PREFIX_MATCH } from '../../file/doc-cache.js';
 import { DEFAULT_DOC_PATHS } from '../../lib/paths.js';
 
 interface ShortcutOptions {
@@ -22,8 +23,11 @@ interface ShortcutOptions {
 class ShortcutHandler extends BaseCommand {
   async run(query: string | undefined, options: ShortcutOptions): Promise<void> {
     await this.execute(async () => {
-      // Create and load the doc cache
-      const cache = new DocCache(DEFAULT_DOC_PATHS);
+      // Get tbd root (supports running from subdirectories)
+      const tbdRoot = await requireInit();
+
+      // Create and load the doc cache with proper base directory
+      const cache = new DocCache(DEFAULT_DOC_PATHS, tbdRoot);
       await cache.load();
 
       // List mode
@@ -134,7 +138,9 @@ class ShortcutHandler extends BaseCommand {
     }
 
     const best = matches[0]!;
-    if (best.score < SCORE_MIN_THRESHOLD) {
+    // Use PREFIX_MATCH (0.9) as threshold for high confidence
+    // Below this, show suggestions instead of auto-selecting
+    if (best.score < SCORE_PREFIX_MATCH) {
       // Low confidence - show suggestions instead
       console.log(`No exact match for "${query}". Did you mean:`);
       for (const m of matches) {

@@ -13,8 +13,8 @@ If `tbd` is not installed, install and set up in one command:
 npm install -g tbd-git@latest && tbd setup --auto --prefix=<name>
 ```
 
-Replace `<name>` with a short 2-4 letter project prefix (e.g., `tbd`, `myp`).
-This prefix is used in issue IDs (e.g., `tbd-a1b2`).
+Replace `<name>` with a short 2-4 letter project prefix (e.g., `tbd`, `myp`). This
+prefix is used in issue IDs (e.g., `tbd-a1b2`).
 
 **IMPORTANT FOR AGENTS:**
 - The `--prefix` flag is **required** for fresh setup (no auto-detection)

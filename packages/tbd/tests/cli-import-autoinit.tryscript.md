@@ -48,7 +48,7 @@ Not initialized
 
 ```console
 $ tbd list 2>&1
-Error: Not a tbd repository (run 'tbd setup --auto' first)
+Error: Not a tbd repository (run 'tbd setup --auto --prefix=<name>' first)
 ? 1
 ```
 

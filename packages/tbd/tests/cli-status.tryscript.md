@@ -43,7 +43,7 @@ Detected:
   ✗ tbd not initialized
 
 To get started:
-  tbd setup --auto          # Full setup with auto-detection
+  tbd setup --auto --prefix=<name>   # Full setup with prefix
   tbd init --prefix=X       # Surgical init only
 ? 0
 ```

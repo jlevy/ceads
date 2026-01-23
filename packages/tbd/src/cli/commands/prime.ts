@@ -13,7 +13,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { BaseCommand } from '../lib/base-command.js';
-import { isInitialized, readConfig } from '../../file/config.js';
+import { findTbdRoot, readConfig } from '../../file/config.js';
 import { stripFrontmatter } from '../../utils/markdown-utils.js';
 import { VERSION } from '../lib/version.js';
 import { listIssues } from '../../file/storage.js';
@@ -113,14 +113,17 @@ class PrimeHandler extends BaseCommand {
   async run(options: PrimeOptions): Promise<void> {
     const cwd = process.cwd();
 
+    // Find tbd root (supports running from subdirectories)
+    const tbdRoot = await findTbdRoot(cwd);
+
     // Not initialized - show setup instructions
-    if (!(await isInitialized(cwd))) {
+    if (!tbdRoot) {
       this.renderNotInitialized();
       return;
     }
 
     // Check for Beads installation alongside tbd and warn
-    const beadsWarning = await this.checkForBeads(cwd);
+    const beadsWarning = await this.checkForBeads(tbdRoot);
     if (beadsWarning) {
       console.log(beadsWarning);
       console.log('');
@@ -140,7 +143,7 @@ class PrimeHandler extends BaseCommand {
     }
 
     // Check for custom override file
-    const customPrimePath = join(cwd, '.tbd', 'PRIME.md');
+    const customPrimePath = join(tbdRoot, '.tbd', 'PRIME.md');
 
     // If --export, always show default content
     if (!options.export) {
@@ -155,13 +158,13 @@ class PrimeHandler extends BaseCommand {
     }
 
     // Default: output dashboard format
-    await this.renderDashboard(cwd);
+    await this.renderDashboard(tbdRoot);
   }
 
   /**
    * Render the dashboard for initialized repos.
    */
-  private async renderDashboard(cwd: string): Promise<void> {
+  private async renderDashboard(tbdRoot: string): Promise<void> {
     const colors = this.output.getColors();
 
     console.log(`${colors.bold('tbd')} v${VERSION}`);
@@ -184,14 +187,14 @@ class PrimeHandler extends BaseCommand {
     // --- PROJECT STATUS ---
     console.log(colors.bold('--- PROJECT STATUS ---'));
     try {
-      const config = await readConfig(cwd);
+      const config = await readConfig(tbdRoot);
       console.log(`Repository: ${config.display.id_prefix || 'unknown'}`);
     } catch {
       console.log('Repository: unknown');
     }
 
     // Get issue stats
-    const stats = await this.getIssueStats();
+    const stats = await this.getIssueStats(tbdRoot);
     if (stats) {
       const statusInfo = `${stats.open} open (${stats.inProgress} in_progress)`;
       const blockedInfo = stats.blocked > 0 ? ` | ${stats.blocked} blocked` : '';
@@ -259,13 +262,13 @@ class PrimeHandler extends BaseCommand {
   /**
    * Get issue statistics.
    */
-  private async getIssueStats(): Promise<{
+  private async getIssueStats(tbdRoot: string): Promise<{
     open: number;
     inProgress: number;
     blocked: number;
   } | null> {
     try {
-      const dataSyncDir = await resolveDataSyncDir();
+      const dataSyncDir = await resolveDataSyncDir(tbdRoot);
       const issues: Issue[] = await listIssues(dataSyncDir);
 
       let open = 0;
@@ -273,11 +276,13 @@ class PrimeHandler extends BaseCommand {
       const blockedIds = new Set<string>();
 
       // Find blocked issues
+      // "blocks" dependency: issue A with {type: 'blocks', target: B} means A blocks B
+      // B is blocked only if A (the blocker) is not closed
       for (const issue of issues) {
         for (const dep of issue.dependencies) {
           if (dep.type === 'blocks') {
-            const blockedIssue = issues.find((i) => i.id === dep.target);
-            if (blockedIssue && blockedIssue.status !== 'closed') {
+            // Only count target as blocked if the blocker (this issue) is not closed
+            if (issue.status !== 'closed') {
               blockedIds.add(dep.target);
             }
           }

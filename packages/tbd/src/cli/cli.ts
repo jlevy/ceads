@@ -177,14 +177,40 @@ function outputError(message: string, error?: Error): void {
 
 /**
  * Check if running with no command (just options or nothing).
- * Returns true if: `tbd`, `tbd --help`, `tbd --version`
+ * Returns true if: `tbd`, `tbd --help`, `tbd --version`, `tbd --color never`
  * Returns false if there's a command: `tbd list`, `tbd show foo`
  */
 function hasNoCommand(): boolean {
   // process.argv is: [node, script, ...args]
-  // Filter out options (start with -)
-  const args = process.argv.slice(2).filter((arg) => !arg.startsWith('-'));
-  return args.length === 0;
+  const rawArgs = process.argv.slice(2);
+
+  // Global options that take a value (space-separated form)
+  const optionsWithValues = new Set(['--color']);
+
+  const nonOptionArgs: string[] = [];
+  let skipNext = false;
+
+  for (const arg of rawArgs) {
+    if (skipNext) {
+      // This arg is a value for the previous option, skip it
+      skipNext = false;
+      continue;
+    }
+
+    if (arg.startsWith('-')) {
+      // Check if this option takes a value (and doesn't use = syntax)
+      const optionName = arg.includes('=') ? arg.split('=')[0] : arg;
+      if (optionsWithValues.has(optionName!) && !arg.includes('=')) {
+        skipNext = true;
+      }
+      continue;
+    }
+
+    // This is a non-option argument (potential command)
+    nonOptionArgs.push(arg);
+  }
+
+  return nonOptionArgs.length === 0;
 }
 
 /**

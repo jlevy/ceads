@@ -48,8 +48,8 @@ class InitHandler extends BaseCommand {
         'The --prefix option is required\n\n' +
           'Usage: tbd init --prefix=<name>\n\n' +
           'The prefix is used for display IDs (e.g., proj-a7k2, myapp-b3m9)\n' +
-          'Choose a short, memorable prefix for your project.\n\n' +
-          'For automatic prefix detection, use: tbd setup --auto',
+          'Choose a short 2-4 letter prefix for your project (e.g., tbd, myp).\n\n' +
+          'For full setup with integrations: tbd setup --auto --prefix=<name>',
       );
     }
 
