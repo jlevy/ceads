@@ -31,6 +31,7 @@ import {
   WORKTREE_DIR_NAME,
   DATA_SYNC_DIR_NAME,
   DEFAULT_SHORTCUT_PATHS,
+  TBD_SHORTCUTS_DIR,
   TBD_SHORTCUTS_SYSTEM,
   TBD_SHORTCUTS_STANDARD,
   TBD_GUIDELINES_DIR,
@@ -86,6 +87,11 @@ async function copyDirFiles(
     await access(srcDir);
     const entries = await readdir(srcDir, { withFileTypes: true });
 
+    // Ensure destination directory exists before copying
+    if (entries.some((e) => e.isFile() && e.name.endsWith('.md'))) {
+      await mkdir(destDir, { recursive: true });
+    }
+
     for (const entry of entries) {
       if (entry.isFile() && entry.name.endsWith('.md')) {
         const srcPath = join(srcDir, entry.name);
@@ -139,7 +145,7 @@ async function copyBuiltinDocs(targetDir: string): Promise<{ copied: number; err
   const shortcutSubdirs = ['system', 'standard'];
   for (const subdir of shortcutSubdirs) {
     const srcDir = join(docsDir, 'shortcuts', subdir);
-    const destDir = join(targetDir, TBD_SHORTCUTS_SYSTEM.replace('system', subdir));
+    const destDir = join(targetDir, TBD_SHORTCUTS_DIR, subdir);
     const { copied, errors } = await copyDirFiles(srcDir, destDir);
     totalCopied += copied;
     allErrors.push(...errors);
@@ -1071,15 +1077,20 @@ class SetupDefaultHandler extends BaseCommand {
     // Check if in git repo
     const inGitRepo = await isInGitRepo(cwd);
     if (!inGitRepo) {
-      console.log(colors.warn('Error: Not a git repository.'));
-      console.log('');
-      console.log('tbd requires a git repository. Run `git init` first.');
-      process.exit(1);
+      throw new CLIError('Not a git repository. Run `git init` first.');
     }
 
     // Check current state
     const hasTbd = await isInitialized(cwd);
     const hasBeads = await pathExists(join(cwd, '.beads'));
+
+    // Validate --from-beads flag requires .beads/ directory
+    if (options.fromBeads && !hasBeads) {
+      throw new CLIError(
+        'The --from-beads flag requires a .beads/ directory to migrate from.\n' +
+          'For fresh setup, use: tbd setup --auto --prefix=<name>',
+      );
+    }
 
     console.log('Checking repository...');
     console.log(`  ${colors.success('✓')} Git repository detected`);
@@ -1090,7 +1101,7 @@ class SetupDefaultHandler extends BaseCommand {
       console.log(`  ${colors.success('✓')} tbd initialized (prefix: ${config.display.id_prefix})`);
       console.log('');
       await this.handleAlreadyInitialized(cwd, isAutoMode);
-    } else if (hasBeads && !options.prefix) {
+    } else if ((hasBeads || options.fromBeads) && !options.prefix) {
       // Beads migration flow (unless prefix override given)
       console.log(`  ${colors.dim('✗')} tbd not initialized`);
       console.log(`  ${colors.warn('!')} Beads detected (.beads/ directory found)`);
@@ -1134,23 +1145,21 @@ class SetupDefaultHandler extends BaseCommand {
     const prefix = options.prefix ?? beadsPrefix;
 
     if (!prefix) {
-      console.error(colors.warn('Error: Could not read prefix from beads config.'));
-      console.error('');
-      console.error('Please specify a prefix (2-4 letters recommended):');
-      console.error('  tbd setup --auto --prefix=tbd');
-      process.exit(1);
+      throw new CLIError(
+        'Could not read prefix from beads config.\n' +
+          'Please specify a prefix (2-4 letters recommended):\n' +
+          '  tbd setup --auto --prefix=tbd',
+      );
     }
 
     if (!isValidPrefix(prefix)) {
-      console.error(colors.warn('Error: Invalid prefix format.'));
-      console.error(
-        'Prefix must be 1-10 lowercase alphanumeric characters, starting with a letter.',
+      throw new CLIError(
+        'Invalid prefix format.\n' +
+          'Prefix must be 1-10 lowercase alphanumeric characters, starting with a letter.\n' +
+          'Recommended: 2-4 letters for clear, readable issue IDs.\n' +
+          'Please specify a valid prefix:\n' +
+          '  tbd setup --auto --prefix=tbd',
       );
-      console.error('Recommended: 2-4 letters for clear, readable issue IDs.');
-      console.error('');
-      console.error('Please specify a valid prefix:');
-      console.error('  tbd setup --auto --prefix=tbd');
-      process.exit(1);
     }
 
     // Initialize tbd first
@@ -1204,31 +1213,25 @@ class SetupDefaultHandler extends BaseCommand {
     const prefix = options.prefix;
 
     if (!prefix) {
-      console.error(colors.warn('Error: --prefix is required for tbd setup --auto'));
-      console.error('');
-      console.error('The --prefix flag specifies your project name for issue IDs.');
-      console.error('Use a short 2-4 letter prefix so issue IDs stand out clearly.');
-      console.error('');
-      console.error('Example:');
-      console.error('  tbd setup --auto --prefix=tbd    # Issues: tbd-a1b2');
-      console.error('  tbd setup --auto --prefix=myp    # Issues: myp-c3d4');
-      console.error('');
-      console.error(
-        'Note: If migrating from beads, the prefix is automatically read from your beads config.',
+      throw new CLIError(
+        '--prefix is required for tbd setup --auto\n\n' +
+          'The --prefix flag specifies your project name for issue IDs.\n' +
+          'Use a short 2-4 letter prefix so issue IDs stand out clearly.\n\n' +
+          'Example:\n' +
+          '  tbd setup --auto --prefix=tbd    # Issues: tbd-a1b2\n' +
+          '  tbd setup --auto --prefix=myp    # Issues: myp-c3d4\n\n' +
+          'Note: If migrating from beads, the prefix is automatically read from your beads config.',
       );
-      process.exit(1);
     }
 
     if (!isValidPrefix(prefix)) {
-      console.error(colors.warn('Error: Invalid prefix format.'));
-      console.error(
-        'Prefix must be 1-10 lowercase alphanumeric characters, starting with a letter.',
+      throw new CLIError(
+        'Invalid prefix format.\n' +
+          'Prefix must be 1-10 lowercase alphanumeric characters, starting with a letter.\n' +
+          'Recommended: 2-4 letters for clear, readable issue IDs.\n\n' +
+          'Example:\n' +
+          '  tbd setup --auto --prefix=tbd',
       );
-      console.error('Recommended: 2-4 letters for clear, readable issue IDs.');
-      console.error('');
-      console.error('Example:');
-      console.error('  tbd setup --auto --prefix=tbd');
-      process.exit(1);
     }
 
     console.log(`Initializing with prefix "${prefix}"...`);
