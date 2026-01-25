@@ -49,17 +49,6 @@ import {
 } from '../../file/doc-cache.js';
 
 /**
- * Get the path to the bundled CURSOR.mdc file.
- */
-function getCursorPath(): string {
-  const __filename = fileURLToPath(import.meta.url);
-  const __dirname = dirname(__filename);
-  // When bundled, runs from dist/bin.mjs or dist/cli.mjs
-  // Docs are at dist/docs/CURSOR.mdc (same level as the bundle)
-  return join(__dirname, 'docs', 'CURSOR.mdc');
-}
-
-/**
  * Get base docs path (with fallbacks for development).
  */
 function getDocsBasePath(): string[] {
@@ -205,40 +194,6 @@ async function getShortcutDirectory(): Promise<string | null> {
 }
 
 /**
- * Load the Cursor rules content from the bundled CURSOR.mdc file with fallbacks.
- * Unlike SKILL.md, CURSOR.mdc includes its own frontmatter which is required for Cursor.
- */
-async function loadCursorContent(): Promise<string> {
-  // Try bundled location first
-  try {
-    return await readFile(getCursorPath(), 'utf-8');
-  } catch {
-    // Fallback: try to read from source location during development
-  }
-
-  // Fallback for development without bundle
-  try {
-    const __filename = fileURLToPath(import.meta.url);
-    const __dirname = dirname(__filename);
-    const devPath = join(__dirname, '..', '..', 'docs', 'CURSOR.mdc');
-    return await readFile(devPath, 'utf-8');
-  } catch {
-    // Fallback: try repo-level docs
-  }
-
-  // Last fallback: repo-level docs (CURSOR.mdc, not SKILL.md)
-  // Cursor MDC files require frontmatter, so we don't strip it
-  try {
-    const __filename = fileURLToPath(import.meta.url);
-    const __dirname = dirname(__filename);
-    const repoPath = join(__dirname, '..', '..', '..', '..', '..', 'docs', 'CURSOR.mdc');
-    return await readFile(repoPath, 'utf-8');
-  } catch {
-    throw new Error('CURSOR.mdc content file not found. Please rebuild the CLI.');
-  }
-}
-
-/**
  * Get the tbd section content for AGENTS.md (Codex integration).
  * Loads from SKILL.md, strips frontmatter, and wraps in TBD INTEGRATION markers.
  */
@@ -252,20 +207,7 @@ async function getCodexTbdSection(): Promise<string> {
   return `<!-- BEGIN TBD INTEGRATION -->\n${content}<!-- END TBD INTEGRATION -->\n`;
 }
 
-/**
- * Get the Cursor rules content from CURSOR.mdc.
- * CURSOR.mdc has its own MDC-specific frontmatter which is required for Cursor to recognize the file.
- */
-async function getCursorRulesContent(): Promise<string> {
-  return loadCursorContent();
-}
-
 interface SetupClaudeOptions {
-  check?: boolean;
-  remove?: boolean;
-}
-
-interface SetupCursorOptions {
   check?: boolean;
   remove?: boolean;
 }
@@ -334,8 +276,6 @@ fi
 
 exit 0
 `;
-
-// Cursor rules content is now generated dynamically from SKILL.md via getCursorRulesContent()
 
 /**
  * AGENTS.md integration markers for Codex/Factory.ai
@@ -769,84 +709,6 @@ class SetupClaudeHandler extends BaseCommand {
       this.output.info('  - Project skill: .claude/skills/tbd/SKILL.md');
     } catch (error) {
       throw new CLIError(`Failed to install: ${(error as Error).message}`);
-    }
-  }
-}
-
-class SetupCursorHandler extends BaseCommand {
-  async run(options: SetupCursorOptions): Promise<void> {
-    const cwd = process.cwd();
-    const rulesPath = join(cwd, '.cursor', 'rules', 'tbd.mdc');
-
-    if (options.check) {
-      await this.checkCursorSetup(rulesPath);
-      return;
-    }
-
-    if (options.remove) {
-      await this.removeCursorRules(rulesPath);
-      return;
-    }
-
-    await this.installCursorRules(rulesPath);
-  }
-
-  private async checkCursorSetup(rulesPath: string): Promise<void> {
-    const rulesRelPath = '.cursor/rules/tbd.mdc';
-    try {
-      await access(rulesPath);
-      const diagnostic: DiagnosticResult = {
-        name: 'Cursor rules file',
-        status: 'ok',
-        path: rulesRelPath,
-      };
-      this.output.data({ installed: true, path: rulesPath }, () => {
-        const colors = this.output.getColors();
-        renderDiagnostics([diagnostic], colors);
-      });
-    } catch {
-      const diagnostic: DiagnosticResult = {
-        name: 'Cursor rules file',
-        status: 'warn',
-        message: 'not found',
-        path: rulesRelPath,
-        suggestion: 'Run: tbd setup --auto',
-      };
-      this.output.data({ installed: false, expectedPath: rulesPath }, () => {
-        const colors = this.output.getColors();
-        renderDiagnostics([diagnostic], colors);
-      });
-    }
-  }
-
-  private async removeCursorRules(rulesPath: string): Promise<void> {
-    try {
-      await rm(rulesPath);
-      this.output.success('Removed Cursor tbd rules file');
-    } catch {
-      this.output.info('Cursor rules file not found');
-    }
-  }
-
-  private async installCursorRules(rulesPath: string): Promise<void> {
-    if (this.checkDryRun('Would create Cursor rules file', { path: rulesPath })) {
-      return;
-    }
-
-    try {
-      // Ensure directory exists
-      await mkdir(dirname(rulesPath), { recursive: true });
-
-      let rulesContent = await getCursorRulesContent();
-      const directory = await getShortcutDirectory();
-      if (directory) {
-        rulesContent = rulesContent.trimEnd() + '\n\n' + directory;
-      }
-      await writeFile(rulesPath, rulesContent);
-      this.output.success('Created Cursor rules file');
-      this.output.info(`  ${rulesPath}`);
-    } catch (error) {
-      throw new CLIError(`Failed to create rules file: ${(error as Error).message}`);
     }
   }
 }
@@ -1360,11 +1222,7 @@ class SetupAutoHandler extends BaseCommand {
     const claudeResult = await this.setupClaudeIfDetected(cwd);
     results.push(claudeResult);
 
-    // Detect and set up Cursor
-    const cursorResult = await this.setupCursorIfDetected(cwd);
-    results.push(cursorResult);
-
-    // Detect and set up Codex
+    // Detect and set up Codex/AGENTS.md (also used by Cursor since v1.6)
     const codexResult = await this.setupCodexIfDetected(cwd);
     results.push(codexResult);
 
@@ -1397,7 +1255,9 @@ class SetupAutoHandler extends BaseCommand {
     if (installed.length === 0 && alreadyInstalled.length === 0) {
       console.log(colors.dim('No coding agents detected.'));
       console.log('');
-      console.log('Install a coding agent (Claude Code, Cursor, Codex) and re-run:');
+      console.log(
+        'Install a coding agent (Claude Code, Codex, or any AGENTS.md-compatible tool) and re-run:',
+      );
       console.log('  tbd setup --auto');
     }
   }
@@ -1447,43 +1307,6 @@ class SetupAutoHandler extends BaseCommand {
 
       // Install/update Claude Code setup (always runs to update skill file)
       const handler = new SetupClaudeHandler(this.cmd);
-      await handler.run({});
-      result.installed = true;
-    } catch (error) {
-      result.error = (error as Error).message;
-    }
-
-    return result;
-  }
-
-  private async setupCursorIfDetected(cwd: string): Promise<AutoSetupResult> {
-    const result: AutoSetupResult = {
-      name: 'Cursor IDE',
-      detected: false,
-      installed: false,
-      alreadyInstalled: false,
-    };
-
-    // Detect Cursor: check for .cursor/ directory
-    const cursorDir = join(cwd, '.cursor');
-    if (!(await pathExists(cursorDir))) {
-      return result;
-    }
-
-    result.detected = true;
-
-    // Check if already installed
-    const rulesPath = join(cwd, '.cursor', 'rules', 'tbd.mdc');
-    if (await pathExists(rulesPath)) {
-      result.alreadyInstalled = true;
-      // Note: We still run the handler to update the rules file content
-      // even if it already exists. This ensures users get the latest
-      // rules file when running `tbd setup --auto`.
-    }
-
-    try {
-      // Install/update Cursor rules (always runs to update content)
-      const handler = new SetupCursorHandler(this.cmd);
       await handler.run({});
       result.installed = true;
     } catch (error) {

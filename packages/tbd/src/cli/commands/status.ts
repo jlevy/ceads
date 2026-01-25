@@ -54,8 +54,6 @@ interface StatusData {
   integrations: {
     claude_code: boolean;
     claude_code_path: string;
-    cursor: boolean;
-    cursor_path: string;
     codex: boolean;
     codex_path: string;
   };
@@ -86,8 +84,6 @@ class StatusHandler extends BaseCommand {
       integrations: {
         claude_code: false,
         claude_code_path: '~/.claude/settings.json',
-        cursor: false,
-        cursor_path: '.cursor/rules/tbd.mdc',
         codex: false,
         codex_path: './AGENTS.md',
       },
@@ -167,14 +163,11 @@ class StatusHandler extends BaseCommand {
 
   private async checkIntegrations(cwd: string): Promise<StatusData['integrations']> {
     const claudeSettingsPath = join(homedir(), '.claude', 'settings.json');
-    const cursorRulesPath = join(cwd, '.cursor', 'rules', 'tbd.mdc');
     const agentsPath = join(cwd, 'AGENTS.md');
 
     const result: StatusData['integrations'] = {
       claude_code: false,
       claude_code_path: claudeSettingsPath.replace(homedir(), '~'),
-      cursor: false,
-      cursor_path: '.cursor/rules/tbd.mdc',
       codex: false,
       codex_path: './AGENTS.md',
     };
@@ -195,15 +188,7 @@ class StatusHandler extends BaseCommand {
       // Not installed
     }
 
-    // Check Cursor rules
-    try {
-      await access(cursorRulesPath);
-      result.cursor = true;
-    } catch {
-      // Not installed
-    }
-
-    // Check Codex AGENTS.md
+    // Check Codex AGENTS.md (also used by Cursor since v1.6)
     try {
       await access(agentsPath);
       const content = await readFile(agentsPath, 'utf-8');
@@ -340,16 +325,6 @@ class StatusHandler extends BaseCommand {
     } else {
       console.log(
         `  ${colors.dim('✗')} Claude Code hooks ${colors.dim(`(${data.integrations.claude_code_path})`)}`,
-      );
-      hasMissingIntegrations = true;
-    }
-    if (data.integrations.cursor) {
-      console.log(
-        `  ${colors.success('✓')} Cursor rules ${colors.dim(`(${data.integrations.cursor_path})`)}`,
-      );
-    } else {
-      console.log(
-        `  ${colors.dim('✗')} Cursor rules ${colors.dim(`(${data.integrations.cursor_path})`)}`,
       );
       hasMissingIntegrations = true;
     }

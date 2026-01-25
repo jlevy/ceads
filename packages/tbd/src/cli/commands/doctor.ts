@@ -98,10 +98,7 @@ class DoctorHandler extends BaseCommand {
     // Integration 1: Claude Code skill file
     integrationChecks.push(await this.checkClaudeSkill());
 
-    // Integration 2: Cursor rules file
-    integrationChecks.push(await this.checkCursorRules());
-
-    // Integration 3: Codex AGENTS.md
+    // Integration 2: Codex AGENTS.md (also used by Cursor since v1.6)
     integrationChecks.push(await this.checkCodexAgents());
 
     // Combine for overall status
@@ -462,23 +459,6 @@ class DoctorHandler extends BaseCommand {
         status: 'warn',
         message: 'not installed',
         path: skillRelPath,
-        suggestion: 'Run: tbd setup --auto',
-      };
-    }
-  }
-
-  private async checkCursorRules(): Promise<DiagnosticResult> {
-    const rulesRelPath = join('.cursor', 'rules', 'tbd.mdc');
-    const rulesPath = join(this.cwd, rulesRelPath);
-    try {
-      await access(rulesPath);
-      return { name: 'Cursor rules', status: 'ok', path: rulesRelPath };
-    } catch {
-      return {
-        name: 'Cursor rules',
-        status: 'warn',
-        message: 'not installed',
-        path: rulesRelPath,
         suggestion: 'Run: tbd setup --auto',
       };
     }

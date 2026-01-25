@@ -2646,7 +2646,6 @@ Issues:
 
 Integrations:
   ✓ Claude Code hooks installed (~/.claude/settings.json)
-  ✗ Cursor rules not installed
   ✗ Codex AGENTS.md not installed
 
 Worktree: .tbd/data-sync-worktree/ (healthy)
@@ -3846,8 +3845,7 @@ tbd setup beads --disable --confirm     # Actually disable
 
 # 4. Install tbd integrations
 tbd setup claude                        # Claude Code hooks
-tbd setup cursor                        # Cursor rules (optional)
-tbd setup codex                         # AGENTS.md (optional)
+tbd setup codex                         # AGENTS.md (for Codex, Cursor, etc.)
 
 # 5. Verify and commit
 tbd stats
@@ -4071,14 +4069,10 @@ exists. This creates a “just works” experience without breaking non-tbd proj
 
 #### 6.4.4 Other Editor Integrations
 
-**Cursor IDE:**
+**Cursor IDE and AGENTS.md-compatible tools:**
 
-```bash
-tbd setup cursor
-```
-
-Creates `.cursor/rules/tbd.mdc` with workflow instructions that Cursor loads
-automatically.
+Cursor (v1.6+) and other AGENTS.md-compatible tools read the `AGENTS.md` file
+automatically. Run `tbd setup codex` to create/update AGENTS.md with tbd instructions.
 
 **Generic (any editor):**
 

@@ -167,8 +167,7 @@ Options:
 Subcommands for specific integrations:
 ```bash
 tbd setup claude                  # Install Claude Code hooks
-tbd setup cursor                  # Install Cursor rules
-tbd setup codex                   # Install Codex AGENTS.md
+tbd setup codex                   # Install Codex AGENTS.md (also used by Cursor)
 tbd setup beads --disable         # Disable coexisting Beads
 ```
 
@@ -616,10 +615,6 @@ tbd setup claude                            # Install Claude Code hooks
 tbd setup claude --check                    # Verify installation status
 tbd setup claude --remove                   # Remove tbd hooks
 
-tbd setup cursor                            # Create Cursor rules file
-tbd setup cursor --check                    # Verify Cursor rules
-tbd setup cursor --remove                   # Remove Cursor rules
-
 tbd setup codex                             # Create/update AGENTS.md
 tbd setup codex --check                     # Verify AGENTS.md
 tbd setup codex --remove                    # Remove tbd section from AGENTS.md
@@ -634,8 +629,8 @@ The `tbd setup --auto` command (or `tbd setup auto`) detects which coding agents
 available and configures integrations automatically:
 
 - **Claude Code**: Checks for `~/.claude/` directory, installs SessionStart hooks
-- **Cursor**: Checks for `.cursor/` directory, creates rules file
-- **Codex**: Checks for `AGENTS.md`, adds tbd integration section
+- **Codex/AGENTS.md**: Checks for `AGENTS.md`, adds tbd integration section (also used
+  by Cursor v1.6+)
 
 This is the recommended way to set up tbd:
 

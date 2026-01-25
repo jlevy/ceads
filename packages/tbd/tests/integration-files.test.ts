@@ -1,10 +1,10 @@
 /**
- * Tests for integration file formats (Cursor, Claude, Codex).
+ * Tests for integration file formats (Claude, Codex/AGENTS.md).
  * Ensures source files have proper format and content for dynamic composition.
  *
- * Note: SKILL.md and CURSOR.mdc are NOT pre-built in dist/docs.
- * They are dynamically generated at setup/install time by combining:
- * - Header (from dist/docs/install/*)
+ * Note: SKILL.md is NOT pre-built in dist/docs.
+ * It is dynamically generated at setup/install time by combining:
+ * - Header (from dist/docs/install/claude-header.md)
  * - Base skill content (from dist/docs/shortcuts/system/skill.md)
  * - Shortcut directory (generated from available shortcuts)
  */
@@ -22,20 +22,6 @@ const installDir = join(docsDir, 'install');
 const shortcutsSystemDir = join(docsDir, 'shortcuts', 'system');
 
 describe('integration file formats', () => {
-  describe('cursor-header.md (source for CURSOR.mdc)', () => {
-    it('has valid MDC frontmatter with required fields', async () => {
-      const headerPath = join(installDir, 'cursor-header.md');
-      const content = await readFile(headerPath, 'utf-8');
-
-      const frontmatter = parseFrontmatter(content);
-      expect(frontmatter).not.toBeNull();
-
-      // Required MDC fields
-      expect(frontmatter).toContain('description:');
-      expect(frontmatter).toContain('alwaysApply:');
-    });
-  });
-
   describe('claude-header.md (source for SKILL.md)', () => {
     it('has valid Claude Code skill frontmatter', async () => {
       const headerPath = join(installDir, 'claude-header.md');
