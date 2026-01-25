@@ -21,6 +21,7 @@ import { CLIError } from '../lib/errors.js';
 import { loadSkillContent } from './prime.js';
 import { stripFrontmatter } from '../../utils/markdown-utils.js';
 import { pathExists } from '../../utils/file-utils.js';
+import { ensureGitignorePatterns } from '../../utils/gitignore-utils.js';
 import { type DiagnosticResult, renderDiagnostics } from '../lib/diagnostics.js';
 import { fileURLToPath } from 'node:url';
 import { isValidPrefix, getBeadsPrefix } from '../lib/prefix-detection.js';
@@ -674,6 +675,10 @@ class SetupClaudeHandler extends BaseCommand {
       await writeFile(projectSettingsPath, JSON.stringify(projectSettings, null, 2) + '\n');
       this.output.success('Installed project hooks');
 
+      // Add .claude/.gitignore to ignore backup files
+      const claudeGitignorePath = join(cwd, '.claude', '.gitignore');
+      await ensureGitignorePatterns(claudeGitignorePath, ['# Backup files', '*.bak']);
+
       // Install hook script
       await mkdir(dirname(hookScriptPath), { recursive: true });
       await writeFile(hookScriptPath, TBD_CLOSE_PROTOCOL_SCRIPT);
@@ -1111,8 +1116,8 @@ class SetupDefaultHandler extends BaseCommand {
     await initConfig(cwd, VERSION, prefix);
     console.log(`  ${colors.success('✓')} Created .tbd/config.yml`);
 
-    // 2. Create .tbd/.gitignore
-    const gitignoreContent = [
+    // 2. Create .tbd/.gitignore (idempotent)
+    await ensureGitignorePatterns(join(cwd, TBD_DIR, '.gitignore'), [
       '# Installed documentation (regenerated on setup)',
       'docs/',
       '',
@@ -1128,11 +1133,7 @@ class SetupDefaultHandler extends BaseCommand {
       '# Temporary files',
       '*.tmp',
       '*.temp',
-      '',
-    ].join('\n');
-
-    const gitignorePath = join(cwd, TBD_DIR, '.gitignore');
-    await writeFile(gitignorePath, gitignoreContent);
+    ]);
     console.log(`  ${colors.success('✓')} Created .tbd/.gitignore`);
 
     // 3. Initialize worktree for sync branch

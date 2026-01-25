@@ -8,9 +8,8 @@ import { Command } from 'commander';
 import { mkdir, stat } from 'node:fs/promises';
 import { join } from 'node:path';
 
-import { writeFile } from 'atomically';
-
 import { BaseCommand } from '../lib/base-command.js';
+import { ensureGitignorePatterns } from '../../utils/gitignore-utils.js';
 import { CLIError, ValidationError } from '../lib/errors.js';
 import { VERSION } from '../lib/version.js';
 import { initConfig } from '../../file/config.js';
@@ -67,9 +66,9 @@ class InitHandler extends BaseCommand {
       await initConfig(cwd, VERSION, options.prefix!);
       this.output.debug(`Created ${TBD_DIR}/config.yml with prefix '${options.prefix}'`);
 
-      // 2. Create .tbd/.gitignore
+      // 2. Create .tbd/.gitignore (idempotent)
       // Per spec: Must ignore docs/, data-sync-worktree/, and data-sync/
-      const gitignoreContent = [
+      await ensureGitignorePatterns(join(cwd, TBD_DIR, '.gitignore'), [
         '# Installed documentation (regenerated on setup)',
         'docs/',
         '',
@@ -84,9 +83,8 @@ class InitHandler extends BaseCommand {
         '',
         '# Temporary files',
         '*.tmp',
-        '',
-      ].join('\n');
-      await writeFile(join(cwd, TBD_DIR, '.gitignore'), gitignoreContent);
+        '*.temp',
+      ]);
       this.output.debug(`Created ${TBD_DIR}/.gitignore`);
 
       // 3. Create docs directories for shortcuts, guidelines, and templates
