@@ -120,3 +120,15 @@ Review `docs/tbd-design.md` §8.1 “Actor System Design” to confirm:
 None - all documentation inconsistencies have been addressed.
 The actor system design (tbd-fbt2) is intentionally deferred pending further design work
 on multi-agent workflows.
+
+* * *
+
+## Post-Validation Update (2026-01-25)
+
+**Note:** The `.tbd/.gitignore` entries documented in §3.2 have changed:
+
+- **Before:** `cache/`, `data-sync-worktree/`, `data-sync/`
+- **After:** `docs/`, `state.yml`, `data-sync-worktree/`, `data-sync/`
+
+The `cache/` directory has been removed entirely.
+See the doc-cache abstraction spec for details on this simplification.

@@ -1111,3 +1111,61 @@ source or dist):
 - [ ] **tbd-79bl** Integration tests for `shortcuts refresh` command
 - [ ] **tbd-pf9l** Golden tests for skill output with embedded directory
 - [ ] **tbd-a62h** Test marker-based replacement in installed files
+
+* * *
+
+## Post-Implementation Update (2026-01-25)
+
+The cache directory has been removed to simplify the architecture.
+Key changes:
+
+### Directory Structure Change
+
+**Before:**
+```
+.tbd/
+  config.yml      # tracked
+  .gitignore      # ignores cache/
+  cache/          # gitignored, contained shortcut-directory.md
+  docs/           # tracked
+```
+
+**After:**
+```
+.tbd/
+  config.yml      # tracked
+  state.yml       # gitignored (moved from cache/)
+  .gitignore      # ignores docs/, state.yml
+  docs/           # gitignored, regenerated on setup
+```
+
+### Rationale
+
+1. **No cache validation** - The cache was written but never validated against source
+   files. Without timestamp/content checks, it provided no benefit.
+2. **Always regenerate** - Shortcut directories are now generated on-the-fly in
+   `tbd skill`, `tbd prime`, and `tbd setup`.
+3. **Simpler mental model** - Everything in `.tbd/` except `config.yml` and `.gitignore`
+   is now local/generated state.
+
+### Code Changes
+
+| Component | Change |
+| --- | --- |
+| `paths.ts` | Removed `CACHE_DIR`, `SHORTCUT_DIRECTORY_CACHE`; added `STATE_FILE` |
+| `doc-cache.ts` | Removed `readShortcutDirectoryCache()`, `writeShortcutDirectoryCache()` |
+| `init.ts` | Updated gitignore to `docs/` not `cache/`; removed cache dir creation |
+| `setup.ts` | Updated gitignore; removed cache operations |
+| `skill.ts`, `prime.ts` | Always generate shortcut directory on-the-fly |
+| `shortcut.ts` | `--refresh` is now a no-op (just reports count) |
+| `search.ts` | State file path changed to `.tbd/state.yml` |
+
+### References in This Spec
+
+The following references to `.tbd/cache/` are now historical context only:
+- Line 817: Design summary table mentioning cache file
+- Line 887: Solution section describing cache file
+- Lines 955, 978, 1009, 1056, 1104: Implementation details
+
+The `generateShortcutDirectory()` function is retained and used for on-the-fly
+generation. Only the cache read/write functions were removed.

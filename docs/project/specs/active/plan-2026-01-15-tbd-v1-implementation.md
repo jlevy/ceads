@@ -311,7 +311,7 @@ From the research docs, we will use:
 
 ### 3.2 Performance Considerations
 
-- **Index caching**: Optional `.tbd/cache/index.json` for O(1) lookups
+- **Index caching**: Optional index for O(1) lookups (not currently implemented)
 - **Incremental sync**: Use git diff to process only changed files
 - **Lazy loading**: Parse issue files only when needed
 - **Worktree for search**: Direct file access vs git show overhead
@@ -1202,14 +1202,15 @@ async function atomicWrite(path: string, content: string): Promise<void> {
 ```
 .tbd/
 ├── config.yml              # Project configuration (tracked)
-├── .gitignore              # Ignores cache/ and sync-worktree/ (tracked)
-├── cache/                  # Gitignored - local state
-│   ├── state.yml           # Per-node sync state
-│   ├── index.json          # Optional query index
-│   └── sync.lock           # Sync coordination
-└── sync-worktree/              # Gitignored - hidden worktree
+├── .gitignore              # Ignores docs/, state.yml, worktree, data-sync (tracked)
+├── state.yml               # Per-node sync state (gitignored)
+├── docs/                   # Installed documentation (gitignored, regenerated on setup)
+└── data-sync-worktree/     # Gitignored - hidden worktree
     └── (checkout of tbd-sync branch)
 ```
+
+> **Note (2026-01-25):** The `cache/` directory has been removed.
+> State is now at `.tbd/state.yml` and docs are regenerated on setup from the package.
 
 **Directory Structure on tbd-sync Branch**:
 
@@ -2596,7 +2597,7 @@ const STALE_THRESHOLD_MS = 5 * 60 * 1000; // 5 minutes
 async function ensureWorktreeFresh(options?: { noRefresh?: boolean }): Promise<void> {
   if (options?.noRefresh) return;
 
-  const stateFile = '.tbd/cache/state.yml';
+  const stateFile = '.tbd/state.yml';  // Note: moved from cache/ (2026-01-25)
   const state = await readState(stateFile);
 
   const lastSync = state?.last_sync_at ? new Date(state.last_sync_at).getTime() : 0;

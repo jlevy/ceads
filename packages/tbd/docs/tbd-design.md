@@ -670,7 +670,7 @@ current node’s prefix.
 
 tbd uses three directory locations:
 
-- **`.tbd/`** on main branch: Configuration (tracked) + local cache (gitignored)
+- **`.tbd/`** on main branch: Configuration (tracked) + installed docs (gitignored)
 
 - **`.tbd/data-sync-worktree/`** hidden worktree: Checkout of `tbd-sync` branch for
   search
@@ -682,11 +682,15 @@ tbd uses three directory locations:
 ```
 .tbd/
 ├── config.yml              # Project configuration (tracked)
-├── .gitignore              # Ignores cache/, data-sync-worktree/, data-sync/ (tracked)
+├── .gitignore              # Ignores docs/, state.yml, worktree, data-sync (tracked)
+├── state.yml               # Per-node sync state (gitignored)
 │
-├── cache/                  # Gitignored - local state
-│   ├── state.yml           # Per-node sync state (last_sync_at)
-│   └── sync.lock           # Sync coordination file
+├── docs/                   # Gitignored - installed documentation (regenerated on setup)
+│   ├── shortcuts/
+│   │   ├── system/         # Core docs (skill.md, shortcut-explanation.md)
+│   │   └── standard/       # Workflow shortcuts (new-plan-spec.md, etc.)
+│   ├── guidelines/         # Coding rules and best practices
+│   └── templates/          # Document templates
 │
 └── data-sync-worktree/     # Gitignored - hidden worktree
     └── (checkout of tbd-sync branch)
@@ -726,7 +730,7 @@ tbd uses three directory locations:
 
 - Synced data on separate branch avoids merge conflicts on working branches
 
-- Local cache is gitignored, never synced
+- Local docs and state are gitignored, never synced
 
 - File-per-entity enables parallel operations without conflicts
 
@@ -771,9 +775,17 @@ git worktree add .tbd/data-sync-worktree --orphan tbd-sync
 The `.tbd/.gitignore` must include:
 
 ```gitignore
-cache/
+# Installed documentation (regenerated on setup)
+docs/
+
+# Hidden worktree for tbd-sync branch
 data-sync-worktree/
+
+# Data sync directory (only exists in worktree)
 data-sync/
+
+# Local state
+state.yml
 ```
 
 > **Note:** `data-sync/` is gitignored to support potential future “simple mode” where
@@ -1245,16 +1257,13 @@ const MetaSchema = z.object({
 
 > **Note**: `last_sync_at` is intentionally NOT stored in `meta.yml`. Syncing this file
 > would create a conflict hotspot—every node updates it on every sync, causing constant
-> merge conflicts. Instead, sync timestamps are tracked locally in `.tbd/cache/state.yml`
+> merge conflicts. Instead, sync timestamps are tracked locally in `.tbd/state.yml`
 > (gitignored).
 
 #### 2.6.6 LocalStateSchema
 
-Per-node state stored in `.tbd/cache/state.yml` (gitignored, never synced).
+Per-node state stored in `.tbd/state.yml` (gitignored, never synced).
 Each machine maintains its own local state:
-
-> **Implementation note:** Current implementation uses `state.json` for simplicity.
-> Migration to YAML planned for consistency with other config files.
 
 ```typescript
 const LocalStateSchema = z.object({
@@ -1552,7 +1561,7 @@ main branch:                    tbd-sync branch:
 ├── .tbd/                               ├── attic/
 │   ├── config.yml (tracked)            └── meta.yml
 │   ├── .gitignore (tracked)
-│   └── cache/     (gitignored)
+│   └── docs/      (gitignored)
 └── ...
 ```
 
@@ -1571,18 +1580,20 @@ main branch:                    tbd-sync branch:
 
 ```
 .tbd/config.yml       # Project configuration (YAML)
-.tbd/.gitignore       # Ignores cache/, data-sync-worktree/, data-sync/
+.tbd/.gitignore       # Ignores docs/, state.yml, data-sync-worktree/, data-sync/
 ```
 
 #### .tbd/.gitignore Contents
 
 ```gitignore
-# Local cache (rebuildable)
-cache/
+# Installed documentation (regenerated on setup)
+docs/
 # Hidden worktree for search access
 data-sync-worktree/
 # Reserved for potential future "simple mode" (issues on main branch)
 data-sync/
+# Local state
+state.yml
 ```
 
 #### Files Tracked on tbd-sync Branch
@@ -1624,7 +1635,7 @@ git fetch origin tbd-sync
 git read-tree tbd-sync
 
 # 3. Update index with local changes
-#    (files from .tbd/cache/entities/ are added to the tree)
+#    (issue files from .tbd/data-sync/issues/ are added to the tree)
 git update-index --add --cacheinfo 100644,<blob-sha>,".tbd/data-sync/issues/is-a1b2c3.md"
 
 # 4. Write tree from isolated index
@@ -1977,7 +1988,7 @@ repository (which automatically detects and uses the beads prefix).
 1. Creates `.tbd/` directory with `config.yml` (including display.id_prefix) and
    `.gitignore`
 
-2. Creates `.tbd/cache/` (gitignored)
+2. Creates `.tbd/docs/` directories for shortcuts, guidelines, templates (gitignored)
 
 3. Creates `tbd-sync` branch with `.tbd/data-sync/` structure
 
@@ -3714,7 +3725,10 @@ These flags/behaviors are maintained for Beads script compatibility:
 
 #### Query Index
 
-**Optional caching layer** (`.tbd/cache/index.json`):
+> **Note:** This optional caching layer is not currently implemented.
+> The current implementation scans issue files directly on each query.
+
+**Optional caching layer** (potential future feature):
 
 ```typescript
 // JSON-serializable index structure
@@ -3760,9 +3774,7 @@ fi
 
 3. If no index or baseline missing, full rebuild from all issue files
 
-4. Store in `.tbd/cache/index.json`
-
-5. Cache is gitignored, never synced
+4. Store index in a local file (gitignored, never synced)
 
 **Performance targets:**
 
@@ -4506,10 +4518,9 @@ repo/
 ├── .git/
 ├── .tbd/                         # On main branch
 │   ├── config.yml                  # Tracked: project config
-│   ├── .gitignore                  # Tracked: ignores cache/, data-sync-worktree/, data-sync/
-│   ├── cache/                      # Gitignored: local only
-│   │   ├── index.json              # Optional query cache
-│   │   └── sync.lock               # Optional sync coordination
+│   ├── .gitignore                  # Tracked: ignores docs/, state.yml, data-sync-worktree/, data-sync/
+│   ├── docs/                       # Gitignored: installed documentation
+│   ├── state.yml                   # Gitignored: local state (sync timestamps)
 │   └── data-sync-worktree/         # Gitignored: worktree checkout of tbd-sync
 │
 └── (on tbd-sync branch)
@@ -4532,7 +4543,7 @@ repo/
 | Location | Files | Size |
 | --- | --- | --- |
 | `.tbd/` | 3 | <1 KB |
-| `.tbd/cache/` | 1-2 | <500 KB |
+| `.tbd/docs/` | ~30 | ~100 KB |
 | `.tbd/data-sync/issues/` | 1,000 | ~2 MB |
 | `.tbd/data-sync/attic/` | 10-50 | <100 KB |
 
@@ -5135,14 +5146,17 @@ The original concern about 6-hex-char limitations is moot with the dual ID syste
 
 **Idea 7: Reserve directory structure for future bridges**
 
-Should we reserve `.tbd/cache/outbox/` and `.tbd/cache/inbox/` directories for future
-bridge runtime use?
+Should we reserve `.tbd/outbox/` and `.tbd/inbox/` directories for future bridge runtime
+use?
 
 **Options:**
 
 1. Reserve now (empty dirs, documented for future use)
 
 2. Add when needed (avoid premature structure)
+
+> **Note:** The cache/ directory has been removed.
+> Any future local state should use `.tbd/` directly with appropriate gitignore entries.
 
 ### 8.6 Issue Storage Location
 

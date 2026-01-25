@@ -78,7 +78,7 @@ tbd agent unregister                  # Clear agent registration
 **Behavior:**
 - Agent provides optional human-friendly name (e.g., “claude-code-cloud”)
 - tbd returns unique agent ID: `ag-{slugified-name}-{ulid}`
-- Agent ID stored in `.tbd/cache/agent.yml` (local, gitignored)
+- Agent ID stored in `.tbd/agent.yml` (local, gitignored)
 - Agent ID used to scope transactions and for audit trail
 
 **ID Format:**
@@ -109,7 +109,7 @@ tx-01hx5zzkbkactav9wevgemmvrz
 - All tbd operations write to the transaction branch instead of `tbd-sync`
 - `tx commit` merges transaction branch into `tbd-sync`, then syncs to remote
 - `tx abort` deletes the transaction branch
-- Transaction state stored in `.tbd/cache/transaction.yml`
+- Transaction state stored in `.tbd/transaction.yml`
 
 #### Use Cases
 
@@ -251,7 +251,7 @@ main branch                    tbd-sync branch              tx branch (temporary
 
 2. tbd tx begin
    → Creates branch tbd-sync-tx-01hx5zz...
-   → Stores tx state in .tbd/cache/transaction.yml
+   → Stores tx state in .tbd/transaction.yml
 
 3. tbd create "Fix bug"
    → Detects active transaction
@@ -270,7 +270,7 @@ main branch                    tbd-sync branch              tx branch (temporary
 
 ### 2.3 State Files
 
-**`.tbd/cache/agent.yml`** (gitignored):
+**`.tbd/agent.yml`** (gitignored):
 ```yaml
 # Current agent registration
 id: ag-claude-code-cloud-01hx5zzkbkactav9wevgemmvrz
@@ -278,7 +278,7 @@ name: claude-code-cloud
 registered_at: 2025-01-19T10:00:00Z
 ```
 
-**`.tbd/cache/transaction.yml`** (gitignored):
+**`.tbd/transaction.yml`** (gitignored):
 ```yaml
 # Active transaction (null if no transaction)
 id: tx-01hx5zzkbkactav9wevgemmvrz
@@ -597,7 +597,7 @@ time per machine.
 the standard sync conflict resolution applies (field-level merge, attic for
 losers). The transaction's changes are treated as local changes in the merge.
 
-**State Persistence:** Transaction state stored in `.tbd/cache/transaction.yml`
+**State Persistence:** Transaction state stored in `.tbd/transaction.yml`
 (gitignored). If agent crashes mid-transaction, `tbd tx list` shows orphaned
 branches for recovery.
 ```
