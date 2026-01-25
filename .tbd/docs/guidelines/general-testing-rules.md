@@ -1,8 +1,8 @@
 ---
 title: General Testing Rules
-description: Core principles for writing effective, maintainable tests
+description: Rules for writing minimal, effective tests with maximum coverage
 ---
-# General Testing Rules
+## General Testing Rules
 
 - Write the minimal set of tests with the maximal coverage.
   Write as few tests as possible that *also* cover the desired functionality.
@@ -12,6 +12,9 @@ description: Core principles for writing effective, maintainable tests
 - Do NOT write unit tests that are obviously going to pass (like creating objects and
   validating they are set on an object).
   These needlessly clutter the codebase.
+  For example:
+  - Do not write a test that simply instantiates a class and the object’s fields are
+    set.
 
 - Do NOT write a test that is trivial enough it is obviously tested as part of another
   test in the same codebase.
