@@ -42,7 +42,7 @@ describe('integration file formats', () => {
       const content = await readFile(skillPath, 'utf-8');
 
       expect(content).toContain('tbd');
-      expect(content).toContain('SESSION CLOSING PROTOCOL');
+      expect(content).toContain('Session Closing Protocol');
       expect(content).toContain('tbd sync');
     });
 
