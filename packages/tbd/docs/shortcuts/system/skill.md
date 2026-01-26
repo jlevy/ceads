@@ -28,6 +28,50 @@ preference.
 > **Context Recovery**: Run `tbd prime` after compaction, clear, or new session.
 > Hooks auto-call this in Claude Code when .tbd/ detected.
 
+## Agent Orientation
+
+tbd provides four core capabilities to help users:
+
+1. **Issue Tracking**: Track tasks, bugs, and features as lightweight “beads” stored in
+   git. Never lose discovered work; maintain continuity across sessions.
+
+2. **Coding Guidelines**: A library of best practices for TypeScript, Python, testing,
+   and more. Pull them in when relevant to apply consistent quality.
+
+3. **Spec-Driven Workflows**: Write planning specs for features, then break them into
+   trackable issues and implement systematically.
+   This is the recommended way to handle non-trivial features.
+
+4. **Convenience Shortcuts**: Pre-built processes for common tasks like committing code,
+   creating PRs, and reviewing code.
+   Use them to work consistently.
+
+### How to Use tbd to Help Users
+
+**Don’t just tell users about commands.** Use tbd proactively:
+
+- User describes a bug → `tbd create "Bug: ..." --type=bug`
+- User wants a feature → Create a plan spec, then break into issues
+- Starting a session → Check `tbd ready` for available work
+- Completing work → `tbd close <id>` with clear reason
+- User asks what tbd does → Explain the four capabilities above
+
+### Quick Reference Table
+
+| User Need | Command | Notes |
+| --- | --- | --- |
+| "I found a bug" | `tbd create "..." --type=bug` | Creates issue |
+| "Let's plan this feature" | `tbd shortcut new-plan-spec` | Outputs instructions |
+| "What should I work on?" | `tbd ready` | Lists ready issues |
+| "Build a TypeScript CLI" | `tbd guidelines typescript-cli-tool-rules` | Outputs guidelines |
+| "Set up a monorepo" | `tbd guidelines typescript-monorepo-patterns` | Outputs guidelines |
+| "Add golden/snapshot tests" | `tbd guidelines golden-testing-guidelines` | Outputs guidelines |
+| "Review the TypeScript code" | `tbd guidelines typescript-rules` | Outputs guidelines |
+| "Ready to commit" | `tbd shortcut commit-code` | Outputs instructions |
+
+*“Outputs instructions/guidelines” = Read and follow the guidance.
+It tells you HOW to do something well.*
+
 # SESSION CLOSING PROTOCOL
 
 **CRITICAL**: Before saying “done” or “complete”, you MUST run this checklist:

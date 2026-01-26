@@ -85,6 +85,21 @@ describe('setup flows', () => {
       const config = await readConfig(tempDir);
       expect(config.display.id_prefix).toBe('custom');
     });
+
+    it("shows What's Next section after setup", () => {
+      initGitRepo();
+
+      const result = runTbd(['setup', '--auto', '--prefix=test']);
+
+      expect(result.status).toBe(0);
+      // Should show What's Next guidance
+      expect(result.stdout).toContain("WHAT'S NEXT");
+      // Should include key actions from spec
+      expect(result.stdout).toContain('tbd create');
+      expect(result.stdout).toContain('tbd ready');
+      expect(result.stdout).toContain('tbd shortcut');
+      expect(result.stdout).toContain('tbd guidelines');
+    });
   });
 
   describe('already initialized repo', () => {

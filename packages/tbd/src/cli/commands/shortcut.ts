@@ -22,6 +22,56 @@ interface ShortcutOptions {
   all?: boolean;
   refresh?: boolean;
   quiet?: boolean;
+  category?: string;
+}
+
+/**
+ * Shortcut categories for filtering.
+ * Categories are inferred from shortcut names.
+ */
+type ShortcutCategory = 'planning' | 'implementation' | 'quality' | 'shipping';
+
+/**
+ * Infer category from shortcut name.
+ * Returns undefined if no category matches.
+ */
+function inferCategory(name: string): ShortcutCategory | undefined {
+  // Planning: specs, architecture, research, planning docs
+  if (
+    name.includes('plan-spec') ||
+    name.includes('architecture') ||
+    name.includes('research') ||
+    name.includes('validation-spec') ||
+    name.includes('implementation-spec') ||
+    name.includes('beads-from-spec') ||
+    name.includes('update-spec') ||
+    name.includes('refine-spec') ||
+    name.includes('revise-')
+  ) {
+    return 'planning';
+  }
+
+  // Implementation: coding, implementing
+  if (name.includes('implement-') || name.includes('coding-spike')) {
+    return 'implementation';
+  }
+
+  // Quality: review, testing, precommit, cleanup
+  if (
+    name.includes('review-') ||
+    name.includes('precommit') ||
+    name.includes('cleanup-') ||
+    name.includes('validation-plan')
+  ) {
+    return 'quality';
+  }
+
+  // Shipping: commit, PR, merge
+  if (name.includes('commit-') || name.includes('pr-') || name.includes('merge-')) {
+    return 'shipping';
+  }
+
+  return undefined;
 }
 
 class ShortcutHandler extends BaseCommand {
@@ -41,8 +91,8 @@ class ShortcutHandler extends BaseCommand {
       }
 
       // List mode
-      if (options.list) {
-        await this.handleList(cache, options.all);
+      if (options.list || options.category) {
+        await this.handleList(cache, options.all, options.category);
         return;
       }
 
@@ -85,8 +135,20 @@ class ShortcutHandler extends BaseCommand {
   /**
    * Handle --list mode: show all available shortcuts.
    */
-  private async handleList(cache: DocCache, includeAll?: boolean): Promise<void> {
-    const docs = cache.list(includeAll);
+  private async handleList(
+    cache: DocCache,
+    includeAll?: boolean,
+    category?: string,
+  ): Promise<void> {
+    let docs = cache.list(includeAll);
+
+    // Filter by category if specified
+    if (category) {
+      docs = docs.filter((d) => {
+        const docCategory = inferCategory(d.name);
+        return docCategory === category;
+      });
+    }
 
     if (this.ctx.json) {
       this.output.data(
@@ -302,6 +364,10 @@ export const shortcutCommand = new Command('shortcut')
   .argument('[query]', 'Shortcut name or description to search for')
   .option('--list', 'List all available shortcuts')
   .option('--all', 'Include shadowed shortcuts (use with --list)')
+  .option(
+    '--category <category>',
+    'Filter by category: planning, implementation, quality, shipping',
+  )
   .option('--refresh', 'Refresh the cached shortcut directory')
   .option('--quiet', 'Suppress output (use with --refresh)')
   .action(async (query: string | undefined, options: ShortcutOptions, command) => {

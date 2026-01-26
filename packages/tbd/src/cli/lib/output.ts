@@ -128,6 +128,9 @@ export function createHelpEpilog(colorOption: ColorOption = 'auto'): string {
     `  For interactive setup: ${colors.dim('tbd setup --interactive')}`,
     `  For manual control: ${colors.dim('tbd init --help')}`,
     '',
+    colors.bold('Orientation:'),
+    `  For workflow guidance, run: ${colors.green('tbd prime')}`,
+    '',
     colors.blue('For more on tbd, see: https://github.com/jlevy/tbd'),
   ];
   return lines.join('\n');
