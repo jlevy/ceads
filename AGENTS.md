@@ -32,8 +32,8 @@ Work is NOT complete until `git push` succeeds.
 <!-- BEGIN TBD INTEGRATION -->
 # tbd Workflow
 
-`tbd` provides lightweight, git-native task and issue tracking using beads, which are
-lightweight issues managed from the CLI.
+`tbd` provides git-native issue tracking combined with coding guidelines, spec-driven
+workflows, and reusable shortcuts—all designed for disciplined agent-based development.
 
 ## Installation
 
@@ -79,6 +79,14 @@ tbd provides four core capabilities to help users:
 4. **Convenience Shortcuts**: Pre-built processes for common tasks like committing code,
    creating PRs, and reviewing code.
    Use them to work consistently.
+
+### Why These Work Together
+
+The power of tbd emerges when these capabilities combine:
+- **Write a planning spec** → breaks down into trackable issues
+- **Issues guide implementation** → guidelines ensure quality at each step
+- **Shortcuts standardize processes** → consistent commits, reviews, and PRs
+- **Everything stays in git** → full history, no external dependencies
 
 ### How to Use tbd to Help Users
 
