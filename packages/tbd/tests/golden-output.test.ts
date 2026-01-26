@@ -161,7 +161,12 @@ describe('golden output tests', () => {
       execSync('git config user.email "test@example.com"', { cwd: tempDir });
       execSync('git config user.name "Test"', { cwd: tempDir });
 
-      const result = runTbd(['setup', '--auto', '--prefix=test']);
+      // Set CLAUDE_CODE env var to trigger Claude detection on CI
+      const result = spawnSync('node', [tbdBin, 'setup', '--auto', '--prefix=test'], {
+        cwd: tempDir,
+        encoding: 'utf-8',
+        env: { ...process.env, FORCE_COLOR: '0', CLAUDE_CODE: '1' },
+      });
       expect(result.status).toBe(0);
 
       // Read the installed skill file

@@ -29,7 +29,7 @@ These may include:
 User: “I want to create a new research brief”
 
 Agent:
-1. Runs `tbd shortcut new-research-doc`
+1. Runs `tbd shortcut new-research-brief`
 2. Follows the instructions in the output
 3. The instructions may say to create an issue, copy a template, etc.
 

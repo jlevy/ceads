@@ -190,7 +190,7 @@ packages/tbd/src/
             ├── cursor-header.md          # Cursor YAML frontmatter only
             └── claude-header.md          # Claude YAML frontmatter only (if needed)
             ├── new-plan-spec.md
-            ├── new-research-doc.md
+            ├── new-research-brief.md
             ├── commit-code.md
             └── ...
 ```
@@ -511,7 +511,7 @@ shortcut-explanation
   .tbd/docs/shortcuts/system
 new-plan-spec
   .tbd/docs/shortcuts/standard
-new-research-doc
+new-research-brief
   .tbd/docs/shortcuts/standard
 commit-code
   .tbd/docs/custom
@@ -525,7 +525,7 @@ shortcut-explanation
   .tbd/docs/shortcuts/system
 new-plan-spec
   .tbd/docs/shortcuts/standard
-new-research-doc
+new-research-brief
   .tbd/docs/shortcuts/standard
 commit-code
   .tbd/docs/custom
@@ -567,7 +567,7 @@ Each shortcut is a markdown document with step-by-step instructions. These may i
 
 User: "I want to create a new research brief"
 Agent:
-1. Run `tbd shortcut new-research-doc`
+1. Run `tbd shortcut new-research-brief`
 2. Follow the instructions in the output
 3. The instructions may say to create a bead, copy a template, etc.
 ```
@@ -904,7 +904,7 @@ Run `tbd shortcut <name>` to use any of these shortcuts:
 | Name | Description |
 |------|-------------|
 | new-plan-spec | Create a new feature planning specification document |
-| new-research-doc | Start a research brief for investigating a topic |
+| new-research-brief | Start a research brief for investigating a topic |
 | commit-code | Stage and commit changes with proper message format |
 | review-pr | Review a pull request and provide feedback |
 | ... | ... |

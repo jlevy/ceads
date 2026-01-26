@@ -102,7 +102,7 @@ code. Run `tbd shortcut <name>` to get step-by-step instructions.
   Cloud).
 - **Shortcuts:** 25+ reusable instruction documents for common workflows, like
   - `new-plan-spec` — Create a feature planning spec
-  - `new-research-doc` — Create a research document
+  - `new-research-brief` — Create a research document
   - `precommit-process` — Pre-commit review and testing
   - `commit-code` — Run checks and commit
   - `create-or-update-pr-with-validation-plan` — Create PR with test plan
@@ -309,7 +309,7 @@ tbd template plan-spec > docs/project/specs/plan-2025-01-15-feature.md
 | Shortcut | Purpose |
 | --- | --- |
 | `new-plan-spec` | Create feature planning spec |
-| `new-research-doc` | Create research document |
+| `new-research-brief` | Create research document |
 | `new-architecture-doc` | Create architecture document |
 | `new-validation-plan` | Create test/validation plan |
 | `new-implementation-beads-from-spec` | Break spec into issues |

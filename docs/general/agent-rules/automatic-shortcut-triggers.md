@@ -62,7 +62,7 @@ instructions.
 
 | If user request involves... | Use shortcut |
 | --- | --- |
-| Research or technical investigation | @shortcut-new-research-doc.md |
+| Research or technical investigation | @shortcut-new-research-brief.md |
 | Creating architecture documentation | @shortcut-new-architecture-doc.md |
 | Updating/revising architecture docs | @shortcut-revise-architecture-doc.md |
 
