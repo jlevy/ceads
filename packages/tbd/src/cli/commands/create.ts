@@ -36,6 +36,7 @@ interface CreateOptions {
   defer?: string;
   parent?: string;
   label?: string[];
+  spec?: string;
 }
 
 class CreateHandler extends BaseCommand {
@@ -111,6 +112,7 @@ class CreateHandler extends BaseCommand {
         due_date: options.due ?? undefined,
         deferred_until: options.defer ?? undefined,
         parent_id: parentId,
+        spec_path: options.spec ?? undefined,
       };
 
       // Write both the issue and the mapping
@@ -155,6 +157,7 @@ export const createCommand = new Command('create')
   .option('--due <date>', 'Due date (ISO8601)')
   .option('--defer <date>', 'Defer until date (ISO8601)')
   .option('--parent <id>', 'Parent issue ID')
+  .option('--spec <path>', 'Link to spec document (relative path)')
   .option('-l, --label <label>', 'Add label (repeatable)', (val, prev: string[] = []) => [
     ...prev,
     val,
