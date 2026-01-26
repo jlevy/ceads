@@ -131,6 +131,9 @@ export const IssueSchema = BaseEntity.extend({
   created_by: z.string().nullable().optional(),
   closed_at: Timestamp.nullable().optional(),
   close_reason: z.string().nullable().optional(),
+
+  // Spec linking - path to related spec/doc (relative to repo root)
+  spec_path: z.string().nullable().optional(),
 });
 
 // =============================================================================
