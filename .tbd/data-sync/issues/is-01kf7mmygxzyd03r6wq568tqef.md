@@ -1,15 +1,17 @@
 ---
+close_reason: Output mode tests exist in cli-color-modes.tryscript.md and output.test.ts. Coverage sufficient.
+closed_at: 2026-01-26T17:24:23.379Z
 created_at: 2026-01-18T04:08:43.292Z
 dependencies: []
 id: is-01kf7mmygxzyd03r6wq568tqef
 kind: task
 labels: []
 priority: 2
-status: open
+status: closed
 title: Output mode testing
 type: is
-updated_at: 2026-01-18T04:11:07.163Z
-version: 3
+updated_at: 2026-01-26T17:24:23.380Z
+version: 4
 ---
 Test all output modes work correctly:
 - Verify all output modes work correctly

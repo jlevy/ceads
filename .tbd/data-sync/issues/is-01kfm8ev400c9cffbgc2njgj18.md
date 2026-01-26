@@ -1,4 +1,6 @@
 ---
+close_reason: Shortcut command being rewritten. Old docs no longer relevant.
+closed_at: 2026-01-26T17:24:24.288Z
 created_at: 2026-01-23T01:45:47.903Z
 dependencies:
   - target: is-01kfhvzn1vbsam9xckr0njfbqg
@@ -9,11 +11,11 @@ labels:
   - docs-review
   - internal
 priority: 3
-status: open
+status: closed
 title: Verify shortcut command (internal) docs consistency
 type: is
-updated_at: 2026-01-23T02:40:02.599Z
-version: 2
+updated_at: 2026-01-26T17:24:24.289Z
+version: 3
 ---
 The shortcut command is a new internal command not exposed in main CLI help. Verify:
 - Internal documentation/comments are accurate
