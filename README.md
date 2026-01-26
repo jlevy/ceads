@@ -118,8 +118,8 @@ for specs, issue tracking, code review, and testing—all from a single CLI.
   - `precommit-process` — Pre-commit review and testing
   - `commit-code` — Run checks and commit
   - `create-or-update-pr-with-validation-plan` — Create PR with test plan
-- **Guidelines:** [Over 30 pages](packages/tbd/docs/guidelines/) of coding rules and
-  best practices for TypeScript, Python, testing, TDD, backward compatibility, and more.
+- **Guidelines:** [Over 15 rules and best practices (~30 pages)](packages/tbd/docs/guidelines/)
+  for TypeScript, Python, testing, TDD, backward compatibility, and more.
 - **Templates:** Document templates for planning specs, research briefs, architecture
   docs.
 
