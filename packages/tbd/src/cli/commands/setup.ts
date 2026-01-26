@@ -728,19 +728,13 @@ class SetupClaudeHandler extends BaseCommand {
   }
 
   /**
-   * Clean up legacy scripts and hook entries from previous tbd versions.
-   * This ensures upgrades don't leave orphaned files or duplicate hooks.
+   * Clean up legacy scripts from project .claude/scripts/ directory.
+   * Hook cleanup is now done inline during install to avoid race conditions.
    */
-  private async cleanupLegacySetup(
-    globalSettingsPath: string,
-    projectSettingsPath: string,
-  ): Promise<{ scriptsRemoved: string[]; hooksRemoved: number }> {
-    const cwd = process.cwd();
+  private async cleanupLegacyScripts(cwd: string): Promise<string[]> {
     const scriptsDir = join(cwd, '.claude', 'scripts');
     const scriptsRemoved: string[] = [];
-    let hooksRemoved = 0;
 
-    // 1. Remove legacy scripts from .claude/scripts/
     try {
       await access(scriptsDir);
       const entries = await readdir(scriptsDir, { withFileTypes: true });
@@ -763,96 +757,7 @@ class SetupClaudeHandler extends BaseCommand {
       // Scripts directory doesn't exist, nothing to clean
     }
 
-    // 2. Clean up legacy hook entries from global settings
-    try {
-      await access(globalSettingsPath);
-      const content = await readFile(globalSettingsPath, 'utf-8');
-      const settings = JSON.parse(content) as Record<string, unknown>;
-
-      if (settings.hooks) {
-        const hooks = settings.hooks as Record<string, unknown>;
-        let modified = false;
-
-        // Clean SessionStart hooks
-        if (hooks.SessionStart) {
-          const sessionStart = hooks.SessionStart as { hooks?: { command?: string }[] }[];
-          const filtered = this.filterLegacyHooks(sessionStart);
-          if (filtered.length !== sessionStart.length) {
-            hooksRemoved += sessionStart.length - filtered.length;
-            modified = true;
-            if (filtered.length === 0) {
-              delete hooks.SessionStart;
-            } else {
-              hooks.SessionStart = filtered;
-            }
-          }
-        }
-
-        // Clean PreCompact hooks
-        if (hooks.PreCompact) {
-          const preCompact = hooks.PreCompact as { hooks?: { command?: string }[] }[];
-          const filtered = this.filterLegacyHooks(preCompact);
-          if (filtered.length !== preCompact.length) {
-            hooksRemoved += preCompact.length - filtered.length;
-            modified = true;
-            if (filtered.length === 0) {
-              delete hooks.PreCompact;
-            } else {
-              hooks.PreCompact = filtered;
-            }
-          }
-        }
-
-        if (modified) {
-          if (Object.keys(hooks).length === 0) {
-            delete settings.hooks;
-          }
-          await writeFile(globalSettingsPath, JSON.stringify(settings, null, 2) + '\n');
-        }
-      }
-    } catch {
-      // Global settings don't exist or couldn't be parsed
-    }
-
-    // 3. Clean up legacy hook entries from project settings
-    try {
-      await access(projectSettingsPath);
-      const content = await readFile(projectSettingsPath, 'utf-8');
-      const settings = JSON.parse(content) as Record<string, unknown>;
-
-      if (settings.hooks) {
-        const hooks = settings.hooks as Record<string, unknown>;
-        let modified = false;
-
-        // Clean all hook types for legacy patterns
-        for (const hookType of ['SessionStart', 'PreCompact', 'PostToolUse']) {
-          if (hooks[hookType]) {
-            const hookList = hooks[hookType] as { hooks?: { command?: string }[] }[];
-            const filtered = this.filterLegacyHooks(hookList);
-            if (filtered.length !== hookList.length) {
-              hooksRemoved += hookList.length - filtered.length;
-              modified = true;
-              if (filtered.length === 0) {
-                delete hooks[hookType];
-              } else {
-                hooks[hookType] = filtered;
-              }
-            }
-          }
-        }
-
-        if (modified) {
-          if (Object.keys(hooks).length === 0) {
-            delete settings.hooks;
-          }
-          await writeFile(projectSettingsPath, JSON.stringify(settings, null, 2) + '\n');
-        }
-      }
-    } catch {
-      // Project settings don't exist or couldn't be parsed
-    }
-
-    return { scriptsRemoved, hooksRemoved };
+    return scriptsRemoved;
   }
 
   /**
@@ -886,28 +791,37 @@ class SetupClaudeHandler extends BaseCommand {
     const projectSettingsPath = join(cwd, '.claude', 'settings.json');
 
     try {
-      // Clean up legacy scripts and hooks before installing new ones
-      const { scriptsRemoved, hooksRemoved } = await this.cleanupLegacySetup(
-        settingsPath,
-        projectSettingsPath,
-      );
-      if (scriptsRemoved.length > 0 || hooksRemoved > 0) {
-        if (scriptsRemoved.length > 0) {
-          this.output.info(`Cleaned up ${scriptsRemoved.length} legacy script(s)`);
-        }
-        if (hooksRemoved > 0) {
-          this.output.info(`Cleaned up ${hooksRemoved} legacy hook(s)`);
-        }
+      // Clean up legacy scripts from project .claude/scripts/ directory
+      const scriptsRemoved = await this.cleanupLegacyScripts(cwd);
+      if (scriptsRemoved.length > 0) {
+        this.output.info(`Cleaned up ${scriptsRemoved.length} legacy script(s)`);
       }
 
-      // Install hooks in global settings
+      // Install hooks in global settings (also cleans legacy hooks inline)
       await mkdir(dirname(settingsPath), { recursive: true });
 
       let settings: Record<string, unknown> = {};
+      let globalHooksRemoved = 0;
       try {
         await access(settingsPath);
         const content = await readFile(settingsPath, 'utf-8');
         settings = JSON.parse(content) as Record<string, unknown>;
+
+        // Clean legacy hooks inline while we have the settings loaded
+        if (settings.hooks) {
+          const hooks = settings.hooks as Record<string, unknown>;
+          for (const hookType of ['SessionStart', 'PreCompact']) {
+            if (hooks[hookType]) {
+              const hookList = hooks[hookType] as { hooks?: { command?: string }[] }[];
+              const filtered = this.filterLegacyHooks(hookList);
+              if (filtered.length !== hookList.length) {
+                globalHooksRemoved += hookList.length - filtered.length;
+                hooks[hookType] = filtered.length > 0 ? filtered : undefined;
+                if (!hooks[hookType]) delete hooks[hookType];
+              }
+            }
+          }
+        }
       } catch {
         // File doesn't exist, start fresh
       }
@@ -934,17 +848,40 @@ class SetupClaudeHandler extends BaseCommand {
 
       // Read existing project settings if present
       let projectSettings: Record<string, unknown> = {};
+      let projectHooksRemoved = 0;
       try {
         await access(projectSettingsPath);
         const content = await readFile(projectSettingsPath, 'utf-8');
         projectSettings = JSON.parse(content) as Record<string, unknown>;
         // Backup existing settings
         await writeFile(projectSettingsPath + '.bak', content);
+
+        // Clean legacy hooks inline while we have the settings loaded
+        if (projectSettings.hooks) {
+          const hooks = projectSettings.hooks as Record<string, unknown>;
+          for (const hookType of ['SessionStart', 'PreCompact', 'PostToolUse']) {
+            if (hooks[hookType]) {
+              const hookList = hooks[hookType] as { hooks?: { command?: string }[] }[];
+              const filtered = this.filterLegacyHooks(hookList);
+              if (filtered.length !== hookList.length) {
+                projectHooksRemoved += hookList.length - filtered.length;
+                hooks[hookType] = filtered.length > 0 ? filtered : undefined;
+                if (!hooks[hookType]) delete hooks[hookType];
+              }
+            }
+          }
+        }
       } catch {
         // File doesn't exist, start fresh
       }
 
-      // Merge project hooks
+      // Report total hooks cleaned
+      const totalHooksRemoved = globalHooksRemoved + projectHooksRemoved;
+      if (totalHooksRemoved > 0) {
+        this.output.info(`Cleaned up ${totalHooksRemoved} legacy hook(s)`);
+      }
+
+      // Merge project hooks (preserving cleaned non-tbd hooks)
       const existingProjectHooks = (projectSettings.hooks as Record<string, unknown>) || {};
       projectSettings.hooks = {
         ...existingProjectHooks,
