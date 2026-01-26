@@ -7,58 +7,53 @@ labels: []
 parent_id: is-01kfxpq9c0j5wdsqy6vsqc3d1g
 priority: 2
 status: open
-title: Fix stats command output alignment - right-align all counts in consistent column
+title: "Redesign stats command output: unified status section with active/closed/total columns"
 type: is
-updated_at: 2026-01-26T17:48:18.328Z
-version: 4
+updated_at: 2026-01-26T17:53:22.790Z
+version: 6
 ---
-The `tbd stats` output has poor visual formatting:
+The `tbd stats` output needs restructuring and better formatting.
 
 **Current problems:**
-- Numbers are not right-aligned
-- Columns have inconsistent widths across sections
-- Priority labels have extra padding (e.g., 'High    )' instead of 'High)')
-- Counts don't align to a consistent right column
-- Colors not used consistently with other commands
-- Missing status icons (○ ◐ ● ✓) that are used in list output
+- Confusing 'Summary' vs 'By status' sections with overlapping info
+- Numbers not right-aligned
+- Missing useful breakdowns (active vs closed per category)
+- Colors and icons not used consistently
 
-**Expected format:**
-All counts should be right-aligned to the same column across all sections, with icons and colors:
+**New design:**
 
 ```
-Summary:
-  Ready:          24
-  In progress:     0
-  Blocked:        14
-  Open:           38
-  Total:         572
-
 By status:
-  ○ open          38
-  ✓ closed       534
+  ○ open            24
+  ◐ in_progress      3
+  ● blocked         11
+  ────────────────────
+  ◦ active          38
+  ✓ closed         534
+  ════════════════════
+    total          572
 
-By kind:
-  bug             46
-  feature         27
-  task           454
-  epic            39
-  chore            6
+By kind:                active  closed   total
+  bug                       5      41      46
+  feature                  12      15      27
+  task                     18     436     454
+  epic                      3      36      39
+  chore                     0       6       6
 
-By priority:
-  P0 (Critical)   12
-  P1 (High)      235
-  P2 (Medium)    271
-  P3 (Low)        52
-  P4 (Lowest)      2
+By priority:            active  closed   total
+  P0 (Critical)             2      10      12
+  P1 (High)                10     225     235
+  P2 (Medium)              20     251     271
+  P3 (Low)                  6      46      52
+  P4 (Lowest)               0       2       2
 ```
 
-**Implementation:**
-- Calculate max count width across ALL sections (not per-section)
-- Right-align all counts to that width
-- Remove extra padding from priority labels
-- Use consistent left column width
-- Apply appropriate colors: priority colors for P0-P4, status colors for open/closed/blocked
-- Add status icons using getStatusIcon() from status.ts
-- Follow patterns from issue-format.ts
+**Key changes:**
+1. Single 'By status' section listing all statuses, with 'active' subtotal, 'closed', and 'total'
+2. 'By kind' and 'By priority' get 3 columns: active, closed, total
+3. All counts right-aligned to consistent column
+4. Status icons using getStatusIcon()
+5. Appropriate colors for priorities and statuses
+6. Separator lines for visual grouping
 
 **File:** packages/tbd/src/cli/commands/stats.ts
