@@ -1,5 +1,12 @@
 # tbd-git
 
+## 0.1.5
+
+### Patch Changes
+
+- afc01dd: Agent orientation system, DocCache with shortcuts, and documentation
+  improvements.
+
 ## 0.1.4
 
 ### Patch Changes
