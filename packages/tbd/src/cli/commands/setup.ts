@@ -181,16 +181,6 @@ tbd prime "$@"
 `;
 
 /**
- * Legacy script for backwards compatibility.
- * Redirects to the new tbd-session.sh script.
- */
-const TBD_ENSURE_CLI_SCRIPT = `#!/bin/bash
-# Legacy ensure-tbd-cli.sh - redirects to tbd-session.sh
-# This file exists for backwards compatibility
-exec "$HOME/.claude/scripts/tbd-session.sh" "$@"
-`;
-
-/**
  * Claude Code global hooks configuration (installed to ~/.claude/settings.json)
  * Uses tbd-session.sh which ensures tbd is installed and runs tbd prime with correct PATH.
  */
@@ -335,20 +325,13 @@ class SetupClaudeHandler extends BaseCommand {
     let postToolUseHook = false;
     let hookScriptInstalled = false;
 
-    // Check for global tbd-session.sh script (or legacy ensure-tbd-cli.sh)
+    // Check for global tbd-session.sh script
     const tbdSessionScript = join(homedir(), '.claude', 'scripts', 'tbd-session.sh');
-    const legacyTbdScript = join(homedir(), '.claude', 'scripts', 'ensure-tbd-cli.sh');
     try {
       await access(tbdSessionScript);
       globalScriptInstalled = true;
     } catch {
-      // Try legacy script
-      try {
-        await access(legacyTbdScript);
-        globalScriptInstalled = true;
-      } catch {
-        // Neither script exists
-      }
+      // Script doesn't exist
     }
 
     // Check hooks in global settings
@@ -712,10 +695,15 @@ class SetupClaudeHandler extends BaseCommand {
       await writeFile(tbdSessionScript, TBD_SESSION_SCRIPT);
       await chmod(tbdSessionScript, 0o755);
 
-      // Legacy redirect: ensure-tbd-cli.sh (for backwards compatibility)
-      const legacyScript = join(globalScriptsDir, 'ensure-tbd-cli.sh');
-      await writeFile(legacyScript, TBD_ENSURE_CLI_SCRIPT);
-      await chmod(legacyScript, 0o755);
+      // Clean up legacy global scripts
+      const legacyGlobalScripts = ['ensure-tbd-cli.sh', 'setup-tbd.sh', 'ensure-tbd.sh'];
+      for (const script of legacyGlobalScripts) {
+        try {
+          await rm(join(globalScriptsDir, script));
+        } catch {
+          // Script doesn't exist, ignore
+        }
+      }
 
       this.output.success('Installed global tbd session script');
 
