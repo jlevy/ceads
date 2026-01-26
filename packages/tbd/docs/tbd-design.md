@@ -2241,6 +2241,7 @@ tbd update <id> [options]
 
 Options:
   --from-file <path>        Update all fields from YAML+Markdown file
+  --title <text>            Set title
   --status <status>         Set status
   --type <type>             Set type
   --priority <0-4>          Set priority
@@ -2260,6 +2261,7 @@ Options:
 
 ```bash
 tbd update proj-a1b2 --status=in_progress
+tbd update proj-a1b2 --title "New issue title"
 tbd update proj-a1b2 --add-label urgent --priority=P0
 tbd update proj-a1b2 --defer 2025-02-01
 

@@ -10,6 +10,7 @@ import { readFile } from 'node:fs/promises';
 import { BaseCommand } from '../lib/base-command.js';
 import { requireInit, NotFoundError, ValidationError, CLIError } from '../lib/errors.js';
 import { readIssue, writeIssue } from '../../file/storage.js';
+import { parseMarkdownWithFrontmatter } from '../../file/parser.js';
 import { formatDisplayId, formatDebugId } from '../../lib/ids.js';
 import { IssueStatus, IssueKind } from '../../lib/schemas.js';
 import { parsePriority } from '../../lib/priority.js';
@@ -21,6 +22,7 @@ import { readConfig } from '../../file/config.js';
 
 interface UpdateOptions {
   fromFile?: string;
+  title?: string;
   status?: string;
   type?: string;
   priority?: string;
@@ -69,6 +71,7 @@ class UpdateHandler extends BaseCommand {
     }
 
     // Apply updates
+    if (updates.title !== undefined) issue.title = updates.title;
     if (updates.status !== undefined) issue.status = updates.status;
     if (updates.kind !== undefined) issue.kind = updates.kind;
     if (updates.priority !== undefined) issue.priority = updates.priority;
@@ -78,6 +81,11 @@ class UpdateHandler extends BaseCommand {
     if (updates.due_date !== undefined) issue.due_date = updates.due_date;
     if (updates.deferred_until !== undefined) issue.deferred_until = updates.deferred_until;
     if (updates.parent_id !== undefined) issue.parent_id = updates.parent_id;
+
+    // Handle full labels replacement (from --from-file)
+    if (updates.labels !== undefined) {
+      issue.labels = updates.labels;
+    }
 
     // Handle label updates
     if (updates.addLabels && updates.addLabels.length > 0) {
@@ -118,6 +126,7 @@ class UpdateHandler extends BaseCommand {
     options: UpdateOptions,
     mapping: IdMapping,
   ): Promise<{
+    title?: string;
     status?: IssueStatusType;
     kind?: IssueKindType;
     priority?: PriorityType;
@@ -129,8 +138,10 @@ class UpdateHandler extends BaseCommand {
     parent_id?: string | null;
     addLabels?: string[];
     removeLabels?: string[];
+    labels?: string[];
   } | null> {
     const updates: {
+      title?: string;
       status?: IssueStatusType;
       kind?: IssueKindType;
       priority?: PriorityType;
@@ -142,7 +153,79 @@ class UpdateHandler extends BaseCommand {
       parent_id?: string | null;
       addLabels?: string[];
       removeLabels?: string[];
+      labels?: string[];
     } = {};
+
+    // Handle --from-file: read all mutable fields from YAML+Markdown file
+    if (options.fromFile) {
+      let content: string;
+      try {
+        content = await readFile(options.fromFile, 'utf-8');
+      } catch {
+        throw new CLIError(`Failed to read file: ${options.fromFile}`);
+      }
+
+      try {
+        const { frontmatter, description, notes } = parseMarkdownWithFrontmatter(content);
+
+        // Extract mutable fields from frontmatter
+        if (typeof frontmatter.title === 'string') {
+          updates.title = frontmatter.title;
+        }
+        if (typeof frontmatter.status === 'string') {
+          const result = IssueStatus.safeParse(frontmatter.status);
+          if (result.success) {
+            updates.status = result.data;
+          }
+        }
+        if (typeof frontmatter.kind === 'string') {
+          const result = IssueKind.safeParse(frontmatter.kind);
+          if (result.success) {
+            updates.kind = result.data;
+          }
+        }
+        if (typeof frontmatter.priority === 'number') {
+          const priority = parsePriority(String(frontmatter.priority));
+          if (priority !== undefined) {
+            updates.priority = priority;
+          }
+        }
+        if (frontmatter.assignee !== undefined) {
+          updates.assignee = typeof frontmatter.assignee === 'string' ? frontmatter.assignee : null;
+        }
+        if (frontmatter.due_date !== undefined) {
+          updates.due_date = typeof frontmatter.due_date === 'string' ? frontmatter.due_date : null;
+        }
+        if (frontmatter.deferred_until !== undefined) {
+          updates.deferred_until =
+            typeof frontmatter.deferred_until === 'string' ? frontmatter.deferred_until : null;
+        }
+        if (frontmatter.parent_id !== undefined) {
+          updates.parent_id =
+            typeof frontmatter.parent_id === 'string' ? frontmatter.parent_id : null;
+        }
+        if (Array.isArray(frontmatter.labels)) {
+          updates.labels = frontmatter.labels.filter((l): l is string => typeof l === 'string');
+        }
+
+        // Set description and notes from body
+        updates.description = description || null;
+        updates.notes = notes || null;
+      } catch (error) {
+        throw new CLIError(
+          `Failed to parse file: ${options.fromFile}: ${error instanceof Error ? error.message : String(error)}`,
+        );
+      }
+
+      return updates;
+    }
+
+    if (options.title !== undefined) {
+      if (!options.title.trim()) {
+        throw new ValidationError('Title cannot be empty');
+      }
+      updates.title = options.title;
+    }
 
     if (options.status) {
       const result = IssueStatus.safeParse(options.status);
@@ -225,6 +308,7 @@ export const updateCommand = new Command('update')
   .description('Update an issue')
   .argument('<id>', 'Issue ID')
   .option('--from-file <path>', 'Update all fields from YAML+Markdown file')
+  .option('--title <text>', 'Set title')
   .option('--status <status>', 'Set status')
   .option('--type <type>', 'Set type')
   .option('--priority <0-4>', 'Set priority')
