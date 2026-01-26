@@ -663,11 +663,8 @@ export function readConfig(tbdRoot: string): Config {
 
 6. **Where to check staleness**: Where in the code should we check if docs are stale?
 
-   **Options**:
-   - A) In `readConfig()` - earliest point, affects all commands
-   - B) In DocCache constructor - only when docs are actually needed
-   - C) In specific commands that use docs (shortcut, guidelines, template)
-
-   **Leaning toward**: Option B - check in DocCache when instantiated.
+   **Decision**: Check in DocCache constructor when instantiated.
    This ensures auto-sync only runs when docs are actually being accessed, not for
-   unrelated commands like `tbd list` or `tbd show`.
+   unrelated commands like `tbd list` or `tbd show`. Commands that use docs (shortcut,
+   guidelines, template) will trigger the check; other commands won’t incur the
+   overhead.
