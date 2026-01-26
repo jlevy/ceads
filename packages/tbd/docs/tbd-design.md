@@ -211,18 +211,20 @@ Git-native issue tracking for AI agents and humans.
 
 ### 1.1 What is tbd?
 
-**tbd** ("To Be Done" or “TypeScript Beads”) is a git-native issue tracker designed for
-simplicity and reliability.
-It stores issues as Markdown files with YAML frontmatter on a dedicated sync branch,
-enabling conflict-free collaboration without daemons or databases.
+**tbd helps humans and agents ship code with greater speed, quality, and discipline.**
 
-tbd provides **four integrated capabilities** for disciplined agent-based development:
+tbd ("To Be Done" or “TypeScript Beads”) is a git-native issue tracker that stores
+issues as Markdown files with YAML frontmatter on a dedicated sync branch, enabling
+conflict-free collaboration without daemons or databases.
 
-1. **Issue Tracking** — Git-native task and bug tracking with beads stored as Markdown
-2. **Coding Guidelines** — 15+ coding rules for TypeScript, Python, testing, and more
-3. **Spec-Driven Workflows** — Write planning specs, break into issues, implement
-   systematically
-4. **Convenience Shortcuts** — Pre-built processes for commits, PRs, and code review
+tbd provides **four integrated capabilities**:
+
+1. **Issue Tracking** — Git-native tasks/bugs.
+   Never lose work across sessions.
+2. **Spec-Driven Workflows** — Plan features → break into issues → implement
+   systematically.
+3. **Shortcuts** — Pre-built processes for commits, PRs, reviews.
+4. **Guidelines** — Best practices for TypeScript, Python, testing.
 
 The **issue tracking layer** has four core principles:
 

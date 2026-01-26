@@ -1,7 +1,17 @@
 # tbd Workflow
 
-`tbd` provides git-native issue tracking combined with coding guidelines, spec-driven
-workflows, and reusable shortcuts—all designed for disciplined agent-based development.
+**`tbd` helps humans and agents ship code with greater speed, quality, and discipline.**
+
+1. **Issue Tracking**: Git-native tasks/bugs.
+   Never lose work across sessions.
+2. **Spec-Driven Workflows**: Plan features → break into issues → implement
+   systematically.
+3. **Shortcuts**: Pre-built processes for commits, PRs, reviews.
+4. **Guidelines**: Best practices for TypeScript, Python, testing.
+
+These features work together to create high-quality workflows.
+Be sure to apply the workflows below for all issue tracking, spec driven planning and
+implementation, and code review.
 
 ## Installation
 
@@ -9,12 +19,17 @@ If `tbd` is not installed, install and set up:
 
 ```bash
 npm install -g tbd-git@latest
+tbd                                # Gives full orientation
 tbd setup --auto --prefix=<name>   # Fresh project (--prefix REQUIRED)
 tbd setup --auto                   # Existing tbd project (prefix already set)
 ```
 
-**CRITICAL: Prefix Requirement**
-- **Fresh projects**: `--prefix` is REQUIRED. Ask the user what prefix they want.
+The prefix appears in every issue ID (e.g., `myapp-a1b2`) and is a matter of user
+preference for a given project.
+
+**IMPORTANT NOTES ON SETUP:**
+- **Fresh projects**: `--prefix` is REQUIRED. NEVER guess or invent a prefix.
+  Always ask the user first.
 - **Existing tbd projects** (`.tbd/` exists): No `--prefix` needed, just run
   `tbd setup --auto`.
 - **Beads migration** (`.beads/` exists): Use `tbd setup --from-beads` (uses beads
@@ -22,41 +37,9 @@ tbd setup --auto                   # Existing tbd project (prefix already set)
 - **Refresh configs**: Run `tbd setup --auto` anytime to update skill files, hooks, and
   get the latest shortcuts/guidelines/templates.
 
-**IMPORTANT FOR AGENTS:** NEVER guess or invent a prefix.
-Always ask the user first.
-The prefix appears in every issue ID (e.g., `myapp-a1b2`) and is a matter of user
-preference.
+> `tbd prime` restores context after compaction/clear (auto-called by hooks).
 
-> **Context Recovery**: Run `tbd prime` after compaction, clear, or new session.
-> Hooks auto-call this in Claude Code when .tbd/ detected.
-
-## Agent Orientation
-
-tbd provides four core capabilities to help users:
-
-1. **Issue Tracking**: Track tasks, bugs, and features as lightweight “beads” stored in
-   git. Never lose discovered work; maintain continuity across sessions.
-
-2. **Coding Guidelines**: A library of best practices for TypeScript, Python, testing,
-   and more. Pull them in when relevant to apply consistent quality.
-
-3. **Spec-Driven Workflows**: Write planning specs for features, then break them into
-   trackable issues and implement systematically.
-   This is the recommended way to handle non-trivial features.
-
-4. **Convenience Shortcuts**: Pre-built processes for common tasks like committing code,
-   creating PRs, and reviewing code.
-   Use them to work consistently.
-
-### Why These Work Together
-
-The power of tbd emerges when these capabilities combine:
-- **Write a planning spec** → breaks down into trackable issues
-- **Issues guide implementation** → guidelines ensure quality at each step
-- **Shortcuts standardize processes** → consistent commits, reviews, and PRs
-- **Everything stays in git** → full history, no external dependencies
-
-### How to Use tbd to Help Users
+## How to Use tbd to Help Users
 
 **Don’t just tell users about commands.** Use tbd proactively:
 
@@ -68,21 +51,25 @@ The power of tbd emerges when these capabilities combine:
 
 ### Quick Reference Table
 
-| User Need | Command | Notes |
+| User Need or Request | Command | Notes |
 | --- | --- | --- |
-| "I found a bug" | `tbd create "..." --type=bug` | Creates issue |
-| "Let's plan this feature" | `tbd shortcut new-plan-spec` | Outputs instructions |
-| "What should I work on?" | `tbd ready` | Lists ready issues |
+| "There is a bug where ..." | `tbd create "..." --type=bug` | Creates issue |
+| "Let's plan a new feature" | `tbd shortcut new-plan-spec` | Outputs instructions |
+| "Fix current issues" | `tbd ready` | Lists ready issues |
 | "Build a TypeScript CLI" | `tbd guidelines typescript-cli-tool-rules` | Outputs guidelines |
-| "Set up a monorepo" | `tbd guidelines typescript-monorepo-patterns` | Outputs guidelines |
-| "Add golden/snapshot tests" | `tbd guidelines golden-testing-guidelines` | Outputs guidelines |
-| "Review the TypeScript code" | `tbd guidelines typescript-rules` | Outputs guidelines |
-| "Ready to commit" | `tbd shortcut commit-code` | Outputs instructions |
+| "Improve eslint setup" | `tbd guidelines typescript-monorepo-patterns` | Outputs guidelines |
+| "Add better e2e testing" | `tbd guidelines golden-testing-guidelines` | Outputs guidelines |
+| "Review these changes" (TypeScript) | `tbd guidelines typescript-rules` | Outputs guidelines |
+| "Review these changes" (Python) | `tbd guidelines python-rules` | Outputs guidelines |
+| "Commit this" | `tbd shortcut commit-code` | Outputs instructions |
+| "Create a PR" | `tbd shortcut create-or-update-pr-simple` | Outputs instructions |
+| "Research this topic" | `tbd shortcut new-research-doc` | Outputs template |
+| "Document this architecture" | `tbd shortcut new-architecture-doc` | Outputs template |
 
 *“Outputs instructions/guidelines” = Read and follow the guidance.
 It tells you HOW to do something well.*
 
-# SESSION CLOSING PROTOCOL
+## IMPORTANT: Session Closing Protocol
 
 **CRITICAL**: Before saying “done” or “complete”, you MUST run this checklist:
 
@@ -96,15 +83,15 @@ It tells you HOW to do something well.*
 [ ] 7. If CI failed: fix, re-push, restart from step 3
 ```
 
-## NON-NEGOTIABLE Requirements
+### NON-NEGOTIABLE Requirements
 
-### CI: Wait for `--watch` to finish
+#### CI: Wait for `--watch` to finish
 
 The `--watch` flag blocks until ALL checks complete.
 Do NOT see “passing” in early output and move on—wait for the **final summary** showing
 all checks passed.
 
-### tbd: Update issues and sync
+#### tbd: Update issues and sync
 
 Every session must end with tbd in a clean state:
 - Close/update **every issue** you worked on
@@ -112,7 +99,7 @@ Every session must end with tbd in a clean state:
 
 **Work is not done until pushed, CI passes, and tbd is synced.**
 
-## Core Rules
+## IMPORTANT: Issue Tracking Rules
 
 - Track *all task work* not being done immediately as beads using `tbd` (discovered
   work, future work, TODOs for the session, multi-session work)
@@ -159,31 +146,6 @@ Note: `tbd sync` handles all git operations for issues--no manual git push neede
 - `tbd stats` - Project statistics (open/closed/blocked counts)
 - `tbd doctor` - Check for issues (sync problems, missing hooks)
 
-## Common Workflows
-
-**Starting work:**
-
-```bash
-tbd ready                              # Find available work
-tbd show <id>                          # Review issue details
-tbd update <id> --status in_progress   # Claim it
-```
-
-**Completing work:**
-
-```bash
-tbd close <id>    # Mark complete
-tbd sync          # Push to remote
-```
-
-**Creating dependent work:**
-
-```bash
-tbd create "Implement feature X" --type feature
-tbd create "Write tests for X" --type task
-tbd dep add <tests-id> <feature-id>   # Tests depend on feature
-```
-
 ## Documentation Commands
 
 ### Shortcuts
@@ -210,16 +172,6 @@ Document templates for specs, research, architecture:
 - `tbd template --list` - List all available templates
 
 Example: `tbd template plan-spec > docs/project/specs/active/plan-YYYY-MM-DD-feature.md`
-
-## Setup Commands
-
-- `tbd setup --auto` - Non-interactive setup with smart defaults (for agents/scripts)
-- `tbd setup --interactive` - Interactive setup with prompts (for humans)
-- `tbd setup --from-beads` - Migrate from Beads to tbd
-
-> **Refresh anytime:** Run `tbd setup --auto` to update skill files, hooks, and configs
-> with the latest shortcuts/guidelines/templates.
-> Safe to run repeatedly.
 
 ## Quick Reference
 

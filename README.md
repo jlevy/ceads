@@ -1,10 +1,10 @@
 # tbd
 
-**Git-native issue tracking for AI agents and humans.**
+**tbd helps humans and agents ship code with greater speed, quality, and discipline.**
 
 **tbd** (which stands for “To Be Done” or “TypeScript beads,” depending on your
-preference). It is a command-line issue tracker (like `bd`) plus a set of workflows for
-improving code quality and doing spec-driven agentic development.
+preference) is a command-line issue tracker plus workflows for spec-driven agentic
+development.
 
 It’s ideal for AI coding agents as well as humans: simple commands, pretty console and
 JSON output. It installs via `npm` and works in almost any agent or sandboxed cloud
@@ -50,53 +50,34 @@ But secondly, with tbd it’s now possible to add many more additional workflows
 
 ## What tbd Provides
 
-tbd gives you four capabilities that work together.
+tbd gives you four capabilities that work together:
+
+1. **Issue Tracking**: Git-native tasks/bugs.
+   Never lose work across sessions.
+2. **Spec-Driven Workflows**: Plan features → break into issues → implement
+   systematically.
+3. **Shortcuts**: Pre-built processes for commits, PRs, reviews.
+4. **Guidelines**: Best practices for TypeScript, Python, testing.
+
 Everything is **self-documenting** through the CLI—just run `tbd` commands to discover
-guidelines, workflows, and best practices.
-No need to look elsewhere.
-
-### 1. Issue Tracking
-
-Track tasks, bugs, and features as lightweight “beads” stored in git.
-Run `tbd create`, `tbd ready`, `tbd close` to manage work.
-
-### 2. Coding Guidelines
-
-A library of best practices for TypeScript, Python, testing, and more.
-Run `tbd guidelines <name>` to pull them in when relevant.
-
-### 3. Spec-Driven Workflows
-
-Write planning specs for features, then break them into trackable issues and implement
-systematically. Run `tbd shortcut new-plan-spec` to get started.
-
-### 4. Convenience Shortcuts
-
-Pre-built processes for common tasks like committing code, creating PRs, and reviewing
-code. Run `tbd shortcut <name>` to get step-by-step instructions.
-
-### Why These Work Together
-
-The real power of tbd emerges when these four capabilities combine:
-
-1. **Write a planning spec** → breaks down into trackable issues
-2. **Issues guide implementation** → guidelines ensure quality at each step
-3. **Shortcuts standardize processes** → consistent commits, reviews, and PRs
-4. **Everything stays in git** → full history, no external dependencies
-
-This creates disciplined, high-quality agent-based development with built-in scaffolding
-for specs, issue tracking, code review, and testing—all from a single CLI.
+workflows and best practices.
 
 ### Quick Reference
 
-| Need | Command | Notes |
+| User Need or Request | Command | Notes |
 | --- | --- | --- |
-| "I found a bug" | `tbd create "..." --type=bug` | Creates issue |
-| "Let's plan this feature" | `tbd shortcut new-plan-spec` | Outputs planning instructions |
-| "What should I work on?" | `tbd ready` | Lists ready issues |
-| "Build a TypeScript CLI" | `tbd guidelines typescript-cli-tool-rules` | Outputs best practices |
-| "Review the code" | `tbd shortcut review-code-typescript` | Outputs review checklist |
-| "Ready to commit" | `tbd shortcut commit-code` | Outputs commit process |
+| "There is a bug where ..." | `tbd create "..." --type=bug` | Creates issue |
+| "Let's plan a new feature" | `tbd shortcut new-plan-spec` | Outputs instructions |
+| "Fix current issues" | `tbd ready` | Lists ready issues |
+| "Build a TypeScript CLI" | `tbd guidelines typescript-cli-tool-rules` | Outputs guidelines |
+| "Improve eslint setup" | `tbd guidelines typescript-monorepo-patterns` | Outputs guidelines |
+| "Add better e2e testing" | `tbd guidelines golden-testing-guidelines` | Outputs guidelines |
+| "Review these changes" (TypeScript) | `tbd guidelines typescript-rules` | Outputs guidelines |
+| "Review these changes" (Python) | `tbd guidelines python-rules` | Outputs guidelines |
+| "Commit this" | `tbd shortcut commit-code` | Outputs instructions |
+| "Create a PR" | `tbd shortcut create-or-update-pr-simple` | Outputs instructions |
+| "Research this topic" | `tbd shortcut new-research-doc` | Outputs template |
+| "Document this architecture" | `tbd shortcut new-architecture-doc` | Outputs template |
 
 ## Features
 

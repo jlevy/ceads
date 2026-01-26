@@ -6,7 +6,7 @@ description: >-
   planning specs for new features, implementing features from specs, code reviews, committing code,
   creating PRs, research briefs, and architecture docs. Invoke when user mentions: tbd, beads,
   issues, bugs, tasks, todo, tracking, specs, planning, implementation, validation, guidelines,
-  shortcuts, templates, commit, or PR workflows.
+  shortcuts, templates, commit, PR workflows, code review, testing best practices, or monorepo patterns.
 allowed-tools: Bash(tbd:*), Read, Write
 ---
 

@@ -1,34 +1,40 @@
 # tbd Workflow Rules (Brief)
 
-`tbd` provides git-native issue tracking, coding guidelines, spec-driven workflows, and
-shortcuts for disciplined agent-based development.
+**`tbd` helps humans and agents ship code with greater speed, quality, and discipline.**
 
-## Core Workflow
+1. **Issue Tracking**: Git-native tasks/bugs.
+   Never lose work across sessions.
+2. **Spec-Driven Workflows**: Plan features → break into issues → implement
+   systematically.
+3. **Shortcuts**: Pre-built processes for commits, PRs, reviews.
+4. **Guidelines**: Best practices for TypeScript, Python, testing.
 
-Track all task work as issues using tbd:
+## Core Commands
 
 ```bash
-tbd ready              # Show issues ready to work
+tbd ready              # Find work ready to start
 tbd show <id>          # View issue details
 tbd create "title"     # Create new issue
-tbd close <id>         # Mark issue complete
+tbd close <id>         # Mark complete
 tbd sync               # Sync with remote
 ```
+
+## Quick Actions
+
+| Need | Command |
+| --- | --- |
+| Found a bug | `tbd create "..." --type=bug` |
+| Plan a feature | `tbd shortcut new-plan-spec` |
+| Commit code | `tbd shortcut commit-code` |
+| Create a PR | `tbd shortcut create-or-update-pr-simple` |
+| TypeScript review | `tbd guidelines typescript-rules` |
 
 ## Session Protocol
 
 **Before ending ANY session:**
 
-1. Stage and commit: `git add . && git commit`
-2. Push to remote: `git push`
-3. Watch CI: `gh pr checks <PR> --watch 2>&1`
-4. Update issues: `tbd close/update <id>` for work completed
-5. Sync issues: `tbd sync`
-6. Confirm CI passed before declaring “done”
-
-## Key Principles
-
-- Check `tbd ready` for available work before starting
-- Update issue status when you begin work: `tbd update <id> --status=in_progress`
-- Always close issues with a reason: `tbd close <id> --reason="Completed in PR #123"`
-- Run `tbd sync` at session end to push changes
+1. Commit and push: `git add . && git commit && git push`
+2. Watch CI: `gh pr checks <PR> --watch 2>&1`
+3. Update issues: `tbd close <id> --reason="..."`
+4. Sync: `tbd sync`
+5. Confirm CI passed before declaring “done”
