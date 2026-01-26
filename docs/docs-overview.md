@@ -49,3 +49,17 @@ Project-specific specifications, architecture, and research docs:
   docs (templates and output go here)
 
 - @docs/project/research/ — Research notes and technical investigations
+
+### tbd CLI Documentation Commands
+
+In addition to these repository docs, tbd provides built-in documentation via CLI:
+
+- `tbd shortcut --list` / `tbd shortcut <name>` — Workflow shortcuts (new-plan-spec,
+  commit-code, review-code-typescript, etc.)
+- `tbd guidelines --list` / `tbd guidelines <name>` — Coding guidelines (typescript-rules,
+  python-rules, general-tdd-guidelines, etc.)
+- `tbd template --list` / `tbd template <name>` — Document templates (plan-spec,
+  research-brief, architecture)
+
+These CLI-provided docs are installed locally in `.tbd/docs/` during `tbd setup --auto`
+and can be refreshed anytime by re-running setup.

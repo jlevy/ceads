@@ -216,7 +216,15 @@ simplicity and reliability.
 It stores issues as Markdown files with YAML frontmatter on a dedicated sync branch,
 enabling conflict-free collaboration without daemons or databases.
 
-tbd is the **durable persistence layer** for issues, with four core principles:
+tbd provides **four integrated capabilities** for disciplined agent-based development:
+
+1. **Issue Tracking** — Git-native task and bug tracking with beads stored as Markdown
+2. **Coding Guidelines** — 15+ coding rules for TypeScript, Python, testing, and more
+3. **Spec-Driven Workflows** — Write planning specs, break into issues, implement
+   systematically
+4. **Convenience Shortcuts** — Pre-built processes for commits, PRs, and code review
+
+The **issue tracking layer** has four core principles:
 
 - **Durable storage in git** — Issues are version-controlled and distributed via
   standard git

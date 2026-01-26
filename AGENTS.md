@@ -267,7 +267,6 @@ Run `tbd shortcut <name>` to use any of these shortcuts:
 | new-implementation-beads-from-spec | New Implementation Beads from Spec | Create implementation issues (beads) from a feature planning spec |
 | new-plan-spec | New Plan Spec | Create a new feature planning specification document |
 | new-research-brief | New Research Doc | Create a research document for investigating a topic or technology |
-| new-research-doc | New Research Doc | Create a research document for investigating a topic or technology |
 | new-validation-plan | New Validation Plan | Create a validation/test plan for a feature or change |
 | precommit-process | Pre-Commit Process | Full pre-commit checklist including spec sync, code review, and testing |
 | review-code-python | Review Code (Python) | Perform a code review for Python code following best practices |

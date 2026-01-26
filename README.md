@@ -75,6 +75,18 @@ systematically. Run `tbd shortcut new-plan-spec` to get started.
 Pre-built processes for common tasks like committing code, creating PRs, and reviewing
 code. Run `tbd shortcut <name>` to get step-by-step instructions.
 
+### Why These Work Together
+
+The real power of tbd emerges when these four capabilities combine:
+
+1. **Write a planning spec** → breaks down into trackable issues
+2. **Issues guide implementation** → guidelines ensure quality at each step
+3. **Shortcuts standardize processes** → consistent commits, reviews, and PRs
+4. **Everything stays in git** → full history, no external dependencies
+
+This creates disciplined, high-quality agent-based development with built-in scaffolding
+for specs, issue tracking, code review, and testing—all from a single CLI.
+
 ### Quick Reference
 
 | Need | Command | Notes |
@@ -100,14 +112,15 @@ code. Run `tbd shortcut <name>` to get step-by-step instructions.
   No agents confused by error messages about which of several “modes” you’re running in.
   No SQLite file locking issues on network filesystems (like what is used by Claude Code
   Cloud).
-- **Shortcuts:** 25+ reusable instruction documents for common workflows, like
+- **Shortcuts:** Over a dozen reusable instruction documents for common workflows, like
   - `new-plan-spec` — Create a feature planning spec
   - `new-research-brief` — Create a research document
   - `precommit-process` — Pre-commit review and testing
   - `commit-code` — Run checks and commit
   - `create-or-update-pr-with-validation-plan` — Create PR with test plan
-- **Guidelines:** 15+ coding rules and best practices for TypeScript, Python, testing,
-  TDD, backward compatibility, commenting, and more.
+- **Guidelines:** [Over 15 docs (~30 pages)](packages/tbd/docs/guidelines/) of coding
+  rules and best practices for TypeScript, Python, Convex, testing, TDD, backward
+  compatibility, and more.
 - **Templates:** Document templates for planning specs, research briefs, architecture
   docs.
 
@@ -335,10 +348,11 @@ tbd template plan-spec > docs/project/specs/plan-2025-01-15-feature.md
 | `general-testing-rules` | General testing principles |
 | `general-tdd-guidelines` | TDD methodology |
 | `general-comment-rules` | Comment best practices |
+| `general-style-rules` | Auto-formatting and output formatting |
+| `general-eng-assistant-rules` | AI assistant objectivity and communication |
+| `commit-conventions` | Conventional commits format |
 | `golden-testing-guidelines` | Golden/snapshot testing |
 | `backward-compatibility-rules` | API and schema compatibility |
-
-Run `tbd guidelines --list` for the complete list.
 
 **Available Templates:**
 
