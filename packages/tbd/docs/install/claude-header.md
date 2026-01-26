@@ -1,11 +1,12 @@
 ---
 name: tbd
 description: >-
-  Git-native issue tracking (aka beads), coding guidelinees, and spec-driven planning for AI agents.
-  Use for tracking issues with dependencies and for writing, implementing, and
-  validating specs for new features. Invoke when user mentions tbd, tracking
-  issues or bugs, beads, planning specs, implementation plans, research briefs,
-  architecture docs, or to-do lists.
+  Git-native issue tracking (beads), coding guidelines, and spec-driven planning for AI agents.
+  Use for tracking issues with dependencies, creating and closing bugs, features, and tasks,
+  planning specs for new features, implementing features from specs, code reviews, committing code,
+  creating PRs, research briefs, and architecture docs. Invoke when user mentions: tbd, beads,
+  issues, bugs, tasks, todo, tracking, specs, planning, implementation, validation, guidelines,
+  shortcuts, templates, commit, or PR workflows.
 allowed-tools: Bash(tbd:*), Read, Write
 ---
 
