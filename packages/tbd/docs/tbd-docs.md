@@ -226,7 +226,9 @@ Options:
 - `--assignee <name>` - Assign to someone
 - `--due <date>` - Due date (ISO8601 format)
 - `--defer <date>` - Defer until date
-- `--parent <id>` - Parent issue ID (for sub-issues)
+- `--parent <id>` - Parent issue ID (for sub-issues).
+  If the parent has a `spec_path` and `--spec` is not provided, the child inherits the
+  parent’s `spec_path`.
 - `--spec <path>` - Link to spec document (validated, normalized to project root)
 - `--label <label>` - Add label (can repeat)
 - `--from-file <path>` - Create from YAML+Markdown file
@@ -326,9 +328,12 @@ Options:
 - `--defer <date>` - Set deferred until date
 - `--add-label <label>` - Add label
 - `--remove-label <label>` - Remove label
-- `--parent <id>` - Set parent issue
+- `--parent <id>` - Set parent issue.
+  If the new parent has a `spec_path` and `--spec` is not also provided, the child
+  inherits the parent’s `spec_path` (only if the child currently has no `spec_path`).
 - `--spec <path>` - Set or clear spec path (empty string clears; validated and
-  normalized)
+  normalized). When updating a parent issue’s spec, the new value propagates to children
+  whose `spec_path` was null or matched the old value.
 
 ### close
 
@@ -799,10 +804,10 @@ tbd sync
 ### Managing an Epic
 
 ```bash
-# Create epic
-tbd create "User Authentication System" --type=epic --priority=P1
+# Create epic linked to a spec
+tbd create "User Authentication System" --type=epic --priority=P1 --spec=docs/specs/auth.md
 
-# Create child tasks
+# Create child tasks (they inherit spec_path from the epic automatically)
 tbd create "Design auth API" --parent=proj-epic
 tbd create "Implement login endpoint" --parent=proj-epic
 tbd create "Add password reset" --parent=proj-epic

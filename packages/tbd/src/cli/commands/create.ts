@@ -11,7 +11,7 @@ import { BaseCommand } from '../lib/base-command.js';
 import { requireInit, ValidationError, CLIError } from '../lib/errors.js';
 import type { Issue, IssueKindType, PriorityType } from '../../lib/types.js';
 import { generateInternalId, extractUlidFromInternalId } from '../../lib/ids.js';
-import { writeIssue } from '../../file/storage.js';
+import { readIssue, writeIssue } from '../../file/storage.js';
 import {
   loadIdMapping,
   saveIdMapping,
@@ -106,6 +106,14 @@ class CreateHandler extends BaseCommand {
           parentId = resolveToInternalId(options.parent, mapping);
         } catch {
           throw new ValidationError(`Invalid parent ID: ${options.parent}`);
+        }
+      }
+
+      // Inherit spec_path from parent if not explicitly provided
+      if (!specPath && parentId) {
+        const parentIssue = await readIssue(dataSyncDir, parentId);
+        if (parentIssue.spec_path) {
+          specPath = parentIssue.spec_path;
         }
       }
 

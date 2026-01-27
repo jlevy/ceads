@@ -1205,6 +1205,14 @@ type Issue = z.infer<typeof IssueSchema>;
 
   This ensures consistent storage regardless of how the path was specified.
 
+  **Inheritance from Parent:** When creating a child issue with `--parent` and no
+  explicit `--spec`, the child automatically inherits the parent’s `spec_path`. When a
+  parent’s `spec_path` is updated, the new value propagates to all children whose
+  `spec_path` was null or matched the parent’s old value (i.e., was inherited).
+  Children with explicitly different `spec_path` values are not affected.
+  Re-parenting a child (via `tbd update --parent`) also inherits the new parent’s
+  `spec_path` if the child has no existing `spec_path`.
+
 - `dependencies`: Only “blocks” type for now (affects `ready` command)
 
 - `labels`: Arbitrary string tags
