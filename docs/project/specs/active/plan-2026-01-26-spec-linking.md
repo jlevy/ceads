@@ -21,7 +21,6 @@ them, then implementation proceeds with clear traceability.
 ## Non-Goals
 
 - Required spec linking (it should remain optional)
-- Automatic spec validation (checking if the linked file exists)
 - Multiple spec paths per bead (single path is sufficient)
 - Bidirectional linking from specs to beads (specs don’t need metadata)
 
@@ -135,6 +134,105 @@ function matchesSpecPath(storedPath: string, queryPath: string): boolean {
 }
 ```
 
+### Path Validation and Normalization
+
+Spec paths must be validated and normalized before storage to ensure consistency and
+prevent issues. The path handling logic is implemented as **generic project path
+utilities** that can be reused for other project-relative paths in the future.
+
+#### Generic Project Path Utilities (`src/lib/project-paths.ts`)
+
+A new utility module provides reusable functions for handling project-relative paths:
+
+```typescript
+/**
+ * Result of resolving a path relative to the project root.
+ */
+interface ResolvedProjectPath {
+  /** Path relative to project root (always uses forward slashes) */
+  relativePath: string;
+  /** Absolute path to the file */
+  absolutePath: string;
+}
+
+/**
+ * Resolves any path (absolute, relative, or from subdirectory) to a project-relative path.
+ *
+ * @param inputPath - The path provided by the user (can be absolute or relative)
+ * @param projectRoot - The project root directory (parent of .tbd/)
+ * @param cwd - Current working directory (where command was run)
+ * @returns Resolved paths or throws if path is outside project
+ */
+function resolveProjectPath(
+  inputPath: string,
+  projectRoot: string,
+  cwd: string
+): ResolvedProjectPath;
+
+/**
+ * Validates that a file exists within the project.
+ *
+ * @param resolvedPath - Path already resolved via resolveProjectPath
+ * @returns true if file exists
+ * @throws CLIError if file does not exist
+ */
+function validateFileExists(resolvedPath: ResolvedProjectPath): boolean;
+```
+
+**Resolution Rules:**
+
+1. **Absolute paths**: Convert to relative by stripping project root prefix
+   - `/home/user/project/docs/spec.md` → `docs/spec.md`
+   - Error if absolute path is outside project
+
+2. **Relative paths from subdirectory**: Resolve relative to cwd, then to project root
+   - Running from `project/src/`: `../docs/spec.md` → `docs/spec.md`
+
+3. **Already project-relative**: Pass through with normalization
+   - `docs/project/specs/spec.md` → `docs/project/specs/spec.md`
+   - `./docs/spec.md` → `docs/spec.md`
+
+4. **Path outside project**: Error with clear message
+   - `../../other-project/spec.md` → Error: “Path is outside project root”
+
+**Normalization:**
+- Remove leading `./`
+- Convert backslashes to forward slashes (Windows compatibility)
+- Remove redundant slashes
+- Resolve `.` and `..` components
+
+#### Spec Path Validation (using project path utilities)
+
+When `--spec` is provided to `create` or `update` commands:
+
+1. **Resolve path**: Use `resolveProjectPath()` to get project-relative path
+2. **Validate existence**: Use `validateFileExists()` to ensure file exists
+3. **Store normalized**: Save the project-relative path in `spec_path` field
+
+**Error Cases:**
+
+```bash
+# Absolute path outside project
+$ tbd create "Task" --spec /etc/passwd
+Error: Spec path is outside project root: /etc/passwd
+
+# Relative path escaping project
+$ tbd create "Task" --spec ../../other-project/spec.md
+Error: Spec path is outside project root
+
+# Non-existent file
+$ tbd create "Task" --spec docs/nonexistent.md
+Error: Spec file not found: docs/nonexistent.md
+
+# Valid absolute path within project (converted to relative)
+$ tbd create "Task" --spec /home/user/project/docs/spec.md
+✓ Created proj-a1b2: Task  (spec: docs/spec.md)
+
+# Valid relative path from subdirectory
+$ cd src && tbd create "Task" --spec ../docs/spec.md
+✓ Created proj-a1b2: Task  (spec: docs/spec.md)
+```
+
 ### CLI Changes
 
 #### `tbd create` Command
@@ -143,12 +241,14 @@ Add `--spec <path>` option:
 
 ```bash
 tbd create "Implement feature X" --spec docs/project/specs/active/plan-2026-01-26-feature-x.md
-tbd create "Add tests for X" --spec plan-2026-01-26-feature-x.md  # Stored as-is
+tbd create "Add tests for X" --spec plan-2026-01-26-feature-x.md
 ```
 
 **Behavior:**
-- Stores the provided path as-is in `spec_path` field
-- Does not validate file existence
+- Resolves path relative to project root (handles absolute, relative from cwd)
+- Validates that spec file exists
+- Stores normalized project-relative path in `spec_path` field
+- Errors if path is outside project or file doesn’t exist
 - Shown in create confirmation output
 
 #### `tbd list` Command
@@ -178,6 +278,11 @@ Support `--spec <path>` to set/change the spec path:
 tbd edit bd-a1b2 --spec plan-2026-01-26-new-spec.md
 tbd edit bd-a1b2 --spec ""  # Clear spec path
 ```
+
+**Behavior:**
+- Same validation as create: resolves path, validates existence (unless clearing)
+- Empty string clears the spec_path field
+- Stores normalized project-relative path
 
 ### File Format Changes
 
@@ -235,11 +340,40 @@ Add the spec_path optional field to the Issue schema...
 
 ### Phase 2: Documentation Updates
 
-- [ ] Update `docs/tbd-design.md` with spec_path field documentation
+- [x] Update `docs/tbd-design.md` with spec_path field documentation
 - [ ] Update `docs/tbd-docs.md` with --spec CLI option documentation
-- [ ] Update `.tbd/docs/shortcuts/new-plan-spec.md` with bead linking workflow
+- [x] Update `.tbd/docs/shortcuts/new-plan-spec.md` with bead linking workflow
 - [ ] Update `.tbd/docs/shortcuts/create-bead.md` or similar to mention --spec
 - [ ] Review and update any guidelines that reference bead creation workflows
+
+### Phase 3: Path Validation and Normalization
+
+This phase adds validation to ensure spec paths are correct at create/update time.
+
+- [ ] Create generic project path utilities (`src/lib/project-paths.ts`):
+  - [ ] `resolveProjectPath()` - resolve any path to project-relative
+  - [ ] `validateFileExists()` - check file exists
+  - [ ] `isPathWithinProject()` - check path doesn’t escape project root
+  - [ ] `normalizePath()` - clean up path (remove ./, convert \\ to /, etc.)
+- [ ] Write comprehensive unit tests for project-paths.ts:
+  - [ ] Absolute paths within project → converted to relative
+  - [ ] Absolute paths outside project → error
+  - [ ] Relative paths from subdirectory → resolved correctly
+  - [ ] Paths escaping project (../../) → error
+  - [ ] Path normalization (leading ./, trailing /, backslashes)
+  - [ ] Non-existent files → appropriate error
+- [ ] Integrate validation into create command:
+  - [ ] Resolve and normalize spec path before storing
+  - [ ] Validate file exists
+  - [ ] Error if path outside project or file missing
+- [ ] Integrate validation into update command:
+  - [ ] Same validation as create (skip validation if clearing with “”)
+- [ ] Add tryscript tests for validation:
+  - [ ] Create with non-existent spec → error
+  - [ ] Create with path outside project → error
+  - [ ] Create from subdirectory with relative path → normalized correctly
+  - [ ] Update to non-existent spec → error
+  - [ ] Update to clear spec → success (no validation needed)
 
 ## Testing Strategy
 
@@ -256,6 +390,28 @@ Add the spec_path optional field to the Issue schema...
    - spec_path accepts valid strings
    - spec_path accepts undefined/missing
    - spec_path serialization in YAML
+
+3. **Project Path Utilities** (`src/lib/project-paths.test.ts`)
+   - `resolveProjectPath()`:
+     - Absolute path within project → relative path
+     - Absolute path outside project → throws error
+     - Relative path from project root → unchanged (normalized)
+     - Relative path from subdirectory → resolved to project root
+     - Path with `..` escaping project → throws error
+     - Path with `..` staying within project → resolved correctly
+   - `normalizePath()`:
+     - Removes leading `./`
+     - Converts backslashes to forward slashes
+     - Removes redundant slashes
+     - Handles empty string
+   - `validateFileExists()`:
+     - Existing file → returns true
+     - Non-existent file → throws error with path
+     - Directory instead of file → appropriate behavior
+   - `isPathWithinProject()`:
+     - Path within project → true
+     - Path outside project → false
+     - Path at project root → true
 
 ### Golden Tryscript Tests
 
@@ -388,12 +544,18 @@ with_spec: [count]
    - Could offer tab completion for existing spec files
    - Adds complexity, may defer to future enhancement
 
-2. **Should we validate spec file exists?**
-   - Current design: No validation (flexibility)
-   - Could add `--validate-spec` flag for strict mode
+2. ~~**Should we validate spec file exists?**~~
+   - **RESOLVED**: Yes, validate at create/update time.
+     This prevents typos and ensures spec files exist.
+     The file must exist when the bead is created/updated, but the validation does not
+     re-run later (file could be moved/deleted after bead creation).
 
 3. **Should `tbd list --spec` show beads with no spec if query is empty?**
    - Could add `--no-spec` filter to find unlinked beads
+
+4. **Should validation be skippable?**
+   - Consider `--no-validate-spec` flag for edge cases where file doesn’t exist yet
+   - Defer to future enhancement if users request it
 
 ## References
 
