@@ -83,23 +83,28 @@ preference for a given project.
 
 ### Quick Reference Table
 
-| User Need or Request | Command | Notes |
+| User Need or Request | Agent Runs Command | What Happens |
 | --- | --- | --- |
 | "There is a bug where ..." | `tbd create "..." --type=bug` | Creates issue |
-| "Let's plan a new feature" | `tbd shortcut new-plan-spec` | Outputs instructions |
 | "Fix current issues" | `tbd ready` | Lists ready issues |
-| "Build a TypeScript CLI" | `tbd guidelines typescript-cli-tool-rules` | Outputs guidelines |
-| "Improve eslint setup" | `tbd guidelines typescript-monorepo-patterns` | Outputs guidelines |
-| "Add better e2e testing" | `tbd guidelines golden-testing-guidelines` | Outputs guidelines |
-| "Review these changes" (TypeScript) | `tbd guidelines typescript-rules` | Outputs guidelines |
-| "Review these changes" (Python) | `tbd guidelines python-rules` | Outputs guidelines |
-| "Commit this" | `tbd shortcut commit-code` | Outputs instructions |
-| "Create a PR" | `tbd shortcut create-or-update-pr-simple` | Outputs instructions |
-| "Research this topic" | `tbd shortcut new-research-brief` | Outputs template |
-| "Document this architecture" | `tbd shortcut new-architecture-doc` | Outputs template |
+| *(agent choice)* | `tbd dep add <id> <depends-on>` | Adds dependency |
+| *(agent choice)* | `tbd close <id>` | Closes issue |
+| *(agent choice)* | `tbd sync` | Syncs issues to remote |
+| "Build a TypeScript CLI" | `tbd guidelines typescript-cli-tool-rules` | Agent gets guidelines |
+| "Improve eslint setup" | `tbd guidelines typescript-monorepo-patterns` | Agent gets guidelines |
+| "Add better e2e testing" | `tbd guidelines golden-testing-guidelines` | Agent gets guidelines |
+| "Review these changes" (TypeScript) | `tbd guidelines typescript-rules` | Agent gets guidelines |
+| "Review these changes" (Python) | `tbd guidelines python-rules` | Agent gets guidelines |
+| "Let's plan a new feature" | `tbd shortcut new-plan-spec` | Agent gets spec template and instructions |
+| "Break spec into issues" | `tbd shortcut new-implementation-beads-from-spec` | Agent gets instructions |
+| "Implement these issues" | `tbd shortcut implement-beads` | Agent gets instructions |
+| "Commit this" | `tbd shortcut commit-code` | Agent gets instructions |
+| "Create a PR" | `tbd shortcut create-or-update-pr-simple` | Agent gets instructions |
+| "Research this topic" | `tbd shortcut new-research-brief` | Agent gets template and instructions |
+| "Document this architecture" | `tbd shortcut new-architecture-doc` | Agent gets template and instructions |
 
-*“Outputs instructions/guidelines” = Read and follow the guidance.
-It tells you HOW to do something well.*
+*“Agent gets instructions/guidelines” = The agent reads and follows the guidance.
+It tells them HOW to do something well.*
 
 ## IMPORTANT: Session Closing Protocol
 
