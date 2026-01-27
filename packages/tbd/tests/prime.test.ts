@@ -65,8 +65,8 @@ describe('prime command', () => {
       // Should include dynamic project status
       expect(result.stdout).toContain('PROJECT STATUS');
       // Should include static skill content (workflow rules)
-      expect(result.stdout).toContain('SESSION CLOSING PROTOCOL');
-      expect(result.stdout).toContain('Core Rules');
+      expect(result.stdout).toContain('Session Closing Protocol');
+      expect(result.stdout).toContain('Issue Tracking Rules');
     });
 
     it('tbd prime --brief shows abbreviated orientation', () => {
@@ -90,7 +90,7 @@ describe('prime command', () => {
 
       // Default command (no args) should show full orientation
       expect(noArgsResult.stdout).toContain('INSTALLATION');
-      expect(noArgsResult.stdout).toContain('SESSION CLOSING PROTOCOL');
+      expect(noArgsResult.stdout).toContain('Session Closing Protocol');
     });
   });
 
