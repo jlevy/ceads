@@ -1194,6 +1194,17 @@ type Issue = z.infer<typeof IssueSchema>;
   Used for spec-first workflows where planning documents are created before
   implementation beads.
 
+  **Path Validation and Normalization:** When setting spec_path via CLI (`--spec`),
+  paths are validated and normalized:
+  - File must exist at create/update time
+  - Paths outside project root are rejected
+  - Absolute paths within project are converted to relative
+  - Relative paths from subdirectories are resolved to project root
+  - Path separators are normalized (backslashes → forward slashes)
+  - Leading `./` is removed
+
+  This ensures consistent storage regardless of how the path was specified.
+
 - `dependencies`: Only “blocks” type for now (affects `ready` command)
 
 - `labels`: Arbitrary string tags

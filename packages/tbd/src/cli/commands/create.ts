@@ -24,6 +24,7 @@ import { parsePriority } from '../../lib/priority.js';
 import { resolveDataSyncDir } from '../../lib/paths.js';
 import { now } from '../../utils/time-utils.js';
 import { readConfig } from '../../file/config.js';
+import { resolveAndValidatePath, getPathErrorMessage } from '../../lib/project-paths.js';
 
 interface CreateOptions {
   fromFile?: string;
@@ -62,7 +63,20 @@ class CreateHandler extends BaseCommand {
       }
     }
 
-    if (this.checkDryRun('Would create issue', { title, kind, priority, ...options })) {
+    // Validate and normalize spec path if provided
+    let specPath: string | undefined;
+    if (options.spec) {
+      try {
+        const resolved = await resolveAndValidatePath(options.spec, tbdRoot, process.cwd());
+        specPath = resolved.relativePath;
+      } catch (error) {
+        throw new ValidationError(getPathErrorMessage(error));
+      }
+    }
+
+    if (
+      this.checkDryRun('Would create issue', { title, kind, priority, spec: specPath, ...options })
+    ) {
       return;
     }
 
@@ -112,7 +126,7 @@ class CreateHandler extends BaseCommand {
         due_date: options.due ?? undefined,
         deferred_until: options.defer ?? undefined,
         parent_id: parentId,
-        spec_path: options.spec ?? undefined,
+        spec_path: specPath,
       };
 
       // Write both the issue and the mapping

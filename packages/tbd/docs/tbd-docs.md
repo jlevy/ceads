@@ -201,6 +201,9 @@ tbd create "Dark mode support" --type=feature                      # Feature req
 tbd create "Refactor database layer" --type=chore                  # Technical debt
 tbd create "Q1 Goals" --type=epic                                  # Epic for grouping
 
+# Link to a spec document
+tbd create "Add schema fields" --spec docs/project/specs/active/plan-2026-01-26-feature.md
+
 # With description
 tbd create "Add rate limiting" --description="Prevent API abuse with 100 req/min limit"
 
@@ -224,6 +227,7 @@ Options:
 - `--due <date>` - Due date (ISO8601 format)
 - `--defer <date>` - Defer until date
 - `--parent <id>` - Parent issue ID (for sub-issues)
+- `--spec <path>` - Link to spec document (validated, normalized to project root)
 - `--label <label>` - Add label (can repeat)
 - `--from-file <path>` - Create from YAML+Markdown file
 
@@ -242,6 +246,7 @@ tbd list --assignee=alice                   # Assigned to alice
 tbd list --label=urgent                     # With 'urgent' label
 tbd list --label=backend --label=api        # Multiple labels (AND)
 tbd list --parent=proj-x1y2                   # Children of an epic
+tbd list --spec=plan-2026-01-26-feature.md  # Linked to spec (gradual matching)
 tbd list --sort=created                     # Sort by creation date
 tbd list --sort=updated                     # Sort by last update
 tbd list --limit=10                         # Limit results
@@ -262,6 +267,8 @@ Options:
 - `--assignee <name>` - Filter by assignee
 - `--label <label>` - Filter by label (repeatable, AND logic)
 - `--parent <id>` - List children of parent issue
+- `--spec <path>` - Filter by spec path (supports gradual matching: filename, partial
+  path, or full path)
 - `--deferred` - Show only deferred issues
 - `--defer-before <date>` - Deferred before date
 - `--sort <field>` - Sort by: priority, created, updated (default: priority)
@@ -299,6 +306,8 @@ tbd update proj-a7k2 --defer=2025-02-15      # Defer until later
 tbd update proj-a7k2 --add-label=blocked     # Add label
 tbd update proj-a7k2 --remove-label=urgent   # Remove label
 tbd update proj-a7k2 --parent=proj-x1y2        # Set parent epic
+tbd update proj-a7k2 --spec=docs/spec.md     # Link to spec
+tbd update proj-a7k2 --spec=""               # Clear spec link
 
 # Update from YAML file
 tbd update proj-a7k2 --from-file=updated.yml
@@ -318,6 +327,8 @@ Options:
 - `--add-label <label>` - Add label
 - `--remove-label <label>` - Remove label
 - `--parent <id>` - Set parent issue
+- `--spec <path>` - Set or clear spec path (empty string clears; validated and
+  normalized)
 
 ### close
 

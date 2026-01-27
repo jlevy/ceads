@@ -21,10 +21,16 @@ before: |
   git commit -m "Initial commit"
   # Initialize tbd with test prefix
   tbd init --prefix=test
+  # Create spec files for testing
+  mkdir -p docs/project/specs/active
+  echo "# My Feature Spec" > docs/project/specs/active/plan-2026-01-26-my-feature.md
+  echo "# Workflow Spec" > docs/project/specs/active/workflow-spec.md
+  echo "# Feature v2 Spec" > docs/my-feature_v2.0.md
 ---
 # tbd CLI: Spec Linking Feature
 
 Tests for the spec_path field that links beads to specification documents.
+With Phase 3, spec paths are validated (file must exist) and normalized.
 
 * * *
 
@@ -56,9 +62,9 @@ has_spec: false
 
 * * *
 
-## Create with --spec Option
+## Create with --spec Option (with validation)
 
-# Test: Create with --spec (full path)
+# Test: Create with --spec (full path to existing file)
 
 ```console
 $ tbd create "Schema changes" --spec docs/project/specs/active/plan-2026-01-26-my-feature.md --json | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); require('fs').writeFileSync('spec1_id.txt', d.id); console.log('Created')"
@@ -66,7 +72,7 @@ Created
 ? 0
 ```
 
-# Test: Verify spec_path was stored (full path)
+# Test: Verify spec_path was stored (normalized full path)
 
 ```console
 $ tbd show $(cat spec1_id.txt) --json | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log('spec:', d.spec_path)"
@@ -74,55 +80,73 @@ spec: docs/project/specs/active/plan-2026-01-26-my-feature.md
 ? 0
 ```
 
-# Test: Create with --spec (filename only)
+# Test: Create with --spec using ./ prefix (normalized)
 
 ```console
-$ tbd create "CLI updates" --spec plan-2026-01-26-my-feature.md --json | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); require('fs').writeFileSync('spec2_id.txt', d.id); console.log('Created')"
+$ tbd create "CLI updates" --spec ./docs/project/specs/active/plan-2026-01-26-my-feature.md --json | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); require('fs').writeFileSync('spec2_id.txt', d.id); console.log('Created')"
 Created
 ? 0
 ```
 
-# Test: Verify spec_path was stored (filename only)
+# Test: Verify ./ was normalized away
 
 ```console
 $ tbd show $(cat spec2_id.txt) --json | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log('spec:', d.spec_path)"
-spec: plan-2026-01-26-my-feature.md
+spec: docs/project/specs/active/plan-2026-01-26-my-feature.md
 ? 0
 ```
 
-# Test: Create with --spec (partial path)
+* * *
+
+## Path Validation Errors
+
+# Test: Create with non-existent spec file
 
 ```console
-$ tbd create "Add tests" --spec specs/active/plan-2026-01-26-my-feature.md --json | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); require('fs').writeFileSync('spec3_id.txt', d.id); console.log('Created')"
-Created
-? 0
+$ tbd create "Bad spec" --spec nonexistent-file.md
+Error: File not found: nonexistent-file.md
+? 2
+```
+
+# Test: Create with path outside project
+
+```console
+$ tbd create "Outside project" --spec /etc/passwd
+Error: Path is outside project root: /etc/passwd
+? 2
+```
+
+# Test: Create with relative path escaping project
+
+```console
+$ tbd create "Escape project" --spec ../../outside/file.md
+Error: Path is outside project root: ../../outside/file.md
+? 2
 ```
 
 * * *
 
 ## List with --spec Filter (Gradual Matching)
 
+Note: Both spec1 and spec2 point to the same normalized path.
+
 # Test: List --spec with exact path match
 
 ```console
 $ tbd list --spec docs/project/specs/active/plan-2026-01-26-my-feature.md --count
-1
+2
 ? 0
 ```
 
-# Test: List --spec with filename-only match (matches full path stored)
-
-The first issue stored full path, which should match when querying by filename only:
+# Test: List --spec with filename-only match
 
 ```console
 $ tbd list --spec plan-2026-01-26-my-feature.md --count
-3
+2
 ? 0
 ```
 
 # Test: List --spec with partial path match
-
-Both issue 1 (full path) and issue 3 (partial path stored) match this query:
 
 ```console
 $ tbd list --spec active/plan-2026-01-26-my-feature.md --count
@@ -134,7 +158,7 @@ $ tbd list --spec active/plan-2026-01-26-my-feature.md --count
 
 ```console
 $ tbd list --spec plan-2026-01-26-my-feature.md --status open --count
-3
+2
 ? 0
 ```
 
@@ -148,11 +172,11 @@ $ tbd list --spec nonexistent-spec.md --count
 
 # Test: List without --spec returns all issues
 
-At this point we have 5 issues: 2 without spec, 3 with spec
+At this point we have 4 issues: 2 without spec, 2 with spec
 
 ```console
 $ tbd list --count
-5
+4
 ? 0
 ```
 
@@ -179,6 +203,13 @@ has_spec_path: true
 * * *
 
 ## Update Command with --spec
+
+First create a new spec file for update tests:
+
+```console
+$ echo "# New Spec" > new-spec.md && echo "# Different Spec" > different-spec.md
+? 0
+```
 
 # Test: Update to set spec_path
 
@@ -212,7 +243,7 @@ spec: different-spec.md
 ? 0
 ```
 
-# Test: Update to clear spec_path with empty string
+# Test: Update to clear spec_path with empty string (no validation needed)
 
 ```console
 $ tbd update $(cat nospec_id.txt) --spec ""
@@ -228,6 +259,14 @@ has_spec: false
 ? 0
 ```
 
+# Test: Update with non-existent spec file fails
+
+```console
+$ tbd update $(cat nospec_id.txt) --spec nonexistent.md
+Error: File not found: nonexistent.md
+? 2
+```
+
 * * *
 
 ## Mixed Workflows
@@ -236,7 +275,7 @@ has_spec: false
 
 ```console
 $ tbd list --json | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log('total:', d.length)"
-total: 5
+total: 4
 ? 0
 ```
 
@@ -244,14 +283,14 @@ total: 5
 
 ```console
 $ tbd list --json | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); const withSpec = d.filter(i => i.spec_path); console.log('with_spec:', withSpec.length)"
-with_spec: 3
+with_spec: 2
 ? 0
 ```
 
 # Test: Create issue, link to spec, then close (full workflow)
 
 ```console
-$ tbd create "Full workflow task" --spec workflow-spec.md --json | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); require('fs').writeFileSync('workflow_id.txt', d.id); console.log('Created')"
+$ tbd create "Full workflow task" --spec docs/project/specs/active/workflow-spec.md --json | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); require('fs').writeFileSync('workflow_id.txt', d.id); console.log('Created')"
 Created
 ? 0
 ```
@@ -280,7 +319,7 @@ $ tbd list --spec workflow-spec.md --all --count
 
 * * *
 
-## Edge Cases
+## Path Normalization
 
 # Test: Create with --spec containing special characters in filename
 
@@ -298,10 +337,38 @@ $ tbd list --spec "my-feature_v2.0.md" --count
 ? 0
 ```
 
-# Test: Dry run with --spec
+# Test: Dry run with --spec still validates (shows what would happen)
 
 ```console
-$ tbd create "Dry run spec" --spec test-spec.md --dry-run
+$ tbd create "Dry run spec" --spec docs/project/specs/active/plan-2026-01-26-my-feature.md --dry-run
 [DRY-RUN] Would create issue
+? 0
+```
+
+# Test: Dry run with non-existent spec shows error
+
+```console
+$ tbd create "Dry run bad spec" --spec nonexistent-for-dry-run.md --dry-run
+Error: File not found: nonexistent-for-dry-run.md
+? 2
+```
+
+* * *
+
+## Path Resolution from Subdirectories
+
+# Test: Create issue from subdirectory (path resolved relative to project root)
+
+```console
+$ mkdir -p src && cd src && tbd create "From subdir" --spec ../docs/project/specs/active/plan-2026-01-26-my-feature.md --json | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); require('fs').writeFileSync('../subdir_id.txt', d.id); console.log('Created')"
+Created
+? 0
+```
+
+# Test: Verify subdirectory spec path was normalized
+
+```console
+$ tbd show $(cat subdir_id.txt) --json | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log('spec:', d.spec_path)"
+spec: docs/project/specs/active/plan-2026-01-26-my-feature.md
 ? 0
 ```

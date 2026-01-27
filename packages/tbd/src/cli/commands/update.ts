@@ -19,6 +19,7 @@ import { resolveDataSyncDir } from '../../lib/paths.js';
 import { now } from '../../utils/time-utils.js';
 import { loadIdMapping, resolveToInternalId, type IdMapping } from '../../file/id-mapping.js';
 import { readConfig } from '../../file/config.js';
+import { resolveAndValidatePath, getPathErrorMessage } from '../../lib/project-paths.js';
 
 interface UpdateOptions {
   fromFile?: string;
@@ -64,7 +65,7 @@ class UpdateHandler extends BaseCommand {
     }
 
     // Parse and validate options
-    const updates = await this.parseUpdates(options, mapping);
+    const updates = await this.parseUpdates(options, mapping, tbdRoot);
     if (updates === null) return;
 
     if (this.checkDryRun('Would update issue', { id: internalId, ...updates })) {
@@ -127,6 +128,7 @@ class UpdateHandler extends BaseCommand {
   private async parseUpdates(
     options: UpdateOptions,
     mapping: IdMapping,
+    tbdRoot: string,
   ): Promise<{
     title?: string;
     status?: IssueStatusType;
@@ -209,8 +211,21 @@ class UpdateHandler extends BaseCommand {
             typeof frontmatter.parent_id === 'string' ? frontmatter.parent_id : null;
         }
         if (frontmatter.spec_path !== undefined) {
-          updates.spec_path =
-            typeof frontmatter.spec_path === 'string' ? frontmatter.spec_path : null;
+          if (typeof frontmatter.spec_path === 'string' && frontmatter.spec_path) {
+            // Validate and normalize the spec path from file
+            try {
+              const resolved = await resolveAndValidatePath(
+                frontmatter.spec_path,
+                tbdRoot,
+                process.cwd(),
+              );
+              updates.spec_path = resolved.relativePath;
+            } catch (error) {
+              throw new ValidationError(getPathErrorMessage(error));
+            }
+          } else {
+            updates.spec_path = null;
+          }
         }
         if (Array.isArray(frontmatter.labels)) {
           updates.labels = frontmatter.labels.filter((l): l is string => typeof l === 'string');
@@ -301,7 +316,18 @@ class UpdateHandler extends BaseCommand {
     }
 
     if (options.spec !== undefined) {
-      updates.spec_path = options.spec || null;
+      if (options.spec) {
+        // Non-empty spec path: validate and normalize
+        try {
+          const resolved = await resolveAndValidatePath(options.spec, tbdRoot, process.cwd());
+          updates.spec_path = resolved.relativePath;
+        } catch (error) {
+          throw new ValidationError(getPathErrorMessage(error));
+        }
+      } else {
+        // Empty string: clear the spec path (no validation needed)
+        updates.spec_path = null;
+      }
     }
 
     if (options.addLabel && options.addLabel.length > 0) {

@@ -201,6 +201,31 @@ function validateFileExists(resolvedPath: ResolvedProjectPath): boolean;
 - Remove redundant slashes
 - Resolve `.` and `..` components
 
+#### IMPORTANT: Consistent Normalization Rule
+
+**All paths that are persisted to storage MUST be normalized using
+`resolveProjectPath()`.** This ensures:
+
+1. **Consistency**: The same file always produces the same stored path, regardless of
+   how the user specifies it (absolute, relative, from subdirectory, with `./`, etc.)
+
+2. **Reliable matching**: Gradual path matching in `tbd list --spec` works correctly
+   because stored paths have a predictable format
+
+3. **Portability**: Normalized paths (forward slashes, no leading `./`) work across
+   platforms
+
+**Every CLI command that accepts a `--spec` option (or any other path argument that will
+be stored) MUST:**
+- Call `resolveProjectPath()` to normalize the input
+- Store only the `relativePath` from the result
+- Never store absolute paths or unnormalized paths
+
+This rule applies to:
+- `tbd create --spec <path>` (initial creation)
+- `tbd update --spec <path>` (modification)
+- Any future commands that accept path arguments for storage
+
 #### Spec Path Validation (using project path utilities)
 
 When `--spec` is provided to `create` or `update` commands:
