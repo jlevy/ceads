@@ -54,17 +54,17 @@ preference for a given project.
 | User Need or Request | Agent Runs Command | What Happens |
 | --- | --- | --- |
 | "There is a bug where ..." | `tbd create "..." --type=bug` | Creates issue |
-| "This issue depends on that one" | `tbd dep add <id> <depends-on>` | Adds dependency |
-| "Done with this issue" | `tbd close <id>` | Closes issue |
-| "Let's plan a new feature" | `tbd shortcut new-plan-spec` | Agent gets spec template and instructions |
-| "Break spec into issues" | `tbd shortcut new-implementation-beads-from-spec` | Agent gets instructions |
-| "Implement these issues" | `tbd shortcut implement-beads` | Agent gets instructions |
 | "Fix current issues" | `tbd ready` | Lists ready issues |
+| *(agent choice)* | `tbd dep add <id> <depends-on>` | Adds dependency |
+| *(agent choice)* | `tbd close <id>` | Closes issue |
 | "Build a TypeScript CLI" | `tbd guidelines typescript-cli-tool-rules` | Agent gets guidelines |
 | "Improve eslint setup" | `tbd guidelines typescript-monorepo-patterns` | Agent gets guidelines |
 | "Add better e2e testing" | `tbd guidelines golden-testing-guidelines` | Agent gets guidelines |
 | "Review these changes" (TypeScript) | `tbd guidelines typescript-rules` | Agent gets guidelines |
 | "Review these changes" (Python) | `tbd guidelines python-rules` | Agent gets guidelines |
+| "Let's plan a new feature" | `tbd shortcut new-plan-spec` | Agent gets spec template and instructions |
+| "Break spec into issues" | `tbd shortcut new-implementation-beads-from-spec` | Agent gets instructions |
+| "Implement these issues" | `tbd shortcut implement-beads` | Agent gets instructions |
 | "Commit this" | `tbd shortcut commit-code` | Agent gets instructions |
 | "Create a PR" | `tbd shortcut create-or-update-pr-simple` | Agent gets instructions |
 | "Research this topic" | `tbd shortcut new-research-brief` | Agent gets template and instructions |
