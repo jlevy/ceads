@@ -6,62 +6,82 @@
 
 import matter from 'gray-matter';
 
+export interface ParsedMarkdown {
+  /** Raw frontmatter string (without --- delimiters), or null if no frontmatter */
+  frontmatter: string | null;
+  /** Body content after frontmatter, with leading newlines trimmed */
+  body: string;
+}
+
+/**
+ * Normalize line endings to LF.
+ */
+function normalizeLineEndings(content: string): string {
+  return content.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+}
+
+/**
+ * Parse markdown content into frontmatter and body.
+ * Handles both LF and CRLF line endings.
+ *
+ * @returns Object with frontmatter (null if none) and body
+ */
+export function parseMarkdown(content: string): ParsedMarkdown {
+  const normalized = normalizeLineEndings(content);
+
+  if (!matter.test(normalized)) {
+    return { frontmatter: null, body: content };
+  }
+
+  try {
+    const parsed = matter(normalized);
+
+    // Extract frontmatter from parsed.data by stringifying back to YAML
+    // The matter property is unreliable, so we reconstruct from data
+    const data = parsed.data;
+    let frontmatter: string | null = null;
+
+    if (data && Object.keys(data).length > 0) {
+      // Reconstruct frontmatter as YAML lines
+      const lines: string[] = [];
+      for (const [key, value] of Object.entries(data)) {
+        if (Array.isArray(value)) {
+          lines.push(`${key}:`);
+          for (const item of value) {
+            lines.push(`  - ${String(item)}`);
+          }
+        } else if (typeof value === 'object' && value !== null) {
+          lines.push(`${key}:`);
+          for (const [subKey, subValue] of Object.entries(value as Record<string, unknown>)) {
+            lines.push(`  ${subKey}: ${String(subValue)}`);
+          }
+        } else {
+          lines.push(`${key}: ${String(value)}`);
+        }
+      }
+      frontmatter = lines.join('\n');
+    } else {
+      // Empty frontmatter (just --- followed by ---)
+      frontmatter = '';
+    }
+
+    // Body with leading newlines trimmed
+    const body = parsed.content.replace(/^\n+/, '');
+
+    return { frontmatter, body };
+  } catch {
+    // Invalid/unclosed frontmatter - treat as no frontmatter
+    return { frontmatter: null, body: content };
+  }
+}
+
 /**
  * Parse YAML frontmatter from markdown content.
  * Returns the frontmatter content (without delimiters) or null if no valid frontmatter.
  * Handles both LF and CRLF line endings.
  */
 export function parseFrontmatter(content: string): string | null {
-  if (!matter.test(content)) {
-    return null;
-  }
-
-  try {
-    // Normalize CRLF to LF before parsing
-    const normalizedContent = content.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-    const parsed = matter(normalizedContent);
-
-    // gray-matter's `matter` property contains the raw frontmatter string
-    // It may include leading whitespace/newlines that we need to strip
-    const raw = parsed.matter;
-    if (!raw || raw.trim() === '') {
-      // Empty frontmatter (just --- followed by ---)
-      return '';
-    }
-
-    // Strip leading whitespace/newlines to get clean frontmatter
-    return raw.replace(/^[\s\n]+/, '');
-  } catch {
-    // Invalid/unclosed frontmatter - return null
-    return null;
-  }
-}
-
-/**
- * Insert content after YAML frontmatter.
- * If no frontmatter exists, prepends the content.
- * Handles both LF and CRLF line endings.
- */
-export function insertAfterFrontmatter(content: string, toInsert: string): string {
-  // Normalize CRLF to LF
-  const normalizedContent = content.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-
-  // Match frontmatter: starts with ---, ends with --- on its own line
-  // Capture the full frontmatter block including delimiters
-  const frontmatterRegex = /^(---\n[\s\S]*?\n---)\n*/;
-  const match = frontmatterRegex.exec(normalizedContent);
-
-  if (!match) {
-    // No frontmatter found, just prepend
-    return toInsert + content;
-  }
-
-  // Found frontmatter - insert after it
-  const frontmatterBlock = match[1];
-  const afterFrontmatter = normalizedContent.slice(match[0].length);
-  const body = afterFrontmatter.replace(/^\n+/, ''); // Trim leading newlines from body
-
-  return frontmatterBlock + '\n\n' + toInsert + '\n\n' + body;
+  return parseMarkdown(content).frontmatter;
 }
 
 /**
@@ -70,18 +90,21 @@ export function insertAfterFrontmatter(content: string, toInsert: string): strin
  * Handles both LF and CRLF line endings.
  */
 export function stripFrontmatter(content: string): string {
-  if (!matter.test(content)) {
-    return content;
+  return parseMarkdown(content).body;
+}
+
+/**
+ * Insert content after YAML frontmatter.
+ * If no frontmatter exists, prepends the content.
+ * Content is inserted directly after ---. Include leading newlines in toInsert if needed.
+ */
+export function insertAfterFrontmatter(content: string, toInsert: string): string {
+  const { frontmatter, body } = parseMarkdown(content);
+
+  if (frontmatter === null) {
+    return toInsert + content;
   }
 
-  try {
-    // Normalize CRLF to LF before parsing
-    const normalizedContent = content.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-    const parsed = matter(normalizedContent);
-    // Trim leading newlines to match previous behavior
-    return parsed.content.replace(/^\n+/, '');
-  } catch {
-    // Invalid/unclosed frontmatter - return original content
-    return content;
-  }
+  const frontmatterBlock = frontmatter ? `---\n${frontmatter}\n---` : '---\n---';
+  return `${frontmatterBlock}\n${toInsert}\n\n${body}`;
 }
