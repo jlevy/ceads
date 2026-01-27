@@ -84,9 +84,12 @@ Add automatic GitHub CLI installation to tbd's setup flow:
    - Idempotent: no-op if already removed
 
 5. **Script Source**
-   - The `ensure-gh-cli.sh` script content should be bundled in the tbd package
-     (as a string constant in setup.ts, following the pattern of `TBD_SESSION_SCRIPT`
-     and `TBD_CLOSE_PROTOCOL_SCRIPT`)
+   - The `ensure-gh-cli.sh` lives as a real `.sh` file at
+     `packages/tbd/docs/install/ensure-gh-cli.sh`
+   - It is copied to `dist/docs/install/` during the postbuild step (the `install/`
+     directory is already recursively copied by `copy-docs.mjs`)
+   - At runtime, `setup.ts` reads the script from the bundled location using
+     `import.meta.url`-based path resolution (same pattern as `getDocsBasePath()`)
 
 6. **Hook Entry Format**
    - Added to the project-local `.claude/settings.json` (not global), since this is
@@ -117,18 +120,67 @@ Add automatic GitHub CLI installation to tbd's setup flow:
 ### Files to Modify
 
 ```
-packages/tbd/src/
-├── cli/commands/
-│   └── setup.ts           # Add script constant, install/remove logic, --no-gh-cli flag
-└── lib/
-    └── schemas.ts          # Add use_gh_cli to SettingsSchema
+packages/tbd/
+├── docs/
+│   └── install/
+│       └── ensure-gh-cli.sh     # NEW: source script, copied to dist/ at build time
+├── scripts/
+│   └── copy-docs.mjs            # Modified: add ensure-gh-cli.sh to postbuild copy
+├── src/
+│   ├── cli/commands/
+│   │   └── setup.ts             # Modified: read bundled script, install/remove logic,
+│   │                            #   --no-gh-cli flag
+│   └── lib/
+│       └── schemas.ts           # Modified: add use_gh_cli to SettingsSchema
 ```
 
 ```
 docs/
 └── general/agent-setup/
-    └── github-cli-setup.md   # Update to reference tbd auto-setup
+    └── github-cli-setup.md      # Updated: reference tbd auto-setup
 ```
+
+### Build Pipeline for ensure-gh-cli.sh
+
+The script lives as a real `.sh` file at `packages/tbd/docs/install/ensure-gh-cli.sh`
+(alongside `claude-header.md` which is already in `docs/install/`).
+
+**Build flow:**
+
+1. **Source**: `packages/tbd/docs/install/ensure-gh-cli.sh`
+2. **Postbuild** (`copy-docs.mjs`): Copy to `dist/docs/install/ensure-gh-cli.sh`
+   - The `install/` directory is already copied recursively via
+     `copyDir(INSTALL_DIR, join(distDocs, 'install'))` in copy-docs.mjs, so this
+     requires **no changes** to copy-docs.mjs — adding the file to `docs/install/`
+     is sufficient.
+3. **Runtime** (`setup.ts`): Read the script from the bundled location using the
+   same `import.meta.url`-based path resolution pattern used by `getDocsBasePath()`
+   in `doc-sync.ts`
+
+**Runtime resolution in setup.ts:**
+
+```typescript
+async function loadBundledScript(name: string): Promise<string> {
+  const __filename = fileURLToPath(import.meta.url);
+  const __dirname = dirname(__filename);
+  // Bundled: dist/docs/install/<name>
+  const bundledPath = join(__dirname, '..', 'docs', 'install', name);
+  // Dev fallback: packages/tbd/docs/install/<name>
+  const devPath = join(__dirname, '..', '..', '..', 'docs', 'install', name);
+  for (const p of [bundledPath, devPath]) {
+    try {
+      return await readFile(p, 'utf-8');
+    } catch {
+      continue;
+    }
+  }
+  throw new Error(`Bundled script not found: ${name}`);
+}
+```
+
+This replaces the string-constant pattern (`TBD_SESSION_SCRIPT`) with a file-based
+approach. The script is a real `.sh` file that can be edited, linted, and tested
+independently.
 
 ### Schema Change
 
@@ -143,8 +195,8 @@ export const SettingsSchema = z.object({
 
 ### Setup.ts Changes
 
-1. **New constant**: `ENSURE_GH_CLI_SCRIPT` - the script content (same as current
-   `.claude/scripts/ensure-gh-cli.sh` in this repo)
+1. **New function**: `loadBundledScript(name)` - reads `.sh` file from bundled
+   `dist/docs/install/` at runtime (see Build Pipeline section above)
 
 2. **New constant**: `GH_CLI_HOOK_ENTRY` - the SessionStart hook object:
    ```typescript
@@ -208,14 +260,16 @@ coupling with the existing merge.
 
 ### Existing Components to Reuse
 
-1. **`TBD_SESSION_SCRIPT` / `TBD_CLOSE_PROTOCOL_SCRIPT` pattern** - Embed script as
-   string constant, write with `writeFile`, chmod 755
-2. **`installClaudeSetup()` method** - Already handles project `.claude/settings.json`
+1. **`getDocsBasePath()` pattern** in `doc-sync.ts` - `import.meta.url`-based path
+   resolution with dev fallback; reuse this pattern for `loadBundledScript()`
+2. **`copy-docs.mjs` postbuild** - Already copies `docs/install/` recursively to
+   `dist/docs/install/`; no changes needed, just add the `.sh` file to that directory
+3. **`installClaudeSetup()` method** - Already handles project `.claude/settings.json`
    read/write/merge
-3. **`LEGACY_TBD_HOOK_PATTERNS` cleanup** - Pattern for finding and removing hooks by
+4. **`LEGACY_TBD_HOOK_PATTERNS` cleanup** - Pattern for finding and removing hooks by
    command string matching
-4. **`readConfig()` / `writeConfig()`** - Config persistence with Zod validation
-5. **`pathExists()`** - File existence check utility
+5. **`readConfig()` / `writeConfig()`** - Config persistence with Zod validation
+6. **`pathExists()`** - File existence check utility
 
 ### Simplification Decisions
 
@@ -223,9 +277,12 @@ coupling with the existing merge.
    desired default behavior
 2. No need for a separate handler class - this integrates into existing
    `SetupClaudeHandler`
-3. Script content is embedded as a constant, not read from a file at runtime
+3. Script is a real `.sh` file in `packages/tbd/docs/install/`, read from the bundled
+   `dist/docs/install/` at runtime via `loadBundledScript()` — no string constants
 4. No version tracking for the script - always overwrite with current version
    (matches tbd-session.sh behavior)
+5. No changes to `copy-docs.mjs` - the `install/` directory is already recursively
+   copied in the postbuild step
 
 ## Open Questions
 
