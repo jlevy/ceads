@@ -1,5 +1,14 @@
 # tbd-git
 
+## 0.1.6
+
+### Patch Changes
+
+- afc01dd: Agent orientation system, DocCache with shortcuts, and documentation
+  improvements.
+- cc830b5: Spec linking feature with `--spec` options for create/list commands,
+  configurable doc cache with auto-sync, and various bug fixes.
+
 ## 0.1.5
 
 ### Patch Changes
