@@ -13,7 +13,10 @@
   Actionable rules for CLI development
 
 - [Modern TypeScript Monorepo Package](research-modern-typescript-monorepo-patterns.md)
-  — Build tooling, package structure, CI/CD
+  — Build tooling, package structure, CI/CD (pnpm)
+
+- [Modern Bun Monorepo Patterns](research-modern-bun-monorepo-patterns.md) — Bun
+  workspace equivalent: runtime, bundler, test runner, package manager
 
 - [Commander.js Documentation](https://github.com/tj/commander.js)
 

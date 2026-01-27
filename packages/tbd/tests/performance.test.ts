@@ -93,8 +93,8 @@ describe('performance tests', () => {
         }
       });
 
-      // Allow 5000ms on Windows CI (slower file I/O), 3000ms elsewhere
-      expect(ms).toBeLessThan(isWindows ? 5000 : 3000);
+      // Allow 10000ms on Windows CI (very slow file I/O on GHA runners), 3000ms elsewhere
+      expect(ms).toBeLessThan(isWindows ? 10000 : 3000);
       const avgMs = ms / 100;
       // Log average for visibility in test output
       console.log(`Average write time: ${avgMs.toFixed(2)}ms per issue`);

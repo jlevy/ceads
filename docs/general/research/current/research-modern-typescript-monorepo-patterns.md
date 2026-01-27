@@ -14,6 +14,9 @@
 
 - [publint Documentation](https://publint.dev/docs/)
 
+- [Companion: Modern Bun Monorepo Patterns](research-modern-bun-monorepo-patterns.md) —
+  Bun-native equivalent using Bun workspaces, Bunup, and Biome
+
 * * *
 
 ## Updating This Document

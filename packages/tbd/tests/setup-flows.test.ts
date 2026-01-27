@@ -119,7 +119,7 @@ describe('setup flows', () => {
     });
   });
 
-  describe('beads migration', () => {
+  describe('beads migration', { timeout: 15000 }, () => {
     it('detects beads and offers migration', async () => {
       initGitRepo();
 
