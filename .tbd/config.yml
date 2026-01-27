@@ -41,6 +41,7 @@ docs_cache:
     shortcuts/standard/precommit-process.md: internal:shortcuts/standard/precommit-process.md
     shortcuts/standard/review-code-python.md: internal:shortcuts/standard/review-code-python.md
     shortcuts/standard/review-code-typescript.md: internal:shortcuts/standard/review-code-typescript.md
+    shortcuts/standard/welcome-user.md: internal:shortcuts/standard/welcome-user.md
     shortcuts/system/shortcut-explanation.md: internal:shortcuts/system/shortcut-explanation.md
     shortcuts/system/skill-brief.md: internal:shortcuts/system/skill-brief.md
     shortcuts/system/skill.md: internal:shortcuts/system/skill.md

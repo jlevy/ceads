@@ -41,6 +41,35 @@ pnpm build
 pnpm tbd:bin --help
 ```
 
+### Testing new shortcuts, guidelines, or templates
+
+**Important**: When adding new documentation files (shortcuts, guidelines, templates) to
+`packages/tbd/docs/`, you must test with the **local build**, not the globally installed
+`tbd`.
+
+The globally installed `tbd` has its own bundled docs from the published npm package.
+Running `tbd setup --auto` with the global installation won’t include your new files.
+
+```bash
+# 1. Add your new file to packages/tbd/docs/shortcuts/standard/my-shortcut.md
+
+# 2. Build to bundle the new file into dist/docs/
+pnpm build
+
+# 3. Run setup with the LOCAL build (from repo root)
+node packages/tbd/dist/bin.mjs setup --auto
+
+# 4. Verify the file was copied to .tbd/docs/
+ls .tbd/docs/shortcuts/standard/my-shortcut.md
+
+# 5. Test the shortcut with the local build
+node packages/tbd/dist/bin.mjs shortcut my-shortcut
+```
+
+**Never manually create files in `.tbd/docs/`**—always add them to `packages/tbd/docs/`
+and let `setup --auto` copy them.
+This ensures the setup process works correctly for users.
+
 ### Testing the packaged installation
 
 To test the CLI exactly as users would install it from npm:
