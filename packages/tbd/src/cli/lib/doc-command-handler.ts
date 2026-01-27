@@ -12,6 +12,7 @@ import { BaseCommand } from './base-command.js';
 import { GUIDELINES_AGENT_HEADER } from './doc-prompts.js';
 import { requireInit } from './errors.js';
 import { DocCache, SCORE_PREFIX_MATCH } from '../../file/doc-cache.js';
+import { addDoc, type DocType } from '../../file/doc-add.js';
 import { truncate } from '../../lib/truncate.js';
 import { getTerminalWidth } from './output.js';
 
@@ -29,6 +30,8 @@ export interface DocCommandConfig {
   excludeFromList?: string[];
   /** Content to show when no query is provided (optional) */
   noQueryDocName?: string;
+  /** The doc type for --add operations */
+  docType: DocType;
 }
 
 /**
@@ -39,6 +42,8 @@ export interface DocCommandOptions {
   all?: boolean;
   refresh?: boolean;
   quiet?: boolean;
+  add?: string;
+  name?: string;
 }
 
 /**
@@ -230,6 +235,31 @@ export abstract class DocCommandHandler extends BaseCommand {
       }
       console.log(best.doc.content);
     }
+  }
+
+  /**
+   * Handle --add mode: add an external document by URL.
+   */
+  protected async handleAdd(url: string, name: string): Promise<void> {
+    if (!this.tbdRoot) {
+      this.tbdRoot = await requireInit();
+    }
+
+    const { typeName, docType } = this.config;
+
+    console.log(`Adding ${typeName}: ${name}`);
+    console.log(`  URL: ${url}`);
+
+    const result = await addDoc(this.tbdRoot, { url, name, docType });
+
+    if (result.usedGhCli) {
+      console.log(pc.dim('  (fetched via gh CLI due to direct access restriction)'));
+    }
+
+    console.log(pc.green(`  Added to ${result.destPath}`));
+    console.log(pc.green(`  Config updated with source: ${result.rawUrl}`));
+    console.log('');
+    console.log(`Run \`tbd ${this.config.typeNamePlural} --list\` to verify.`);
   }
 
   /**

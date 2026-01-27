@@ -14,6 +14,7 @@ import { BaseCommand } from '../lib/base-command.js';
 import { SHORTCUT_AGENT_HEADER } from '../lib/doc-prompts.js';
 import { requireInit } from '../lib/errors.js';
 import { DocCache, SCORE_PREFIX_MATCH } from '../../file/doc-cache.js';
+import { addDoc } from '../../file/doc-add.js';
 import { readConfig } from '../../file/config.js';
 import { DEFAULT_SHORTCUT_PATHS } from '../../lib/paths.js';
 import { truncate } from '../../lib/truncate.js';
@@ -25,6 +26,8 @@ interface ShortcutOptions {
   refresh?: boolean;
   quiet?: boolean;
   category?: string;
+  add?: string;
+  name?: string;
 }
 
 /**
@@ -79,6 +82,29 @@ function inferCategory(name: string): ShortcutCategory | undefined {
 class ShortcutHandler extends BaseCommand {
   async run(query: string | undefined, options: ShortcutOptions): Promise<void> {
     await this.execute(async () => {
+      // Add mode
+      if (options.add) {
+        if (!options.name) {
+          throw new Error('--name is required when using --add');
+        }
+        const tbdRoot = await requireInit();
+        console.log(`Adding shortcut: ${options.name}`);
+        console.log(`  URL: ${options.add}`);
+        const result = await addDoc(tbdRoot, {
+          url: options.add,
+          name: options.name,
+          docType: 'shortcut',
+        });
+        if (result.usedGhCli) {
+          console.log(pc.dim('  (fetched via gh CLI due to direct access restriction)'));
+        }
+        console.log(pc.green(`  Added to ${result.destPath}`));
+        console.log(pc.green(`  Config updated with source: ${result.rawUrl}`));
+        console.log('');
+        console.log('Run `tbd shortcut --list` to verify.');
+        return;
+      }
+
       // Get tbd root (supports running from subdirectories)
       const tbdRoot = await requireInit();
 
@@ -378,6 +404,8 @@ export const shortcutCommand = new Command('shortcut')
   )
   .option('--refresh', 'Refresh the cached shortcut directory')
   .option('--quiet', 'Suppress output (use with --refresh)')
+  .option('--add <url>', 'Add a shortcut from a URL')
+  .option('--name <name>', 'Name for the added shortcut (required with --add)')
   .action(async (query: string | undefined, options: ShortcutOptions, command) => {
     const handler = new ShortcutHandler(command);
     await handler.run(query, options);
