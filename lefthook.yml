@@ -15,8 +15,10 @@ pre-commit:
       priority: 1
 
     # Format markdown with flowmark (~500ms)
+    # Excludes auto-generated files (.tbd/, .claude/skills/, AGENTS.md)
     format-md:
       glob: '*.md'
+      exclude: '(\.tbd/|\.claude/skills/|AGENTS\.md)'
       run: npx prettier --write --log-level warn {staged_files} && uvx flowmark@latest --auto {staged_files}
       stage_fixed: true
       priority: 1
