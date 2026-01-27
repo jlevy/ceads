@@ -54,12 +54,12 @@ preference for a given project.
 | User Need or Request | Agent Runs Command | What Happens |
 | --- | --- | --- |
 | "There is a bug where ..." | `tbd create "..." --type=bug` | Creates issue |
+| "This issue depends on that one" | `tbd dep add <id> <depends-on>` | Adds dependency |
+| "Done with this issue" | `tbd close <id>` | Closes issue |
 | "Let's plan a new feature" | `tbd shortcut new-plan-spec` | Agent gets spec template and instructions |
 | "Break spec into issues" | `tbd shortcut new-implementation-beads-from-spec` | Agent gets instructions |
 | "Implement these issues" | `tbd shortcut implement-beads` | Agent gets instructions |
 | "Fix current issues" | `tbd ready` | Lists ready issues |
-| "This issue depends on that one" | `tbd dep add <id> <depends-on>` | Adds dependency |
-| "Start working on this issue" | `tbd update <id> --status in_progress` | Updates status |
 | "Build a TypeScript CLI" | `tbd guidelines typescript-cli-tool-rules` | Agent gets guidelines |
 | "Improve eslint setup" | `tbd guidelines typescript-monorepo-patterns` | Agent gets guidelines |
 | "Add better e2e testing" | `tbd guidelines golden-testing-guidelines` | Agent gets guidelines |
