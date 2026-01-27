@@ -6,10 +6,11 @@ kind: task
 labels: []
 parent_id: is-01kfxpf476jcxq5m1d3g4d3nc7
 priority: 3
+spec_path: docs/project/specs/done/plan-2026-01-26-configurable-doc-cache-sync.md
 status: open
 title: "Phase 6: Documentation for doc cache feature"
 type: is
-updated_at: 2026-01-26T17:44:29.686Z
-version: 1
+updated_at: 2026-01-27T18:04:42.638Z
+version: 3
 ---
 Add explanatory comments to generated config.yml, update SKILL.md with doc_cache usage, update CLI help, document GitHub URL format and auto-sync behavior. See plan-2026-01-26-configurable-doc-cache-sync.md Phase 6.

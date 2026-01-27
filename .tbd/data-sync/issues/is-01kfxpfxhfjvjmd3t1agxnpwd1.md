@@ -10,10 +10,11 @@ kind: task
 labels: []
 parent_id: is-01kfxpf476jcxq5m1d3g4d3nc7
 priority: 2
+spec_path: docs/project/specs/done/plan-2026-01-26-configurable-doc-cache-sync.md
 status: open
 title: "Phase 1: Add doc_cache schema and config helpers"
 type: is
-updated_at: 2026-01-26T17:45:06.275Z
-version: 3
+updated_at: 2026-01-27T18:04:42.638Z
+version: 5
 ---
 Add doc_cache field to ConfigSchema, create helper to generate default doc_cache config from bundled docs. See plan-2026-01-26-configurable-doc-cache-sync.md Phase 1.

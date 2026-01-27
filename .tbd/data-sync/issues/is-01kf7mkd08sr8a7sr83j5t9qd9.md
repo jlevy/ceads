@@ -5,11 +5,12 @@ id: is-01kf7mkd08sr8a7sr83j5t9qd9
 kind: epic
 labels: []
 priority: 2
+spec_path: docs/project/specs/active/plan-2026-01-17-cli-output-design-system.md
 status: open
 title: "Spec: CLI Output Design System"
 type: is
-updated_at: 2026-01-26T00:58:34.672Z
-version: 3
+updated_at: 2026-01-27T18:03:35.610Z
+version: 4
 ---
 Systematically review and standardize all CLI output across tbd. Establish a universal CLI design system that ensures consistent output structure, formatting, colors, and conventions across all commands and output modes.
 

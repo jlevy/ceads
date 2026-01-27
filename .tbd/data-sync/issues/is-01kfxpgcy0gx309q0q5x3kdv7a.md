@@ -10,10 +10,11 @@ kind: task
 labels: []
 parent_id: is-01kfxpf476jcxq5m1d3g4d3nc7
 priority: 2
+spec_path: docs/project/specs/done/plan-2026-01-26-configurable-doc-cache-sync.md
 status: open
 title: "Phase 3: Create tbd docs command"
 type: is
-updated_at: 2026-01-26T17:45:09.361Z
-version: 3
+updated_at: 2026-01-27T18:04:42.638Z
+version: 5
 ---
 Create cli/commands/docs.ts with --refresh and --status flags. Register command in cli.ts. Add unit tests. See plan-2026-01-26-configurable-doc-cache-sync.md Phase 3.

@@ -12,10 +12,11 @@ kind: task
 labels: []
 parent_id: is-01kfxpf476jcxq5m1d3g4d3nc7
 priority: 2
+spec_path: docs/project/specs/done/plan-2026-01-26-configurable-doc-cache-sync.md
 status: open
 title: "Phase 2: Implement DocSync core class"
 type: is
-updated_at: 2026-01-26T17:45:06.393Z
-version: 4
+updated_at: 2026-01-27T18:04:42.638Z
+version: 6
 ---
 Create file/doc-sync.ts with DocSync class. Implement parseSource(), fetchContent(), getCurrentState(), and sync() methods. Add unit tests. See plan-2026-01-26-configurable-doc-cache-sync.md Phase 2.
