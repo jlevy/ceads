@@ -211,6 +211,44 @@ This ensures every new team member gets the full welcome experience.
 
 ## Implementation Plan
 
+### Phase 0: Fix tbd Install Hook (CRITICAL)
+
+**Problem discovered**: The global tbd install hook is NOT being installed properly.
+
+When checking `~/.claude/settings.json`, it should have:
+```json
+{
+  "hooks": {
+    "SessionStart": [{ "command": "$HOME/.claude/scripts/tbd-session.sh" }],
+    "PreCompact": [{ "command": "$HOME/.claude/scripts/tbd-session.sh --brief" }]
+  }
+}
+```
+
+But actual state shows:
+- `~/.claude/scripts/` directory doesn't exist
+- `~/.claude/settings.json` has no SessionStart hook for tbd
+
+The code in `setup.ts` (lines 119-207) defines `TBD_SESSION_SCRIPT` and `CLAUDE_GLOBAL_HOOKS` correctly, but they're not being installed.
+
+**Investigation tasks**:
+- [ ] Verify `installClaudeSetup()` is being called during `tbd setup --auto`
+- [ ] Check if Claude Code detection (`hasClaudeDir || hasClaudeEnv`) is failing
+- [ ] Verify the hook merging logic doesn't overwrite existing hooks incorrectly
+- [ ] Test in a fresh environment to reproduce the issue
+
+**Fix tasks**:
+- [ ] Ensure `~/.claude/scripts/tbd-session.sh` is always created
+- [ ] Ensure global hooks are properly merged (not overwritten)
+- [ ] Add diagnostic output to show what hooks are being installed
+- [ ] Consider making the install hook more robust (retry, better error handling)
+
+**Script name clarification**:
+- Current: `tbd-session.sh` (ensures tbd CLI + runs `tbd prime`)
+- User suggestion: Could rename to `tbd-install.sh` for clarity
+- Decision: Keep `tbd-session.sh` since it does more than just install (also runs prime)
+- Alternative: Add separate `tbd-install.sh` that ONLY ensures installation
+
 ### Phase 1: LocalState Schema Update
 
 - [ ] Add `welcome_seen: z.boolean().optional()` to LocalStateSchema
