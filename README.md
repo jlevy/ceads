@@ -337,10 +337,30 @@ tbd setup --auto --prefix=myapp   # Fresh project: full setup including Claude h
 tbd setup --auto                  # Existing project or refresh: configure/update hooks
 ```
 
-This configures a SessionStart hook that runs `tbd prime` at session start, injecting
-workflow context so the agent knows how to use tbd effectively.
+This configures SessionStart hooks that run at the beginning of each agent session:
+
+- **`tbd prime`** — Injects workflow context so the agent knows how to use tbd
+- **`ensure-gh-cli.sh`** — Installs the GitHub CLI (`gh`) if not already available,
+  enabling PR creation, issue management, and GitHub API access from agent sessions
 
 The agent can also run `tbd` at any time to get full orientation and see project status.
+
+**GitHub authentication:** For `gh` to work, set these environment variables before
+starting your agent session:
+
+```
+GH_TOKEN=ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+GH_PROMPT_DISABLED=1
+```
+
+Create a [Personal Access Token](https://github.com/settings/tokens?type=beta)
+(fine-grained recommended) with **Contents** and **Pull requests** read/write
+permissions. For Claude Code Cloud, set these in your project’s environment variables.
+For local CLI usage, add them to your shell profile (`~/.zshrc` or `~/.bashrc`). See
+[GitHub CLI setup docs](docs/general/agent-setup/github-cli-setup.md) for details.
+
+To disable automatic `gh` installation, pass `--no-gh-cli` during setup or set
+`use_gh_cli: false` in `.tbd/config.yml` under `settings:`.
 
 **Updating:** Run `tbd setup --auto` anytime to refresh skill files with the latest
 shortcuts, guidelines, and templates.

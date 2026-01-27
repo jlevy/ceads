@@ -279,7 +279,8 @@ $ tbd config show --json
   },
   "settings": {
     "auto_sync": false,
-    "doc_auto_sync_hours": 24
+    "doc_auto_sync_hours": 24,
+    "use_gh_cli": true
   }
 }
 ? 0

@@ -13,9 +13,23 @@ If `gh` is available and authenticated, you’re ready to go.
 
 ## Installation
 
-**Installation is automatic.** The `ensure-gh-cli.sh` hook runs on Claude Code session
-start and installs `gh` to `~/.local/bin` if missing.
+**Installation is automatic.** When you run `tbd setup`, it installs an
+`ensure-gh-cli.sh` script to `.claude/scripts/` and a corresponding SessionStart hook in
+`.claude/settings.json`. This hook runs on every Claude Code session start and installs
+`gh` to `~/.local/bin` if it isn’t already available.
+
 No manual installation required.
+
+### Disabling Automatic Installation
+
+To disable the automatic gh CLI hook, use either method:
+
+- **At setup time**: `tbd setup --auto --no-gh-cli`
+- **In config**: Set `use_gh_cli: false` in `.tbd/config.yml` under `settings:`, then
+  re-run `tbd setup --auto`
+
+When disabled, `tbd setup` will remove the `ensure-gh-cli.sh` script and its
+SessionStart hook entry.
 
 For manual installation or troubleshooting, see the
 [GitHub CLI installation docs](https://github.com/cli/cli#installation).

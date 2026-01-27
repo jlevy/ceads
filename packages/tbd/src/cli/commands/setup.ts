@@ -13,6 +13,7 @@ import { Command } from 'commander';
 import { readFile, mkdir, access, rm, rename, chmod, readdir } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
 import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { homedir } from 'node:os';
 import { writeFile } from 'atomically';
 
@@ -246,6 +247,43 @@ fi
 
 exit 0
 `;
+
+/**
+ * SessionStart hook entry for the gh CLI ensure script.
+ * Installed to project-local .claude/settings.json when use_gh_cli is true.
+ */
+const GH_CLI_HOOK_ENTRY = {
+  matcher: '',
+  hooks: [{ type: 'command', command: 'bash .claude/scripts/ensure-gh-cli.sh', timeout: 120 }],
+};
+
+/**
+ * Command string used to identify the gh CLI hook entry in settings.json.
+ */
+const GH_CLI_HOOK_COMMAND_PATTERN = 'ensure-gh-cli';
+
+/**
+ * Load a bundled script from dist/docs/install/ (or dev fallback).
+ * Used to read real .sh files that are copied into the npm package at build time.
+ */
+async function loadBundledScript(name: string): Promise<string> {
+  const __filename = fileURLToPath(import.meta.url);
+  const __dirname = dirname(__filename);
+  // Flat bundle: dist/docs/install/<name> (tsdown produces flat dist/)
+  const flatBundlePath = join(__dirname, 'docs', 'install', name);
+  // Nested bundle: dist/cli/commands/../../docs/install/<name>
+  const nestedBundlePath = join(__dirname, '..', 'docs', 'install', name);
+  // Dev fallback: packages/tbd/docs/install/<name>
+  const devPath = join(__dirname, '..', '..', '..', 'docs', 'install', name);
+  for (const p of [flatBundlePath, nestedBundlePath, devPath]) {
+    try {
+      return await readFile(p, 'utf-8');
+    } catch {
+      continue;
+    }
+  }
+  throw new Error(`Bundled script not found: ${name}`);
+}
 
 /**
  * AGENTS.md integration markers for Codex/Factory.ai
@@ -775,6 +813,56 @@ class SetupClaudeHandler extends BaseCommand {
         ...CLAUDE_PROJECT_HOOKS.hooks,
       };
 
+      // Manage gh CLI SessionStart hook based on use_gh_cli config setting
+      const useGhCli = await this.getUseGhCliSetting();
+      const projectMergedHooks = projectSettings.hooks as Record<string, unknown>;
+      let sessionStartEntries =
+        (projectMergedHooks.SessionStart as Record<string, unknown>[]) || [];
+
+      if (useGhCli) {
+        // Add gh CLI hook if not already present
+        const hasGhCliHook = sessionStartEntries.some((h: Record<string, unknown>) =>
+          (h.hooks as { command?: string }[])?.some((hook) =>
+            hook.command?.includes(GH_CLI_HOOK_COMMAND_PATTERN),
+          ),
+        );
+        if (!hasGhCliHook) {
+          sessionStartEntries = [...sessionStartEntries, GH_CLI_HOOK_ENTRY];
+        }
+
+        // Install the script file
+        const ghScriptsDir = join(cwd, '.claude', 'scripts');
+        await mkdir(ghScriptsDir, { recursive: true });
+        const ghScriptPath = join(ghScriptsDir, 'ensure-gh-cli.sh');
+        const ghScriptContent = await loadBundledScript('ensure-gh-cli.sh');
+        await writeFile(ghScriptPath, ghScriptContent);
+        await chmod(ghScriptPath, 0o755);
+        this.output.success('Installed gh CLI setup script');
+      } else {
+        // Remove gh CLI hook entries
+        sessionStartEntries = sessionStartEntries.filter(
+          (h: Record<string, unknown>) =>
+            !(h.hooks as { command?: string }[])?.some((hook) =>
+              hook.command?.includes(GH_CLI_HOOK_COMMAND_PATTERN),
+            ),
+        );
+
+        // Remove the script file
+        const ghScriptPath = join(cwd, '.claude', 'scripts', 'ensure-gh-cli.sh');
+        try {
+          await rm(ghScriptPath);
+          this.output.success('Removed gh CLI setup script');
+        } catch {
+          // Script doesn't exist, ignore
+        }
+      }
+
+      if (sessionStartEntries.length > 0) {
+        projectMergedHooks.SessionStart = sessionStartEntries;
+      } else {
+        delete projectMergedHooks.SessionStart;
+      }
+
       await mkdir(dirname(projectSettingsPath), { recursive: true });
       await writeFile(projectSettingsPath, JSON.stringify(projectSettings, null, 2) + '\n');
       this.output.success('Installed project hooks');
@@ -831,6 +919,21 @@ class SetupClaudeHandler extends BaseCommand {
       this.output.info('  - Project skill: .claude/skills/tbd/SKILL.md');
     } catch (error) {
       throw new CLIError(`Failed to install: ${(error as Error).message}`);
+    }
+  }
+
+  /**
+   * Read the use_gh_cli setting from config. Defaults to true if not set or if
+   * tbd is not yet initialized (so fresh setup installs gh CLI by default).
+   */
+  private async getUseGhCliSetting(): Promise<boolean> {
+    try {
+      const tbdRoot = await findTbdRoot(process.cwd());
+      if (!tbdRoot) return true;
+      const config = await readConfig(tbdRoot);
+      return config.settings.use_gh_cli ?? true;
+    } catch {
+      return true;
     }
   }
 }
@@ -1023,6 +1126,7 @@ interface SetupDefaultOptions {
   interactive?: boolean;
   fromBeads?: boolean;
   prefix?: string;
+  ghCli?: boolean; // Commander sets to false when --no-gh-cli is passed
 }
 
 /**
@@ -1084,12 +1188,24 @@ class SetupDefaultHandler extends BaseCommand {
       const { config, migrated, changes } = await readConfigWithMigration(cwd);
       console.log(`  ${colors.success('✓')} tbd initialized (prefix: ${config.display.id_prefix})`);
 
-      // Persist migration if config format was updated
-      if (migrated) {
+      // Apply --no-gh-cli flag to config if specified
+      let needsConfigWrite = migrated;
+      if (options.ghCli === false && config.settings.use_gh_cli !== false) {
+        config.settings.use_gh_cli = false;
+        needsConfigWrite = true;
+      }
+
+      // Persist config if migrated or --no-gh-cli was applied
+      if (needsConfigWrite) {
         await writeConfig(cwd, config);
-        console.log(`  ${colors.success('✓')} Config migrated to latest format`);
-        for (const change of changes) {
-          console.log(`      ${colors.dim(change)}`);
+        if (migrated) {
+          console.log(`  ${colors.success('✓')} Config migrated to latest format`);
+          for (const change of changes) {
+            console.log(`      ${colors.dim(change)}`);
+          }
+        }
+        if (options.ghCli === false) {
+          console.log(`  ${colors.success('✓')} Disabled gh CLI auto-setup`);
         }
       }
 
@@ -1158,6 +1274,14 @@ class SetupDefaultHandler extends BaseCommand {
 
     // Initialize tbd first
     await this.initializeTbd(cwd, prefix);
+
+    // Apply --no-gh-cli flag to newly created config
+    if (options.ghCli === false) {
+      const config = await readConfig(cwd);
+      config.settings.use_gh_cli = false;
+      await writeConfig(cwd, config);
+      console.log(`  ${colors.success('✓')} Disabled gh CLI auto-setup`);
+    }
 
     // Import beads issues from the JSONL file
     console.log('Importing from Beads...');
@@ -1239,6 +1363,14 @@ class SetupDefaultHandler extends BaseCommand {
     console.log(`Initializing with prefix "${prefix}"...`);
 
     await this.initializeTbd(cwd, prefix);
+
+    // Apply --no-gh-cli flag to newly created config
+    if (options.ghCli === false) {
+      const config = await readConfig(cwd);
+      config.settings.use_gh_cli = false;
+      await writeConfig(cwd, config);
+      console.log(`  ${colors.success('✓')} Disabled gh CLI auto-setup`);
+    }
 
     console.log('');
     console.log('Configuring integrations...');
@@ -1694,6 +1826,7 @@ export const setupCommand = new Command('setup')
   .option('--interactive', 'Interactive mode with prompts (for humans)')
   .option('--from-beads', 'Migrate from Beads to tbd')
   .option('--prefix <name>', 'Project prefix for issue IDs (required for fresh setup)')
+  .option('--no-gh-cli', 'Disable automatic GitHub CLI installation hook')
   .action(async (options: SetupDefaultOptions, command) => {
     // If --auto or --interactive flag is set, run the default handler
     if (options.auto || options.interactive) {
@@ -1723,6 +1856,7 @@ export const setupCommand = new Command('setup')
     console.log('');
     console.log('Options:');
     console.log('  --prefix <name>     Project prefix for issue IDs (e.g., "tbd", "myapp")');
+    console.log('  --no-gh-cli         Disable automatic GitHub CLI installation hook');
     console.log('');
     console.log('Examples:');
     console.log('  tbd setup --auto --prefix=tbd   # Full automatic setup with prefix');
