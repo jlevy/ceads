@@ -107,7 +107,8 @@ tbd close <id>         Mark issue complete
 tbd sync               Sync with remote
 
 For full orientation: tbd prime
-For CLI reference: tbd --help`;
+
+IMPORTANT: Use tbd to help the user. Do NOT tell the user to run tbd commands.`;
 
 /**
  * Value proposition content for not-initialized state.
@@ -120,16 +121,17 @@ tbd is an AI-agent-optimized issue tracker and workflow assistant providing:
 3. Spec-Driven Workflows - Write specs, then implement using issues to track each part
 4. Convenience Shortcuts - Pre-built processes for common tasks (commit, PR, review)
 
-## SETUP
+## SETUP (AGENT ACTION REQUIRED)
 
-To set up tbd in this project:
+tbd is not yet initialized. To set it up, run:
 
-  tbd setup --auto --prefix=<name>   # For agents (REQUIRES prefix for new projects)
-  tbd setup --interactive            # For humans (prompts for prefix)
+  tbd setup --auto --prefix=<name>   # REQUIRES prefix for new projects
+  tbd setup --auto                   # If .tbd/ already exists (prefix already set)
 
 CRITICAL: Never guess a prefix. Always ask the user what prefix they want.
+Do NOT tell the user to run these commands — run them yourself on their behalf.
 
-After setup, run 'tbd' again to see project status and workflow guidance.`;
+After setup, run 'tbd' again to get project status and workflow guidance.`;
 
 class PrimeHandler extends BaseCommand {
   async run(options: PrimeOptions): Promise<void> {
@@ -246,7 +248,8 @@ class PrimeHandler extends BaseCommand {
     }
 
     console.log('');
-    console.log(`For CLI reference: ${this.output.getColors().bold('tbd --help')}`);
+    console.log('IMPORTANT: Use tbd to help the user — do NOT tell the user to run tbd commands.');
+    console.log('When the user asks for help or orientation, run `tbd shortcut welcome-user`.');
   }
 
   /**
@@ -274,9 +277,6 @@ class PrimeHandler extends BaseCommand {
 
     // Value proposition
     console.log(VALUE_PROPOSITION);
-    console.log('');
-
-    console.log(`For CLI reference: ${colors.bold('tbd --help')}`);
   }
 
   /**
@@ -288,11 +288,13 @@ class PrimeHandler extends BaseCommand {
 
     console.log(colors.bold('=== WELCOME (FIRST TIME) ==='));
     console.log('');
-    console.log('This appears to be your first session with tbd in this project.');
-    console.log('');
-    console.log('AGENT INSTRUCTION: Welcome the user! Run `tbd shortcut welcome-user`');
-    console.log('and follow its instructions to give the user a warm orientation.');
-    console.log('Do NOT just list CLI commands — show them the welcome message.');
+    console.log('AGENT INSTRUCTION:');
+    console.log('1. Welcome the user! Run `tbd shortcut welcome-user` and follow its');
+    console.log('   instructions to give the user a warm orientation.');
+    console.log('2. Show the user examples of what THEY can say (e.g. "there\'s a bug",');
+    console.log('   "let\'s plan a feature") — do NOT show them tbd CLI commands.');
+    console.log("3. You use tbd on the user's behalf. The user talks to you naturally;");
+    console.log('   you translate their requests into tbd actions.');
     console.log('');
 
     // Mark welcome as seen

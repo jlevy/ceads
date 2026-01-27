@@ -20,25 +20,27 @@ Then show the welcome message:
 **Welcome! tbd is ready for this project.**
 
 tbd helps you ship code with greater speed, quality, and discipline.
+It tracks work as **beads** (issues) and provides shortcuts for common workflows.
+
 Here are examples of things you can say and what happens:
 
-### Issues
+### Beads (Issues)
 
 | What You Can Say | What Happens |
 | --- | --- |
-| "There's a bug where ..." | Creates and tracks a bug issue |
-| "Let's work on current issues" | Shows ready issues to tackle |
-| "Track this as a task" | Creates a task issue |
+| "There's a bug where ..." | Creates and tracks a bug bead (`tbd create`) |
+| "Let's work on current issues" | Shows ready beads to tackle (`tbd ready`) |
+| "Track this as a task" | Creates a task bead (`tbd create`) |
 
 ### Shortcuts and Workflows
 
 | What You Can Say | What Happens |
 | --- | --- |
-| "Let's plan a new feature" | Walks you through creating a planning spec |
-| "Break the spec into issues" | Creates implementation issues from your spec |
-| "Implement these issues" | Works through issues systematically |
-| "Commit this code" | Reviews changes and commits properly |
-| "Create a PR" | Creates a pull request with summary |
+| "Let's plan a new feature" | Walks you through creating a planning spec (`tbd shortcut new-plan-spec`) |
+| "Break the spec into issues" | Creates implementation beads from your spec (`tbd shortcut new-implementation-beads-from-spec`) |
+| "Implement these issues" | Works through beads systematically (`tbd shortcut implement-beads`) |
+| "Commit this code" | Reviews changes and commits properly (`tbd shortcut commit-code`) |
+| "Create a PR" | Creates a pull request with summary (`tbd shortcut create-or-update-pr-simple`) |
 | "Review this for best practices" | Performs a code review with guidelines |
 
 ### Guidelines
@@ -51,7 +53,7 @@ Here are examples of things you can say and what happens:
 
 **Tips:**
 
-- Say **“Use beads to …”** and I will track everything with beads (issues).
+- Say **“Use beads to …”** and I will track everything with beads.
   This works much better than the usual to-do lists for long lists of tasks.
 
 - Say **“Is there a shortcut for ...?”** or **“Use the shortcut to …”** and I’ll look
