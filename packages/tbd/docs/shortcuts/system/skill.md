@@ -57,6 +57,7 @@ preference for a given project.
 | "Fix current issues" | `tbd ready` | Lists ready issues |
 | *(agent choice)* | `tbd dep add <id> <depends-on>` | Adds dependency |
 | *(agent choice)* | `tbd close <id>` | Closes issue |
+| *(agent choice)* | `tbd sync` | Syncs issues to remote |
 | "Build a TypeScript CLI" | `tbd guidelines typescript-cli-tool-rules` | Agent gets guidelines |
 | "Improve eslint setup" | `tbd guidelines typescript-monorepo-patterns` | Agent gets guidelines |
 | "Add better e2e testing" | `tbd guidelines golden-testing-guidelines` | Agent gets guidelines |
