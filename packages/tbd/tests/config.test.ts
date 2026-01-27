@@ -13,6 +13,8 @@ import {
   CONFIG_FILE_PATH,
   readLocalState,
   updateLocalState,
+  hasSeenWelcome,
+  markWelcomeSeen,
 } from '../src/file/config.js';
 import type { Config } from '../src/lib/types.js';
 
@@ -108,6 +110,29 @@ describe('config operations', () => {
       await initConfig(tempDir, '3.0.0', 'test');
       await updateLocalState(tempDir, { last_sync_at: '2026-01-01T00:00:00Z' });
       await updateLocalState(tempDir, { welcome_seen: true });
+
+      const state = await readLocalState(tempDir);
+      expect(state.welcome_seen).toBe(true);
+      expect(state.last_sync_at).toBe('2026-01-01T00:00:00Z');
+    });
+  });
+
+  describe('welcome tracking utilities', () => {
+    it('hasSeenWelcome returns false when no state exists', async () => {
+      await initConfig(tempDir, '3.0.0', 'test');
+      expect(await hasSeenWelcome(tempDir)).toBe(false);
+    });
+
+    it('markWelcomeSeen sets welcome_seen to true', async () => {
+      await initConfig(tempDir, '3.0.0', 'test');
+      await markWelcomeSeen(tempDir);
+      expect(await hasSeenWelcome(tempDir)).toBe(true);
+    });
+
+    it('markWelcomeSeen preserves existing state', async () => {
+      await initConfig(tempDir, '3.0.0', 'test');
+      await updateLocalState(tempDir, { last_sync_at: '2026-01-01T00:00:00Z' });
+      await markWelcomeSeen(tempDir);
 
       const state = await readLocalState(tempDir);
       expect(state.welcome_seen).toBe(true);

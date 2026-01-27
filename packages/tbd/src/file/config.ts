@@ -251,3 +251,22 @@ export async function updateLocalState(
   await writeLocalState(baseDir, updated);
   return updated;
 }
+
+// =============================================================================
+// Welcome State Operations
+// =============================================================================
+
+/**
+ * Check if the user has seen the welcome message.
+ */
+export async function hasSeenWelcome(baseDir: string): Promise<boolean> {
+  const state = await readLocalState(baseDir);
+  return state.welcome_seen === true;
+}
+
+/**
+ * Mark the welcome message as seen.
+ */
+export async function markWelcomeSeen(baseDir: string): Promise<void> {
+  await updateLocalState(baseDir, { welcome_seen: true });
+}
