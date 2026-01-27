@@ -243,6 +243,13 @@ export const ConfigSchema = z.object({
        * - Only triggers when accessing docs (shortcut, guidelines, template commands)
        */
       doc_auto_sync_hours: z.number().default(24),
+      /**
+       * Whether to install the ensure-gh-cli.sh hook script during setup.
+       * When true (default), `tbd setup` installs a SessionStart hook that
+       * ensures the GitHub CLI is available in agent sessions.
+       * Set to false or use `tbd setup --no-gh-cli` to disable.
+       */
+      use_gh_cli: z.boolean().default(true),
     })
     .default({}),
   /**

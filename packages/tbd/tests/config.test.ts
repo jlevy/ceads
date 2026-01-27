@@ -67,7 +67,7 @@ describe('config operations', () => {
         tbd_version: '3.1.0',
         sync: { branch: 'custom-branch', remote: 'upstream' },
         display: { id_prefix: 'td' },
-        settings: { auto_sync: true, doc_auto_sync_hours: 24 },
+        settings: { auto_sync: true, doc_auto_sync_hours: 24, use_gh_cli: true },
         docs_cache: { lookup_path: ['.tbd/docs/shortcuts/system', '.tbd/docs/shortcuts/standard'] },
       };
 

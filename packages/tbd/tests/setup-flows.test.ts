@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mkdtemp, rm, mkdir, writeFile, access, realpath } from 'node:fs/promises';
+import { mkdtemp, rm, mkdir, writeFile, readFile, access, realpath } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { execSync, spawnSync } from 'node:child_process';
@@ -298,6 +298,181 @@ describe('setup flows', () => {
 
       // Verify script was removed during setup
       await expect(access(join(scriptsDir, 'setup-tbd.sh'))).rejects.toThrow();
+    });
+  });
+
+  describe('gh CLI setup', () => {
+    it('installs ensure-gh-cli.sh script and SessionStart hook by default', async () => {
+      initGitRepo();
+      const result = runTbd(['setup', '--auto', '--prefix=test']);
+      expect(result.status).toBe(0);
+
+      // Script file should exist
+      const scriptPath = join(tempDir, '.claude', 'scripts', 'ensure-gh-cli.sh');
+      await expect(access(scriptPath)).resolves.not.toThrow();
+      const scriptContent = await readFile(scriptPath, 'utf-8');
+      expect(scriptContent).toContain('#!/bin/bash');
+      expect(scriptContent).toContain('gh');
+
+      // Project settings.json should have SessionStart hook for gh CLI
+      const settingsPath = join(tempDir, '.claude', 'settings.json');
+      const settings = JSON.parse(await readFile(settingsPath, 'utf-8'));
+      const sessionStart = settings.hooks?.SessionStart ?? [];
+      const hasGhHook = sessionStart.some((h: { hooks?: { command?: string }[] }) =>
+        h.hooks?.some((hook) => hook.command?.includes('ensure-gh-cli')),
+      );
+      expect(hasGhHook).toBe(true);
+    });
+
+    it('does not duplicate SessionStart hook on repeated setup', async () => {
+      initGitRepo();
+      runTbd(['setup', '--auto', '--prefix=test']);
+      runTbd(['setup', '--auto']); // second run
+
+      const settingsPath = join(tempDir, '.claude', 'settings.json');
+      const settings = JSON.parse(await readFile(settingsPath, 'utf-8'));
+      const sessionStart = settings.hooks?.SessionStart ?? [];
+      const ghHookCount = sessionStart.filter((h: { hooks?: { command?: string }[] }) =>
+        h.hooks?.some((hook) => hook.command?.includes('ensure-gh-cli')),
+      ).length;
+      expect(ghHookCount).toBe(1);
+    });
+
+    it('--no-gh-cli removes ensure-gh-cli.sh and SessionStart hook', async () => {
+      initGitRepo();
+
+      // First setup with gh CLI enabled (default)
+      runTbd(['setup', '--auto', '--prefix=test']);
+      const scriptPath = join(tempDir, '.claude', 'scripts', 'ensure-gh-cli.sh');
+      await expect(access(scriptPath)).resolves.not.toThrow();
+
+      // Now disable
+      const result = runTbd(['setup', '--auto', '--no-gh-cli']);
+      expect(result.status).toBe(0);
+
+      // Script should be removed
+      await expect(access(scriptPath)).rejects.toThrow();
+
+      // Hook should be removed from settings.json
+      const settingsPath = join(tempDir, '.claude', 'settings.json');
+      const settings = JSON.parse(await readFile(settingsPath, 'utf-8'));
+      const sessionStart = settings.hooks?.SessionStart ?? [];
+      const hasGhHook = sessionStart.some((h: { hooks?: { command?: string }[] }) =>
+        h.hooks?.some((hook) => hook.command?.includes('ensure-gh-cli')),
+      );
+      expect(hasGhHook).toBe(false);
+    });
+
+    it('respects use_gh_cli: false in config', async () => {
+      initGitRepo();
+      runTbd(['init', '--prefix=test']);
+
+      // Manually set use_gh_cli: false in config
+      const configPath = join(tempDir, '.tbd', 'config.yml');
+      let configContent = await readFile(configPath, 'utf-8');
+      configContent = configContent.replace(/settings:/, 'settings:\n  use_gh_cli: false');
+      await writeFile(configPath, configContent);
+
+      // Run setup — should NOT install gh CLI script
+      runTbd(['setup', '--auto']);
+
+      const scriptPath = join(tempDir, '.claude', 'scripts', 'ensure-gh-cli.sh');
+      await expect(access(scriptPath)).rejects.toThrow();
+    });
+
+    it('preserves use_gh_cli: false across setup runs', async () => {
+      initGitRepo();
+
+      // Setup with --no-gh-cli
+      runTbd(['setup', '--auto', '--prefix=test', '--no-gh-cli']);
+
+      // Verify config has use_gh_cli: false
+      const configPath = join(tempDir, '.tbd', 'config.yml');
+      const configContent = await readFile(configPath, 'utf-8');
+      expect(configContent).toContain('use_gh_cli: false');
+
+      // Run setup again without --no-gh-cli — should preserve false
+      runTbd(['setup', '--auto']);
+
+      const configContent2 = await readFile(configPath, 'utf-8');
+      expect(configContent2).toContain('use_gh_cli: false');
+
+      // Script should still not exist
+      const scriptPath = join(tempDir, '.claude', 'scripts', 'ensure-gh-cli.sh');
+      await expect(access(scriptPath)).rejects.toThrow();
+    });
+
+    it('preserves non-gh SessionStart hooks when adding/removing gh hook', async () => {
+      initGitRepo();
+
+      // Pre-create settings with a custom SessionStart hook
+      const settingsDir = join(tempDir, '.claude');
+      await mkdir(settingsDir, { recursive: true });
+      await writeFile(
+        join(settingsDir, 'settings.json'),
+        JSON.stringify(
+          {
+            hooks: {
+              SessionStart: [
+                {
+                  matcher: '',
+                  hooks: [{ type: 'command', command: 'echo custom-hook' }],
+                },
+              ],
+            },
+          },
+          null,
+          2,
+        ),
+      );
+
+      // Setup should add gh hook alongside custom hook
+      runTbd(['init', '--prefix=test']);
+      runTbd(['setup', '--auto']);
+
+      const settings1 = JSON.parse(await readFile(join(settingsDir, 'settings.json'), 'utf-8'));
+      const sessionStart1 = settings1.hooks?.SessionStart ?? [];
+      expect(
+        sessionStart1.some((h: { hooks?: { command?: string }[] }) =>
+          h.hooks?.some((hook) => hook.command === 'echo custom-hook'),
+        ),
+      ).toBe(true);
+      expect(
+        sessionStart1.some((h: { hooks?: { command?: string }[] }) =>
+          h.hooks?.some((hook) => hook.command?.includes('ensure-gh-cli')),
+        ),
+      ).toBe(true);
+
+      // Disable gh CLI — custom hook should remain
+      runTbd(['setup', '--auto', '--no-gh-cli']);
+
+      const settings2 = JSON.parse(await readFile(join(settingsDir, 'settings.json'), 'utf-8'));
+      const sessionStart2 = settings2.hooks?.SessionStart ?? [];
+      expect(
+        sessionStart2.some((h: { hooks?: { command?: string }[] }) =>
+          h.hooks?.some((hook) => hook.command === 'echo custom-hook'),
+        ),
+      ).toBe(true);
+      expect(
+        sessionStart2.some((h: { hooks?: { command?: string }[] }) =>
+          h.hooks?.some((hook) => hook.command?.includes('ensure-gh-cli')),
+        ),
+      ).toBe(false);
+    });
+
+    it('installed script matches bundled ensure-gh-cli.sh', async () => {
+      initGitRepo();
+      runTbd(['setup', '--auto', '--prefix=test']);
+
+      // Read installed script
+      const scriptPath = join(tempDir, '.claude', 'scripts', 'ensure-gh-cli.sh');
+      const installed = await readFile(scriptPath, 'utf-8');
+
+      // Read bundled source (dev path)
+      const bundledPath = join(__dirname, '..', 'docs', 'install', 'ensure-gh-cli.sh');
+      const bundled = await readFile(bundledPath, 'utf-8');
+
+      expect(installed).toBe(bundled);
     });
   });
 });
