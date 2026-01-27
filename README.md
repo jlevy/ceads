@@ -76,7 +76,7 @@ workflows and best practices.
 | "Review these changes" (Python) | `tbd guidelines python-rules` | Outputs guidelines |
 | "Commit this" | `tbd shortcut commit-code` | Outputs instructions |
 | "Create a PR" | `tbd shortcut create-or-update-pr-simple` | Outputs instructions |
-| "Research this topic" | `tbd shortcut new-research-doc` | Outputs template |
+| "Research this topic" | `tbd shortcut new-research-brief` | Outputs template |
 | "Document this architecture" | `tbd shortcut new-architecture-doc` | Outputs template |
 
 ## Features
