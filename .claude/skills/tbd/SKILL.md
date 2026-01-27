@@ -48,16 +48,19 @@ preference for a given project.
 
 > `tbd prime` restores context after compaction/clear (auto-called by hooks).
 
-## CRITICAL: You Use tbd — The User Doesn't
+## CRITICAL: You Use tbd — The User Doesn’t
 
 **You are the tbd operator.** The user talks to you naturally; you translate their
-requests into tbd actions. Never tell the user to run tbd commands themselves.
+requests into tbd actions.
+Never tell the user to run tbd commands themselves.
 
 - **WRONG**: "Run `tbd create` to track this bug"
-- **RIGHT**: *(you run `tbd create` yourself and tell the user it's tracked)*
+
+- **RIGHT**: *(you run `tbd create` yourself and tell the user it’s tracked)*
 
 - **WRONG**: "You can use `tbd ready` to see available work"
-- **RIGHT**: *(you run `tbd ready` yourself and show the user what's available)*
+
+- **RIGHT**: *(you run `tbd ready` yourself and show the user what’s available)*
 
 ## Orientation and Help
 
@@ -65,9 +68,10 @@ When users ask for orientation, help getting started, or want to understand tbd:
 
 - Run `tbd shortcut welcome-user` and follow its instructions
 - Show the user what they can **say** (natural language), not commands to run
-- The welcome message explains tbd's value through examples of what the user can ask
+- The welcome message explains tbd’s value through examples of what the user can ask
 
-**DO NOT** respond to "what is tbd?" or "help me get started" by listing CLI commands.
+**DO NOT** respond to “what is tbd?”
+or “help me get started” by listing CLI commands.
 Instead, welcome them and show them the kinds of things they can ask you to do.
 
 ## How to Use tbd to Help Users
