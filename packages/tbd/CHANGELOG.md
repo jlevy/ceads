@@ -1,5 +1,12 @@
 # tbd-git
 
+## 0.1.7
+
+### Patch Changes
+
+- Inherit spec_path from parent beads, automatic gh CLI setup via SessionStart hook, and
+  various bug fixes
+
 ## 0.1.6
 
 ### Patch Changes
