@@ -253,7 +253,10 @@ export const listCommand = new Command('list')
     val,
   ])
   .option('--parent <id>', 'List children of parent')
-  .option('--spec <path>', 'Filter by spec path (supports gradual matching)')
+  .option(
+    '--spec <path>',
+    'Filter by spec path (matches full path, partial path suffix, or filename)',
+  )
   .option('--deferred', 'Show only deferred issues')
   .option('--defer-before <date>', 'Deferred before date')
   .option('--sort <field>', 'Sort by: priority, created, updated', 'priority')

@@ -4,46 +4,60 @@ description: Welcome message for users after tbd installation or setup
 ---
 # Welcome User After tbd Setup
 
-After running `tbd setup`, welcome the user with an appropriate message based on whether
-this is a new or existing installation.
+Welcome the user with the message below.
+This applies whether this is a new installation or the user is joining an existing
+project.
 
 ## Instructions
 
 First, run `tbd status` to check the current state.
+Give a brief summary of the status (repository, sync status, integrations).
 
-### If This Is an Existing Installation
-
-(The `.tbd/` directory already existed before setup was run)
-
-Say simply:
-
-> tbd is enabled for this project!
-
-Then summarize the key info from `tbd status` (repository, sync status, integrations).
-
-### If This Is a New Installation
-
-(The `.tbd/` directory was just created)
-
-Give a brief summary of the `tbd status` output, then say:
+Then show the welcome message:
 
 * * *
 
-**Congratulations, tbd skills are now available!**
+**Welcome! tbd is ready for this project.**
 
-With tbd you can track issues (beads), make plan specs, architecture docs, or research
-briefs, or map out the implementation of new features issue by issue, far more reliably.
+tbd helps you ship code with greater speed, quality, and discipline.
+It tracks work as **beads** (issues) and provides shortcuts for common workflows.
 
-**Two key tips:**
+Here are examples of things you can say and what happens:
 
-- Say **“Use beads to …”** and I will know to track everything with beads.
+### Beads (Issues)
+
+| What You Can Say | What Happens |
+| --- | --- |
+| "There's a bug where ..." | Creates and tracks a bug bead (`tbd create`) |
+| "Let's work on current issues" | Shows ready beads to tackle (`tbd ready`) |
+| "Track this as a task" | Creates a task bead (`tbd create`) |
+
+### Shortcuts and Workflows
+
+| What You Can Say | What Happens |
+| --- | --- |
+| "Let's plan a new feature" | Walks you through creating a planning spec (`tbd shortcut new-plan-spec`) |
+| "Break the spec into issues" | Creates implementation beads from your spec (`tbd shortcut new-implementation-beads-from-spec`) |
+| "Implement these issues" | Works through beads systematically (`tbd shortcut implement-beads`) |
+| "Commit this code" | Reviews changes and commits properly (`tbd shortcut commit-code`) |
+| "Create a PR" | Creates a pull request with summary (`tbd shortcut create-or-update-pr-simple`) |
+| "Review this for best practices" | Performs a code review with guidelines |
+
+### Guidelines
+
+| What You Can Say | What Happens |
+| --- | --- |
+| "I'm building a TypeScript CLI" | Applies TypeScript CLI guidelines |
+| "Help me set up better testing" | Applies testing guidelines |
+| "What are the Python best practices?" | Applies Python guidelines |
+
+**Tips:**
+
+- Say **“Use beads to …”** and I will track everything with beads.
   This works much better than the usual to-do lists for long lists of tasks.
 
 - Say **“Is there a shortcut for ...?”** or **“Use the shortcut to …”** and I’ll look
   for the shortcut for that workflow.
-  Common ones are “implement that with beads,” “create a new plan spec,” “commit the
-  code,” “review that for TypeScript best practices,” or “create a PR with a validation
-  plan.”
 
 * * *
 

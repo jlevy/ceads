@@ -6,7 +6,16 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { mkdtemp, rm, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { readConfig, writeConfig, initConfig, CONFIG_FILE_PATH } from '../src/file/config.js';
+import {
+  readConfig,
+  writeConfig,
+  initConfig,
+  CONFIG_FILE_PATH,
+  readLocalState,
+  updateLocalState,
+  hasSeenWelcome,
+  markWelcomeSeen,
+} from '../src/file/config.js';
 import type { Config } from '../src/lib/types.js';
 
 describe('config operations', () => {
@@ -79,6 +88,55 @@ describe('config operations', () => {
       expect(read.sync.remote).toBe('upstream');
       expect(read.display.id_prefix).toBe('td');
       expect(read.settings.auto_sync).toBe(true);
+    });
+  });
+
+  describe('local state with welcome_seen', () => {
+    it('returns empty state when no state file exists', async () => {
+      await initConfig(tempDir, '3.0.0', 'test');
+      const state = await readLocalState(tempDir);
+      expect(state.welcome_seen).toBeUndefined();
+    });
+
+    it('stores and reads welcome_seen', async () => {
+      await initConfig(tempDir, '3.0.0', 'test');
+      await updateLocalState(tempDir, { welcome_seen: true });
+
+      const state = await readLocalState(tempDir);
+      expect(state.welcome_seen).toBe(true);
+    });
+
+    it('preserves other state fields when updating welcome_seen', async () => {
+      await initConfig(tempDir, '3.0.0', 'test');
+      await updateLocalState(tempDir, { last_sync_at: '2026-01-01T00:00:00Z' });
+      await updateLocalState(tempDir, { welcome_seen: true });
+
+      const state = await readLocalState(tempDir);
+      expect(state.welcome_seen).toBe(true);
+      expect(state.last_sync_at).toBe('2026-01-01T00:00:00Z');
+    });
+  });
+
+  describe('welcome tracking utilities', () => {
+    it('hasSeenWelcome returns false when no state exists', async () => {
+      await initConfig(tempDir, '3.0.0', 'test');
+      expect(await hasSeenWelcome(tempDir)).toBe(false);
+    });
+
+    it('markWelcomeSeen sets welcome_seen to true', async () => {
+      await initConfig(tempDir, '3.0.0', 'test');
+      await markWelcomeSeen(tempDir);
+      expect(await hasSeenWelcome(tempDir)).toBe(true);
+    });
+
+    it('markWelcomeSeen preserves existing state', async () => {
+      await initConfig(tempDir, '3.0.0', 'test');
+      await updateLocalState(tempDir, { last_sync_at: '2026-01-01T00:00:00Z' });
+      await markWelcomeSeen(tempDir);
+
+      const state = await readLocalState(tempDir);
+      expect(state.welcome_seen).toBe(true);
+      expect(state.last_sync_at).toBe('2026-01-01T00:00:00Z');
     });
   });
 });

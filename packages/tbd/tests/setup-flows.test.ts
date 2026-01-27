@@ -94,13 +94,12 @@ describe('setup flows', () => {
       const result = runTbd(['setup', '--auto', '--prefix=test']);
 
       expect(result.status).toBe(0);
-      // Should show What's Next guidance
+      // Should show What's Next guidance with natural language framing
       expect(result.stdout).toContain("WHAT'S NEXT");
-      // Should include key actions from spec
-      expect(result.stdout).toContain('tbd create');
-      expect(result.stdout).toContain('tbd ready');
-      expect(result.stdout).toContain('tbd shortcut');
-      expect(result.stdout).toContain('tbd guidelines');
+      expect(result.stdout).toContain('Try saying things like:');
+      expect(result.stdout).toContain("There's a bug where");
+      expect(result.stdout).toContain("Let's plan a new feature");
+      expect(result.stdout).toContain('Commit this code');
     });
   });
 

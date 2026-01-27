@@ -1,9 +1,9 @@
 # Research Brief: Convex Database Limits, Best Practices, and Workarounds
 
-**Last Updated**: 2026-01-09
+**Last Updated**: 2026-01-20
 
-**Status**: Complete (reviewed January 2026; updated 2026-01-09 with source code
-verification and cross-references)
+**Status**: Complete (reviewed January 2026; updated 2026-01-20 with source code
+verification, cross-references, and pricing verification)
 
 **Legend**:
 
@@ -22,9 +22,12 @@ verification and cross-references)
 
 **Related Research**:
 
-- [research-convex-backend-limits-implementation.md](../../../project/research/current/research-convex-backend-limits-implementation.md)
-  — Deep dive into source code implementation of limits and configurability for
-  self-hosted deployments
+- [research-convex-durable-workflows-architecture.md](../../../project/research/current/research-convex-durable-workflows-architecture.md)
+  — Workflow and workpool architecture, overhead analysis, and best practices for
+  durable workflows
+
+> Note: Backend limits implementation details (source code verification, self-hosted
+> configuration) have been integrated into this document.
 
 * * *
 
@@ -165,9 +168,9 @@ entire document.
 | **Maximum fields per document** | 1,024 fields | `crates/value/src/object.rs:30` | ✅ 🔒 |
 | **Maximum nesting depth (user)** | 16 levels | `crates/common/src/document.rs:102` | ✅ 🔒 |
 | **Maximum nesting depth (system)** | 64 levels | `crates/value/src/size.rs:8` | ✅ 🔒 |
-| **Maximum array elements** | 8,192 elements per array | `crates/value/src/array.rs:26` | ✅ 🔒 |
-| **Maximum field name length** | 1,024 characters | `crates/sync_types/src/identifier.rs:124` | ✅ 🔒 🔍 |
-| **Maximum identifier length** | 64 characters | `crates/sync_types/src/identifier.rs:10` | ✅ 🔒 |
+| **Maximum array elements** | 8,192 elements per array | `crates/value/src/array.rs:27` | ✅ 🔒 |
+| **Maximum field name length** | 1,024 characters | `crates/convex/sync_types/src/identifier.rs:124` | ✅ 🔒 🔍 |
+| **Maximum identifier length** | 64 characters | `crates/convex/sync_types/src/identifier.rs:10` | ✅ 🔒 |
 
 **🔍 Note on Field Name vs Identifier Length**:
 
@@ -238,8 +241,10 @@ const events = await ctx.db.query('events').collect();
 
 The source code base constant `DEFAULT_APPLICATION_MAX_FUNCTION_CONCURRENCY` is **16**
 for all function types.
-Convex Cloud overrides these via a “big brain” service for Professional plan customers
-(256 queries/mutations, 1000 Node actions, etc.).
+Convex Cloud overrides these via a “big brain” service for Professional plan customers.
+Current Pro limits (verified January 2026): 256+ queries/mutations, 256+ V8/Node
+actions, 128+ HTTP actions.
+Starter plan uses code defaults (16 except 64 for actions).
 
 **🛠️ Self-Hosted Configuration**:
 
@@ -356,7 +361,6 @@ This limit is not documented in official Convex docs but is verified in source c
 **Workarounds**:
 
 1. **Log Strategically**: Only log major milestones, not every iteration
-
    ```typescript
    // Bad: Logs 1000+ times for large datasets
    for (let i = 0; i < items.length; i++) {
@@ -446,9 +450,9 @@ runtime, similar for Node.js at 512 MB
 **Workaround**: Add `"use node";` directive to switch from 64 MB to 512 MB limit:
 
 ```typescript
-'use node';
+"use node";
 
-import { internalAction } from './_generated/server';
+import { internalAction } from "./_generated/server";
 
 export const memoryIntensiveAction = internalAction({
   handler: async (ctx, args) => {
@@ -513,23 +517,21 @@ basis … Usually this is only needed if your product has highly bursty traffic.
 *Note: Storage quotas and pricing change periodically.
 Verify current values at [Convex Pricing](https://www.convex.dev/pricing).*
 
-**Database Storage** ⚠️ 🔄:
+**Database Storage** ✅ 🔄:
 
-| Plan | Included Storage | Bandwidth/Month | Status |
-| --- | --- | --- | --- |
-| **Starter** | 0.5 GiB | 1 GiB | ⚠️ 🔄 |
-| **Professional** | ~1 GiB+ (verify pricing page) | ~50 GiB (verify) | ⚠️ 🔄 |
+| Plan | Included Storage | Bandwidth/Month | Overage | Status |
+| --- | --- | --- | --- | --- |
+| **Starter** | 0.5 GB | 1 GB/month | $0.22/GB | ✅ 🔄 |
+| **Professional** | 50 GB | 50 GB/month | $0.20/GB | ✅ 🔄 |
 
-*Recent changes (late 2025): Convex updated their pricing model.
-Pro plan now includes 1 GB at $0.50/GB/month overage (down from previous $10/GB). Check
-official pricing.*
+*Verified January 2026 from official pricing page.*
 
-**File Storage** ⚠️ 🔄:
+**File Storage** ✅ 🔄:
 
-| Plan | Included Storage | Bandwidth/Month | Status |
-| --- | --- | --- | --- |
-| **Starter** | 1 GiB | 1 GiB | ⚠️ 🔄 |
-| **Professional** | (verify pricing page) | (verify) | ⚠️ 🔄 |
+| Plan | Included Storage | Bandwidth/Month | Overage (storage/bandwidth) | Status |
+| --- | --- | --- | --- | --- |
+| **Starter** | 1 GB | 1 GB/month | $0.03/GB / $0.33/GB | ✅ 🔄 |
+| **Professional** | 100 GB | 50 GB/month | $0.03/GB / $0.30/GB | ✅ 🔄 |
 
 **Key Constraints**:
 
@@ -616,11 +618,12 @@ indexes).
 | Resource | Starter Plan | Professional Plan | Status |
 | --- | --- | --- | --- |
 | **Function Calls/Month** | 1,000,000 | 25,000,000 | ✅ 🔄 |
-| **Action Execution** | 20 GiB-hours | 250 GiB-hours | ⚠️ 🔄 |
+| **Action Execution** | 20 GB-hours | 250 GB-hours | ✅ 🔄 |
 
-**Code and Argument Limits** ⚠️ 🔒:
+**Code and Argument Limits** ✅ 🔒:
 
-- **Maximum deployment code size**: 32 MiB ⚠️ (not verified in recent search)
+- **Maximum deployment code size**: 32 MiB ✅ (verified in official docs and
+  knobs.rs:1251,1467)
 
 - **Maximum argument size**: 8 MiB per function call ✅ (Convex Runtime); 5 MiB (Node.js)
 
@@ -630,7 +633,7 @@ indexes).
 
 - **Starter**: 1–6 developers ✅
 
-- **Professional**: Up to 25 developers per month ⚠️
+- **Professional**: Unlimited developers ($25/developer/month) ✅
 
 **Environment Variables** ✅ 🔒:
 
@@ -872,7 +875,6 @@ Violating these rules leads to runtime errors or architectural issues.
 
    - **Official guidance**
      ([Convex Actions Docs](https://docs.convex.dev/functions/actions)):
-
      > “If you want to call an action from another action that’s in the same runtime,
      > which is the normal case, the best way to do this is to pull the code you want to
      > call into a TypeScript helper function and call the helper instead.”
@@ -889,8 +891,8 @@ Violating these rules leads to runtime errors or architectural issues.
 async function getCompletedRecords(ctx: QueryCtx, userId: Id<'users'>) {
   return await ctx.db
     .query('records')
-    .withIndex('by_user', (q) => q.eq('userId', userId))
-    .filter((q) => q.eq(q.field('status'), 'completed'))
+    .withIndex('by_user', q => q.eq('userId', userId))
+    .filter(q => q.eq(q.field('status'), 'completed'))
     .collect();
 }
 
@@ -905,7 +907,7 @@ export const getUserStats = query({
 export const getUserHistory = query({
   handler: async (ctx, { userId }) => {
     const records = await getCompletedRecords(ctx, userId); // Reuse helper
-    return records.map((r) => ({ id: r._id, date: r.createdAt }));
+    return records.map(r => ({ id: r._id, date: r.createdAt }));
   },
 });
 ```
@@ -947,7 +949,7 @@ export const incrementCounter = internalAction({
     const counter = await ctx.runQuery(internal.getCounter, { counterId });
     await ctx.runMutation(internal.updateCounter, {
       counterId,
-      value: counter.value + 1, // Race condition!
+      value: counter.value + 1  // Race condition!
     });
   },
 });
@@ -1005,7 +1007,10 @@ const allEvents = await ctx.db.query('events').collect();
 
    ```typescript
    // Safe: Only reads first 100 documents
-   const recentEvents = await ctx.db.query('events').order('desc').take(100);
+   const recentEvents = await ctx.db
+     .query('events')
+     .order('desc')
+     .take(100);
    ```
 
 2. **Use `.paginate(paginationOpts)` for cursor-based pagination**:
@@ -1014,7 +1019,10 @@ const allEvents = await ctx.db.query('events').collect();
    export const listEvents = query({
      args: { paginationOpts: paginationOptsValidator },
      handler: async (ctx, args) => {
-       return await ctx.db.query('events').order('desc').paginate(args.paginationOpts);
+       return await ctx.db
+         .query('events')
+         .order('desc')
+         .paginate(args.paginationOpts);
      },
    });
    ```
@@ -1105,12 +1113,9 @@ incompatible with 8 MiB read limit for large datasets.
 
 ```typescript
 // SLOW and will fail at scale
-const errorCount = (
-  await ctx.db
-    .query('events')
-    .withIndex('by_type', (q) => q.eq('eventType', 'error'))
-    .collect()
-).length;
+const errorCount = (await ctx.db.query('events')
+  .withIndex('by_type', q => q.eq('eventType', 'error'))
+  .collect()).length;
 ```
 
 **Workarounds**:
@@ -1156,8 +1161,8 @@ const errorCount = (
 ```typescript
 // Update counters when inserting events
 await ctx.db.patch(entityId, {
-  errorCount: (record.errorCount ?? 0) + 1,
-  totalTokens: (record.totalTokens ?? 0) + tokens,
+ errorCount: (record.errorCount ?? 0) + 1,
+ totalTokens: (record.totalTokens ?? 0) + tokens,
 });
 ```
 
@@ -1303,7 +1308,7 @@ export const createSessionAndWorkflow = mutation({
      await ctx.scheduler.runAfter(
        100 * i, // 100ms delay per item
        internal.processItem,
-       { itemId: items[i] },
+       { itemId: items[i] }
      );
    }
    ```
@@ -1372,11 +1377,9 @@ requirements apply beyond OCC conflict handling:
   avoid re-processing on retry
 
 **See Also**:
-
-- [research-durable-workflows-agent-conversations.md](../../../project/research/current/research-durable-workflows-agent-conversations.md)
-  § “Idempotency Requirements for Workflow Steps” for idempotency patterns
-- [plan-2026-01-09-durable-workflows-agent-conversations-v3.md](../../../project/specs/active/plan-2026-01-09-durable-workflows-agent-conversations-v3.md)
-  § “Idempotency Contract” for implementation-ready details
+- [research-convex-durable-workflows-architecture.md](../../../project/research/current/research-convex-durable-workflows-architecture.md)
+  § “Best Practices for Efficient Workflows” for idempotency patterns and overhead
+  analysis
 
 **🛠️ OCC Configuration (Self-Hosted)**:
 
@@ -1429,15 +1432,15 @@ or high-frequency queries on large result sets.
    // Archive completed runs to external storage (S3, etc.)
    export const archiveOldRuns = internalAction({
      handler: async (ctx, args) => {
-       const oldRecords = await ctx.runQuery(internal.records.getCompleted, {
+      const oldRecords = await ctx.runQuery(internal.records.getCompleted, {
          beforeDate: Date.now() - 90 * 24 * 60 * 60 * 1000, // 90 days
        });
    
-       for (const record of oldRecords) {
+      for (const record of oldRecords) {
          // Export to S3
-         await exportRecordToS3(record);
+        await exportRecordToS3(record);
          // Delete from Convex
-         await ctx.runMutation(internal.records.delete, { recordId: record._id });
+        await ctx.runMutation(internal.records.delete, { recordId: record._id });
        }
      },
    });
@@ -1492,7 +1495,9 @@ export const countAllTurns = query({
     let total = 0;
     let cursor = null;
     do {
-      const page = await ctx.db.query('conversationTurns').paginate({ cursor, numItems: 100 });
+      const page = await ctx.db
+        .query('conversationTurns')
+        .paginate({ cursor, numItems: 100 });
       total += page.page.length;
       cursor = page.continueCursor;
     } while (cursor !== null); // Can loop forever or timeout!
@@ -1544,10 +1549,10 @@ export const countAllTurns = query({
    
        do {
          // Call mutation to process one batch
-         const result = await ctx.runMutation(internal.processTurnsBatch, {
-           cursor,
-           numItems: 100,
-         });
+         const result = await ctx.runMutation(
+           internal.processTurnsBatch,
+           { cursor, numItems: 100 }
+         );
    
          totalProcessed += result.processed;
          cursor = result.continueCursor;
@@ -1765,7 +1770,6 @@ export const processData = internalAction({
 1. **Always await every async call** in actions, even for “non-critical” operations
 
 2. **Use try/catch if the operation can fail** and you want to continue:
-
    ```typescript
    try {
      await optionalOperation();
@@ -1776,7 +1780,6 @@ export const processData = internalAction({
 
 3. **Use `ctx.scheduler.runAfter`** for truly fire-and-forget operations that should run
    independently:
-
    ```typescript
    // If you truly don't need to wait and want it to run separately
    await ctx.scheduler.runAfter(0, internal.logging.trackEvent, { event: 'completed' });
@@ -1819,7 +1822,7 @@ From [Best Practices](https://docs.convex.dev/understanding/best-practices/):
 
 ```typescript
 // BAD: Nested action call within same Node.js runtime
-'use node';
+"use node";
 
 export const parentAction = internalAction({
   handler: async (ctx, args) => {
@@ -1841,7 +1844,7 @@ export const childAction = internalAction({
 
 ```typescript
 // CORRECT: Use helper function instead of nested action
-'use node';
+"use node";
 
 // Plain TypeScript helper - NOT a Convex action
 async function processDataHelper(data: DataType): Promise<ResultType> {
@@ -1893,11 +1896,9 @@ But if those Node.js actions then call other Node.js actions, you recreate the
 problematic nested same-runtime pattern.
 
 **See Also**:
-
-- [research-durable-workflows-agent-conversations.md](../../../project/research/current/research-durable-workflows-agent-conversations.md)
-  § “Nested Action Timeout Issue” for detailed analysis
-- [plan-2026-01-09-durable-workflows-agent-conversations-v3.md](../../../project/specs/active/plan-2026-01-09-durable-workflows-agent-conversations-v3.md)
-  § “Leaf Action Requirement” for implementation guidance
+- [research-convex-durable-workflows-architecture.md](../../../project/research/current/research-convex-durable-workflows-architecture.md)
+  § “Overhead Analysis” and “Best Practices for Efficient Workflows” for workflow
+  architecture details
 
 **Best Practices**:
 

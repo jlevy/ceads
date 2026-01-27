@@ -16,6 +16,7 @@ docs_cache:
   files:
     guidelines/backward-compatibility-rules.md: internal:guidelines/backward-compatibility-rules.md
     guidelines/commit-conventions.md: internal:guidelines/commit-conventions.md
+    guidelines/convex-limits-best-practices.md: internal:guidelines/convex-limits-best-practices.md
     guidelines/convex-rules.md: internal:guidelines/convex-rules.md
     guidelines/general-coding-rules.md: internal:guidelines/general-coding-rules.md
     guidelines/general-comment-rules.md: internal:guidelines/general-comment-rules.md
@@ -28,6 +29,7 @@ docs_cache:
     guidelines/python-rules.md: internal:guidelines/python-rules.md
     guidelines/typescript-cli-tool-rules.md: internal:guidelines/typescript-cli-tool-rules.md
     guidelines/typescript-monorepo-patterns.md: internal:guidelines/typescript-monorepo-patterns.md
+    guidelines/typescript-code-coverage.md: internal:guidelines/typescript-code-coverage.md
     guidelines/typescript-rules.md: internal:guidelines/typescript-rules.md
     shortcuts/standard/commit-code.md: internal:shortcuts/standard/commit-code.md
     shortcuts/standard/create-or-update-pr-simple.md: internal:shortcuts/standard/create-or-update-pr-simple.md
@@ -45,7 +47,7 @@ docs_cache:
     shortcuts/system/shortcut-explanation.md: internal:shortcuts/system/shortcut-explanation.md
     shortcuts/system/skill-brief.md: internal:shortcuts/system/skill-brief.md
     shortcuts/system/skill.md: internal:shortcuts/system/skill.md
-    templates/architecture.md: internal:templates/architecture.md
+    templates/architecture-doc.md: internal:templates/architecture-doc.md
     templates/plan-spec.md: internal:templates/plan-spec.md
     templates/research-brief.md: internal:templates/research-brief.md
   lookup_path:

@@ -549,7 +549,7 @@ These are **informational commands** - they display guidance the agent should fo
 | Command | Purpose | Description |
 |---------|---------|-------------|
 | `tbd template plan-spec` | Plan Spec | Template for feature planning documents |
-| `tbd template architecture` | Architecture | Template for architecture documents |
+| `tbd template architecture-doc` | Architecture | Template for architecture documents |
 | `tbd template research-brief` | Research | Template for research documents |
 ```
 

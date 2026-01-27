@@ -364,7 +364,7 @@ class DocsHandler extends BaseCommand {
     console.log(colors.bold('Templates:'));
     console.log('  tbd template --list          List all available templates');
     console.log('  tbd template plan-spec       Feature planning template');
-    console.log('  tbd template architecture    Architecture document template');
+    console.log('  tbd template architecture-doc    Architecture document template');
     console.log('');
 
     // Design & Reference

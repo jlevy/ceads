@@ -278,6 +278,8 @@ export const LocalStateSchema = z.object({
   last_sync_at: Timestamp.optional(),
   /** When this node last synced the doc cache successfully */
   last_doc_sync_at: Timestamp.optional(),
+  /** Whether the user has seen the welcome message */
+  welcome_seen: z.boolean().optional(),
 });
 
 // =============================================================================

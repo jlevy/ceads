@@ -21,7 +21,7 @@ Create a to-do list with the following items then perform all of them:
 
 3. Create the architecture document using the template:
    ```
-   tbd template architecture > docs/project/architecture/arch-YYYY-MM-DD-component-name.md
+   tbd template architecture-doc > docs/project/architecture/arch-YYYY-MM-DD-component-name.md
    ```
    (Fill in the date and an appropriate component name.)
 

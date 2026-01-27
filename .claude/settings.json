@@ -17,8 +17,18 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash .claude/scripts/ensure-gh-cli.sh",
-            "timeout": 120
+            "command": "$HOME/.claude/scripts/tbd-session.sh"
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/.claude/scripts/tbd-session.sh --brief"
           }
         ]
       }
