@@ -39,6 +39,18 @@ preference for a given project.
 
 > `tbd prime` restores context after compaction/clear (auto-called by hooks).
 
+## Orientation and Help
+
+When users ask for orientation, help getting started, or want to understand tbd:
+
+- Run `tbd shortcut welcome-user` and follow its instructions
+- Show them the welcome message content, not a list of CLI commands
+- The welcome message explains tbd’s value and how it helps them
+
+**DO NOT** respond to “what is tbd?”
+or “help me get started” by listing CLI commands.
+Instead, give them the welcoming orientation that explains WHY tbd helps them.
+
 ## How to Use tbd to Help Users
 
 **Don’t just tell users about commands.** Use tbd proactively:
@@ -47,7 +59,8 @@ preference for a given project.
 - User wants a feature → Create a plan spec, then break into issues
 - Starting a session → Check `tbd ready` for available work
 - Completing work → `tbd close <id>` with clear reason
-- User asks what tbd does → Explain the four capabilities above
+- User asks what tbd does → Run `tbd shortcut welcome-user`
+- User asks for help/orientation → Run `tbd shortcut welcome-user`
 
 ### Quick Reference Table
 
