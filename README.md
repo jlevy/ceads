@@ -26,79 +26,6 @@ That’s it. Running `tbd` with no arguments gives you everything you need:
 This command bootstraps you through each step, providing context-aware instructions for
 whatever comes next.
 
-## Why?
-
-### Beads: The Great and the Not-So-Great Parts
-
-Firstly, tbd was inspired by [Beads](https://github.com/steveyegge/beads) by Steve
-Yegge. I love the power of Beads and am grateful for it!
-If you’re not familiar with the idea, you absolutely should be using it, as it raises an
-agent like Claude’s capacity for doing careful, planned work from ~5-10 to-do tasks to
-hundreds of issues.
-
-Unfortunately, after using it heavily for about a month, I found architectural issues
-and glitches that were too much of a distraction to ignore.
-Things like Claude Code Cloud’s network filesystems unable to use SQLite, fighting with
-the daemon modifying files in the active working tree, merge conflicts, and a confusing
-4-way sync algorithm.
-tbd uses a simpler architecture with (I hope) fewer edge cases and bugs.
-If you already use Beads, you can import issues to tbd, preserving your issue IDs.
-Internally, everything is Markdown files so you can debug or migrate in the future if
-you wish.
-
-Beads are remarkably effective at solving *task tracking*. But they do not solve two
-other key problems: *planning* (researching, documenting, thinking through what you want
-to build, before you create beads) or *orchestration* (deciding in real time how to get
-various agents to implement beads).
-
-### Spec-Driven Development
-
-tbd won’t help you (yet) with orchestration.
-The original Beads, [Gas Town](https://github.com/steveyegge/gastown), and
-[Agent Mail](https://github.com/Dicklesworthstone/mcp_agent_mail) have done more there
-(although I find most of the approaches a bit too chaotic for my needs).
-And others are using a Ralph loop.
-
-So far, although I see the fun of such automation, I don’t feel like I can count on it
-to do good engineering.
-For most of my use cases I still prefer about 8 or 10 local or cloud agents running with
-a little more direct management by me, on tasks I understand and know are pretty well
-defined.
-
-However tbd, *will* help you quite a bit with planning.
-In fact, with good planning, orchestration becomes easier, because with a good enough
-spec and beads, you can leave an agent to run overnight and have pretty good code to
-come back to!
-
-So I think tbd the strongest tool for that.
-
-After months of heavy agentic coding I’m
-[a big fan of carefully written specs](https://github.com/jlevy/speculate/blob/main/about/lessons_in_spec_coding.md).
-It’s taken me some experimentation, but I’ve found having workflows for writing,
-elaborating, implementing, and validating various kinds of docs and specs.
-The problem was, there were about 50 documends I wanted to copy into each new
-repository.
-
-I’ve now figured out how to bake more of these common workflows into tbd, you’re always
-one `npm install -g` away from having both the issue tracker and the docs and prompts
-you need.
-
-A key part is that it’s really convenient to have *shortcuts*: small sets of
-instructions for the agent that remind it to do things right.
-Or to follow a standared process.
-I’ve baked in a few general ones that I’ve found incredibly useful.
-
-- Writing planning specs
-- Writing implementation plans that map into beads
-- Improving code quality via numerous quality rules I’ve curated over the past few
-  months (TypeScript, Python, and a few other areas like Convex)
-- Reviewing and committing code and filing PRs
-- Writing validation plans to help you review
-
-A bunch of my workflows and docs are already included by default, but you’re not
-required to use them, and you can instead use your own; the `.tbd/config.yml` file
-specifies the docs that are cached and available to your agents via tbd commands.
-
 ## What tbd Provides
 
 tbd gives you four capabilities that work together:
@@ -125,20 +52,103 @@ The point is to make it convenient for agents.
 But here is a list of some common actions you can describe and how they map to tbd
 commands:
 
-| User Need or Request | tbd Command Agent Can Run | Notes |
+| User Need or Request | tbd Command Agent Can Run | What Happens |
 | --- | --- | --- |
 | "There is a bug where ..." | `tbd create "..." --type=bug` | Creates issue |
-| "Let's plan a new feature" | `tbd shortcut new-plan-spec` | Outputs instructions |
+| "Let's plan a new feature" | `tbd shortcut new-plan-spec` | Agent gets instructions |
+| "Break spec into issues" | `tbd shortcut new-implementation-beads-from-spec` | Agent gets instructions |
+| "Implement these issues" | `tbd shortcut implement-beads` | Agent gets instructions |
 | "Fix current issues" | `tbd ready` | Lists ready issues |
-| "Build a TypeScript CLI" | `tbd guidelines typescript-cli-tool-rules` | Outputs guidelines |
-| "Improve eslint setup" | `tbd guidelines typescript-monorepo-patterns` | Outputs guidelines |
-| "Add better e2e testing" | `tbd guidelines golden-testing-guidelines` | Outputs guidelines |
-| "Review these changes" (TypeScript) | `tbd guidelines typescript-rules` | Outputs guidelines |
-| "Review these changes" (Python) | `tbd guidelines python-rules` | Outputs guidelines |
-| "Commit this" | `tbd shortcut commit-code` | Outputs instructions |
-| "Create a PR" | `tbd shortcut create-or-update-pr-simple` | Outputs instructions |
-| "Research this topic" | `tbd shortcut new-research-brief` | Outputs template |
-| "Document this architecture" | `tbd shortcut new-architecture-doc` | Outputs template |
+| "Build a TypeScript CLI" | `tbd guidelines typescript-cli-tool-rules` | Agent gets guidelines |
+| "Improve eslint setup" | `tbd guidelines typescript-monorepo-patterns` | Agent gets guidelines |
+| "Add better e2e testing" | `tbd guidelines golden-testing-guidelines` | Agent gets guidelines |
+| "Review these changes" (TypeScript) | `tbd guidelines typescript-rules` | Agent gets guidelines |
+| "Review these changes" (Python) | `tbd guidelines python-rules` | Agent gets guidelines |
+| "Commit this" | `tbd shortcut commit-code` | Agent gets instructions |
+| "Create a PR" | `tbd shortcut create-or-update-pr-simple` | Agent gets instructions |
+| "Research this topic" | `tbd shortcut new-research-brief` | Agent gets template and instructions |
+| "Document this architecture" | `tbd shortcut new-architecture-doc` | Agent gets template and instructions |
+
+## Why?
+
+### Beads: The Great and the Not-So-Great Parts
+
+Firstly, tbd was initially inspired by [Beads](https://github.com/steveyegge/beads) by
+Steve Yegge. I love the power of Beads and am grateful for it!
+If you’re not familiar with the idea, you absolutely should be using it, as it raises an
+agent like Claude’s capacity for doing careful, planned work from ~5-10 to-do tasks to
+hundreds of issues.
+
+Unfortunately, after using it heavily for about a month, I found architectural issues
+and glitches that were too much of a distraction to ignore.
+Things like Claude Code Cloud’s network filesystems unable to use SQLite, fighting with
+the daemon modifying files in the active working tree, merge conflicts, and a confusing
+4-way sync algorithm.
+tbd uses a simpler architecture with (I hope) fewer edge cases and bugs.
+If you already use Beads, you can import issues to tbd, preserving your issue IDs.
+Internally, everything is Markdown files so you can debug or migrate in the future if
+you wish.
+
+> [!NOTE]
+> I use *Beads* (capitalized) to refer to the original `bd` tool.
+> In the docs and prompts I sometimes use lowercase “beads” as a generic way to refer to
+> issues stored in `tbd` or `bd`.
+
+Beads are remarkably effective at solving *task tracking*. But they do not solve two
+other key problems:
+
+- *planning* (researching, documenting, thinking through what you want to build, before
+  you create beads)
+- *orchestration* (deciding in real time how to get various agents to implement beads)
+
+### Spec-Driven Development
+
+tbd won’t help you directly with orchestration.
+The original Beads, [Gas Town](https://github.com/steveyegge/gastown), and
+[Agent Mail](https://github.com/Dicklesworthstone/mcp_agent_mail) have done more there
+by emphasizing rapid communication among agents (although I find most of the approaches
+a bit too chaotic for my needs).
+And others are using a Ralph loop.
+
+So far, although I see the fun of such automation, I don’t feel like I can count on it
+to do good engineering.
+For most of my use cases I still prefer about 8 or 10 local or cloud agents running with
+a little more direct management by me, on tasks I understand and know are pretty well
+defined.
+
+However tbd, *will* help you quite a bit with planning.
+In fact, with good planning, orchestration becomes easier, because with a good enough
+spec and beads, you can leave an agent to run overnight and have pretty good code to
+come back to!
+
+So I think tbd the strongest tool for that.
+
+After months of heavy agentic coding I’m
+[a big fan of carefully written specs](https://github.com/jlevy/speculate/blob/main/about/lessons_in_spec_coding.md).
+It’s taken me some experimentation, but I’ve found having workflows for writing,
+elaborating, implementing, and validating various kinds of docs and specs.
+The problem was, there were about 50 documents I wanted to copy into each new
+repository.
+
+I’ve now figured out how to bake more of these common workflows into tbd, you’re always
+one `npm install -g` away from having both the issue tracker and the docs and prompts
+you need.
+
+A key part is that it’s really convenient to have *shortcuts*: small sets of
+instructions for the agent that remind it to do things right.
+Or to follow a standard process.
+I’ve baked in a few general ones that I’ve found incredibly useful.
+
+- Writing planning specs
+- Writing implementation plans that map into beads
+- Improving code quality via numerous quality rules I’ve curated over the past few
+  months (TypeScript, Python, and a few other areas like Convex)
+- Reviewing and committing code and filing PRs
+- Writing validation plans to help you review
+
+A bunch of my workflows and docs are already included by default, but you’re not
+required to use them, and you can instead use your own; the `.tbd/config.yml` file
+specifies the docs that are cached and available to your agents via tbd commands.
 
 ## Features
 
@@ -169,11 +179,6 @@ commands:
 > [!NOTE]
 > See the [design doc](docs/tbd-design.md) (`tbd design`) or
 > [reference docs](docs/tbd-docs.md) (`tbd docs`) for more details.
-
-> [!NOTE]
-> I use *Beads* (capitalized) to refer to the original `bd` tool.
-> In the docs and prompts I sometimes use lowercase “beads” as a generic way to refer to
-> issues stored in `tbd` or `bd`.
 
 ## Installation
 
