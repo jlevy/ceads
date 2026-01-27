@@ -39,53 +39,64 @@ preference for a given project.
 
 > `tbd prime` restores context after compaction/clear (auto-called by hooks).
 
+## CRITICAL: You Use tbd — The User Doesn’t
+
+**You are the tbd operator.** The user talks to you naturally; you translate their
+requests into tbd actions.
+Never tell the user to run tbd commands themselves.
+
+- **WRONG**: "Run `tbd create` to track this bug"
+
+- **RIGHT**: *(you run `tbd create` yourself and tell the user it’s tracked)*
+
+- **WRONG**: "You can use `tbd ready` to see available work"
+
+- **RIGHT**: *(you run `tbd ready` yourself and show the user what’s available)*
+
 ## Orientation and Help
 
 When users ask for orientation, help getting started, or want to understand tbd:
 
 - Run `tbd shortcut welcome-user` and follow its instructions
-- Show them the welcome message content, not a list of CLI commands
-- The welcome message explains tbd’s value and how it helps them
+- Show the user what they can **say** (natural language), not commands to run
+- The welcome message explains tbd’s value through examples of what the user can ask
 
 **DO NOT** respond to “what is tbd?”
 or “help me get started” by listing CLI commands.
-Instead, give them the welcoming orientation that explains WHY tbd helps them.
+Instead, welcome them and show them the kinds of things they can ask you to do.
 
 ## How to Use tbd to Help Users
 
-**Don’t just tell users about commands.** Use tbd proactively:
+Use tbd proactively on behalf of the user:
 
-- User describes a bug → `tbd create "Bug: ..." --type=bug`
-- User wants a feature → Create a plan spec, then break into issues
-- Starting a session → Check `tbd ready` for available work
-- Completing work → `tbd close <id>` with clear reason
-- User asks what tbd does → Run `tbd shortcut welcome-user`
-- User asks for help/orientation → Run `tbd shortcut welcome-user`
+- User describes a bug → You run `tbd create "Bug: ..." --type=bug`
+- User wants a feature → You create a plan spec, then break into issues
+- Starting a session → You check `tbd ready` for available work
+- Completing work → You run `tbd close <id>` with clear reason
+- User asks what tbd does → You run `tbd shortcut welcome-user`
+- User asks for help/orientation → You run `tbd shortcut welcome-user`
 
 ### Quick Reference Table
 
-| User Need or Request | Agent Runs Command | What Happens |
-| --- | --- | --- |
-| "There is a bug where ..." | `tbd create "..." --type=bug` | Creates issue |
-| "Fix current issues" | `tbd ready` | Lists ready issues |
-| *(agent choice)* | `tbd dep add <id> <depends-on>` | Adds dependency |
-| *(agent choice)* | `tbd close <id>` | Closes issue |
-| *(agent choice)* | `tbd sync` | Syncs issues to remote |
-| "Build a TypeScript CLI" | `tbd guidelines typescript-cli-tool-rules` | Agent gets guidelines |
-| "Improve eslint setup" | `tbd guidelines typescript-monorepo-patterns` | Agent gets guidelines |
-| "Add better e2e testing" | `tbd guidelines golden-testing-guidelines` | Agent gets guidelines |
-| "Review these changes" (TypeScript) | `tbd guidelines typescript-rules` | Agent gets guidelines |
-| "Review these changes" (Python) | `tbd guidelines python-rules` | Agent gets guidelines |
-| "Let's plan a new feature" | `tbd shortcut new-plan-spec` | Agent gets spec template and instructions |
-| "Break spec into issues" | `tbd shortcut new-implementation-beads-from-spec` | Agent gets instructions |
-| "Implement these issues" | `tbd shortcut implement-beads` | Agent gets instructions |
-| "Commit this" | `tbd shortcut commit-code` | Agent gets instructions |
-| "Create a PR" | `tbd shortcut create-or-update-pr-simple` | Agent gets instructions |
-| "Research this topic" | `tbd shortcut new-research-brief` | Agent gets template and instructions |
-| "Document this architecture" | `tbd shortcut new-architecture-doc` | Agent gets template and instructions |
+This table shows what the user says naturally and what you (the agent) do in response.
 
-*“Agent gets instructions/guidelines” = The agent reads and follows the guidance.
-It tells them HOW to do something well.*
+| What the User Says | What You (Agent) Do | What Happens |
+| --- | --- | --- |
+| "There's a bug where ..." | `tbd create "..." --type=bug` | Creates and tracks a bug |
+| "Let's work on current issues" | `tbd ready` | Shows ready issues |
+| "Build a TypeScript CLI" | `tbd guidelines typescript-cli-tool-rules` | You follow the guidelines |
+| "Improve eslint setup" | `tbd guidelines typescript-monorepo-patterns` | You follow the guidelines |
+| "Add better e2e testing" | `tbd guidelines golden-testing-guidelines` | You follow the guidelines |
+| "Review these changes" (TypeScript) | `tbd guidelines typescript-rules` | You follow the guidelines |
+| "Review these changes" (Python) | `tbd guidelines python-rules` | You follow the guidelines |
+| "Let's plan a new feature" | `tbd shortcut new-plan-spec` | You follow the spec template |
+| "Break spec into issues" | `tbd shortcut new-implementation-beads-from-spec` | You create implementation issues |
+| "Implement these issues" | `tbd shortcut implement-beads` | You implement systematically |
+| "Commit this" | `tbd shortcut commit-code` | You review and commit |
+| "Create a PR" | `tbd shortcut create-or-update-pr-simple` | You create the PR |
+| "Research this topic" | `tbd shortcut new-research-brief` | You research and document |
+| "Document this architecture" | `tbd shortcut new-architecture-doc` | You create the doc |
+| *(your judgment)* | `tbd dep add`, `tbd close`, `tbd sync` | You manage issues as needed |
 
 ## IMPORTANT: Session Closing Protocol
 

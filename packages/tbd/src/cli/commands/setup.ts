@@ -1265,17 +1265,18 @@ class SetupDefaultHandler extends BaseCommand {
 
   /**
    * Show "What's Next" guidance after setup completion.
-   * Per spec: Include key actions to help users get started.
+   * Framed as what users can SAY to get help, not as CLI commands to run.
    */
   private showWhatsNext(colors: ReturnType<typeof this.output.getColors>): void {
     console.log('');
     console.log(colors.bold("WHAT'S NEXT"));
     console.log('');
-    console.log('  Track issues:       tbd create "Description" --type=bug|task|feature');
-    console.log('  Find work:          tbd ready');
-    console.log('  Plan features:      tbd shortcut new-plan-spec');
-    console.log('  Coding standards:   tbd guidelines typescript-rules');
-    console.log('  All shortcuts:      tbd shortcut --list');
+    console.log('  Try saying things like:');
+    console.log('    "There\'s a bug where ..."       → Creates and tracks a bug');
+    console.log('    "Let\'s plan a new feature"      → Walks through a planning spec');
+    console.log('    "Let\'s work on current issues"  → Shows ready issues to tackle');
+    console.log('    "Commit this code"               → Reviews and commits properly');
+    console.log('    "Review for best practices"      → Code review with guidelines');
     console.log('');
   }
 
