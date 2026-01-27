@@ -28,6 +28,8 @@ whatever comes next.
 
 ## Why?
 
+### Beads: The Great and the Not-So-Great Parts
+
 Firstly, tbd was inspired by [Beads](https://github.com/steveyegge/beads) by Steve
 Yegge. I love the power of Beads and am grateful for it!
 If you’re not familiar with the idea, you absolutely should be using it, as it raises an
@@ -44,18 +46,47 @@ If you already use Beads, you can import issues to tbd, preserving your issue ID
 Internally, everything is Markdown files so you can debug or migrate in the future if
 you wish.
 
-But beads do not solve all problems.
-They solve the task tracking well, but after months of heavy agentic coding I’m
+Beads are remarkably effective at solving *task tracking*. But they do not solve two
+other key problems: *planning* (researching, documenting, thinking through what you want
+to build, before you create beads) or *orchestration* (deciding in real time how to get
+various agents to implement beads).
+
+### Spec-Driven Development
+
+tbd won’t help you (yet) with orchestration.
+The original Beads, [Gas Town](https://github.com/steveyegge/gastown), and
+[Agent Mail](https://github.com/Dicklesworthstone/mcp_agent_mail) have done more there
+(although I find most of the approaches a bit too chaotic for my needs).
+And others are using a Ralph loop.
+
+So far, although I see the fun of such automation, I don’t feel like I can count on it
+to do good engineering.
+For most of my use cases I still prefer about 8 or 10 local or cloud agents running with
+a little more direct management by me, on tasks I understand and know are pretty well
+defined.
+
+However tbd, *will* help you quite a bit with planning.
+In fact, with good planning, orchestration becomes easier, because with a good enough
+spec and beads, you can leave an agent to run overnight and have pretty good code to
+come back to!
+
+So I think tbd the strongest tool for that.
+
+After months of heavy agentic coding I’m
 [a big fan of carefully written specs](https://github.com/jlevy/speculate/blob/main/about/lessons_in_spec_coding.md).
+It’s taken me some experimentation, but I’ve found having workflows for writing,
+elaborating, implementing, and validating various kinds of docs and specs.
+The problem was, there were about 50 documends I wanted to copy into each new
+repository.
 
-But how do you use specs effectively with beads?
-It’s taken me some experimentation, but I think tbd helps a lot.
+I’ve now figured out how to bake more of these common workflows into tbd, you’re always
+one `npm install -g` away from having both the issue tracker and the docs and prompts
+you need.
 
-A key part is that it’s just a convenient place to put *shortcuts*: small sets of
+A key part is that it’s really convenient to have *shortcuts*: small sets of
 instructions for the agent that remind it to do things right.
 Or to follow a standared process.
-You may have these alrady, but I’ve baked in a few general ones that I’ve found
-incredibly useful. With tbd it’s now possible to add many more additional workflows:
+I’ve baked in a few general ones that I’ve found incredibly useful.
 
 - Writing planning specs
 - Writing implementation plans that map into beads
@@ -63,6 +94,10 @@ incredibly useful. With tbd it’s now possible to add many more additional work
   months (TypeScript, Python, and a few other areas like Convex)
 - Reviewing and committing code and filing PRs
 - Writing validation plans to help you review
+
+A bunch of my workflows and docs are already included by default, but you’re not
+required to use them, and you can instead use your own; the `.tbd/config.yml` file
+specifies the docs that are cached and available to your agents via tbd commands.
 
 ## What tbd Provides
 
