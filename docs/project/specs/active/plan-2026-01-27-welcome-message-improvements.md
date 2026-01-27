@@ -11,6 +11,7 @@ Improve the welcome/onboarding experience so that new users always see the welco
 - **Always welcome new users**: Show the welcome message to any user who hasn't seen it yet, regardless of whether tbd was already set up in the project by someone else
 - **Per-user tracking**: Track "has seen welcome" as per-user state, not project-wide state
 - **Orientation-first experience**: When users ask for help or orientation, show the welcome message, not CLI commands
+- **Show what's possible**: Include a Quick Reference table in the welcome message covering issues, shortcuts, and guidelines so users immediately understand the variety of things they can ask
 - **Proper gitignore handling**: Ensure user-specific state files are gitignored so per-user preferences don't conflict across team members
 - **Clarify config vs state**: Establish clear conventions for what goes in config (shared) vs state (per-user)
 
@@ -146,6 +147,38 @@ DO NOT respond to "what is tbd?" or "help me get started" with just CLI commands
 Instead, give them the welcoming orientation that explains WHY tbd helps them.
 ```
 
+### Welcome Message Content: Quick Reference Table
+
+The welcome message should include a **Quick Reference Table** showing examples of what users can say and how tbd helps. This table is the primary way users understand tbd's value.
+
+**Current problem**: The existing welcome-user.md gives tips like "say 'Use beads to...'" or "say 'Is there a shortcut for...'" — these are good but abstract. Users don't know what's possible.
+
+**Solution**: Include a curated quick reference table directly in the welcome message, covering the three main capability areas:
+
+| What You Can Say | What Happens |
+| --- | --- |
+| **Issues** | |
+| "There's a bug where..." | Creates and tracks a bug issue |
+| "Let's work on current issues" | Shows ready issues to tackle |
+| "Track this as a task" | Creates a task issue |
+| **Shortcuts & Workflows** | |
+| "Let's plan a new feature" | Walks you through creating a planning spec |
+| "Commit this code" | Reviews changes and commits properly |
+| "Create a PR" | Creates PR with summary |
+| "Review this for best practices" | Performs code review |
+| **Guidelines** | |
+| "I'm building a TypeScript CLI" | Applies TypeScript CLI guidelines |
+| "Help me set up better testing" | Applies testing guidelines |
+| "What are the Python best practices?" | Applies Python guidelines |
+
+This table is deliberately shorter than the full Quick Reference in SKILL.md/README.md. The welcome table shows *variety* — one or two examples per category — so users immediately grasp the range of possibilities.
+
+**Secondary tips** (keep these after the table):
+- "Say 'Use beads to...' and I will track everything with beads"
+- "Say 'Is there a shortcut for...?' and I'll look for the shortcut"
+
+**Consistency requirement**: The welcome message table should use the same phrasing style as the Quick Reference tables in SKILL.md and README.md. Consider extracting a shared source or ensuring manual sync.
+
 ### Streamlined Experience for New Team Members
 
 When someone joins a project where tbd is already set up:
@@ -210,10 +243,15 @@ This ensures every new team member gets the full welcome experience.
 - [ ] Clarify that CLI command lists are NOT the right response to "help"
 - [ ] Update both source SKILL.md and installed copies
 
-### Phase 6: Welcome Shortcut Updates
+### Phase 6: Welcome Shortcut Content Updates
 
-- [ ] Review welcome-user.md shortcut content
-- [ ] Ensure it works for users joining existing projects (not just fresh installs)
+- [ ] Add Quick Reference table to welcome-user.md showing:
+  - Issues: "There's a bug...", "Let's work on issues", "Track this as a task"
+  - Shortcuts: "Plan a feature", "Commit this", "Create a PR", "Review this"
+  - Guidelines: "Building a TypeScript CLI", "Better testing", "Python best practices"
+- [ ] Keep existing tips as secondary ("Use beads to...", "Is there a shortcut for...")
+- [ ] Ensure the table matches the phrasing style from SKILL.md/README.md Quick Reference
+- [ ] Update for users joining existing projects (not just fresh installs)
 - [ ] Consider adding a `tbd welcome` alias command
 
 ## Testing Strategy
@@ -252,6 +290,13 @@ This ensures every new team member gets the full welcome experience.
 5. **Agent identity**: How does the system know which user is running tbd?
    - For now: Per-machine state (state.yml). If same machine, same user assumed.
    - Future: Could integrate with git user.email if needed
+
+6. **Quick Reference table synchronization**: We now have similar tables in:
+   - SKILL.md (full reference for agents)
+   - README.md (full reference for humans)
+   - welcome-user.md (curated subset for onboarding)
+   - Should these be generated from a single source? Or manually kept in sync?
+   - Proposed: Start with manual sync; the welcome table is intentionally smaller/different
 
 ## References
 
