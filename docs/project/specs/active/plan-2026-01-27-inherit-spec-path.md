@@ -1,23 +1,25 @@
 # Plan Spec: Inherit spec_path from Parent Bead
 
-**Date:** 2026-01-27 **Author:** Claude **Status:** Draft
+**Date:** 2026-01-27 **Author:** Claude **Status:** Implemented
 
 ## Overview
 
 When a bead is linked to a spec via `spec_path` and has children, child beads should
-automatically inherit the parent's `spec_path` unless they have an explicitly set value.
-This prevents inconsistencies where an epic is linked to a spec but its subtasks are not.
+automatically inherit the parent’s `spec_path` unless they have an explicitly set value.
+This prevents inconsistencies where an epic is linked to a spec but its subtasks are
+not.
 
-Inheritance also propagates: when a parent bead's `spec_path` is set or changed, all
-descendant beads that don't have an explicitly-set `spec_path` should be updated to match.
+Inheritance also propagates: when a parent bead’s `spec_path` is set or changed, all
+descendant beads that don’t have an explicitly-set `spec_path` should be updated to
+match.
 
 ## Goals
 
 - Child beads automatically inherit `spec_path` from their parent when created via
   `--parent` (unless `--spec` is also provided)
-- When a parent bead's `spec_path` is set or changed via `tbd update --spec`, propagate
-  to all children that don't have an explicitly-set spec_path
-- When a child bead is re-parented (via `tbd update --parent`), inherit the new parent's
+- When a parent bead’s `spec_path` is set or changed via `tbd update --spec`, propagate
+  to all children that don’t have an explicitly-set spec_path
+- When a child bead is re-parented (via `tbd update --parent`), inherit the new parent’s
   spec_path (unless the child has an explicit spec_path)
 - Track which beads have explicitly-set vs inherited spec_path values
 - Update design docs and CLI reference docs
@@ -27,19 +29,22 @@ descendant beads that don't have an explicitly-set `spec_path` should be updated
 - Recursive multi-level propagation beyond direct children on create (parent sets child;
   if that child later gets children, they inherit at their own create time)
 - Preventing a child from having a different spec_path (explicit always wins)
-- Propagating spec_path removal (clearing a parent's spec_path does NOT clear children's)
+- Propagating spec_path removal (clearing a parent’s spec_path does NOT clear
+  children’s)
 
 ## Background
 
 With the recent addition of `spec_path` (see `plan-2026-01-26-spec-linking.md`), beads
-can link to specification documents. However, in practice, a typical workflow is:
+can link to specification documents.
+However, in practice, a typical workflow is:
 
 1. Create an epic bead linked to a spec
 2. Break the epic into child task/feature beads
 
-Currently, each child must manually specify `--spec` to link to the same spec. This is
-error-prone and tedious. Since the parent already establishes the spec context, children
-should inherit it by default.
+Currently, each child must manually specify `--spec` to link to the same spec.
+This is error-prone and tedious.
+Since the parent already establishes the spec context, children should inherit it by
+default.
 
 ### Current Implementation Points
 
@@ -65,26 +70,28 @@ should inherit it by default.
 ### Approach
 
 1. **Track explicit vs inherited:** Add an `spec_path_explicit` boolean field (or use a
-   sentinel convention) to distinguish explicitly-set spec_path values from inherited ones.
-   **Simpler alternative:** Don't track this in schema. Instead, use a behavioral rule:
-   inheritance only happens at the moment of create/update. Once set, the value is just a
-   value. To override, the user sets `--spec` explicitly. To re-inherit, the user clears
-   with `--spec ""` and re-parents.
+   sentinel convention) to distinguish explicitly-set spec_path values from inherited
+   ones. **Simpler alternative:** Don’t track this in schema.
+   Instead, use a behavioral rule: inheritance only happens at the moment of
+   create/update. Once set, the value is just a value.
+   To override, the user sets `--spec` explicitly.
+   To re-inherit, the user clears with `--spec ""` and re-parents.
 
-   **Decision: Use simpler approach** — no schema change for tracking. We only need to
-   know at the moment of the operation whether the user explicitly provided `--spec`.
+   **Decision: Use simpler approach** — no schema change for tracking.
+   We only need to know at the moment of the operation whether the user explicitly
+   provided `--spec`.
 
 2. **On create with `--parent`:** If `--spec` is NOT provided but the parent has a
-   `spec_path`, copy the parent's `spec_path` to the new child.
+   `spec_path`, copy the parent’s `spec_path` to the new child.
 
 3. **On update with `--parent`:** If `--spec` is NOT also provided in the same update
-   command, and the child's current `spec_path` is empty/null, copy the new parent's
+   command, and the child’s current `spec_path` is empty/null, copy the new parent’s
    `spec_path`.
 
-4. **On update with `--spec` on a parent:** After updating the parent's `spec_path`,
-   find all children (beads with `parent_id` matching this bead's internal ID) and update
-   any child whose `spec_path` is null/empty OR matches the parent's OLD `spec_path`
-   (i.e., was likely inherited).
+4. **On update with `--spec` on a parent:** After updating the parent’s `spec_path`,
+   find all children (beads with `parent_id` matching this bead’s internal ID) and
+   update any child whose `spec_path` is null/empty OR matches the parent’s OLD
+   `spec_path` (i.e., was likely inherited).
 
 ### Components Modified
 
@@ -101,7 +108,7 @@ should inherit it by default.
 
 #### `create.ts` changes
 
-After resolving `parentId` (line ~104-109) and `specPath` (line ~67-75):
+After resolving `parentId` (line ~~104-109) and `specPath` (line ~~67-75):
 
 ```typescript
 // Inherit spec_path from parent if not explicitly provided
@@ -158,25 +165,34 @@ if (updates.parent_id && options.spec === undefined) {
 
 ### Phase 1: Core Inheritance Logic
 
-- [ ] Add spec_path inheritance in `create.ts` when `--parent` is provided without `--spec`
-- [ ] Add spec_path propagation in `update.ts` when `--spec` is changed on a parent bead
-- [ ] Add spec_path inheritance in `update.ts` when `--parent` is changed without `--spec`
-- [ ] Add/use helper to list child issues (find all issues with matching `parent_id`)
+- [x] Add spec_path inheritance in `create.ts` when `--parent` is provided without
+  `--spec`
+- [x] Add spec_path propagation in `update.ts` when `--spec` is changed on a parent bead
+- [x] Add spec_path inheritance in `update.ts` when `--parent` is changed without
+  `--spec`
+- [x] Add/use helper to list child issues (uses existing `listIssues` from storage.ts)
 
 ### Phase 2: Golden Tests
 
-- [ ] Create tryscript test `tests/cli-spec-inherit.tryscript.md` covering:
-  - Create parent with `--spec`, then create child with `--parent` → child inherits spec_path
+- [x] Create tryscript test `tests/cli-spec-inherit.tryscript.md` covering:
+  - Create parent with `--spec`, then create child with `--parent` → child inherits
+    spec_path
   - Create child with `--parent` AND `--spec` → child keeps its explicit spec_path
-  - Update parent's `--spec` → children without explicit spec_path are updated
-  - Update parent's `--spec` → children with explicit different spec_path are NOT updated
-  - Re-parent a child (change `--parent`) → inherits new parent's spec_path if child has none
-  - Create parent without `--spec`, create child with `--parent` → child has no spec_path
+  - Update parent’s `--spec` → children without explicit spec_path are updated
+  - Update parent’s `--spec` → children with explicit different spec_path are NOT
+    updated
+  - Re-parent a child (change `--parent`) → inherits new parent’s spec_path if child has
+    none
+  - Create parent without `--spec`, create child with `--parent` → child has no
+    spec_path
+- [x] Create unit test `tests/spec-inherit.test.ts` with 8 test cases (all passing)
 
 ### Phase 3: Documentation Updates
 
-- [ ] Update `packages/tbd/docs/tbd-design.md` spec_path section to document inheritance behavior
-- [ ] Update `packages/tbd/docs/tbd-docs.md` CLI reference to document inheritance in `--parent` and `--spec` options
+- [ ] Update `packages/tbd/docs/tbd-design.md` spec_path section to document inheritance
+  behavior
+- [ ] Update `packages/tbd/docs/tbd-docs.md` CLI reference to document inheritance in
+  `--parent` and `--spec` options
 
 ## Testing Strategy
 
@@ -236,8 +252,9 @@ tbd show test-CCCC --json  # → new spec_path
 
 ## Open Questions
 
-1. **Should clearing a parent's spec_path also clear children's?**
-   - Current proposal: No. Clearing is destructive; children keep their values.
+1. **Should clearing a parent’s spec_path also clear children’s?**
+   - Current proposal: No.
+     Clearing is destructive; children keep their values.
    - Alternative: Clear children that had the same (inherited) value.
 
 2. **Should propagation be recursive (grandchildren)?**
@@ -246,12 +263,14 @@ tbd show test-CCCC --json  # → new spec_path
    - Implementation: Recursive traversal or iterative BFS over parent_id chain.
 
 3. **Performance concern with large issue sets?**
-   - Propagation requires loading all issues to find children. For typical project sizes
-     (< 1000 issues), this is acceptable. Could optimize with an index later.
+   - Propagation requires loading all issues to find children.
+     For typical project sizes (< 1000 issues), this is acceptable.
+     Could optimize with an index later.
 
 ## References
 
-- `docs/project/specs/active/plan-2026-01-26-spec-linking.md` - Original spec_path feature
+- `docs/project/specs/active/plan-2026-01-26-spec-linking.md` - Original spec_path
+  feature
 - `packages/tbd/src/cli/commands/create.ts` - Create command implementation
 - `packages/tbd/src/cli/commands/update.ts` - Update command implementation
 - `packages/tbd/src/lib/schemas.ts` - Issue schema definition
