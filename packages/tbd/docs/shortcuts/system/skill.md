@@ -54,7 +54,7 @@ preference for a given project.
 | User Need or Request | Command | What Happens |
 | --- | --- | --- |
 | "There is a bug where ..." | `tbd create "..." --type=bug` | Creates issue |
-| "Let's plan a new feature" | `tbd shortcut new-plan-spec` | Agent gets instructions |
+| "Let's plan a new feature" | `tbd shortcut new-plan-spec` | Agent gets spec template and instructions |
 | "Break spec into issues" | `tbd shortcut new-implementation-beads-from-spec` | Agent gets instructions |
 | "Implement these issues" | `tbd shortcut implement-beads` | Agent gets instructions |
 | "Fix current issues" | `tbd ready` | Lists ready issues |
