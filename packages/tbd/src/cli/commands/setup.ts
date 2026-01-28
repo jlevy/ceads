@@ -1789,7 +1789,7 @@ class SetupAutoHandler extends BaseCommand {
 
 // Main setup command
 export const setupCommand = new Command('setup')
-  .description('Configure tbd integration with editors and tools (requires git repo)')
+  .description('Configure tbd integration with editors and tools')
   .option('--auto', 'Non-interactive mode with smart defaults (for agents/scripts)')
   .option('--interactive', 'Interactive mode with prompts (for humans)')
   .option('--from-beads', 'Migrate from Beads to tbd')
