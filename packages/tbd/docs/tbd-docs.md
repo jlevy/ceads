@@ -670,6 +670,35 @@ tbd design --list                           # List design doc sections
 tbd closing                                 # Display session closing protocol reminder
 ```
 
+Shortcuts, guidelines, and templates:
+
+```bash
+tbd shortcut --list                         # List all shortcuts
+tbd shortcut <name>                         # Display a shortcut
+tbd guidelines --list                       # List all guidelines
+tbd guidelines <name>                       # Display a guideline
+tbd template --list                         # List all templates
+tbd template <name>                         # Display a template
+```
+
+Add external docs by URL:
+
+```bash
+tbd guidelines --add=<url> --name=<name>    # Add a guideline from URL
+tbd shortcut --add=<url> --name=<name>      # Add a shortcut from URL
+tbd template --add=<url> --name=<name>      # Add a template from URL
+```
+
+Options:
+- `--add <url>` - URL to fetch the document from (GitHub blob URLs auto-converted to
+  raw)
+- `--name <name>` - Name for the added document (required with `--add`)
+
+GitHub blob URLs are automatically converted to raw.githubusercontent.com URLs.
+On HTTP 403, fetching falls back to `gh api` for authenticated access.
+User-added shortcuts go to `shortcuts/custom/` (separate from bundled
+`shortcuts/standard/`).
+
 ### uninstall
 
 Remove tbd from a repository.

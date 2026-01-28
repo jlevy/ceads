@@ -385,6 +385,11 @@ tbd guidelines typescript-rules  # Get TypeScript rules
 # Templates
 tbd template --list             # List all templates
 tbd template plan-spec > docs/project/specs/plan-2025-01-15-feature.md
+
+# Add external docs by URL
+tbd guidelines --add=<url> --name=<name>
+tbd shortcut --add=<url> --name=<name>
+tbd template --add=<url> --name=<name>
 ```
 
 **Available Shortcuts:**
