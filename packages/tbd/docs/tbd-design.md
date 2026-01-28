@@ -1,6 +1,7 @@
 # tbd Design Specification
 
-Git-native issue tracking for AI agents and humans.
+Task management, spec-driven planning, and instant knowledge injection for AI coding
+agents.
 
 **Author:** Joshua Levy (github.com/jlevy) and various LLMs
 
@@ -211,20 +212,26 @@ Git-native issue tracking for AI agents and humans.
 
 ### 1.1 What is tbd?
 
-**tbd helps humans and agents ship code with greater speed, quality, and discipline.**
+**tbd combines task management, spec-driven planning, and instant knowledge injection
+for AI coding agents.**
 
 tbd ("To Be Done" or “TypeScript Beads”) is a git-native issue tracker that stores
 issues as Markdown files with YAML frontmatter on a dedicated sync branch, enabling
 conflict-free collaboration without daemons or databases.
+It also bundles spec-driven workflows, reusable workflow shortcuts, and a curated
+knowledge base of engineering best practices that agents can inject into their context
+on demand.
 
-tbd provides **four integrated capabilities**:
+tbd provides **three integrated capabilities**:
 
-1. **Issue Tracking** — Git-native tasks/bugs.
-   Never lose work across sessions.
-2. **Spec-Driven Workflows** — Plan features → break into issues → implement
-   systematically.
-3. **Shortcuts** — Pre-built processes for commits, PRs, reviews.
-4. **Guidelines** — Best practices for TypeScript, Python, testing.
+1. **Task tracking (beads)** — Git-native issues, bugs, epics, and dependencies that
+   persist across sessions.
+   This alone is a step change in what agents can do.
+2. **Spec-driven planning** — Workflows for writing specs, breaking them into issues,
+   and implementing systematically.
+3. **Instant knowledge injection** — 17+ detailed guideline docs covering TypeScript,
+   Python, Convex, monorepo architecture, TDD, and more — injected into the agent’s
+   context on demand via shortcuts, guidelines, and templates.
 
 The **issue tracking layer** has four core principles:
 

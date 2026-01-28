@@ -422,7 +422,9 @@ tbd keeps two things separate from your code:
   with the latest bundled docs, or add your own via `--add`.
 - **Everything is self-documented via the CLI.** Running `tbd` with no arguments gives
   full orientation. `tbd setup --auto` writes a skill file (SKILL.md/AGENTS.md) that
-  teaches the agent all available commands, shortcuts, and guidelines automatically.
+  teaches the agent all available commands, shortcuts, and guidelines.
+  This means agents can inject context — specs, engineering guidelines, workflow
+  instructions — at any point in a session, not just at startup.
 
 See the [design doc](packages/tbd/docs/tbd-design.md) for details.
 
