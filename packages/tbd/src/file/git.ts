@@ -874,6 +874,89 @@ export async function updateWorktree(
   }
 }
 
+// =============================================================================
+// Branch Health Checks
+// See: tbd-design.md §2.3 Hidden Worktree Model, plan spec §4b
+// =============================================================================
+
+/**
+ * Local branch health status.
+ */
+export interface LocalBranchHealth {
+  exists: boolean;
+  orphaned: boolean;
+  head?: string;
+}
+
+/**
+ * Check local sync branch health.
+ * See: plan-2026-01-28-sync-worktree-recovery-and-hardening.md §4b
+ *
+ * @param syncBranch - The sync branch name (default: 'tbd-sync')
+ * @returns Health status indicating if branch exists and has commits
+ */
+export async function checkLocalBranchHealth(
+  syncBranch: string = SYNC_BRANCH,
+): Promise<LocalBranchHealth> {
+  try {
+    const head = await git('rev-parse', `refs/heads/${syncBranch}`);
+    return { exists: true, orphaned: false, head: head.trim() };
+  } catch {
+    // Check if branch ref exists but is orphaned (no commits)
+    try {
+      await git('show-ref', '--verify', `refs/heads/${syncBranch}`);
+      return { exists: true, orphaned: true };
+    } catch {
+      return { exists: false, orphaned: false };
+    }
+  }
+}
+
+/**
+ * Remote branch health status.
+ */
+export interface RemoteBranchHealth {
+  exists: boolean;
+  diverged: boolean;
+  head?: string;
+}
+
+/**
+ * Check remote sync branch health.
+ * See: plan-2026-01-28-sync-worktree-recovery-and-hardening.md §4b
+ *
+ * @param remote - The remote name (default: 'origin')
+ * @param syncBranch - The sync branch name (default: 'tbd-sync')
+ * @returns Health status indicating if remote branch exists and divergence state
+ */
+export async function checkRemoteBranchHealth(
+  remote = 'origin',
+  syncBranch: string = SYNC_BRANCH,
+): Promise<RemoteBranchHealth> {
+  try {
+    await git('fetch', remote, syncBranch);
+    const head = await git('rev-parse', `refs/remotes/${remote}/${syncBranch}`);
+    const remoteHead = head.trim();
+
+    // Check for divergence (only if local branch exists)
+    let diverged = false;
+    try {
+      const mergeBase = await git('merge-base', syncBranch, `${remote}/${syncBranch}`);
+      const localHead = await git('rev-parse', syncBranch);
+
+      // Diverged if merge-base is neither local nor remote HEAD
+      diverged = mergeBase.trim() !== localHead.trim() && mergeBase.trim() !== remoteHead;
+    } catch {
+      // Local branch doesn't exist - can't be diverged
+      diverged = false;
+    }
+
+    return { exists: true, diverged, head: remoteHead };
+  } catch {
+    return { exists: false, diverged: false };
+  }
+}
+
 /**
  * Remove the hidden worktree.
  * Used by doctor --fix when worktree is corrupted.

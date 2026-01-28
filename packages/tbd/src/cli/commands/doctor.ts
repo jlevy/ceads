@@ -15,7 +15,7 @@ import { requireInit } from '../lib/errors.js';
 import { listIssues } from '../../file/storage.js';
 import { readConfig } from '../../file/config.js';
 import type { Config, Issue, IssueStatusType } from '../../lib/types.js';
-import { resolveDataSyncDir, TBD_DIR, WORKTREE_DIR } from '../../lib/paths.js';
+import { resolveDataSyncDir, TBD_DIR, WORKTREE_DIR, DATA_SYNC_DIR } from '../../lib/paths.js';
 import { validateIssueId } from '../../lib/ids.js';
 import {
   checkGitVersion,
@@ -91,6 +91,9 @@ class DoctorHandler extends BaseCommand {
 
     // Check 8: Worktree health
     healthChecks.push(await this.checkWorktree());
+
+    // Check 9: Data location (issues in wrong path)
+    healthChecks.push(await this.checkDataLocation());
 
     // Run integration checks (optional IDE/agent integrations)
     const integrationChecks: DiagnosticResult[] = [];
@@ -508,6 +511,46 @@ class DoctorHandler extends BaseCommand {
       path: worktreePath,
       fixable: true,
       suggestion: 'Run: tbd doctor --fix',
+    };
+  }
+
+  /**
+   * Check for issues in wrong location.
+   * See: plan-2026-01-28-sync-worktree-recovery-and-hardening.md §5
+   *
+   * Issues should be in .tbd/data-sync-worktree/.tbd/data-sync/issues/
+   * If they're in .tbd/data-sync/issues/ on main branch, the worktree was missing
+   * and data was written to the fallback path - this is a bug requiring migration.
+   */
+  private async checkDataLocation(): Promise<DiagnosticResult> {
+    const wrongPath = join(this.cwd, DATA_SYNC_DIR);
+    const wrongIssuesPath = join(wrongPath, 'issues');
+
+    // Try to list issues in the wrong location
+    let wrongPathIssues: Issue[] = [];
+    try {
+      wrongPathIssues = await listIssues(wrongPath);
+    } catch {
+      // No issues in wrong path - this is expected
+    }
+
+    if (wrongPathIssues.length === 0) {
+      return { name: 'Data location', status: 'ok' };
+    }
+
+    // Issues found in wrong location - this is a bug
+    return {
+      name: 'Data location',
+      status: 'error',
+      message: `${wrongPathIssues.length} issue(s) in wrong location`,
+      path: wrongIssuesPath,
+      details: [
+        `Found ${wrongPathIssues.length} issues in .tbd/data-sync/ (wrong)`,
+        'Issues should be in .tbd/data-sync-worktree/.tbd/data-sync/',
+        'This indicates the worktree was missing when issues were created',
+      ],
+      fixable: true,
+      suggestion: 'Run: tbd doctor --fix to migrate issues to worktree',
     };
   }
 }
