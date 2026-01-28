@@ -1,6 +1,10 @@
 /**
  * `tbd setup` - Configure tbd integration with editors and tools.
  *
+ * Requires a git repository. All setup artifacts (.tbd/, .claude/) are placed
+ * at the git root, adjacent to .git/. Installation is always project-local —
+ * there is no global/user-level install.
+ *
  * Options:
  * - `tbd setup --auto` - Non-interactive setup (for agents/scripts)
  * - `tbd setup --interactive` - Interactive setup with prompts (for humans)
@@ -1087,9 +1091,10 @@ interface SetupDefaultOptions {
  *
  * Decision tree:
  * 1. Not in git repo → Error (git init first)
- * 2. Has .tbd/ → Already initialized, check/update integrations
- * 3. Has .beads/ → Beads migration flow
- * 4. Fresh repo → Initialize + configure integrations
+ * 2. Resolve to git root → All paths relative to .git/ parent
+ * 3. Has .tbd/ → Already initialized, check/update integrations
+ * 4. Has .beads/ → Beads migration flow
+ * 5. Fresh repo → Initialize + configure integrations
  */
 class SetupDefaultHandler extends BaseCommand {
   private cmd: Command;
@@ -1784,7 +1789,7 @@ class SetupAutoHandler extends BaseCommand {
 
 // Main setup command
 export const setupCommand = new Command('setup')
-  .description('Configure tbd integration with editors and tools')
+  .description('Configure tbd integration with editors and tools (requires git repo)')
   .option('--auto', 'Non-interactive mode with smart defaults (for agents/scripts)')
   .option('--interactive', 'Interactive mode with prompts (for humans)')
   .option('--from-beads', 'Migrate from Beads to tbd')
@@ -1809,6 +1814,8 @@ export const setupCommand = new Command('setup')
     console.log('Usage: tbd setup [options]');
     console.log('');
     console.log('Initialize tbd and configure agent integrations.');
+    console.log('Must be run inside a git repository. Installs .tbd/ and .claude/');
+    console.log('at the git root (adjacent to .git/).');
     console.log('');
     console.log('Modes (one required):');
     console.log(
