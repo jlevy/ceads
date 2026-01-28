@@ -32,9 +32,11 @@ before: |
 Tests for the `--specs` flag which groups listed beads by their linked spec, showing a
 section header per spec and a “(No spec)” section for unlinked beads.
 
+All issues use unique priorities to ensure fully deterministic sort order.
+
 * * *
 
-## Setup: Create Test Issues
+## Setup: Create Test Issues (4 issues, each with unique priority)
 
 Create issues linked to the auth spec:
 
@@ -45,7 +47,7 @@ Created auth1
 ```
 
 ```console
-$ tbd create "Add password reset" --priority=1 --spec docs/specs/plan-auth.md --json | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); require('fs').writeFileSync('auth2_id.txt', d.id); console.log('Created auth2')"
+$ tbd create "Add password reset" --priority=2 --spec docs/specs/plan-auth.md --json | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); require('fs').writeFileSync('auth2_id.txt', d.id); console.log('Created auth2')"
 Created auth2
 ? 0
 ```
@@ -53,7 +55,7 @@ Created auth2
 Create an issue linked to the search spec:
 
 ```console
-$ tbd create "Build search index" --priority=2 --spec docs/specs/plan-search.md --json | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); require('fs').writeFileSync('search1_id.txt', d.id); console.log('Created search1')"
+$ tbd create "Build search index" --priority=3 --spec docs/specs/plan-search.md --json | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); require('fs').writeFileSync('search1_id.txt', d.id); console.log('Created search1')"
 Created search1
 ? 0
 ```
@@ -61,7 +63,7 @@ Created search1
 Create an issue with no spec:
 
 ```console
-$ tbd create "Fix typo in README" --priority=3 --json | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); require('fs').writeFileSync('nospec1_id.txt', d.id); console.log('Created nospec1')"
+$ tbd create "Fix typo in README" --priority=4 --json | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); require('fs').writeFileSync('nospec1_id.txt', d.id); console.log('Created nospec1')"
 Created nospec1
 ? 0
 ```
@@ -80,79 +82,19 @@ $ tbd list --specs
 
 ID          PRI  STATUS          TITLE
 test-[SHORTID]   P0   ○ open          [task] Implement login flow
-test-[SHORTID]   P1   ○ open          [task] Add password reset
+test-[SHORTID]   P2   ○ open          [task] Add password reset
 
 📋 plan-search (1)
 
 ID          PRI  STATUS          TITLE
-test-[SHORTID]   P2   ○ open          [task] Build search index
+test-[SHORTID]   P3   ○ open          [task] Build search index
 
 (No spec) (1)
 
 ID          PRI  STATUS          TITLE
-test-[SHORTID]   P3   ○ open          [task] Fix typo in README
+test-[SHORTID]   P4   ○ open          [task] Fix typo in README
 
 4 issue(s)
-? 0
-```
-
-* * *
-
-## Test: --specs with --pretty Tree View
-
-Create a parent epic with a child under the auth spec:
-
-```console
-$ tbd create "Auth epic" --type=epic --priority=0 --spec docs/specs/plan-auth.md --json | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); require('fs').writeFileSync('epic_id.txt', d.id); console.log('Created epic')"
-Created epic
-? 0
-```
-
-```console
-$ tbd create "Login page" --priority=1 --parent=$(cat epic_id.txt) --json | node -e "console.log('Created child')"
-Created child
-? 0
-```
-
-The `--specs --pretty` combination shows tree view within each spec group.
-Only actual parent-child relationships form trees; other beads in the same spec group
-appear as standalone roots:
-
-```console
-$ tbd list --specs --pretty --spec docs/specs/plan-auth.md
-📋 plan-auth (4)
-
-test-[SHORTID][..]
-test-[SHORTID][..]  [epic] Auth epic
-└── test-[SHORTID][..]  [task] Login page
-test-[SHORTID][..]
-
-4 issue(s)
-? 0
-```
-
-* * *
-
-## Test: --specs without --spec Filter Shows All Groups with Pretty
-
-```console
-$ tbd list --specs --pretty
-📋 plan-auth (4)
-
-test-[SHORTID][..]
-test-[SHORTID][..]  [epic] Auth epic
-└── test-[SHORTID][..]  [task] Login page
-test-[SHORTID][..]
-
-📋 plan-search (1)
-
-test-[SHORTID][..]  [task] Build search index
-
-(No spec) (1)
-
-test-[SHORTID][..]  [task] Fix typo in README
-
-6 issue(s)
 ? 0
 ```
 
@@ -172,14 +114,12 @@ Without --all, the closed issue is excluded:
 
 ```console
 $ tbd list --specs --spec docs/specs/plan-auth.md
-📋 plan-auth (3)
+📋 plan-auth (1)
 
 ID          PRI  STATUS          TITLE
-test-[SHORTID]   P0   ○ open          [..]
-test-[SHORTID]   P0   ○ open          [..]
-test-[SHORTID]   P1   ○ open          [task] Login page
+test-[SHORTID]   P0   ○ open          [task] Implement login flow
 
-3 issue(s)
+1 issue(s)
 ? 0
 ```
 
@@ -187,15 +127,13 @@ With --all, the closed issue is included:
 
 ```console
 $ tbd list --specs --all --spec docs/specs/plan-auth.md
-📋 plan-auth (4)
+📋 plan-auth (2)
 
 ID          PRI  STATUS          TITLE
-test-[SHORTID]   P0   ○ open          [..]
-test-[SHORTID]   P0   ○ open          [..]
-test-[SHORTID]   P1   [..]
-test-[SHORTID]   P1   [..]
+test-[SHORTID]   P0   ○ open          [task] Implement login flow
+test-[SHORTID]   P2   ✓ closed        [task] Add password reset
 
-4 issue(s)
+2 issue(s)
 ? 0
 ```
 
@@ -208,7 +146,22 @@ $ tbd list --specs --status=closed
 📋 plan-auth (1)
 
 ID          PRI  STATUS          TITLE
-test-[SHORTID]   P1   ✓ closed        [task] Add password reset
+test-[SHORTID]   P2   ✓ closed        [task] Add password reset
+
+1 issue(s)
+? 0
+```
+
+* * *
+
+## Test: Default list (no --specs) Is Unchanged
+
+Without the `--specs` flag, output has no spec group headers:
+
+```console
+$ tbd list --spec docs/specs/plan-auth.md
+ID          PRI  STATUS          TITLE
+test-[SHORTID]   P0   ○ open          [task] Implement login flow
 
 1 issue(s)
 ? 0
@@ -228,32 +181,88 @@ No issues found
 
 * * *
 
-## Test: Default list (no --specs) Is Unchanged
-
-Without the `--specs` flag, output has no spec group headers:
+## Test: --specs Shows Only No Spec Group When All Beads Are Unlinked
 
 ```console
-$ tbd list --spec docs/specs/plan-auth.md
-ID          PRI  STATUS          TITLE
-test-[SHORTID]   P0   ○ open          [task] Implement login flow
-test-[SHORTID]   P0   ○ open          [epic] Auth epic
-test-[SHORTID]   P1   ○ open          [task] Login page
+$ tbd list --specs --priority=4
+(No spec) (1)
 
-3 issue(s)
+ID          PRI  STATUS          TITLE
+test-[SHORTID]   P4   ○ open          [task] Fix typo in README
+
+1 issue(s)
 ? 0
 ```
 
 * * *
 
-## Test: --specs Shows Only No Spec Group When All Beads Are Unlinked
+## Setup: Add Epic with Child for Pretty Tests
+
+Reopen the closed issue first so we have all 4 original issues:
 
 ```console
-$ tbd list --specs --priority=3
+$ tbd update $(cat auth2_id.txt) --status=open
+✓ Updated test-[SHORTID]
+? 0
+```
+
+Create a parent epic with a child under the auth spec (P1 for epic, child inherits):
+
+```console
+$ tbd create "Auth epic" --type=epic --priority=1 --spec docs/specs/plan-auth.md --json | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); require('fs').writeFileSync('epic_id.txt', d.id); console.log('Created epic')"
+Created epic
+? 0
+```
+
+```console
+$ tbd create "Login page" --priority=1 --parent=$(cat epic_id.txt) --json | node -e "console.log('Created child')"
+Created child
+? 0
+```
+
+* * *
+
+## Test: --specs with --pretty Tree View
+
+The `--specs --pretty` combination shows tree view within each spec group.
+In pretty mode, children are nested under parents, so P1 collision is deterministic.
+Only actual parent-child relationships form trees; other beads in the same spec group
+appear as standalone roots:
+
+```console
+$ tbd list --specs --pretty --spec docs/specs/plan-auth.md
+📋 plan-auth (4)
+
+test-[SHORTID][..]  [task] Implement login flow
+test-[SHORTID][..]  [epic] Auth epic
+└── test-[SHORTID][..]  [task] Login page
+test-[SHORTID][..]  [task] Add password reset
+
+4 issue(s)
+? 0
+```
+
+* * *
+
+## Test: --specs without --spec Filter Shows All Groups with Pretty
+
+```console
+$ tbd list --specs --pretty
+📋 plan-auth (4)
+
+test-[SHORTID][..]  [task] Implement login flow
+test-[SHORTID][..]  [epic] Auth epic
+└── test-[SHORTID][..]  [task] Login page
+test-[SHORTID][..]  [task] Add password reset
+
+📋 plan-search (1)
+
+test-[SHORTID][..]  [task] Build search index
+
 (No spec) (1)
 
-ID          PRI  STATUS          TITLE
-test-[SHORTID]   P3   ○ open          [task] Fix typo in README
+test-[SHORTID][..]  [task] Fix typo in README
 
-1 issue(s)
+6 issue(s)
 ? 0
 ```
