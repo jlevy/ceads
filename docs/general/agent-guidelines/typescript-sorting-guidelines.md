@@ -1,5 +1,16 @@
 # TypeScript Sorting Patterns
 
+**Author**: Joshua Levy (github.com/jlevy) with LLM assistance
+
+**Last Updated**: 2026-01-28
+
+**Related**:
+
+- `docs/general/agent-guidelines/typescript-testing-guidelines.md`
+- `docs/general/agent-guidelines/golden-testing-guidelines.md`
+
+* * *
+
 ## 1. Always Make Sorting Deterministic
 
 Never leave a sort with only a primary key.
