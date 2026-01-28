@@ -3953,64 +3953,56 @@ all environments including cloud sandboxes.
 
 #### 6.4.2 Claude Code Integration
 
-Claude Code supports two hook mechanisms for automatic tool integration:
+Claude Code hooks are always installed to the **project-local** `.claude/` directory,
+adjacent to `.git/` and `.tbd/` at the git repository root.
+There is no global/user-level installation — this avoids confusion and ensures hooks
+work in any environment (local dev, Claude Code Cloud, etc.).
 
-**A. JSON Settings Hooks** (for context injection on existing installs)
-
-Location: `~/.claude/settings.json` (global) or `.claude/settings.local.json` (project)
+**A. JSON Settings Hooks** (installed to `.claude/settings.json` at project root)
 
 ```json
 {
   "hooks": {
     "SessionStart": [{
       "matcher": "",
-      "hooks": [{ "type": "command", "command": "tbd prime" }]
+      "hooks": [{ "type": "command", "command": "bash .claude/scripts/tbd-session.sh" }]
     }],
     "PreCompact": [{
       "matcher": "",
-      "hooks": [{ "type": "command", "command": "tbd prime" }]
+      "hooks": [{ "type": "command", "command": "bash .claude/scripts/tbd-session.sh --brief" }]
+    }],
+    "PostToolUse": [{
+      "matcher": "Bash",
+      "hooks": [{ "type": "command", "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/tbd-closing-reminder.sh" }]
     }]
   }
 }
 ```
 
-- **SessionStart**: Runs `tbd prime` when a Claude Code session starts
-- **PreCompact**: Runs `tbd prime` before context compaction (preserves workflow
-  instructions)
+- **SessionStart**: Ensures tbd is installed, then runs `tbd prime` for workflow context
+- **PreCompact**: Runs `tbd prime --brief` before context compaction
+- **PostToolUse**: Reminds about `tbd sync` after `git push`
 
-**B. Shell Hooks** (for cloud environments that need installation)
+All hook commands use project-relative paths (e.g.,
+`bash .claude/scripts/tbd-session.sh`) so they work regardless of where tbd was
+installed globally.
 
-Location: `.claude/hooks/session-start.sh` (committed to repo)
+**B. Session Script** (installed to `.claude/scripts/tbd-session.sh`)
 
-```bash
-#!/bin/bash
-# Minimal cloud bootstrap (2 lines)
-command -v tbd &>/dev/null || npm install -g tbd-git --quiet
-[ -d ".tbd" ] && tbd prime
-```
-
-This script:
-
-1. Checks if `tbd` is already installed (avoids reinstalling each session)
-2. Installs via npm if missing
-3. Runs `tbd prime` if the project has a `.tbd/` directory
+The session script handles tbd CLI installation (if missing) and runs `tbd prime`. It is
+committed to the repo so cloud environments bootstrap automatically.
 
 **Setup command:**
 
 ```bash
-tbd setup claude [options]
-
-Options:
-  --check         Verify installation status
-  --remove        Remove tbd hooks
-
-# Future options (not yet implemented):
-#   --project     Install to .claude/settings.local.json (project-specific)
-#   --global      Install to ~/.claude/settings.json (user-wide)
+tbd setup --auto --prefix=myapp   # Fresh project: initialize + configure hooks
+tbd setup --auto                  # Existing project: update hooks and skill files
 ```
 
-> **Note:** Currently installs to project-level settings only.
-> Global installation planned for future release.
+Setup requires a git repository.
+Running `tbd setup` outside a git repo produces an error.
+When run from a subdirectory, setup resolves to the git root so `.tbd/` and `.claude/`
+are always placed adjacent to `.git/`.
 
 #### 6.4.3 The `tbd prime` Command
 

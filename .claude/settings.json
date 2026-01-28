@@ -27,7 +27,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "$HOME/.claude/scripts/tbd-session.sh"
+            "command": "bash .claude/scripts/tbd-session.sh"
           }
         ]
       }
@@ -38,7 +38,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "$HOME/.claude/scripts/tbd-session.sh --brief"
+            "command": "bash .claude/scripts/tbd-session.sh --brief"
           }
         ]
       }

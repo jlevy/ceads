@@ -45,6 +45,25 @@ export const MIN_GIT_VERSION = '2.42.0';
  * Parsed Git version information.
  */
 /**
+ * Find the git repository root directory.
+ * Uses `git rev-parse --show-toplevel` which returns the absolute path.
+ *
+ * @param cwd - Directory to start from (default: process.cwd())
+ * @returns Absolute path to the git root, or null if not in a git repo
+ */
+export async function findGitRoot(cwd?: string): Promise<string | null> {
+  try {
+    const args = ['rev-parse', '--show-toplevel'];
+    if (cwd) {
+      args.unshift('-C', cwd);
+    }
+    return await git(...args);
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Check if the current directory is inside a git repository.
  */
 export async function isInGitRepo(cwd?: string): Promise<boolean> {
