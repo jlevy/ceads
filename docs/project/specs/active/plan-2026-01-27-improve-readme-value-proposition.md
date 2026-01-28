@@ -68,6 +68,15 @@ issues from a fresh-reader perspective:
 6. **Informal tone in places**: Phrases like "It's basically like tbd is an issue tracker
    and a meta-skill" are conversational but don't land for a skeptical HN audience.
 
+7. **New features not yet highlighted**: Recent additions strengthen the story but aren't
+   yet woven into the narrative:
+   - `--add` flag for injecting external docs by URL (`tbd guidelines --add=<url>
+     --name=<name>`) — reinforces the "extensible context injection" angle: not just
+     bundled knowledge, you can add your own
+   - `--specs` flag (`tbd list --specs`) — groups beads by spec, tightening the
+     spec-driven workflow story
+   - `typescript-sorting-guidelines` — 18th guideline doc, further depth
+
 ## Design
 
 ### Approach
@@ -95,19 +104,29 @@ Right after Quick Start, add a section that showcases the depth of bundled knowl
 - Brief description of what each covers and why it matters
 - Make it clear this is ~30 pages of curated, battle-tested engineering knowledge
 
-#### 3. Restructure "Why?" into a clearer value proposition
+#### 3. Highlight extensibility (`--add` flag)
+
+Call out that tbd isn't a closed system—you can inject your own team's guidelines,
+shortcuts, or templates from any URL:
+```
+tbd guidelines --add=<url> --name=<name>
+```
+This makes the "context injection" story even stronger: bundled best practices out of the
+box, plus your own team knowledge layered on top.
+
+#### 4. Restructure "Why?" into a clearer value proposition
 
 - Lead with the problem: AI agents write mediocre code without structure and knowledge
 - tbd solves this by combining three things: task tracking (beads), planning (specs),
   and knowledge (guidelines)
 - Move the Beads comparison to a smaller subsection or a separate doc
 
-#### 4. Add direct links to guideline files
+#### 5. Add direct links to guideline files
 
 In the guidelines table, make each guideline name a clickable link to the source file in
 `packages/tbd/docs/guidelines/`.
 
-#### 5. Clean up informal language
+#### 6. Clean up informal language
 
 Remove or rewrite:
 - "It's basically like tbd is an issue tracker and a meta-skill"
