@@ -1,8 +1,8 @@
 # Research Brief: CLI as Agent Skill - Best Practices for TypeScript CLIs in Claude Code
 
-**Last Updated**: 2026-01-26
+**Last Updated**: 2026-01-28
 
-**Status**: Complete (Second Revision)
+**Status**: Complete (Third Revision)
 
 **Related**:
 
@@ -30,6 +30,16 @@ quality of their work.
 This transforms the CLI from a tool the agent tells users about into a resource the
 agent uses to better serve users.
 
+A third key insight is the **context injection loop**—a recursive architecture where
+skill documentation references commands, those commands output more context, and that
+context references further commands.
+This creates a self-directing knowledge system where agents get progressively smarter as
+they work.
+
+A fourth key insight is the importance of **task management integration**—CLIs that help
+agents track work across sessions, discover available tasks, and enforce session
+boundaries lead to more reliable agentic workflows.
+
 **Research Questions**:
 
 1. What architectural patterns make a CLI work well as an agent skill?
@@ -48,6 +58,12 @@ agent uses to better serve users.
 7. How should skill descriptions be optimized for reliable activation?
 
 8. What role does MCP play alongside CLI-as-skill patterns?
+
+9. How can CLIs create self-reinforcing context chains where documentation leads to
+   commands that inject more context?
+
+10. What task management patterns work best for agent-integrated CLIs across different
+    tracking needs (ephemeral, session, persistent)?
 
 * * *
 
@@ -701,9 +717,112 @@ completion.
 
 * * *
 
-### 8. Agent Mental Model Patterns
+### 8. Context Injection Loop Pattern
 
-#### 8.1 Agent as Partner, Not Messenger
+#### 8.1 The Self-Reinforcing Context Chain
+
+**Status**: ✅ Complete
+
+**Details**:
+
+One of the most powerful patterns in agent-integrated CLIs is the **context injection
+loop**—a recursive architecture where skill documentation references commands, those
+commands output more context, and that context references further commands.
+
+**The Loop Structure**:
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│  SKILL.md (Level 2 - loaded on activation)                         │
+│  ├── Describes capabilities and when to use them                   │
+│  ├── References: "For TypeScript work, run `cli guidelines ts`"    │
+│  └── References: "To plan features, run `cli shortcut new-plan`"   │
+└─────────────────────────┬───────────────────────────────────────────┘
+                          │ Agent runs referenced command
+                          ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│  Guidelines/Shortcuts (Level 3 - loaded on demand)                 │
+│  ├── Domain-specific knowledge injected into context               │
+│  ├── References: "Create issues with `cli create`"                 │
+│  ├── References: "For testing patterns, see `cli guidelines tdd`"  │
+│  └── References: "Use template: `cli template plan-spec`"          │
+└─────────────────────────┬───────────────────────────────────────────┘
+                          │ Agent follows instructions, may run more commands
+                          ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│  Action Commands or More Context                                    │
+│  ├── Agent executes actions with full accumulated context          │
+│  └── Or loads additional guidelines/templates as needed            │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+**Example Flow**:
+
+```
+User: "Build a TypeScript CLI tool for me"
+
+1. Agent activates tbd skill (SKILL.md loaded)
+2. SKILL.md mentions: "For TypeScript CLI work, run `tbd guidelines typescript-cli-tool-rules`"
+3. Agent runs command, receives comprehensive CLI patterns
+4. Guidelines reference: "Use Commander.js patterns from `tbd guidelines typescript-rules`"
+5. Agent runs command, receives TypeScript best practices
+6. Guidelines reference: "Track implementation tasks with `tbd create`"
+7. Agent creates issues to track work
+8. Agent implements with full context of both guidelines
+```
+
+**Key Properties**:
+
+| Property | Description |
+| --- | --- |
+| **Self-directing** | Each context layer tells the agent what to do next |
+| **Just-in-time** | Context loads only when relevant, preserving token budget |
+| **Composable** | Guidelines can reference other guidelines |
+| **Actionable** | Context always leads to concrete actions |
+
+**Implementation Guidelines**:
+
+1. **Every guideline should reference related guidelines**: If typescript-rules mentions
+   testing, it should reference `cli guidelines testing-rules`
+
+2. **Every shortcut should reference action commands**: Shortcuts are workflows—they
+   must tell the agent which commands to run
+
+3. **Limit chain depth to 3**: SKILL.md → Guideline → Sub-guideline is fine; deeper
+   chains confuse agents
+
+4. **Use consistent reference syntax**: Always `cli command arg` format, never prose
+   like “you might want to check the testing guidelines”
+
+**Anti-patterns**:
+
+```markdown
+# BAD: Vague reference
+See the testing documentation for more details.
+
+# GOOD: Explicit command reference
+For testing patterns, run `tbd guidelines general-testing-rules`.
+```
+
+```markdown
+# BAD: Deep chain
+Guidelines A → Guidelines B → Guidelines C → Guidelines D
+
+# GOOD: Flat with cross-references
+Guidelines A → references B and C directly
+Guidelines B → references A and C directly
+```
+
+**Assessment**: The context injection loop is what transforms a CLI from a command
+executor into a dynamic knowledge system.
+Each invocation can inject precisely the context needed for the current task, creating
+an agent that gets smarter as it works.
+
+* * *
+
+### 9. Agent Mental Model Patterns
+
+#### 9.1 Agent as Partner, Not Messenger
 
 **Status**: ✅ Complete
 
@@ -746,7 +865,7 @@ The tool becomes a capability amplifier rather than a command reference.
 
 * * *
 
-#### 8.2 Informational Commands Pattern
+#### 9.2 Informational Commands Pattern
 
 **Status**: ✅ Complete
 
@@ -791,7 +910,7 @@ improving output quality without increasing the agent’s base training.
 
 * * *
 
-#### 8.3 Resource Library Pattern
+#### 9.3 Resource Library Pattern
 
 **Status**: ✅ Complete
 
@@ -855,7 +974,7 @@ work.
 
 * * *
 
-#### 8.4 Resource Directory Pattern
+#### 9.4 Resource Directory Pattern
 
 **Status**: ✅ Complete
 
@@ -896,7 +1015,7 @@ usability. Always optimize for copy-paste execution.
 
 * * *
 
-#### 8.5 Category Organization Pattern
+#### 9.5 Category Organization Pattern
 
 **Status**: ✅ Complete
 
@@ -937,7 +1056,7 @@ Agents can quickly locate resources relevant to their current task phase.
 
 * * *
 
-#### 8.6 Value-First Orientation Pattern
+#### 9.6 Value-First Orientation Pattern
 
 **Status**: ✅ Complete
 
@@ -988,9 +1107,9 @@ Installation is only relevant if the tool isn’t already set up.
 
 * * *
 
-### 9. Setup Flow Refinements
+### 10. Setup Flow Refinements
 
-#### 9.1 Never Guess User Preferences
+#### 10.1 Never Guess User Preferences
 
 **Status**: ✅ Complete
 
@@ -1029,7 +1148,7 @@ A tool that imposes choices feels presumptuous; a tool that asks feels collabora
 
 * * *
 
-#### 9.2 Multi-Contributor Setup Flow
+#### 10.2 Multi-Contributor Setup Flow
 
 **Status**: ✅ Complete
 
@@ -1071,9 +1190,9 @@ The second contributor’s experience should be nearly instant.
 
 * * *
 
-### 10. Orientation Hierarchy Pattern
+### 11. Orientation Hierarchy Pattern
 
-#### 10.1 Two-Level Orientation
+#### 11.1 Two-Level Orientation
 
 **Status**: ✅ Complete
 
@@ -1109,9 +1228,9 @@ More levels create decision paralysis.
 
 * * *
 
-### 11. Dynamic Generation Patterns
+### 12. Dynamic Generation Patterns
 
-#### 11.1 On-the-Fly Resource Directory Generation
+#### 12.1 On-the-Fly Resource Directory Generation
 
 **Status**: ✅ Complete
 
@@ -1162,7 +1281,7 @@ Markers enable selective updates without regenerating entire documents.
 
 * * *
 
-#### 11.2 DocCache Shadowing Pattern
+#### 12.2 DocCache Shadowing Pattern
 
 **Status**: ✅ Complete
 
@@ -1204,7 +1323,7 @@ sensible defaults for new projects.
 
 * * *
 
-#### 11.3 Custom Prime Override Pattern
+#### 12.3 Custom Prime Override Pattern
 
 **Status**: ✅ Complete
 
@@ -1236,9 +1355,9 @@ defaults.
 
 * * *
 
-### 12. MCP Integration Patterns
+### 13. MCP Integration Patterns
 
-#### 12.1 MCP vs CLI-as-Skill
+#### 13.1 MCP vs CLI-as-Skill
 
 **Status**: ✅ Research Complete
 
@@ -1293,7 +1412,7 @@ ecosystems.
 
 * * *
 
-#### 12.2 Agent Skills Open Standard
+#### 13.2 Agent Skills Open Standard
 
 **Status**: ✅ Complete
 
@@ -1336,9 +1455,9 @@ extensions enable advanced patterns when needed.
 
 * * *
 
-### 13. Hook Script Patterns
+### 14. Hook Script Patterns
 
-#### 13.1 PostToolUse Hook with JSON Parsing
+#### 14.1 PostToolUse Hook with JSON Parsing
 
 **Status**: ✅ Complete
 
@@ -1392,9 +1511,9 @@ workflow. The git push detection pattern prevents premature session completion.
 
 * * *
 
-### 14. Invocation Control Patterns
+### 15. Invocation Control Patterns
 
-#### 14.1 User vs Model Invocation
+#### 15.1 User vs Model Invocation
 
 **Status**: ✅ Complete
 
@@ -1433,7 +1552,7 @@ contextual knowledge injection.
 
 * * *
 
-#### 14.2 Argument Passing Pattern
+#### 15.2 Argument Passing Pattern
 
 **Status**: ✅ Complete
 
@@ -1465,9 +1584,192 @@ automatically appended as `ARGUMENTS: <value>`.
 
 * * *
 
-### 15. Visual Output Patterns
+### 16. Task Management Integration Patterns
 
-#### 15.1 Bundled Script Execution
+#### 16.1 Task Tracking Strategy Selection
+
+**Status**: ✅ Complete
+
+**Details**:
+
+Agent-integrated CLIs often need to track work across sessions.
+The key architectural decision is **where task state lives** and **how complex the
+tracking needs to be**.
+
+**Three Strategies**:
+
+| Strategy | State Location | Complexity | Use Case |
+| --- | --- | --- | --- |
+| **Ephemeral** | None | Minimal | Quick calculations, queries, one-shot tasks |
+| **Session-local** | In-memory or temp file | Low | Multi-step tasks within a single session |
+| **Persistent** | Git-tracked files | Medium-High | Multi-session projects, team collaboration |
+
+**Decision Framework**:
+
+```
+Is the task done in one command?
+  → Yes: Ephemeral (no tracking needed)
+  → No: Does it span multiple sessions?
+    → No: Session-local (agent's internal todo list)
+    → Yes: Persistent (tbd integration or equivalent)
+```
+
+**Example by Domain**:
+
+| Domain | Ephemeral | Session-local | Persistent |
+| --- | --- | --- | --- |
+| **Financial CLI** | Calculate tax, convert currency | Multi-step analysis | Quarterly report prep |
+| **DevOps CLI** | Check service status | Deploy sequence | Incident response |
+| **Data CLI** | Run query, plot chart | ETL pipeline | Research project |
+
+* * *
+
+#### 16.2 Embedded vs External Task Management
+
+**Status**: ✅ Complete
+
+**Details**:
+
+CLIs can either **embed** task tracking (build it in) or **integrate** with external
+systems (like tbd, GitHub Issues, Jira).
+
+**Embedded Task Tracking**:
+
+```typescript
+// Simple embedded task list
+interface Task {
+  id: string;
+  description: string;
+  status: 'pending' | 'in_progress' | 'done';
+  created: Date;
+}
+
+// Stored in ~/.mycli/tasks.json or .mycli/tasks.json
+```
+
+**Pros**:
+- Self-contained, no external dependencies
+- Simpler setup
+- Full control over task format
+
+**Cons**:
+- Another system to learn
+- No ecosystem integration
+- Duplication if user already has task tracking
+
+**External Integration** (recommended for most cases):
+
+```typescript
+// Delegate to tbd or similar
+async function createTask(description: string) {
+  if (await hasTbd()) {
+    await exec(`tbd create "${description}" --type=task`);
+  } else {
+    // Fallback to embedded or skip
+  }
+}
+```
+
+**Pros**:
+- Leverages existing ecosystem
+- Users don’t learn multiple systems
+- Better for team workflows
+
+**Cons**:
+- External dependency
+- Setup complexity
+
+**Hybrid Pattern** (tbd approach):
+
+The CLI provides both embedded capability AND integration hooks:
+
+```markdown
+## Task Management
+
+This CLI tracks work automatically. You can:
+
+1. **Use built-in tracking** (default):
+   `mycli tasks list` - View current tasks
+   `mycli tasks add "Do the thing"` - Add a task
+
+2. **Integrate with tbd** (recommended for complex projects):
+   `mycli config set task-backend tbd`
+   Tasks will be created as tbd issues automatically.
+```
+
+**Assessment**: For domain-specific CLIs (financial, DevOps, data), start with external
+integration (tbd) and add embedded tracking only if the use case demands it.
+
+* * *
+
+#### 16.3 Agent-Aware Task Patterns
+
+**Status**: ✅ Complete
+
+**Details**:
+
+When agents use CLI task management, certain patterns improve the experience.
+
+**Pattern 1: Auto-Discovery of Work**
+
+Include a “what should I work on?”
+command:
+
+```bash
+mycli ready          # Show tasks ready to work
+mycli next           # Suggest the highest-priority task
+```
+
+Agents can run this at session start to understand available work.
+
+**Pattern 2: Context-Preserving Task Creation**
+
+When creating tasks from agent context, preserve relevant information:
+
+```bash
+# Agent creates task with context
+mycli task create "Fix authentication bug" \
+  --context "User reported login fails after password reset" \
+  --related-files "src/auth/login.ts,src/auth/reset.ts"
+```
+
+**Pattern 3: Session Boundary Enforcement**
+
+The CLI should remind agents to handle tasks at session end:
+
+```markdown
+## Session Closing Protocol
+
+Before completing a session:
+1. Close or update all tasks you worked on
+2. Create tasks for any discovered work
+3. Sync task state: `mycli sync`
+```
+
+**Pattern 4: Task-Guided Workflows**
+
+Shortcuts can create task sequences automatically:
+
+```bash
+mycli shortcut new-feature "Add dark mode"
+
+# Creates:
+# - Task: "Design dark mode color palette"
+# - Task: "Implement theme context"
+# - Task: "Update components to support themes"
+# - Task: "Add user preference persistence"
+# - Task: "Write tests for theme switching"
+```
+
+**Assessment**: The key insight is that agents benefit from **structured work
+discovery** and **explicit session boundaries**. CLIs that provide these patterns
+integrate more smoothly with agentic workflows.
+
+* * *
+
+### 17. Visual Output Patterns
+
+#### 17.1 Bundled Script Execution
 
 **Status**: 🔬 Experimental
 
@@ -1587,6 +1889,21 @@ skill self-contained. Use sparingly—most CLI interactions should be text-based
 39. **Implement shadowing for customization**: Project-level overrides without forking
 40. **Generate directories dynamically**: Avoid stale documentation
 
+### Context Injection
+
+41. **Design self-reinforcing context chains**: SKILL.md → guidelines → actions
+42. **Reference commands explicitly**: Always `cli command arg`, never vague prose
+43. **Limit chain depth to 3**: Avoid deep reference chains that confuse agents
+44. **Make every layer actionable**: Each context injection should lead to actions
+
+### Task Management
+
+45. **Choose appropriate tracking strategy**: Ephemeral, session-local, or persistent
+46. **Implement work discovery**: `ready` or `next` commands for session start
+47. **Add session boundary enforcement**: Remind agents to sync/close at session end
+48. **Consider tbd integration**: For persistent multi-session task tracking
+49. **Support task-guided workflows**: Shortcuts that create structured task sequences
+
 * * *
 
 ## Open Research Questions
@@ -1650,12 +1967,13 @@ skill self-contained. Use sparingly—most CLI interactions should be text-based
 Build CLIs as self-contained skill modules that can be installed via npm and
 automatically integrate with multiple AI coding agents.
 The key patterns are: bundled documentation, prime-first context management, two-tier
-setup flows, multi-agent integration files, and resource libraries (guidelines,
-shortcuts, templates).
+setup flows, multi-agent integration files, resource libraries (guidelines, shortcuts,
+templates), context injection loops, and task management integration.
 
 The critical mental model shift: design CLIs to help agents serve users better, not just
 to relay commands. This means leading with value proposition, bundling reusable
-knowledge, and distinguishing action commands from informational commands.
+knowledge, distinguishing action commands from informational commands, and creating
+self-reinforcing context chains where each piece of guidance leads naturally to the next.
 
 ### Recommended Approach
 
@@ -1669,11 +1987,15 @@ knowledge, and distinguishing action commands from informational commands.
 5. **Add hooks installation**: Automatic context injection via SessionStart/PreCompact
 6. **Bundle resource libraries**: Guidelines, shortcuts, and templates as informational
    commands with dynamic directory generation
-7. **Organize resources by purpose**: Categories help agents find relevant knowledge
-8. **Support JSON output**: Every command should have `--json` mode
-9. **Test activation reliability**: Use 10+ representative prompts to verify descriptions
-   trigger correctly
-10. **Implement shadowing**: Allow project-level overrides without forking
+7. **Design context injection loops**: Ensure guidelines reference commands, commands
+   reference related guidelines, creating self-directing knowledge chains
+8. **Organize resources by purpose**: Categories help agents find relevant knowledge
+9. **Choose task management strategy**: Ephemeral for quick tasks, tbd integration for
+   persistent multi-session work
+10. **Support JSON output**: Every command should have `--json` mode
+11. **Test activation reliability**: Use 10+ representative prompts to verify descriptions
+    trigger correctly
+12. **Implement shadowing**: Allow project-level overrides without forking
 
 ### Alternative Approaches
 
@@ -1751,7 +2073,7 @@ Optional: custom prime override └── ...
 .claude/ ├── skills/ │ └── tbd/ │ └── SKILL.md # Installed by `tbd setup` ├── hooks/ │
 └── tbd-closing-reminder.sh # PostToolUse hook script └── settings.json # Hook
 configuration
-```
+````
 
 ### Appendix B: Integration Checklist for New CLIs
 
@@ -1806,4 +2128,156 @@ configuration
 - [ ] Resource directories generated dynamically (not static)
 - [ ] Resources bundled with CLI distribution
 - [ ] Shadowing support for project-level overrides
+
+**Task Management**
+- [ ] Decide tracking strategy: ephemeral, session-local, or persistent
+- [ ] Implement work discovery command (`ready`, `next`)
+- [ ] Add session closing reminders for task sync
+- [ ] Consider tbd integration for persistent tracking
+
+### Appendix C: Domain Application Template
+
+Use this template when applying CLI-as-Skill patterns to a new domain.
+
+#### C.1 Domain Analysis Worksheet
+
+**Domain**: _________________ (e.g., Financial Analysis, DevOps, Data Science)
+
+**1. Value Proposition**
+
+What problems does this CLI solve for agents helping users?
+
+| Capability | User Problem It Solves | Agent Benefit |
+| --- | --- | --- |
+| 1. | | |
+| 2. | | |
+| 3. | | |
+| 4. | | |
+
+**2. Activation Triggers**
+
+When should agents reach for this tool? List natural language triggers:
+
+- "When the user mentions _______________"
+- "When the user wants to _______________"
+- "When working with _______________ files"
+- "When the user asks about _______________"
+
+**3. Resource Library Design**
+
+**Guidelines** (domain expertise to encode):
+
+| Guideline Name | Domain Knowledge It Captures | Example Content |
+| --- | --- | --- |
+| `{domain}-rules` | Core best practices | Naming conventions, patterns |
+| `{domain}-{subtopic}-rules` | Specialized knowledge | API design, security, etc. |
+
+**Shortcuts** (workflows to encode):
+
+| Shortcut Name | Workflow It Encodes | Steps |
+| --- | --- | --- |
+| `new-{artifact}` | Creating a new X | 1. Gather requirements... |
+| `review-{artifact}` | Reviewing/validating X | 1. Check for... |
+| `{action}-{artifact}` | Common operation | 1. Prepare... |
+
+**Templates** (document structures needed):
+
+| Template Name | Document Type | Sections |
+| --- | --- | --- |
+| `{artifact}-template` | Standard document | Header, Body, Footer |
+
+**4. Task Management Strategy**
+
+| Task Type | Duration | Strategy | Implementation |
+| --- | --- | --- | --- |
+| Quick operations | < 1 minute | Ephemeral | No tracking |
+| Multi-step workflows | 1 session | Session-local | Agent's todo list |
+| Projects | Multi-session | Persistent | tbd integration |
+
+**5. Command Structure**
+
+| Command Category | Commands | Purpose |
+| --- | --- | --- |
+| Context | `prime`, `skill` | Agent orientation |
+| Setup | `setup --auto`, `init` | Installation |
+| Action | `{domain-verbs}` | Core operations |
+| Informational | `guidelines`, `shortcut`, `template` | Knowledge queries |
+| Task | `ready`, `create`, `close` | Work tracking |
+
+* * *
+
+#### C.2 Essential Patterns Quick Reference
+
+The 10 most important patterns for any domain CLI:
+
+| # | Pattern | Why It Matters |
+| --- | --- | --- |
+| 1 | **Value-first orientation** | Agents understand *why* before *how* |
+| 2 | **Two-part descriptions** | Reliable skill activation |
+| 3 | **Progressive disclosure** | Token-efficient context management |
+| 4 | **Context injection loop** | Self-directing knowledge system |
+| 5 | **Informational commands** | CLI as queryable knowledge base |
+| 6 | **Prime command** | Consistent session initialization |
+| 7 | **Two-tier setup** | Works for both agents and humans |
+| 8 | **Session closing protocol** | Prevents premature completion |
+| 9 | **Resource shadowing** | Customization without forking |
+| 10 | **Task-guided workflows** | Structured work discovery |
+
+* * *
+
+#### C.3 Minimum Viable Agent-Integrated CLI
+
+The smallest implementation that demonstrates the patterns:
+
 ```
+mycli/
+├── src/
+│   ├── commands/
+│   │   ├── prime.ts      # Required: Context management
+│   │   ├── setup.ts      # Required: Agent integration
+│   │   └── guidelines.ts # Recommended: Knowledge library
+│   └── docs/
+│       ├── SKILL.md      # Required: Agent skill file
+│       └── guidelines/
+│           └── domain-rules.md  # At least one guideline
+└── package.json
+```
+
+**Minimum Commands**:
+1. `mycli` (no args) → runs `mycli prime`
+2. `mycli prime` → outputs orientation
+3. `mycli setup --auto` → installs skill + hooks
+4. `mycli guidelines [name]` → outputs domain knowledge
+
+**Minimum SKILL.md**:
+```yaml
+---
+name: mycli
+description: >
+  [What it does]. [When to use it].
+allowed-tools: Bash(mycli:*)
+---
+
+# mycli
+
+## What This Tool Does
+
+1. **Capability**: Description
+
+## How to Use It
+
+- User wants X → `mycli action`
+- For best practices → `mycli guidelines domain-rules`
+
+## Commands
+
+| Command | Purpose |
+| --- | --- |
+| `mycli prime` | Show orientation |
+| `mycli guidelines [name]` | Show domain guidelines |
+```
+
+This minimal implementation demonstrates: value-first orientation, informational
+commands, and context management—the core patterns that make CLIs effective agent
+skills.
+````
