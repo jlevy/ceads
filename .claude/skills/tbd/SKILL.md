@@ -27,7 +27,7 @@ implementation, and code review.
 If `tbd` is not installed, install and set up:
 
 ```bash
-npm install -g tbd-git@latest
+npm install -g get-tbd@latest
 tbd                                # Gives full orientation
 tbd setup --auto --prefix=<name>   # Fresh project (--prefix REQUIRED)
 tbd setup --auto                   # Existing tbd project (prefix already set)

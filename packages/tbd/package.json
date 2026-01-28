@@ -1,5 +1,5 @@
 {
-  "name": "tbd-git",
+  "name": "get-tbd",
   "version": "0.1.7",
   "description": "Git-native issue tracking for AI agents and humans",
   "license": "MIT",
@@ -62,8 +62,8 @@
     "validate-import": "tsx scripts/validate-import.ts",
     "publint": "publint",
     "prepack": "pnpm build",
-    "test:install": "pnpm build && pnpm pack && npm install -g ./tbd-git-*.tgz && rm ./tbd-git-*.tgz",
-    "test:uninstall": "npm uninstall -g tbd-git"
+    "test:install": "pnpm build && pnpm pack && npm install -g ./get-tbd-*.tgz && rm ./get-tbd-*.tgz",
+    "test:uninstall": "npm uninstall -g get-tbd"
   },
   "dependencies": {
     "atomically": "^2.1.0",

@@ -18,11 +18,11 @@ ensure_tbd() {
     # Try npm first (most common for Node.js tools)
     if command -v npm &> /dev/null; then
         echo "[tbd] Installing via npm..."
-        npm install -g tbd-git 2>/dev/null || {
+        npm install -g get-tbd 2>/dev/null || {
             # If global install fails (permissions), try local install
             echo "[tbd] Global npm install failed, trying user install..."
             mkdir -p ~/.local/bin
-            npm install --prefix ~/.local tbd-git
+            npm install --prefix ~/.local get-tbd
             # Create symlink if needed
             if [ -f ~/.local/node_modules/.bin/tbd ]; then
                 ln -sf ~/.local/node_modules/.bin/tbd ~/.local/bin/tbd
@@ -30,13 +30,13 @@ ensure_tbd() {
         }
     elif command -v pnpm &> /dev/null; then
         echo "[tbd] Installing via pnpm..."
-        pnpm add -g tbd-git
+        pnpm add -g get-tbd
     elif command -v yarn &> /dev/null; then
         echo "[tbd] Installing via yarn..."
-        yarn global add tbd-git
+        yarn global add get-tbd
     else
         echo "[tbd] ERROR: No package manager found (npm, pnpm, or yarn required)"
-        echo "[tbd] Please install Node.js and npm, then run: npm install -g tbd-git"
+        echo "[tbd] Please install Node.js and npm, then run: npm install -g get-tbd"
         return 1
     fi
 

@@ -187,14 +187,14 @@ backward compatibility with confusing patterns.
 **The one-liner for README and top-level help:**
 
 ```
-npm install -g tbd-git@latest && tbd setup --auto
+npm install -g get-tbd@latest && tbd setup --auto
 ```
 
 **Help footer for `tbd`, `tbd --help`, `tbd readme`, `tbd docs`:**
 
 ```
 Getting Started:
-  npm install -g tbd-git@latest && tbd setup --auto
+  npm install -g get-tbd@latest && tbd setup --auto
 
   This initializes tbd and configures your coding agents automatically.
   For interactive setup: tbd setup --interactive
@@ -1292,7 +1292,7 @@ class SetupDefaultHandler extends BaseCommand {
 - [x] Add help text for `tbd init --help` explaining when to use it
 - [ ] Update design doc §6.4 - partial, main docs updated
 - [x] Update README with prominent one-liner:
-  `npm install -g tbd-git@latest && tbd setup --auto`
+  `npm install -g get-tbd@latest && tbd setup --auto`
 
 ### Phase 6: Prime-First Implementation
 
@@ -1497,7 +1497,7 @@ Full status showing installation, project setup, sync state, and issue counts:
 --- INSTALLATION ---
 ✓ tbd installed (v1.2.3)
 ✓ Global hooks configured
-i Update available: v1.2.4 (npm install -g tbd-git@latest)
+i Update available: v1.2.4 (npm install -g get-tbd@latest)
 
 --- PROJECT ---
 ✓ Initialized in this repo
@@ -1575,7 +1575,7 @@ When an AI agent encounters tbd, it’s in one of three states:
 │ Agent sees SKILL.md (via Claude skill, Cursor rules, AGENTS.md)         │
 │                                                                         │
 │ SKILL.md says:                                                          │
-│   npm install -g tbd-git@latest && tbd setup --auto                     │
+│   npm install -g get-tbd@latest && tbd setup --auto                     │
 └─────────────────────────────────────────────────────────────────────────┘
                                     │
                                     ▼
@@ -1621,7 +1621,7 @@ The Installation and Context Recovery sections in SKILL.md must be updated:
 If `tbd` is not installed, install and set up in one command:
 
 ```bash
-npm install -g tbd-git@latest && tbd setup --auto
+npm install -g get-tbd@latest && tbd setup --auto
 ````
 
 This initializes tbd and configures your coding agent automatically.

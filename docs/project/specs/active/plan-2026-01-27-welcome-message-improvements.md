@@ -210,7 +210,7 @@ Consider extracting a shared source or ensuring manual sync.
 When someone joins a project where tbd is already set up:
 
 1. They clone the repo (`.tbd/config.yml` exists, `.tbd/state.yml` does not)
-2. They install tbd globally (`npm install -g tbd-git@latest`)
+2. They install tbd globally (`npm install -g get-tbd@latest`)
 3. They run `tbd setup --auto`:
    - Detects existing config (no prefix needed)
    - Creates/updates hooks and skill files

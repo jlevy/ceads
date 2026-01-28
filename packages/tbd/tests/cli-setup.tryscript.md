@@ -103,7 +103,7 @@ Commands:
   help [command]                display help for command
 
 Getting Started:
-  npm install -g tbd-git@latest && tbd setup --auto --prefix=<name>
+  npm install -g get-tbd@latest && tbd setup --auto --prefix=<name>
 
   This initializes tbd and configures your coding agents automatically.
   For interactive setup: tbd setup --interactive
@@ -151,7 +151,7 @@ Global Options:
   --debug               Show internal IDs alongside public IDs for debugging
 
 Getting Started:
-  npm install -g tbd-git@latest && tbd setup --auto --prefix=<name>
+  npm install -g get-tbd@latest && tbd setup --auto --prefix=<name>
 
   This initializes tbd and configures your coding agents automatically.
   For interactive setup: tbd setup --interactive

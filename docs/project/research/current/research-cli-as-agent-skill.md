@@ -387,7 +387,7 @@ The help output should include a “Getting Started” section:
 
 ```
 Getting Started:
-  npm install -g tbd-git@latest && tbd setup --auto
+  npm install -g get-tbd@latest && tbd setup --auto
 
   This initializes tbd and configures your coding agents automatically.
   For interactive setup: tbd setup --interactive
@@ -403,7 +403,7 @@ export function createHelpEpilog(colorOption: ColorOption = 'auto'): string {
   const colors = pc.createColors(shouldColorize(colorOption));
   const lines = [
     colors.bold('Getting Started:'),
-    `  ${colors.green('npm install -g tbd-git@latest && tbd setup --auto')}`,
+    `  ${colors.green('npm install -g get-tbd@latest && tbd setup --auto')}`,
     '',
     '  This initializes tbd and configures your coding agents automatically.',
     `  For interactive setup: ${colors.dim('tbd setup --interactive')}`,
@@ -1048,7 +1048,7 @@ gracefully. This is critical for team workflows.
 
 **First contributor flow**:
 ```bash
-npm install -g tbd-git@latest
+npm install -g get-tbd@latest
 tbd setup --auto --prefix=myproject
 git add .tbd/ .claude/ && git commit -m "Initialize tbd"
 git push
@@ -1057,7 +1057,7 @@ git push
 **Subsequent contributor flow**:
 ```bash
 git clone <repo>  # .tbd/ comes with repo
-npm install -g tbd-git@latest
+npm install -g get-tbd@latest
 tbd setup --auto  # Detects existing config, just sets up hooks
 ```
 

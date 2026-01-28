@@ -16,7 +16,7 @@ environment.
 > 
 > *Just tell your agent:*
 > 
-> ***“npm install -g tbd-git@latest and run tbd for instructions”***
+> ***“npm install -g get-tbd@latest and run tbd for instructions”***
 
 That’s it. Running `tbd` with no arguments gives you everything you need:
 - Not installed? It tells you how to install and set up.
@@ -190,7 +190,7 @@ specifies the docs that are cached and available to your agents via tbd commands
 - Git 2.42+ (for orphan worktree support)
 
 ```bash
-npm install -g tbd-git@latest
+npm install -g get-tbd@latest
 ```
 
 ### Setup Options
@@ -455,7 +455,7 @@ tbd is designed for teams where one person sets up the project and others join l
 
 **First contributor (project setup):**
 ```bash
-npm install -g tbd-git@latest
+npm install -g get-tbd@latest
 tbd setup --auto --prefix=myproject
 git add .tbd/ .claude/ && git commit -m "Initialize tbd"
 git push
@@ -464,14 +464,14 @@ git push
 **Joining contributors:**
 ```bash
 git clone <repo>                    # .tbd/ directory comes with repo
-npm install -g tbd-git@latest       # If not already installed
+npm install -g get-tbd@latest       # If not already installed
 tbd setup --auto                    # No --prefix needed! Reads existing config
 ```
 
 The second contributor just runs `tbd setup --auto` — no need to know the project prefix
 or any other configuration details.
 
-**Updating tbd:** After upgrading tbd (`npm install -g tbd-git@latest`), run
+**Updating tbd:** After upgrading tbd (`npm install -g get-tbd@latest`), run
 `tbd setup --auto` to refresh local skill files with the latest shortcuts, guidelines,
 and templates.
 

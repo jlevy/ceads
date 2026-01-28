@@ -125,7 +125,7 @@ export async function directFetch(url: string, options?: FetchOptions): Promise<
     const response = await fetch(url, {
       signal: controller.signal,
       headers: {
-        'User-Agent': 'tbd-git/1.0',
+        'User-Agent': 'get-tbd/1.0',
         Accept: 'text/plain, text/markdown, */*',
       },
     });

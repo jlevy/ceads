@@ -40,7 +40,7 @@ work, planning features, following best practices, and managing development work
 ### Current State
 
 tbd currently has:
-- **Installation**: `npm install -g tbd-git@latest && tbd setup --auto --prefix=<name>`
+- **Installation**: `npm install -g get-tbd@latest && tbd setup --auto --prefix=<name>`
 - **Prime command**: `tbd` (no args) outputs a dashboard with status and quick reference
 - **Skill file**: Full agent instructions available via `tbd skill`
 - **Documentation commands**: `tbd docs`, `tbd shortcut`, `tbd guidelines`,
@@ -415,7 +415,7 @@ The standard `tbd --help` output should end with:
 ...existing help content...
 
 Getting Started:
-  npm install -g tbd-git@latest && tbd setup --auto --prefix=<name>
+  npm install -g get-tbd@latest && tbd setup --auto --prefix=<name>
 
 For orientation and workflow guidance, run: tbd prime
 For more on tbd, see: https://github.com/jlevy/tbd
@@ -691,7 +691,7 @@ The setup flow must handle this gracefully:
 
 **Project setup (first contributor)**:
 ```
-npm install -g tbd-git@latest
+npm install -g get-tbd@latest
 tbd setup --auto --prefix=myproject
 git add .tbd/ .claude/ && git commit -m "Initialize tbd"
 git push
@@ -700,7 +700,7 @@ git push
 **Joining project (subsequent contributors)**:
 ```
 git clone <repo>  # .tbd/ directory comes with repo
-npm install -g tbd-git@latest  # If not already installed
+npm install -g get-tbd@latest  # If not already installed
 tbd setup --auto  # No --prefix needed! Reads from existing config
 ```
 
@@ -747,7 +747,7 @@ What would you like to work on first?”
 
 **User**: Installs tbd themselves and runs `tbd setup --interactive`
 
-**Context**: User ran `npm install -g tbd-git@latest` and then `tbd setup --interactive`
+**Context**: User ran `npm install -g get-tbd@latest` and then `tbd setup --interactive`
 directly, without agent involvement.
 
 **tbd behavior**:
@@ -783,7 +783,7 @@ machine.
 **Agent actions**:
 1. Detect `.tbd/` directory exists (project already uses tbd)
 2. Check if `tbd` command is available
-3. If not installed: `npm install -g tbd-git@latest`
+3. If not installed: `npm install -g get-tbd@latest`
 4. Run `tbd setup --auto` (detects already initialized, just configures local hooks)
 5. Check `tbd ready` for available work
 

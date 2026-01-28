@@ -110,7 +110,7 @@ Review and commit:
 ```bash
 git diff  # Verify package.json and CHANGELOG.md
 git add .
-git commit -m "chore: release tbd-git vX.X.X"
+git commit -m "chore: release get-tbd vX.X.X"
 ```
 
 ### Step 5: Write Release Notes
@@ -145,7 +145,7 @@ git push -u origin <branch-name>
 
 # Create and merge PR (use release notes in body)
 gh pr create -R jlevy/tbd --base main --head <branch-name> \
-  --title "chore: release tbd-git vX.X.X" \
+  --title "chore: release get-tbd vX.X.X" \
   --body-file release-notes.md
 gh pr merge <pr-number> -R jlevy/tbd --merge
 
@@ -172,7 +172,7 @@ gh release edit vX.X.X -R jlevy/tbd --notes-file release-notes.md
 
 ```bash
 gh release view vX.X.X -R jlevy/tbd
-npm view tbd-git
+npm view get-tbd
 ```
 
 ## Quick Reference
@@ -184,7 +184,7 @@ git checkout main && git pull
 pnpm changeset  # Interactive: select package, bump type, summary
 git add .changeset && git commit -m "chore: add changeset for v0.2.0"
 pnpm changeset version
-git add . && git commit -m "chore: release tbd-git v0.2.0"
+git add . && git commit -m "chore: release get-tbd v0.2.0"
 
 # Write release notes (see release-notes-guidelines.md)
 git push && git tag v0.2.0 && git push --tags
@@ -199,14 +199,14 @@ gh release edit v0.2.0 -R jlevy/tbd --notes-file release-notes.md
 pnpm changeset  # Interactive: select package, bump type, summary
 git add .changeset && git commit -m "chore: add changeset for v0.2.0"
 pnpm changeset version
-git add . && git commit -m "chore: release tbd-git v0.2.0"
+git add . && git commit -m "chore: release get-tbd v0.2.0"
 
 # Write release notes, push to branch
 git push -u origin <branch-name>
 
 # Create PR, merge, tag via API
 gh pr create -R jlevy/tbd --base main --head <branch-name> \
-  --title "chore: release tbd-git v0.2.0" --body-file release-notes.md
+  --title "chore: release get-tbd v0.2.0" --body-file release-notes.md
 gh pr merge <pr-number> -R jlevy/tbd --merge
 MERGE_SHA=$(gh pr view <pr-number> -R jlevy/tbd --json mergeCommit -q '.mergeCommit.oid')
 gh api repos/jlevy/tbd/git/refs -X POST -f ref="refs/tags/v0.2.0" -f sha="$MERGE_SHA"
@@ -250,7 +250,7 @@ After pushing a tag:
 
 - Verify `NPM_TOKEN` secret is configured in repository settings
 - Check the token hasn’t expired
-- Ensure token has publish permissions for `tbd-git`
+- Ensure token has publish permissions for `get-tbd`
 
 **First publish?**
 

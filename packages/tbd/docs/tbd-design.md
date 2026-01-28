@@ -418,7 +418,7 @@ tbd addresses specific requirements:
 
 2. **No data loss**: Conflicts preserve both versions via attic mechanism
 
-3. **Works anywhere**: Just `npm install -g tbd-git` anywhere: local dev, CI, cloud IDEs
+3. **Works anywhere**: Just `npm install -g get-tbd` anywhere: local dev, CI, cloud IDEs
    (Claude Code, Codespaces), network filesystems
 
 4. **Simple architecture**: Easy to understand, debug, and maintain
@@ -3933,15 +3933,15 @@ To restore Beads, move files back from `.beads-disabled/`.
 
 ### 6.4 Installation and Agent Integration
 
-tbd is distributed as an npm package (`tbd-git`), enabling simple installation across
+tbd is distributed as an npm package (`get-tbd`), enabling simple installation across
 all environments including cloud sandboxes.
 
 #### 6.4.1 Installation Methods
 
 | Method | Command | Best For |
 | --- | --- | --- |
-| **npm** (primary) | `npm install -g tbd-git` | Most users, cloud environments |
-| **npx** (no install) | `npx tbd-git <command>` | One-off usage, testing |
+| **npm** (primary) | `npm install -g get-tbd` | Most users, cloud environments |
+| **npx** (no install) | `npx get-tbd <command>` | One-off usage, testing |
 | **From source** | `pnpm install && pnpm build` | Contributors |
 
 **npm is the recommended approach** because:
@@ -4143,7 +4143,7 @@ bootstrap script to your repository:
 ```bash
 # .claude/hooks/session-start.sh
 #!/bin/bash
-command -v tbd &>/dev/null || npm install -g tbd-git --quiet
+command -v tbd &>/dev/null || npm install -g get-tbd --quiet
 [ -d ".tbd" ] && tbd prime
 ```
 

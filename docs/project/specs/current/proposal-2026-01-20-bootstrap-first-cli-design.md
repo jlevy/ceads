@@ -28,7 +28,7 @@ tbd v1.2.3
 ✓ tbd installed (v1.2.3)
 ✓ Initialized in this repo
 ✓ Hooks installed
-i Update available: v1.2.4 (npm install -g tbd-git@latest)
+i Update available: v1.2.4 (npm install -g get-tbd@latest)
 
 --- PROJECT STATUS ---
 Repository: ai-trade-arena
@@ -173,7 +173,7 @@ Full status showing installation, project setup, sync state, and issue counts:
 --- INSTALLATION ---
 ✓ tbd installed (v1.2.3)
 ✓ Global hooks configured
-i Update available: v1.2.4 (npm install -g tbd-git@latest)
+i Update available: v1.2.4 (npm install -g get-tbd@latest)
 
 --- PROJECT ---
 ✓ Initialized in this repo
@@ -234,7 +234,7 @@ tbd v1.2.3
 --- INSTALLATION ---
 ✓ tbd installed (v1.2.3)
 ✓ Global hooks configured
-i Update available: v1.2.4 (npm install -g tbd-git@latest)
+i Update available: v1.2.4 (npm install -g get-tbd@latest)
 
 --- PROJECT ---
 ✓ Initialized in this repo

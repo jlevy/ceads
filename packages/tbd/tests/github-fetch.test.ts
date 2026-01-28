@@ -142,7 +142,7 @@ describe('directFetch', () => {
     expect(globalThis.fetch).toHaveBeenCalledOnce();
     const [url, init] = (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[0]!;
     expect(url).toBe('https://example.com/file.md');
-    expect(init.headers['User-Agent']).toBe('tbd-git/1.0');
+    expect(init.headers['User-Agent']).toBe('get-tbd/1.0');
     expect(init.headers.Accept).toContain('text/plain');
   });
 

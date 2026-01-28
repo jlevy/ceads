@@ -189,7 +189,7 @@ tbd setup --auto
 tbd --help
 
 # Expected: Should show "Getting Started:" section at the end with:
-#   npm install -g tbd-git@latest && tbd setup --auto
+#   npm install -g get-tbd@latest && tbd setup --auto
 #   This initializes tbd and configures your coding agents automatically.
 #   For interactive setup: tbd setup --interactive
 #   For manual control: tbd init --help
