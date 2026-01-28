@@ -168,8 +168,8 @@ preserved.
   docs.
 
 > [!NOTE]
-> See the [design doc](docs/tbd-design.md) (`tbd design`) or
-> [reference docs](docs/tbd-docs.md) (`tbd docs`) for more details.
+> See the [design doc](packages/tbd/docs/tbd-design.md) (`tbd design`) or
+> [reference docs](packages/tbd/docs/tbd-docs.md) (`tbd docs`) for more details.
 
 ## Installation
 
@@ -437,8 +437,8 @@ tbd docs                     # Full CLI reference
 ```
 
 Or read online:
-- [CLI Reference](docs/tbd-docs.md) — Complete command documentation
-- [Design Doc](docs/tbd-design.md) — Technical architecture
+- [CLI Reference](packages/tbd/docs/tbd-docs.md) — Complete command documentation
+- [Design Doc](packages/tbd/docs/tbd-design.md) — Technical architecture
 
 ## Team Workflows
 
@@ -488,7 +488,7 @@ The prefix from your beads configuration is automatically used.
 tbd stores issues on a dedicated `tbd-sync` branch, separate from your code.
 One file per issue means parallel creation never conflicts.
 Run `tbd sync` to push changes—no manual git operations needed for issues.
-See the [design doc](docs/tbd-design.md) for details.
+See the [design doc](packages/tbd/docs/tbd-design.md) for details.
 
 ## Contributing
 
