@@ -230,6 +230,7 @@ Run `tbd shortcut <name>` to use any of these shortcuts:
 | create-or-update-pr-with-validation-plan | Create or Update PR with Validation Plan | Create or update a pull request with a detailed test/validation plan |
 | implement-beads | Implement Beads | Implement issues from a spec, following TDD and project rules |
 | new-architecture-doc | New Architecture Doc | Create an architecture document for a system or component design |
+| new-guideline | New Guideline | Create a new coding guideline document for tbd |
 | new-implementation-beads-from-spec | New Implementation Beads from Spec | Create implementation issues (beads) from a feature planning spec |
 | new-plan-spec | New Plan Spec | Create a new feature planning specification document |
 | new-research-brief | New Research Doc | Create a research document for investigating a topic or technology |

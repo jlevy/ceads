@@ -15,6 +15,7 @@ display:
 docs_cache:
   files:
     guidelines/backward-compatibility-rules.md: internal:guidelines/backward-compatibility-rules.md
+    guidelines/cli-agent-skill-patterns.md: internal:guidelines/cli-agent-skill-patterns.md
     guidelines/commit-conventions.md: internal:guidelines/commit-conventions.md
     guidelines/convex-limits-best-practices.md: internal:guidelines/convex-limits-best-practices.md
     guidelines/convex-rules.md: internal:guidelines/convex-rules.md
@@ -28,14 +29,15 @@ docs_cache:
     guidelines/python-cli-patterns.md: internal:guidelines/python-cli-patterns.md
     guidelines/python-rules.md: internal:guidelines/python-rules.md
     guidelines/typescript-cli-tool-rules.md: internal:guidelines/typescript-cli-tool-rules.md
-    guidelines/typescript-monorepo-patterns.md: internal:guidelines/typescript-monorepo-patterns.md
     guidelines/typescript-code-coverage.md: internal:guidelines/typescript-code-coverage.md
+    guidelines/typescript-monorepo-patterns.md: internal:guidelines/typescript-monorepo-patterns.md
     guidelines/typescript-rules.md: internal:guidelines/typescript-rules.md
     shortcuts/standard/commit-code.md: internal:shortcuts/standard/commit-code.md
     shortcuts/standard/create-or-update-pr-simple.md: internal:shortcuts/standard/create-or-update-pr-simple.md
     shortcuts/standard/create-or-update-pr-with-validation-plan.md: internal:shortcuts/standard/create-or-update-pr-with-validation-plan.md
     shortcuts/standard/implement-beads.md: internal:shortcuts/standard/implement-beads.md
     shortcuts/standard/new-architecture-doc.md: internal:shortcuts/standard/new-architecture-doc.md
+    shortcuts/standard/new-guideline.md: internal:shortcuts/standard/new-guideline.md
     shortcuts/standard/new-implementation-beads-from-spec.md: internal:shortcuts/standard/new-implementation-beads-from-spec.md
     shortcuts/standard/new-plan-spec.md: internal:shortcuts/standard/new-plan-spec.md
     shortcuts/standard/new-research-brief.md: internal:shortcuts/standard/new-research-brief.md
@@ -56,6 +58,7 @@ docs_cache:
 settings:
   auto_sync: false
   doc_auto_sync_hours: 24
+  use_gh_cli: true
 sync:
   branch: tbd-sync
   remote: origin

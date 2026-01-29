@@ -2,7 +2,7 @@
   "name": "tbd-workspace",
   "private": true,
   "type": "module",
-  "packageManager": "pnpm@10.28.0",
+  "packageManager": "pnpm@10.28.2",
   "engines": {
     "node": ">=20"
   },
@@ -45,9 +45,9 @@
     "eslint-config-prettier": "^10.1.8",
     "lefthook": "^1.13.6",
     "npm-check-updates": "^17.1.18",
-    "prettier": "^3.8.0",
+    "prettier": "^3.8.1",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
-    "typescript-eslint": "^8.53.0"
+    "typescript-eslint": "^8.54.0"
   }
 }
