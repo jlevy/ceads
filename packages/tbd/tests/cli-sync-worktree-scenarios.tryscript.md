@@ -148,7 +148,7 @@ repaired
 # Test: Issues still accessible after repair
 
 ```console
-$ tbd sync >/dev/null 2>&1 && tbd list --status open 2>&1 | grep -c "Test Issue" | tr -d ' ' | awk '$1 >= 2 {print "ok"}'
+$ tbd sync --pull >/dev/null 2>&1 && tbd list --status open 2>&1 | grep -c "Test Issue" | tr -d ' ' | awk '$1 >= 2 {print "ok"}'
 ok
 ? 0
 ```
