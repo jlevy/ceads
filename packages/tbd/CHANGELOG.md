@@ -1,5 +1,11 @@
 # get-tbd
 
+## 0.1.11
+
+### Patch Changes
+
+- Terminal design system, shortcut improvements, and bug fixes
+
 ## 0.1.10
 
 ### Patch Changes
