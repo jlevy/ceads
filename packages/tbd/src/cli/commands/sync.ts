@@ -70,13 +70,20 @@ class SyncHandler extends BaseCommand {
     // See: plan-2026-01-28-sync-worktree-recovery-and-hardening.md
     let worktreeHealth = await checkWorktreeHealth(tbdRoot);
     if (!worktreeHealth.valid) {
-      if (options.fix) {
-        // Attempt repair when --fix is provided
-        // Cast is safe: status cannot be 'valid' when valid is false
-        await this.doRepairWorktree(
-          tbdRoot,
-          worktreeHealth.status as 'missing' | 'prunable' | 'corrupted',
-        );
+      // Auto-create worktree if it's simply missing (normal for fresh clones)
+      // Only require --fix for corrupted/prunable states that need repair
+      if (worktreeHealth.status === 'missing') {
+        // Auto-create worktree - this is the expected state on fresh clones
+        await this.doRepairWorktree(tbdRoot, 'missing');
+        worktreeHealth = await checkWorktreeHealth(tbdRoot);
+        if (!worktreeHealth.valid) {
+          throw new WorktreeCorruptedError(
+            `Failed to create worktree. Status: ${worktreeHealth.status}. Run 'tbd doctor' for diagnostics.`,
+          );
+        }
+      } else if (options.fix) {
+        // Attempt repair when --fix is provided for corrupted/prunable states
+        await this.doRepairWorktree(tbdRoot, worktreeHealth.status as 'prunable' | 'corrupted');
         // Re-check health after repair
         worktreeHealth = await checkWorktreeHealth(tbdRoot);
         if (!worktreeHealth.valid) {
@@ -85,7 +92,7 @@ class SyncHandler extends BaseCommand {
           );
         }
       } else {
-        // No --fix flag, throw appropriate error
+        // No --fix flag, throw appropriate error for corrupted/prunable states
         if (worktreeHealth.status === 'prunable') {
           throw new WorktreeMissingError(
             "Worktree directory was deleted but git still tracks it. Run 'tbd sync --fix' or 'tbd doctor --fix' to repair.",
@@ -94,11 +101,6 @@ class SyncHandler extends BaseCommand {
         if (worktreeHealth.status === 'corrupted') {
           throw new WorktreeCorruptedError(
             `Worktree is corrupted: ${worktreeHealth.error ?? 'unknown error'}. Run 'tbd sync --fix' or 'tbd doctor --fix' to repair.`,
-          );
-        }
-        if (worktreeHealth.status === 'missing') {
-          throw new WorktreeMissingError(
-            "Worktree not found. Run 'tbd sync --fix' or 'tbd doctor --fix' to create it.",
           );
         }
       }
