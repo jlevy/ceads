@@ -1,5 +1,14 @@
 # get-tbd
 
+## 0.1.9
+
+### Patch Changes
+
+- 2809883: Worktree robustness improvements, setup bug fixes, and documentation updates.
+  Key changes include automatic worktree detection and repair, graceful handling of
+  already-migrated data, bypassing parent repo hooks in worktree commits, improved
+  .gitignore management on upgrade, and simplified agent integration documentation.
+
 ## 0.1.8
 
 ### Patch Changes
