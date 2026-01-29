@@ -646,7 +646,7 @@ export async function getRemoteUrl(remote: string): Promise<string | null> {
 // See: tbd-design.md §2.3 Hidden Worktree Model
 // =============================================================================
 
-import { access, rm } from 'node:fs/promises';
+import { access, rm, cp } from 'node:fs/promises';
 import {
   WORKTREE_DIR,
   WORKTREE_DIR_NAME,
@@ -1163,6 +1163,184 @@ export async function removeWorktree(
   } catch (error) {
     return {
       success: false,
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
+}
+
+/**
+ * Repair an unhealthy worktree.
+ *
+ * Follows decision tree from spec Appendix E:
+ * - PRUNABLE: git worktree prune, then recreate
+ * - CORRUPTED: backup to .tbd/backups/, remove, then recreate
+ * - MISSING: just create
+ *
+ * See: plan-2026-01-28-sync-worktree-recovery-and-hardening.md
+ *
+ * @param baseDir - The base directory of the repository
+ * @param status - Current worktree health status
+ * @param remote - The remote name (default: 'origin')
+ * @param syncBranch - The sync branch name (default: 'tbd-sync')
+ */
+export async function repairWorktree(
+  baseDir: string,
+  status: 'missing' | 'prunable' | 'corrupted',
+  remote = 'origin',
+  syncBranch: string = SYNC_BRANCH,
+): Promise<{ success: boolean; path?: string; backedUp?: string; error?: string }> {
+  const worktreePath = join(baseDir, WORKTREE_DIR);
+
+  try {
+    // Always prune stale worktree entries first for missing and prunable states
+    // This ensures git's worktree list is clean before creating a new worktree
+    if (status === 'missing' || status === 'prunable') {
+      await git('-C', baseDir, 'worktree', 'prune');
+    }
+
+    // Handle corrupted status: backup before removal
+    if (status === 'corrupted') {
+      const backupsDir = join(baseDir, TBD_DIR, 'backups');
+      await mkdir(backupsDir, { recursive: true });
+
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+      const backupPath = join(backupsDir, `corrupted-worktree-backup-${timestamp}`);
+
+      // Copy corrupted worktree to backup before removal
+      try {
+        await cp(worktreePath, backupPath, { recursive: true });
+      } catch {
+        // If copy fails, the directory might not exist or be accessible
+        // Continue with repair anyway
+      }
+
+      // Remove the corrupted worktree
+      await rm(worktreePath, { recursive: true, force: true });
+      await git('-C', baseDir, 'worktree', 'prune');
+
+      // Initialize fresh worktree
+      const result = await initWorktree(baseDir, remote, syncBranch);
+      return { ...result, backedUp: backupPath };
+    }
+
+    // For missing or prunable (after prune), just initialize
+    const result = await initWorktree(baseDir, remote, syncBranch);
+    return result;
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
+}
+
+/**
+ * Migrate data from wrong location (.tbd/data-sync/) to worktree.
+ *
+ * Used when data was incorrectly written to the direct path instead of the worktree.
+ * Per spec Appendix E:
+ * 1. Backup to .tbd/backups/
+ * 2. Copy issues/mappings from .tbd/data-sync/ to worktree
+ * 3. Commit in worktree
+ * 4. Optionally remove wrong location data
+ *
+ * See: plan-2026-01-28-sync-worktree-recovery-and-hardening.md
+ *
+ * @param baseDir - The base directory of the repository
+ * @param removeSource - Whether to remove data from wrong location after migration
+ */
+export async function migrateDataToWorktree(
+  baseDir: string,
+  removeSource = false,
+): Promise<{
+  success: boolean;
+  migratedCount: number;
+  backupPath?: string;
+  error?: string;
+}> {
+  const wrongPath = join(baseDir, TBD_DIR, DATA_SYNC_DIR_NAME);
+  const correctPath = join(baseDir, WORKTREE_DIR, TBD_DIR, DATA_SYNC_DIR_NAME);
+  const worktreePath = join(baseDir, WORKTREE_DIR);
+
+  try {
+    // Check if there's data in the wrong location
+    const wrongIssuesPath = join(wrongPath, 'issues');
+    const wrongMappingsPath = join(wrongPath, 'mappings');
+
+    let issueFiles: string[] = [];
+    let mappingFiles: string[] = [];
+
+    try {
+      const { readdir } = await import('node:fs/promises');
+      issueFiles = await readdir(wrongIssuesPath).catch(() => []);
+      mappingFiles = await readdir(wrongMappingsPath).catch(() => []);
+    } catch {
+      // Directory doesn't exist
+    }
+
+    // Filter out .gitkeep files
+    issueFiles = issueFiles.filter((f) => f !== '.gitkeep');
+    mappingFiles = mappingFiles.filter((f) => f !== '.gitkeep');
+
+    if (issueFiles.length === 0 && mappingFiles.length === 0) {
+      return { success: true, migratedCount: 0 };
+    }
+
+    // Step 1: Backup to .tbd/backups/
+    const backupsDir = join(baseDir, TBD_DIR, 'backups');
+    await mkdir(backupsDir, { recursive: true });
+
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+    const backupPath = join(backupsDir, `data-sync-backup-${timestamp}`);
+
+    await cp(wrongPath, backupPath, { recursive: true });
+
+    // Step 2: Copy issues and mappings to worktree
+    const correctIssuesPath = join(correctPath, 'issues');
+    const correctMappingsPath = join(correctPath, 'mappings');
+
+    await mkdir(correctIssuesPath, { recursive: true });
+    await mkdir(correctMappingsPath, { recursive: true });
+
+    for (const file of issueFiles) {
+      await cp(join(wrongIssuesPath, file), join(correctIssuesPath, file));
+    }
+
+    for (const file of mappingFiles) {
+      await cp(join(wrongMappingsPath, file), join(correctMappingsPath, file));
+    }
+
+    // Step 3: Commit in worktree
+    const totalFiles = issueFiles.length + mappingFiles.length;
+    await git('-C', worktreePath, 'add', '-A');
+    await git(
+      '-C',
+      worktreePath,
+      'commit',
+      '-m',
+      `tbd: migrate ${totalFiles} file(s) from incorrect location`,
+    );
+
+    // Step 4: Optionally remove wrong location data
+    if (removeSource) {
+      // Remove issue and mapping files, but keep directory structure
+      for (const file of issueFiles) {
+        await rm(join(wrongIssuesPath, file));
+      }
+      for (const file of mappingFiles) {
+        await rm(join(wrongMappingsPath, file));
+      }
+    }
+
+    return {
+      success: true,
+      migratedCount: totalFiles,
+      backupPath,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      migratedCount: 0,
       error: error instanceof Error ? error.message : String(error),
     };
   }

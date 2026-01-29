@@ -25,6 +25,8 @@ import {
   checkLocalBranchHealth,
   checkRemoteBranchHealth,
   checkSyncConsistency,
+  repairWorktree,
+  migrateDataToWorktree,
 } from '../../file/git.js';
 import { type DiagnosticResult, renderDiagnostics } from '../lib/diagnostics.js';
 import { VERSION } from '../lib/version.js';
@@ -92,11 +94,11 @@ class DoctorHandler extends BaseCommand {
     // Check 7: Issue validity
     healthChecks.push(this.checkIssueValidity(this.issues));
 
-    // Check 8: Worktree health
-    healthChecks.push(await this.checkWorktree());
+    // Check 8: Worktree health (with fix support)
+    healthChecks.push(await this.checkWorktree(options.fix));
 
-    // Check 9: Data location (issues in wrong path)
-    healthChecks.push(await this.checkDataLocation());
+    // Check 9: Data location (issues in wrong path, with fix support)
+    healthChecks.push(await this.checkDataLocation(options.fix));
 
     // Check 10: Local sync branch health
     healthChecks.push(await this.checkLocalSyncBranch());
@@ -516,7 +518,7 @@ class DoctorHandler extends BaseCommand {
    * Check worktree health with enhanced status detection.
    * See: plan-2026-01-28-sync-worktree-recovery-and-hardening.md §4
    */
-  private async checkWorktree(): Promise<DiagnosticResult> {
+  private async checkWorktree(fix?: boolean): Promise<DiagnosticResult> {
     const worktreePath = WORKTREE_DIR;
     const worktreeHealth = await checkWorktreeHealth(this.cwd);
 
@@ -529,21 +531,42 @@ class DoctorHandler extends BaseCommand {
         return { name: 'Worktree', status: 'ok', message: 'not created yet', path: worktreePath };
 
       case 'prunable':
-        // Worktree directory was deleted but git still tracks it
-        return {
-          name: 'Worktree',
-          status: 'error',
-          message: 'prunable (directory deleted)',
-          path: worktreePath,
-          details: [
-            'The worktree directory was deleted but git still tracks it.',
-            'This can cause data to be written to the wrong location.',
-          ],
-          fixable: true,
-          suggestion: 'Run: tbd doctor --fix to recreate worktree',
-        };
+      case 'corrupted': {
+        // Attempt repair if --fix is provided
+        if (fix) {
+          const result = await repairWorktree(this.cwd, worktreeHealth.status);
 
-      case 'corrupted':
+          if (result.success) {
+            const message = result.backedUp
+              ? `repaired (backed up to ${result.backedUp})`
+              : 'repaired successfully';
+            return { name: 'Worktree', status: 'ok', message, path: worktreePath };
+          }
+
+          return {
+            name: 'Worktree',
+            status: 'error',
+            message: `repair failed: ${result.error}`,
+            path: worktreePath,
+          };
+        }
+
+        // No --fix flag, report the issue
+        if (worktreeHealth.status === 'prunable') {
+          return {
+            name: 'Worktree',
+            status: 'error',
+            message: 'prunable (directory deleted)',
+            path: worktreePath,
+            details: [
+              'The worktree directory was deleted but git still tracks it.',
+              'This can cause data to be written to the wrong location.',
+            ],
+            fixable: true,
+            suggestion: 'Run: tbd doctor --fix to recreate worktree',
+          };
+        }
+
         return {
           name: 'Worktree',
           status: 'error',
@@ -553,6 +576,7 @@ class DoctorHandler extends BaseCommand {
           fixable: true,
           suggestion: 'Run: tbd doctor --fix to repair',
         };
+      }
 
       default:
         return {
@@ -574,7 +598,7 @@ class DoctorHandler extends BaseCommand {
    * If they're in .tbd/data-sync/issues/ on main branch, the worktree was missing
    * and data was written to the fallback path - this is a bug requiring migration.
    */
-  private async checkDataLocation(): Promise<DiagnosticResult> {
+  private async checkDataLocation(fix?: boolean): Promise<DiagnosticResult> {
     const wrongPath = join(this.cwd, DATA_SYNC_DIR);
     const wrongIssuesPath = join(wrongPath, 'issues');
 
@@ -590,7 +614,42 @@ class DoctorHandler extends BaseCommand {
       return { name: 'Data location', status: 'ok' };
     }
 
-    // Issues found in wrong location - this is a bug
+    // Issues found in wrong location - attempt migration if --fix
+    if (fix) {
+      // First ensure worktree exists
+      const worktreeHealth = await checkWorktreeHealth(this.cwd);
+      if (worktreeHealth.status !== 'valid') {
+        return {
+          name: 'Data location',
+          status: 'error',
+          message: `${wrongPathIssues.length} issue(s) in wrong location, worktree not ready`,
+          path: wrongIssuesPath,
+          details: [
+            'Cannot migrate: worktree must be repaired first.',
+            'The worktree repair should have run before this check.',
+          ],
+        };
+      }
+
+      // Migrate data to worktree
+      const result = await migrateDataToWorktree(this.cwd);
+
+      if (result.success) {
+        const message = result.backupPath
+          ? `migrated ${result.migratedCount} file(s), backed up to ${result.backupPath}`
+          : `migrated ${result.migratedCount} file(s)`;
+        return { name: 'Data location', status: 'ok', message, path: wrongIssuesPath };
+      }
+
+      return {
+        name: 'Data location',
+        status: 'error',
+        message: `migration failed: ${result.error}`,
+        path: wrongIssuesPath,
+      };
+    }
+
+    // No --fix flag, report the issue
     return {
       name: 'Data location',
       status: 'error',

@@ -2,8 +2,6 @@
 
 **Last Updated**: 2026-01-28
 
-**Status**: Complete (Third Revision)
-
 **Related**:
 
 - [tbd Design Doc](../../tbd-design.md)

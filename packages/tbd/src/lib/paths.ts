@@ -287,6 +287,12 @@ export async function resolveDataSyncDir(
 
     // Fallback to direct path (test mode or diagnostic tools)
     // Note: In production, sync.ts checks worktree health before calling this
+    // Debug warning to help detect unintended fallback usage
+    if (process.env.DEBUG || process.env.TBD_DEBUG) {
+      console.warn(
+        '[tbd:paths] resolveDataSyncDir: worktree not found, falling back to direct path',
+      );
+    }
     _resolvedDataSyncDir = directPath;
     _resolvedBaseDir = baseDir;
     _resolvedAllowFallback = allowFallback;
