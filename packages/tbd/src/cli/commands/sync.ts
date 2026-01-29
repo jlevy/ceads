@@ -7,7 +7,13 @@
 import { Command } from 'commander';
 
 import { BaseCommand } from '../lib/base-command.js';
-import { requireInit, NotInitializedError, SyncError } from '../lib/errors.js';
+import {
+  requireInit,
+  NotInitializedError,
+  SyncError,
+  WorktreeMissingError,
+  WorktreeCorruptedError,
+} from '../lib/errors.js';
 import { readConfig } from '../../file/config.js';
 import { listIssues, readIssue, writeIssue } from '../../file/storage.js';
 import {
@@ -15,6 +21,7 @@ import {
   withIsolatedIndex,
   mergeIssues,
   pushWithRetry,
+  checkWorktreeHealth,
   type ConflictEntry,
   type PushResult,
 } from '../../file/git.js';
@@ -53,6 +60,20 @@ class SyncHandler extends BaseCommand {
 
   async run(options: SyncOptions): Promise<void> {
     const tbdRoot = await requireInit();
+
+    // Check worktree health before any sync operations
+    // See: plan-2026-01-28-sync-worktree-recovery-and-hardening.md
+    const worktreeHealth = await checkWorktreeHealth(tbdRoot);
+    if (worktreeHealth.status === 'prunable') {
+      throw new WorktreeMissingError(
+        "Worktree directory was deleted but git still tracks it. Run 'tbd doctor --fix' to repair.",
+      );
+    }
+    if (worktreeHealth.status === 'corrupted') {
+      throw new WorktreeCorruptedError(
+        `Worktree is corrupted: ${worktreeHealth.error ?? 'unknown error'}. Run 'tbd doctor --fix' to repair.`,
+      );
+    }
 
     this.dataSyncDir = await resolveDataSyncDir(tbdRoot);
 

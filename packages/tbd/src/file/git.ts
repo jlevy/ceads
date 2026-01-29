@@ -1052,6 +1052,93 @@ export async function checkRemoteBranchHealth(
 }
 
 /**
+ * Sync consistency status.
+ */
+export interface SyncConsistency {
+  /** Worktree HEAD commit SHA */
+  worktreeHead: string;
+  /** Local branch HEAD commit SHA */
+  localHead: string;
+  /** Remote branch HEAD commit SHA */
+  remoteHead: string;
+  /** Whether worktree HEAD matches local branch HEAD */
+  worktreeMatchesLocal: boolean;
+  /** Number of commits local is ahead of remote */
+  localAhead: number;
+  /** Number of commits local is behind remote */
+  localBehind: number;
+}
+
+/**
+ * Check consistency between worktree, local branch, and remote.
+ * See: plan-2026-01-28-sync-worktree-recovery-and-hardening.md §4b
+ *
+ * @param baseDir - The base directory of the repository
+ * @param syncBranch - The sync branch name (default: 'tbd-sync')
+ * @param remote - The remote name (default: 'origin')
+ * @returns Consistency status with HEAD comparisons and ahead/behind counts
+ */
+export async function checkSyncConsistency(
+  baseDir: string,
+  syncBranch: string = SYNC_BRANCH,
+  remote = 'origin',
+): Promise<SyncConsistency> {
+  const worktreePath = join(baseDir, WORKTREE_DIR);
+
+  // Get worktree HEAD
+  const worktreeHead = await git('-C', worktreePath, 'rev-parse', 'HEAD').catch(() => '');
+
+  // Get local branch HEAD
+  const localHead = await git('-C', baseDir, 'rev-parse', syncBranch).catch(() => '');
+
+  // Get remote branch HEAD
+  const remoteHead = await git('-C', baseDir, 'rev-parse', `${remote}/${syncBranch}`).catch(
+    () => '',
+  );
+
+  // Calculate ahead/behind counts
+  let localAhead = 0;
+  let localBehind = 0;
+
+  if (localHead && remoteHead) {
+    try {
+      const aheadOutput = await git(
+        '-C',
+        baseDir,
+        'rev-list',
+        '--count',
+        `${remote}/${syncBranch}..${syncBranch}`,
+      );
+      localAhead = parseInt(aheadOutput.trim(), 10) || 0;
+    } catch {
+      // Ignore errors
+    }
+
+    try {
+      const behindOutput = await git(
+        '-C',
+        baseDir,
+        'rev-list',
+        '--count',
+        `${syncBranch}..${remote}/${syncBranch}`,
+      );
+      localBehind = parseInt(behindOutput.trim(), 10) || 0;
+    } catch {
+      // Ignore errors
+    }
+  }
+
+  return {
+    worktreeHead: worktreeHead.trim(),
+    localHead: localHead.trim(),
+    remoteHead: remoteHead.trim(),
+    worktreeMatchesLocal: worktreeHead.trim() === localHead.trim(),
+    localAhead,
+    localBehind,
+  };
+}
+
+/**
  * Remove the hidden worktree.
  * Used by doctor --fix when worktree is corrupted.
  */

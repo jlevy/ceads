@@ -24,6 +24,7 @@ import {
   checkWorktreeHealth,
   checkLocalBranchHealth,
   checkRemoteBranchHealth,
+  checkSyncConsistency,
 } from '../../file/git.js';
 import { type DiagnosticResult, renderDiagnostics } from '../lib/diagnostics.js';
 import { VERSION } from '../lib/version.js';
@@ -108,6 +109,9 @@ class DoctorHandler extends BaseCommand {
 
     // Check 13: Multi-user/clone scenario detection
     healthChecks.push(await this.checkCloneScenarios());
+
+    // Check 14: Sync consistency (worktree matches local, ahead/behind counts)
+    healthChecks.push(await this.checkSyncConsistency());
 
     // Run integration checks (optional IDE/agent integrations)
     const integrationChecks: DiagnosticResult[] = [];
@@ -808,6 +812,81 @@ class DoctorHandler extends BaseCommand {
     }
 
     return { name: 'Clone status', status: 'ok' };
+  }
+
+  /**
+   * Check sync consistency - worktree matches local, ahead/behind counts.
+   * See: plan-2026-01-28-sync-worktree-recovery-and-hardening.md §4
+   */
+  private async checkSyncConsistency(): Promise<DiagnosticResult> {
+    const syncBranch = this.config?.sync.branch ?? 'tbd-sync';
+    const remote = this.config?.sync.remote ?? 'origin';
+
+    // Only check if worktree is valid
+    const worktreeHealth = await checkWorktreeHealth(this.cwd);
+    if (worktreeHealth.status !== 'valid') {
+      return { name: 'Sync consistency', status: 'ok', message: 'worktree not active' };
+    }
+
+    try {
+      const consistency = await checkSyncConsistency(this.cwd, syncBranch, remote);
+
+      // Check if worktree matches local
+      if (!consistency.worktreeMatchesLocal) {
+        return {
+          name: 'Sync consistency',
+          status: 'error',
+          message: 'worktree HEAD does not match local branch',
+          details: [
+            `Worktree HEAD: ${consistency.worktreeHead.slice(0, 7)}`,
+            `Local ${syncBranch}: ${consistency.localHead.slice(0, 7)}`,
+          ],
+          fixable: true,
+          suggestion: 'Run: tbd doctor --fix to synchronize',
+        };
+      }
+
+      // Check ahead/behind status
+      if (consistency.localAhead > 0 && consistency.localBehind > 0) {
+        return {
+          name: 'Sync consistency',
+          status: 'warn',
+          message: `diverged (${consistency.localAhead} ahead, ${consistency.localBehind} behind)`,
+          suggestion: 'Run: tbd sync to reconcile',
+        };
+      }
+
+      if (consistency.localAhead > 0) {
+        return {
+          name: 'Sync consistency',
+          status: 'warn',
+          message: `${consistency.localAhead} commit(s) ahead of remote`,
+          suggestion: 'Run: tbd sync to push changes',
+        };
+      }
+
+      if (consistency.localBehind > 0) {
+        return {
+          name: 'Sync consistency',
+          status: 'warn',
+          message: `${consistency.localBehind} commit(s) behind remote`,
+          suggestion: 'Run: tbd sync to pull changes',
+        };
+      }
+
+      return { name: 'Sync consistency', status: 'ok' };
+    } catch (error) {
+      // Sync consistency check failed - may be normal if branches don't exist yet
+      const msg = error instanceof Error ? error.message : String(error);
+      if (msg.includes('not found') || msg.includes('no commits')) {
+        return { name: 'Sync consistency', status: 'ok', message: 'branches not yet established' };
+      }
+      return {
+        name: 'Sync consistency',
+        status: 'warn',
+        message: `Unable to check: ${msg}`,
+      };
+    }
   }
 }
 
