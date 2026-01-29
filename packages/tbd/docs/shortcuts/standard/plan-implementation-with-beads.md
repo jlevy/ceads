@@ -13,13 +13,40 @@ If unclear, ask the user if they want you to create a spec first using
 
 ## Process
 
-1. Create a top-level bead referencing the spec:
+1. **Create a top-level epic** referencing the spec:
+
    ```bash
-   tbd create "Implement [feature]" --spec plan-YYYY-MM-DD-feature.md
+   tbd create "Spec: [feature or task]" --type=epic --spec plan-YYYY-MM-DD-feature.md
    ```
 
-2. Review the spec and existing code, then create child beads for each implementation
-   step. Track dependencies between beads with `tbd dep add`.
+2. **Create child beads** for each implementation step, all under the epic:
 
-3. Summarize the bead breakdown.
+   ```bash
+   tbd create "Step 1: ..." --parent=<epic-id>
+   tbd create "Step 2: ..." --parent=<epic-id>
+   ```
+
+   - Ensure the spec has accurate context for the work, and reference details from the
+     spec in beads as needed.
+
+3. **Add blocker dependencies** where beads must be completed in sequence:
+
+   ```bash
+   tbd dep add <bead> <depends-on>  # bead is blocked by depends-on
+   ```
+
+   Use blocker dependencies when one bead cannot start until another is complete (e.g.,
+   “implement API” blocks “write integration tests”).
+
+4. **Summarize the bead breakdown** and confirm with the user.
    When ready to implement, use `tbd shortcut implement-beads`.
+
+## Dependency Types
+
+- **Parent/Child** (`--parent`): Hierarchical grouping.
+  All implementation beads should be children of the epic.
+  Children inherit context from their parent.
+
+- **Blocker** (`tbd dep add`): Sequential ordering.
+  A bead cannot start until its blockers are complete.
+  Use for tasks that genuinely depend on prior work.
