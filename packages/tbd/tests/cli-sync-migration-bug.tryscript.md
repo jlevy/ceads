@@ -98,8 +98,7 @@ $ tbd doctor 2>&1 | grep -E "Data location.*issue.*wrong" || echo "SKIP: doctor 
 # Test: Run doctor --fix to migrate the data
 
 ```console
-$ tbd doctor --fix 2>&1 | head -20
-[..]
+$ tbd doctor --fix >/dev/null 2>&1
 ? 0
 ```
 
