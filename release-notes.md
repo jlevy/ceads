@@ -1,33 +1,27 @@
 ## What’s Changed
 
-### Breaking Changes
-
-- **Package renamed**: `tbd-git` → `get-tbd`. The old package is deprecated on npm with
-  a message pointing to `get-tbd`. Update with: `npm install -g get-tbd`
-
 ### Features
 
-- **`--specs` flag for `tbd list`**: Group issues by their associated spec document
-- **`--add`/`--name` options**: Add items and filter by name in guidelines, shortcut,
-  and template commands
+- **Terminal design system**: Unified section renderers for consistent CLI output across
+  all commands
+- **New shortcuts**: Added `agent-handoff` and `new-shortcut` templates; renamed
+  `new-implementation-beads-from-spec` to `plan-implementation-with-beads` for clarity
 
 ### Fixes
 
-- **Project-local hook installation**: Hooks now always install to project `.claude/`
-  directory (removed global `~/.claude/` fallback), fixing issues in cloud environments
-- **Git root resolution**: Setup correctly resolves to git root for `.claude/` and
-  `.tbd/` placement
-- **Deterministic sort order**: Ready, stale, and blocked commands now sort by ID as
-  secondary key
+- **npm global bin path detection**: Fixed tbd auto-install and session hook to
+  correctly detect npm global bin path across different environments
+- **Stats command output**: Restored `Summary:` heading in stats command output
+- **Windows test timeout**: Added explicit timeout for Windows performance test
 
 ### Refactoring
 
-- Extracted GitHub fetch into shared utility module
-- Added comparison-chain utility for fluent multi-field sorting
+- Standardized shortcut title formatting using frontmatter
+- Restored full content in shortcuts with redundant headers removed
 
 ### Documentation
 
-- Bun monorepo architecture patterns research
-- TypeScript sorting patterns guidelines
+- Added unified sync command spec
+- Added golden output tests for orientation commands and terminal design system
 
-**Full commit history**: https://github.com/jlevy/tbd/compare/v0.1.7...v0.1.8
+**Full commit history**: https://github.com/jlevy/tbd/compare/v0.1.10...v0.1.11
