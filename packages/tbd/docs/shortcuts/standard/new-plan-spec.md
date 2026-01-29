@@ -3,29 +3,46 @@ title: New Plan Spec
 description: Create a new feature planning specification document
 author: Joshua Levy (github.com/jlevy) with LLM assistance
 ---
-Create a feature planning spec in docs/project/specs/active/.
+We track issues with tbd.
+Run `tbd` for more on using tbd and current status.
 
-## Create the Spec
+Instructions:
 
-```bash
-tbd template plan-spec > docs/project/specs/active/plan-YYYY-MM-DD-feature-name.md
-```
+Create a to-do list with the following items then perform all of them:
 
-Review existing specs in that directory for context and conventions.
+1. Review docs/project/specs/active/ to see the list of recent feature specs, feature
+   plans, and implementation spec docs.
 
-## Rules
+2. Create the spec file using the template:
+   ```
+   tbd template plan-spec > docs/project/specs/active/plan-YYYY-MM-DD-feature-name.md
+   ```
+   (Fill in the date and an appropriate feature name.)
 
-- **Minimize phases**: Use one phase if straightforward.
-  Only split if it helps incremental testing.
-- **No time estimates**: Never write “4-6 hours” or “1 week”.
-  Just describe the work.
+3. Begin to fill in the new feature plan doc based on the user’s instructions, stopping
+   and asking for clarifications as soon as you need them.
 
-## Linking Issues
+   Rules:
 
-After completing the spec, link issues to it:
+   - You may break work into a few phases (phases) if it helps with incremental testing.
+     But **use as few phases as possible.** If it is straightforward, use one phase.
 
-```bash
-tbd create "Implement feature X" --spec plan-YYYY-MM-DD-feature-name.md
-tbd update <id> --spec plan-YYYY-MM-DD-feature-name.md
-tbd list --spec <pattern>  # Find issues linked to a spec
-```
+   - NEVER GIVE TIME FRAMES IN PLANS, like “4-6 hours” or “1 week”.
+     Work will be done in one day.
+
+4. After completing the spec, link issues to it using the `--spec` flag:
+   ```
+   tbd create "Implement feature X" --spec docs/project/specs/active/plan-YYYY-MM-DD-feature-name.md
+   ```
+   Or use just the filename for brevity:
+   ```
+   tbd create "Implement feature X" --spec plan-YYYY-MM-DD-feature-name.md
+   ```
+   You can also update an existing issue to link it to a spec:
+   ```
+   tbd update <id> --spec plan-YYYY-MM-DD-feature-name.md
+   ```
+   To clear a spec link: `tbd update <id> --spec ""`
+
+5. To list issues linked to a spec, use `tbd list --spec` (see `tbd list --help` for
+   details on filtering and path matching).

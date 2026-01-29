@@ -3,32 +3,48 @@ title: New Validation Plan
 description: Create a validation/test plan for a feature or change
 author: Joshua Levy (github.com/jlevy) with LLM assistance
 ---
-Create a validation/test plan for a feature or change.
+We track issues with tbd.
+Run `tbd` for more on using tbd and current status.
 
-## Template
+Instructions:
 
-```markdown
-## Overview
-[What's being validated]
+Create a to-do list with the following items then perform all of them:
 
-## Automated Testing
-- [ ] Unit tests cover new functionality
-- [ ] Integration tests cover component interactions
-- [ ] Edge cases have test coverage
+1. Identify the feature or change that needs a validation plan:
+   - Review the relevant spec in docs/project/specs/active/ if available
+   - Understand the scope of changes
 
-## Manual Testing
-- [ ] Happy path scenarios
-- [ ] Error handling scenarios
-- [ ] Edge cases and boundary conditions
+2. Create a validation plan with these sections:
 
-## Performance
-- [ ] No performance regressions
+   ## Overview
 
-## Rollback Plan
-[How to revert if issues found]
-```
+   Brief description of what’s being validated.
 
-## Where to Put It
+   ## Automated Testing
 
-- **PR description**: Use `tbd shortcut create-or-update-pr-with-validation-plan`
-- **Standalone doc**: docs/project/specs/active/
+   - [ ] Unit tests cover new functionality
+   - [ ] Integration tests cover component interactions
+   - [ ] Edge cases have test coverage
+
+   ## Manual Testing Checklist
+
+   List specific scenarios to manually verify:
+   - [ ] Happy path scenarios
+   - [ ] Error handling scenarios
+   - [ ] Edge cases and boundary conditions
+
+   ## Performance Considerations
+
+   - [ ] No performance regressions
+   - [ ] Load testing if applicable
+
+   ## Rollback Plan
+
+   How to revert if issues are found in production.
+
+3. Ask the user where to save the validation plan:
+   - In the PR description (use `tbd shortcut create-or-update-pr-with-validation-plan`)
+   - As a separate document in docs/project/specs/active/
+   - Both
+
+4. Create the validation plan in the chosen location(s).
