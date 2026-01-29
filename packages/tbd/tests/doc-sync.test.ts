@@ -8,7 +8,13 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { randomBytes } from 'node:crypto';
 
-import { DocSync, isDocsStale, mergeDocCacheConfig } from '../src/file/doc-sync.js';
+import {
+  DocSync,
+  isDocsStale,
+  mergeDocCacheConfig,
+  pruneStaleInternals,
+  internalDocExists,
+} from '../src/file/doc-sync.js';
 
 describe('doc-sync', () => {
   let tempDir: string;
@@ -232,6 +238,97 @@ describe('doc-sync', () => {
       expect(result['shortcuts/b.md']).toBe('https://custom.com/b.md');
       expect(result['guidelines/ts.md']).toBe('internal:guidelines/ts.md');
       expect(result['custom/external.md']).toBe('https://example.com/doc.md');
+    });
+  });
+
+  describe('internalDocExists', () => {
+    it('returns true for existing bundled docs', async () => {
+      // This tests against actual bundled docs
+      // The commit-code shortcut should always exist
+      const exists = await internalDocExists('shortcuts/standard/commit-code.md');
+      expect(exists).toBe(true);
+    });
+
+    it('returns false for non-existent docs', async () => {
+      const exists = await internalDocExists('shortcuts/standard/non-existent-doc-12345.md');
+      expect(exists).toBe(false);
+    });
+
+    it('returns false for invalid paths', async () => {
+      const exists = await internalDocExists('../../etc/passwd');
+      expect(exists).toBe(false);
+    });
+  });
+
+  describe('pruneStaleInternals', () => {
+    it('keeps valid internal entries', async () => {
+      const config = {
+        'shortcuts/standard/commit-code.md': 'internal:shortcuts/standard/commit-code.md',
+      };
+
+      const { config: result, pruned } = await pruneStaleInternals(config);
+
+      expect(pruned).toHaveLength(0);
+      expect(result['shortcuts/standard/commit-code.md']).toBe(
+        'internal:shortcuts/standard/commit-code.md',
+      );
+    });
+
+    it('removes stale internal entries', async () => {
+      const config = {
+        'shortcuts/standard/commit-code.md': 'internal:shortcuts/standard/commit-code.md',
+        'shortcuts/old-removed.md': 'internal:shortcuts/old-removed-doc-12345.md',
+      };
+
+      const { config: result, pruned } = await pruneStaleInternals(config);
+
+      expect(pruned).toContain('shortcuts/old-removed.md');
+      expect(result['shortcuts/old-removed.md']).toBeUndefined();
+      expect(result['shortcuts/standard/commit-code.md']).toBe(
+        'internal:shortcuts/standard/commit-code.md',
+      );
+    });
+
+    it('preserves URL entries regardless of availability', async () => {
+      const config = {
+        'custom/external.md': 'https://example.com/doc.md',
+        'custom/another.md': 'https://nonexistent.invalid/doc.md',
+      };
+
+      const { config: result, pruned } = await pruneStaleInternals(config);
+
+      // URL entries should never be pruned (they might be temporarily unavailable)
+      expect(pruned).toHaveLength(0);
+      expect(result['custom/external.md']).toBe('https://example.com/doc.md');
+      expect(result['custom/another.md']).toBe('https://nonexistent.invalid/doc.md');
+    });
+
+    it('handles mixed config with some stale internals', async () => {
+      const config = {
+        'shortcuts/standard/commit-code.md': 'internal:shortcuts/standard/commit-code.md',
+        'shortcuts/stale.md': 'internal:shortcuts/non-existent-12345.md',
+        'custom/external.md': 'https://example.com/doc.md',
+      };
+
+      const { config: result, pruned } = await pruneStaleInternals(config);
+
+      expect(pruned).toEqual(['shortcuts/stale.md']);
+      expect(Object.keys(result).sort()).toEqual([
+        'custom/external.md',
+        'shortcuts/standard/commit-code.md',
+      ]);
+    });
+
+    it('returns empty config and pruned list for all-stale config', async () => {
+      const config = {
+        'a.md': 'internal:nonexistent-a.md',
+        'b.md': 'internal:nonexistent-b.md',
+      };
+
+      const { config: result, pruned } = await pruneStaleInternals(config);
+
+      expect(pruned.sort()).toEqual(['a.md', 'b.md']);
+      expect(Object.keys(result)).toHaveLength(0);
     });
   });
 });
