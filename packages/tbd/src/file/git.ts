@@ -1315,18 +1315,28 @@ export async function migrateDataToWorktree(
       await cp(join(wrongMappingsPath, file), join(correctMappingsPath, file));
     }
 
-    // Step 3: Commit in worktree
+    // Step 3: Commit in worktree (if there are changes)
     // Use --no-verify to bypass parent repo hooks (lefthook, husky, etc.)
     const totalFiles = issueFiles.length + mappingFiles.length;
     await git('-C', worktreePath, 'add', '-A');
-    await git(
-      '-C',
-      worktreePath,
-      'commit',
-      '--no-verify',
-      '-m',
-      `tbd: migrate ${totalFiles} file(s) from incorrect location`,
-    );
+
+    // Check if there are staged changes before committing
+    // git diff --cached --quiet returns 0 if no changes, 1 if changes
+    const hasChanges = await git('-C', worktreePath, 'diff', '--cached', '--quiet')
+      .then(() => false)
+      .catch(() => true);
+
+    if (hasChanges) {
+      await git(
+        '-C',
+        worktreePath,
+        'commit',
+        '--no-verify',
+        '-m',
+        `tbd: migrate ${totalFiles} file(s) from incorrect location`,
+      );
+    }
+    // If no changes, files were already migrated - that's fine
 
     // Step 4: Optionally remove wrong location data
     if (removeSource) {
