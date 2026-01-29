@@ -1,6 +1,7 @@
 ---
 title: General Coding Rules
 description: Rules for constants, magic numbers, and general coding practices
+author: Joshua Levy (github.com/jlevy) with LLM assistance
 ---
 # General Coding Rules
 

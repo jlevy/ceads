@@ -1,6 +1,7 @@
 ---
 title: General Style Rules
 description: Style guidelines for auto-formatting, emoji usage, and output formatting
+author: Joshua Levy (github.com/jlevy) with LLM assistance
 ---
 # General Style Rules
 

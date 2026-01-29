@@ -1,6 +1,7 @@
 ---
 title: New Plan Spec
 description: Create a new feature planning specification document
+author: Joshua Levy (github.com/jlevy) with LLM assistance
 ---
 Shortcut: New Plan Spec
 

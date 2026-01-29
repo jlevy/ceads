@@ -1,11 +1,15 @@
 ---
 title: Plan Spec Template
 description: Template for feature planning specification documents
+author: Joshua Levy (github.com/jlevy) with LLM assistance
 ---
 # Feature: [Feature Name]
 
-**Date:** YYYY-MM-DD **Author:** [Name] **Status:** Draft | In Review | Approved |
-Implemented
+**Date:** YYYY-MM-DD (last updated YYYY-MM-DD)
+
+**Author:** [Name]
+
+**Status:** Draft | In Review | Approved | Implemented
 
 ## Overview
 

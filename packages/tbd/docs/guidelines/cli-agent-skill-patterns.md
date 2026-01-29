@@ -1,6 +1,7 @@
 ---
 title: CLI Agent Skill Patterns
 description: Best practices for building TypeScript CLIs that function as agent skills in Claude Code and other AI coding agents
+author: Joshua Levy (github.com/jlevy) with LLM assistance
 ---
 # CLI Agent Skill Patterns
 

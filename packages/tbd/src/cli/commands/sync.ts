@@ -7,7 +7,13 @@
 import { Command } from 'commander';
 
 import { BaseCommand } from '../lib/base-command.js';
-import { requireInit, NotInitializedError, SyncError } from '../lib/errors.js';
+import {
+  requireInit,
+  NotInitializedError,
+  SyncError,
+  WorktreeMissingError,
+  WorktreeCorruptedError,
+} from '../lib/errors.js';
 import { readConfig } from '../../file/config.js';
 import { listIssues, readIssue, writeIssue } from '../../file/storage.js';
 import {
@@ -15,6 +21,8 @@ import {
   withIsolatedIndex,
   mergeIssues,
   pushWithRetry,
+  checkWorktreeHealth,
+  repairWorktree,
   type ConflictEntry,
   type PushResult,
 } from '../../file/git.js';
@@ -36,6 +44,7 @@ interface SyncOptions {
   pull?: boolean;
   status?: boolean;
   force?: boolean;
+  fix?: boolean;
 }
 
 interface SyncStatus {
@@ -50,9 +59,49 @@ interface SyncStatus {
 
 class SyncHandler extends BaseCommand {
   private dataSyncDir = '';
+  private tbdRoot = '';
 
   async run(options: SyncOptions): Promise<void> {
     const tbdRoot = await requireInit();
+    this.tbdRoot = tbdRoot;
+
+    // Check worktree health before any sync operations
+    // See: plan-2026-01-28-sync-worktree-recovery-and-hardening.md
+    let worktreeHealth = await checkWorktreeHealth(tbdRoot);
+    if (!worktreeHealth.valid) {
+      if (options.fix) {
+        // Attempt repair when --fix is provided
+        // Cast is safe: status cannot be 'valid' when valid is false
+        await this.doRepairWorktree(
+          tbdRoot,
+          worktreeHealth.status as 'missing' | 'prunable' | 'corrupted',
+        );
+        // Re-check health after repair
+        worktreeHealth = await checkWorktreeHealth(tbdRoot);
+        if (!worktreeHealth.valid) {
+          throw new WorktreeCorruptedError(
+            `Worktree repair failed. Status: ${worktreeHealth.status}. Run 'tbd doctor' for diagnostics.`,
+          );
+        }
+      } else {
+        // No --fix flag, throw appropriate error
+        if (worktreeHealth.status === 'prunable') {
+          throw new WorktreeMissingError(
+            "Worktree directory was deleted but git still tracks it. Run 'tbd sync --fix' or 'tbd doctor --fix' to repair.",
+          );
+        }
+        if (worktreeHealth.status === 'corrupted') {
+          throw new WorktreeCorruptedError(
+            `Worktree is corrupted: ${worktreeHealth.error ?? 'unknown error'}. Run 'tbd sync --fix' or 'tbd doctor --fix' to repair.`,
+          );
+        }
+        if (worktreeHealth.status === 'missing') {
+          throw new WorktreeMissingError(
+            "Worktree not found. Run 'tbd sync --fix' or 'tbd doctor --fix' to create it.",
+          );
+        }
+      }
+    }
 
     this.dataSyncDir = await resolveDataSyncDir(tbdRoot);
 
@@ -83,6 +132,37 @@ class SyncHandler extends BaseCommand {
     } else {
       // Full sync: pull then push
       await this.fullSync(syncBranch, remote, options.force);
+    }
+  }
+
+  /**
+   * Attempt to repair an unhealthy worktree.
+   * See: plan-2026-01-28-sync-worktree-recovery-and-hardening.md
+   */
+  private async doRepairWorktree(
+    tbdRoot: string,
+    status: 'missing' | 'prunable' | 'corrupted',
+  ): Promise<void> {
+    const spinner = this.output.spinner(`Repairing worktree (${status})...`);
+
+    try {
+      // Use shared repairWorktree from git.ts
+      const result = await repairWorktree(tbdRoot, status);
+
+      spinner.stop();
+
+      if (!result.success) {
+        throw new WorktreeCorruptedError(`Failed to repair worktree: ${result.error}`);
+      }
+
+      if (result.backedUp) {
+        this.output.info(`Corrupted worktree backed up to: ${result.backedUp}`);
+      }
+      this.output.success('Worktree repaired successfully');
+    } catch (error) {
+      spinner.stop();
+      if (error instanceof WorktreeCorruptedError) throw error;
+      throw new WorktreeCorruptedError(`Failed to repair worktree: ${(error as Error).message}`);
     }
   }
 
@@ -131,33 +211,29 @@ class SyncHandler extends BaseCommand {
     let ahead = 0;
     let behind = 0;
 
-    // Check for local issues
+    // Check for uncommitted changes in the worktree
+    // FIX Bug 2: Previously ran git status on main branch where data-sync/ is gitignored.
+    // Now check worktree status directly.
+    // See: plan-2026-01-28-sync-worktree-recovery-and-hardening.md
     try {
-      const issues = await listIssues(this.dataSyncDir);
-      // Check for uncommitted changes in the worktree
-      if (issues.length > 0) {
-        try {
-          const status = await git('status', '--porcelain', DATA_SYNC_DIR);
-          if (status) {
-            for (const line of status.split('\n')) {
-              if (!line) continue;
-              const statusCode = line.slice(0, 2).trim();
-              const file = line.slice(3);
-              if (statusCode === 'M') {
-                localChanges.push(`modified: ${file}`);
-              } else if (statusCode === 'A' || statusCode === '??') {
-                localChanges.push(`new: ${file}`);
-              } else if (statusCode === 'D') {
-                localChanges.push(`deleted: ${file}`);
-              }
-            }
+      const worktreePath = join(this.tbdRoot, WORKTREE_DIR);
+      const status = await git('-C', worktreePath, 'status', '--porcelain');
+      if (status) {
+        for (const line of status.split('\n')) {
+          if (!line) continue;
+          const statusCode = line.slice(0, 2).trim();
+          const file = line.slice(3);
+          if (statusCode === 'M') {
+            localChanges.push(`modified: ${file}`);
+          } else if (statusCode === 'A' || statusCode === '??') {
+            localChanges.push(`new: ${file}`);
+          } else if (statusCode === 'D') {
+            localChanges.push(`deleted: ${file}`);
           }
-        } catch {
-          this.output.debug('Git not available or not a git repo');
         }
       }
     } catch {
-      this.output.debug('No issues directory');
+      this.output.debug('Git worktree not available');
     }
 
     // Check for remote changes
@@ -270,7 +346,10 @@ class SyncHandler extends BaseCommand {
    * @returns Tallies of new/updated/deleted files committed
    */
   private async commitWorktreeChanges(): Promise<SyncTallies> {
-    const worktreePath = join(process.cwd(), WORKTREE_DIR);
+    // Use tbdRoot to derive worktree path consistently
+    // FIX Bug 1: Previously used process.cwd() which fails if not in repo root
+    // See: plan-2026-01-28-sync-worktree-recovery-and-hardening.md
+    const worktreePath = join(this.tbdRoot, WORKTREE_DIR);
 
     try {
       // Check for uncommitted changes (untracked, modified, or deleted)
@@ -424,7 +503,8 @@ class SyncHandler extends BaseCommand {
     const spinner = this.output.spinner('Syncing with remote...');
     const summary: SyncSummary = emptySummary();
     const conflicts: ConflictEntry[] = [];
-    const worktreePath = join(process.cwd(), WORKTREE_DIR);
+    // Use tbdRoot for consistent path resolution
+    const worktreePath = join(this.tbdRoot, WORKTREE_DIR);
 
     try {
       // STEP 1: Commit local changes FIRST (before pulling)
@@ -527,9 +607,17 @@ class SyncHandler extends BaseCommand {
           }
 
           // Stage resolved files and complete merge
+          // Use --no-verify to bypass parent repo hooks (lefthook, husky, etc.)
           await git('-C', worktreePath, 'add', '-A');
           try {
-            await git('-C', worktreePath, 'commit', '-m', 'tbd sync: resolved merge conflicts');
+            await git(
+              '-C',
+              worktreePath,
+              'commit',
+              '--no-verify',
+              '-m',
+              'tbd sync: resolved merge conflicts',
+            );
           } catch {
             // May fail if no conflicts needed resolving
             this.output.debug('No merge commit needed (conflicts already resolved)');
@@ -600,6 +688,7 @@ export const syncCommand = new Command('sync')
   .option('--pull', 'Pull remote changes only')
   .option('--status', 'Show sync status')
   .option('--force', 'Force sync (overwrite conflicts)')
+  .option('--fix', 'Attempt to repair unhealthy worktree before syncing')
   .action(async (options, command) => {
     const handler = new SyncHandler(command);
     await handler.run(options);

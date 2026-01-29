@@ -1,6 +1,7 @@
 ---
 title: TypeScript Rules
 description: TypeScript coding rules and best practices
+author: Joshua Levy (github.com/jlevy) with LLM assistance
 ---
 # TypeScript Rules
 

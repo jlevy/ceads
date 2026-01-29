@@ -1,6 +1,7 @@
 ---
 title: TypeScript CLI Tool Rules
 description: Rules for building CLI tools with Commander.js, picocolors, and TypeScript
+author: Joshua Levy (github.com/jlevy) with LLM assistance
 ---
 # CLI Tool Development Rules
 

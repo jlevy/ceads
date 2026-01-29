@@ -1,6 +1,7 @@
 ---
 title: Review Code (TypeScript)
 description: Perform a code review for TypeScript code following best practices
+author: Joshua Levy (github.com/jlevy) with LLM assistance
 ---
 Shortcut: Review Code (TypeScript)
 

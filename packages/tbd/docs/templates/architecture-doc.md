@@ -1,10 +1,15 @@
 ---
 title: Architecture Doc Template
 description: Template for architecture documents
+author: Joshua Levy (github.com/jlevy) with LLM assistance
 ---
 # Architecture: [Component/System Name]
 
-**Date:** YYYY-MM-DD **Author:** [Name] **Status:** Draft | In Review | Approved
+**Date:** YYYY-MM-DD (last updated YYYY-MM-DD)
+
+**Author:** [Name]
+
+**Status:** Draft | In Review | Approved
 
 ## Overview
 

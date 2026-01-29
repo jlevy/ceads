@@ -2,8 +2,6 @@
 
 **Last Updated**: 2026-01-28
 
-**Status**: Complete (Third Revision)
-
 **Related**:
 
 - [tbd Design Doc](../../tbd-design.md)
@@ -80,7 +78,7 @@ Patterns were validated through CI testing and actual agent usage.
 - tbd source code (`packages/tbd/src/cli/`)
 - Claude Code skill documentation (https://code.claude.com/docs/en/skills)
 - Agent Skills open standard (https://agentskills.io)
-- Cursor IDE MDC format specification
+- Cursor IDE rules documentation (AGENTS.md support)
 - OpenAI Codex AGENTS.md convention
 - Community best practices (meta_skill repository, gists)
 - MCP protocol documentation and engineering blogs
@@ -128,17 +126,25 @@ files may not be accessible.
 
 #### 1.2 Multi-Agent Integration Files
 
-**Status**: ✅ Complete
+**Status**: ✅ Complete (Updated January 2026)
 
 **Details**:
 
-Each agent platform has different file format requirements:
+The agent ecosystem has converged on two standardized formats:
 
 | Agent | File | Format | Location |
 | --- | --- | --- | --- |
-| Claude Code | SKILL.md | YAML frontmatter + Markdown | `.claude/skills/tbd/` |
-| Cursor IDE | CURSOR.mdc | MDC frontmatter + Markdown | `.cursor/rules/` |
-| Codex | AGENTS.md | HTML markers + Markdown | repo root |
+| Claude Code | SKILL.md | YAML frontmatter + Markdown | `.claude/skills/<name>/` |
+| Cursor | AGENTS.md | Plain Markdown | repo root (or nested) |
+| Codex | AGENTS.md | Plain Markdown | repo root |
+
+**Recommendation**: Use a **two-file approach**:
+1. **SKILL.md** for Claude Code (enables rich features like `allowed-tools`, hooks)
+2. **AGENTS.md** for Cursor and Codex (shared, no duplication)
+
+This is now the recommended approach per
+[Cursor’s documentation](https://cursor.com/docs/context/rules), which states AGENTS.md
+is “the most straightforward path” for most projects.
 
 **SKILL.md Format** (Claude Code):
 ```yaml
@@ -151,26 +157,22 @@ allowed-tools: Bash(tbd:*), Read, Write
 ...
 ```
 
-**CURSOR.mdc Format** (Cursor IDE):
-```yaml
----
-description: tbd workflow rules for git-native issue tracking...
-alwaysApply: false
----
-# tbd Workflow
-...
-```
-
-**AGENTS.md Format** (Codex):
+**AGENTS.md Format** (Cursor + Codex):
 ```markdown
-<!-- BEGIN TBD INTEGRATION -->
 # tbd Workflow
+
+## What This Tool Does
 ...
-<!-- END TBD INTEGRATION -->
+
+## Commands
+...
 ```
 
-**Assessment**: Use markers/frontmatter appropriate to each platform.
-Store source files in `src/docs/` and bundle them for distribution.
+**Tip**: Use HTML markers (`<!-- BEGIN/END -->`) if you need to programmatically update
+sections of AGENTS.md.
+
+**Assessment**: This two-file approach minimizes maintenance while leveraging each
+platform’s strengths.
 
 * * *
 
@@ -1820,8 +1822,8 @@ skill self-contained. Use sparingly—most CLI interactions should be text-based
 
 1. **Bundle documentation with CLI**: Self-contained packages work in all environments
 2. **Implement fallback loading**: Support both bundled and development modes
-3. **Use platform-appropriate formats**: SKILL.md for Claude, MDC for Cursor, markers
-   for AGENTS.md
+3. **Use platform-appropriate formats**: SKILL.md for Claude Code, AGENTS.md for
+   Cursor and Codex
 4. **Follow Agent Skills open standard**: Ensures portability across AI tools
 
 ### Context Management
@@ -1858,7 +1860,7 @@ skill self-contained. Use sparingly—most CLI interactions should be text-based
 ### Agent Integration
 
 22. **Install hooks programmatically**: SessionStart, PreCompact, PostToolUse
-23. **Use skill directories**: `.claude/skills/`, `.cursor/rules/`
+23. **Use skill directories**: `.claude/skills/` for Claude Code, repo root for AGENTS.md
 24. **Support multiple agents**: Single CLI, multiple integration points
 25. **Use invocation control**: `disable-model-invocation` for side-effect workflows
 
@@ -1912,8 +1914,9 @@ skill self-contained. Use sparingly—most CLI interactions should be text-based
 
 1. ~~**Cross-agent skill synchronization**: How to keep skills in sync across Claude,
    Cursor, Codex when formats differ?~~
-   → **Resolved**: Use Agent Skills open standard as base, with platform-specific
-   extensions. Generate platform files from single source during build.
+   → **Resolved**: Cursor and Codex now both support AGENTS.md, simplifying to a
+   two-file approach: SKILL.md for Claude Code (with its richer skill features) and
+   AGENTS.md for Cursor/Codex. No build-time generation needed.
 
 2. ~~**Context budget optimization**: What's the optimal token budget for different
    context window sizes?~~
@@ -2014,7 +2017,7 @@ self-reinforcing context chains where each piece of guidance leads naturally to 
 
 - Claude Code Skills Documentation: https://code.claude.com/docs/en/skills
 - Agent Skills Open Standard: https://agentskills.io
-- Cursor IDE MDC Format: https://cursor.sh/docs/rules
+- Cursor Rules Documentation: https://cursor.com/docs/context/rules
 
 ### Community Resources
 
@@ -2052,14 +2055,14 @@ guidelines (informational) │ │ │ └── template.ts # Document template
 base-command.ts │ │ │ ├── doc-cache.ts # Path-ordered doc loading with shadowing │ │ │
 └── errors.ts # Structured error types │ │ └── cli.ts # Program setup, default command │
 └── docs/ │ ├── SKILL.md # Claude Code skill (<500 lines) │ ├── SKILL-brief.md #
-Condensed skill for context recovery │ ├── CURSOR.mdc # Cursor IDE rules │ ├──
+Condensed skill for context recovery │ ├── AGENTS.md # Cursor + Codex (repo root) │ ├──
 tbd-docs.md # CLI reference │ ├── tbd-closing.md # Session protocol │ ├── shortcuts/ #
 Workflow instruction files │ │ ├── commit-code.md │ │ ├── new-plan-spec.md │ │ └── ... │
 ├── guidelines/ # Coding best practice files │ │ ├── typescript-rules.md │ │ ├──
 general-tdd-guidelines.md │ │ └── ... │ └── templates/ # Document template files │ ├──
 template-plan-spec.md │ └── ... ├── dist/ │ ├── bin.mjs # Bundled CLI │ └── docs/ #
 Bundled documentation (all resources) │ ├── SKILL.md │ ├── SKILL-brief.md │ ├──
-CURSOR.mdc │ ├── README.md │ ├── shortcuts/ │ ├── guidelines/ │ ├── templates/ │ └── ...
+AGENTS.md │ ├── README.md │ ├── shortcuts/ │ ├── guidelines/ │ ├── templates/ │ └── ...
 └── package.json
 
 # Project-level installation (shadowing support)
@@ -2078,9 +2081,8 @@ configuration
 ### Appendix B: Integration Checklist for New CLIs
 
 **Agent Integration Files**
-- [ ] SKILL.md with YAML frontmatter (name, description, allowed-tools)
-- [ ] CURSOR.mdc with MDC frontmatter (description, alwaysApply)
-- [ ] AGENTS.md section with HTML markers
+- [ ] SKILL.md with YAML frontmatter (name, description, allowed-tools) for Claude Code
+- [ ] AGENTS.md for Cursor and Codex (plain markdown, optional HTML markers for sections)
 - [ ] Follow Agent Skills open standard for portability
 
 **Description Quality**

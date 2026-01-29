@@ -67,6 +67,9 @@ const status = await git('status', '--porcelain', DATA_SYNC_DIR);
 
 Returns empty because `.tbd/data-sync/` is in `.tbd/.gitignore`.
 
+> **Note:** Line numbers reference the sync.ts implementation as of 2026-01-28. Verify
+> against current code before implementation.
+
 **Bug 3: Silent fallback in resolveDataSyncDir**
 ```typescript
 // paths.ts lines 225-246
@@ -96,20 +99,31 @@ export async function resolveDataSyncDir(baseDir): Promise<string> {
 }
 ```
 
+**Bug 6: Fresh clone sync doesn’t pull from remote**
+
+When a user clones a repo with an existing `origin/tbd-sync` branch:
+- No local `tbd-sync` branch exists
+- No local worktree exists
+- `tbd sync` says “Already in sync” without creating worktree or pulling issues
+- Remote has 603 issues, local shows 0
+
+The fix: sync should detect remote branch exists but no local setup, and create worktree
+from remote.
+
 ### Comparison: Working vs Broken Repos
 
-| Aspect | TBD (Working) | ai-trade-arena | markform | lexikon-site |
-| --- | --- | --- | --- | --- |
-| Failure Mode | None | Worktree deleted | Never initialized | Never pushed |
-| `data-sync-worktree/` | EXISTS | MISSING (prunable) | MISSING | EXISTS |
-| Local tbd-sync | EXISTS | EXISTS | MISSING | EXISTS |
-| Remote tbd-sync | EXISTS | EXISTS (empty) | MISSING | MISSING |
-| Wrong location issues | 0 | 957 | 8 | 0 |
-| Correct location issues | 603 | 0 | 0 | 0 |
-| Severity | OK | CRITICAL | CRITICAL | MINOR |
-| Doctor --fix action | N/A | Prune + recreate + migrate | Create + migrate | Just sync |
+| Aspect | TBD (Working) | ai-trade-arena | markform | lexikon-site | Fresh Clone |
+| --- | --- | --- | --- | --- | --- |
+| Failure Mode | None | Worktree deleted | Never initialized | Never pushed | Clone not initialized |
+| `data-sync-worktree/` | EXISTS | MISSING (prunable) | MISSING | EXISTS | MISSING |
+| Local tbd-sync | EXISTS | EXISTS | MISSING | EXISTS | MISSING |
+| Remote tbd-sync | EXISTS | EXISTS (empty) | MISSING | MISSING | EXISTS (603 issues) |
+| Wrong location issues | 0 | 957 | 8 | 0 | 0 |
+| Correct location issues | 603 | 0 | 0 | 0 | 0 |
+| Severity | OK | CRITICAL | CRITICAL | MINOR | CRITICAL |
+| Doctor --fix action | N/A | Prune + recreate + migrate | Create + migrate | Just sync | Create worktree from remote |
 
-**Three distinct failure modes:**
+**Four distinct failure modes:**
 
 1. **Worktree deleted** (ai-trade-arena): Worktree was created, then deleted.
    Git still tracks it as “prunable”.
@@ -125,6 +139,31 @@ export async function resolveDataSyncDir(baseDir): Promise<string> {
    doesn’t exist. User just needs to push.
    - Fix: Run `tbd sync` to push
 
+4. **Fresh clone not initialized** (git clone scenario): User clones a repo where remote
+   tbd-sync exists with issues, but sync doesn’t create local worktree or pull issues.
+   - Fix: `tbd sync` or `tbd doctor --fix` should create worktree from remote branch
+
+### Bug Summary Table
+
+| Bug # | Description | Location | Doctor Detection | Doctor --fix Action |
+| --- | --- | --- | --- | --- |
+| 1 | Path mismatch: dataSyncDir vs WORKTREE_DIR | sync.ts:57,273,427 | N/A (code fix) | N/A |
+| 2 | getSyncStatus checks gitignored path | sync.ts:140 | N/A (code fix) | N/A |
+| 3 | Silent fallback in resolveDataSyncDir | paths.ts:225-246 | "Worktree missing" | Create worktree |
+| 4 | No worktree health check before sync | sync.ts | "Worktree missing/prunable" | Repair worktree |
+| 5 | commitWorktreeChanges fails silently | sync.ts:300-306 | "Data in wrong location" | Migrate data |
+| 6 | Fresh clone doesn't pull from remote | sync.ts | "Worktree missing, remote exists" | Create from remote |
+
+### Failure Mode → Doctor Detection → Fix
+
+| Failure Mode | Doctor Detects | Doctor --fix Does |
+| --- | --- | --- |
+| Worktree deleted (prunable) | ✗ Worktree is prunable | Prune, recreate, migrate, commit |
+| Never initialized | ✗ Worktree missing, ✗ Branch missing | Create orphan, worktree, migrate |
+| Never pushed | ⚠ Remote branch missing | (none - user runs tbd sync) |
+| Fresh clone | ✗ Worktree missing, remote exists | Create worktree from remote |
+| Data in wrong location | ✗ Issues in .tbd/data-sync/ | Backup to .tbd/backups/, migrate to worktree |
+
 ## Design
 
 ### Approach
@@ -136,9 +175,19 @@ export async function resolveDataSyncDir(baseDir): Promise<string> {
 
 ### Key Principles
 
-- The worktree path is the ONLY correct path for data in production
-- The direct path (`.tbd/data-sync/`) is ONLY for tests without git
-- Any data in the direct path in a real repo indicates a bug or migration need
+**Path Terminology:**
+
+| Term | Path | Description |
+| --- | --- | --- |
+| **Worktree path** | `.tbd/data-sync-worktree/.tbd/data-sync/` | Correct production path — inside hidden worktree checkout |
+| **Direct path** | `.tbd/data-sync/` | Fallback path — gitignored on main, should NEVER contain data in production |
+| **Sync branch** | `tbd-sync` | Orphan branch containing issue data |
+
+**Rules:**
+1. The worktree path is the ONLY correct path for data in production
+2. The direct path exists ONLY for test fixtures without git (via `allowFallback: true`)
+3. If `.tbd/data-sync/issues/` contains data on main branch, this indicates the worktree
+   was missing and data was written to the wrong location — a bug requiring migration
 
 ### Components
 
@@ -587,7 +636,68 @@ async function migrateDataToWorktree(baseDir: string): Promise<void> {
 
 ## Implementation Plan
 
-### Phase 1: Detection and Error Reporting
+**Epic:**
+[tbd-4bg7](/.tbd/data-sync-worktree/.tbd/data-sync/issues/is-01kg3fj7r0jqj8p1hg9wt9h4sz.md)
+\- Sync Worktree Recovery and Hardening
+
+### Implementation Issues
+
+All implementation work is tracked as tbd issues with proper dependencies.
+
+#### Phase 1: Detection and Error Reporting (14 issues)
+
+| ID | Title | Status | Blocked By |
+| --- | --- | --- | --- |
+| tbd-nc9p | Add WorktreeMissingError, WorktreeCorruptedError, SyncBranchError classes | open | - |
+| tbd-wwb2 | Add checkLocalBranchHealth() function | open | - |
+| tbd-9pw4 | Add checkRemoteBranchHealth() function | open | - |
+| tbd-nkkt | Doctor: Add data location check (issues in wrong path) | open | - |
+| tbd-uzdy | Enhance checkWorktreeHealth() to detect prunable state | open | tbd-nc9p |
+| tbd-sad6 | Add checkSyncConsistency() function | open | tbd-uzdy, tbd-wwb2, tbd-9pw4 |
+| tbd-7v8p | Doctor: Enhanced worktree health check with prunable detection | open | tbd-uzdy |
+| tbd-ty40 | Doctor: Add local branch health check | open | tbd-wwb2 |
+| tbd-umee | Doctor: Add remote branch health check | open | tbd-9pw4 |
+| tbd-ft5u | Doctor: Add sync consistency check | open | tbd-sad6 |
+| tbd-xho7 | Doctor: Add 'local has data but remote empty' detection | open | tbd-nkkt |
+| tbd-6cok | Doctor: Add multi-user/clone scenario detection | open | tbd-nkkt |
+| tbd-vuk8 | Sync: Check worktree health before operations | open | tbd-uzdy |
+| tbd-3bs1 | Tests: Phase 1 detection and error reporting | open | tbd-vuk8 |
+
+#### Phase 2: Path Consistency (5 issues)
+
+| ID | Title | Status | Blocked By |
+| --- | --- | --- | --- |
+| tbd-ji4n | Update getSyncStatus() to check worktree, not main branch | open | tbd-3bs1 |
+| tbd-24vi | Update commitWorktreeChanges() to use dataSyncDir consistently | open | tbd-ji4n |
+| tbd-30ch | Audit sync.ts for hardcoded DATA_SYNC_DIR/WORKTREE_DIR usage | open | tbd-24vi |
+| tbd-uv33 | Update resolveDataSyncDir() to throw WorktreeMissingError | open | tbd-nc9p |
+| tbd-t7n2 | Tests: Phase 2 path consistency | open | tbd-30ch, tbd-uv33 |
+
+#### Phase 3: Auto-Repair (6 issues)
+
+| ID | Title | Status | Blocked By |
+| --- | --- | --- | --- |
+| tbd-77xk | Add --fix flag to tbd sync | open | tbd-t7n2 |
+| tbd-e5sp | Implement repairWorktree() function | open | tbd-77xk |
+| tbd-u8x8 | Implement migrateDataToWorktree() function | open | tbd-e5sp |
+| tbd-unn8 | Add confirmation prompt for destructive repair operations | open | tbd-u8x8 |
+| tbd-25oc | Doctor --fix: Implement repair actions | open | tbd-e5sp, tbd-u8x8, tbd-unn8 |
+| tbd-onx8 | Tests: Phase 3 auto-repair | open | tbd-25oc |
+
+#### Phase 4: Prevention (6 issues)
+
+| ID | Title | Status | Blocked By |
+| --- | --- | --- | --- |
+| tbd-q9zv | Add architectural test: issues written to worktree path | open | tbd-onx8 |
+| tbd-xl9d | Add CI check: worktree health after operations | open | tbd-q9zv |
+| tbd-nk1w | Update init/setup to verify worktree after creation | open | tbd-onx8 |
+| tbd-53lh | Add warning in resolveDataSyncDir test mode fallback | open | tbd-t7n2 |
+| tbd-rbaz | Add e2e tryscript test for sync worktree scenarios | open | tbd-onx8 |
+| tbd-kb4y | Document worktree architecture in developer docs | open | - |
+
+* * *
+
+### Phase 1 Details: Detection and Error Reporting
 
 Add proper detection and clear error messages before any auto-repair.
 
@@ -615,27 +725,49 @@ Add proper detection and clear error messages before any auto-repair.
 - [ ] Update `tbd sync` to check worktree health before operations
 - [ ] Add clear error messages when worktree is unhealthy
 
-**Error Classes:**
-- [ ] Add `WorktreeMissingError` class
-- [ ] Add `WorktreeCorruptedError` class
-- [ ] Add `SyncBranchError` class
+**Error Classes (add to `packages/tbd/src/lib/errors.ts`):**
+- [ ] Add `WorktreeMissingError` class - extends `TbdError`, thrown when worktree
+  doesn’t exist
+- [ ] Add `WorktreeCorruptedError` class - extends `TbdError`, thrown when worktree
+  exists but is invalid
+- [ ] Add `SyncBranchError` class - extends `TbdError`, for sync branch issues
+
+Example:
+```typescript
+// packages/tbd/src/lib/errors.ts
+export class WorktreeMissingError extends TbdError {
+  constructor(message: string = 'Worktree not found') {
+    super(message, 'WORKTREE_MISSING');
+  }
+}
+```
 
 **Tests:**
 - [ ] Add tests for each health check function
 - [ ] Add tests for doctor detecting each issue type
 - [ ] Add golden tests for doctor output with various issues
 
-### Phase 2: Path Consistency
+### Phase 2 Details: Path Consistency
 
 Fix the path mismatch bugs in sync.ts.
 
 - [ ] Update `getSyncStatus()` to check worktree status, not main branch
-- [ ] Update `commitWorktreeChanges()` to use consistent path with dataSyncDir
-- [ ] Remove hardcoded `WORKTREE_DIR` usage in sync operations
-- [ ] Ensure `resolveDataSyncDir()` throws when worktree missing (non-test mode)
-- [ ] Add tests verifying path consistency
+  - Change from: `git('status', '--porcelain', DATA_SYNC_DIR)`
+  - Change to: Check files in worktree path via `resolveDataSyncDir()`
+- [ ] Update `commitWorktreeChanges()` to use `this.dataSyncDir` consistently
+  - Remove: `const worktreePath = join(process.cwd(), WORKTREE_DIR)`
+  - Use: `this.dataSyncDir` which is already resolved via `resolveDataSyncDir()`
+- [ ] Audit all sync operations for hardcoded `WORKTREE_DIR` or `DATA_SYNC_DIR` usage
+  - All data paths MUST go through `resolveDataSyncDir()`
+  - Only exception: worktree creation/repair in git.ts (which needs the raw paths)
+- [ ] Ensure `resolveDataSyncDir()` throws `WorktreeMissingError` when worktree missing
+  (non-test mode)
+- [ ] Add tests verifying path consistency:
+  - [ ] Test that `resolveDataSyncDir()` returns worktree path in production
+  - [ ] Test that `resolveDataSyncDir()` throws when worktree missing
+  - [ ] Test that `resolveDataSyncDir({ allowFallback: true })` returns direct path
 
-### Phase 3: Auto-Repair
+### Phase 3 Details: Auto-Repair
 
 Add automatic worktree repair capabilities.
 
@@ -646,7 +778,7 @@ Add automatic worktree repair capabilities.
 - [ ] Add confirmation prompt before destructive operations
 - [ ] Add tests for repair scenarios
 
-### Phase 4: Prevention
+### Phase 4 Details: Prevention
 
 Ensure this bug category cannot recur.
 
@@ -655,6 +787,53 @@ Ensure this bug category cannot recur.
 - [ ] Update init/setup to verify worktree after creation
 - [ ] Add warning in resolveDataSyncDir when falling back (test mode only)
 - [ ] Document worktree architecture in developer docs
+
+### Phase 5: Documentation Updates (COMPLETED)
+
+Update design specification to cover these corner cases.
+
+- [x] Add worktree health states to tbd-design.md §2.3.4
+- [x] Add path terminology and resolution semantics to tbd-design.md §2.3.5
+- [x] Add worktree error classes specification to tbd-design.md §2.3.6
+- [x] Expand doctor command specification in tbd-design.md §4.9 with detailed health
+  checks
+- [x] Add sync command worktree health requirement to tbd-design.md §4.7
+- [x] Update sync algorithm in tbd-design.md §3.3.3 with prerequisite step
+- [x] Update Decision 7 in tbd-design.md §7.1 to clarify no silent fallback
+- [x] Update table of contents in tbd-design.md
+- [x] Add safety backup requirement for corrupted worktrees
+- [x] Add `.tbd/backups/` to .gitignore specification for local backups
+
+**Changes made to [tbd-design.md](../../../packages/tbd/docs/tbd-design.md):**
+
+1. **§2.3 Hidden Worktree Model** - Added three new subsections:
+   - Worktree Health States (valid, missing, prunable, corrupted)
+   - Path Terminology and Resolution (worktree path vs direct path invariants)
+   - Worktree Error Classes (WorktreeMissingError, WorktreeCorruptedError,
+     SyncBranchError)
+   - **Safety note**: Corrupted worktrees must be backed up to `.tbd/backups/` before
+     removal to prevent data loss
+
+2. **§3.2.2 .tbd/.gitignore Contents** - Added `backups/` directory for local backups
+
+3. **§3.3.3 Sync Algorithm** - Added prerequisite step 0 for worktree health
+   verification and critical invariant about path consistency
+
+4. **§4.7 Sync Commands** - Added `--fix` option, worktree health requirement code, path
+   consistency invariant, and error output example
+
+5. **§4.9 Doctor Command** - Expanded from brief checklist to comprehensive
+   specification:
+   - Worktree health check table
+   - Sync branch health check table
+   - Sync state consistency check table
+   - Data location check table
+   - Schema and reference checks table
+   - Example output
+   - Detailed `--fix` behavior with backup step for corrupted worktrees
+
+6. **§7.1 Decision 7** - Updated to clarify “no silent fallback” policy and added
+   “prunable” edge case to tradeoffs/mitigations
 
 ## Testing Strategy
 
@@ -690,6 +869,248 @@ it('never writes issues to .tbd/data-sync/ in production', async () => {
 });
 ```
 
+### End-to-End Tryscript Test
+
+This test exercises all failure modes in a single session using multiple clones of a
+local bare repo. It validates that tbd sync and doctor correctly handle each scenario.
+
+```bash
+#!/bin/bash
+# tryscript: test-sync-worktree-scenarios.sh
+# Tests all sync/worktree failure modes with local bare repo
+
+set -e  # Exit on error
+PASS="\033[32m✓\033[0m"
+FAIL="\033[31m✗\033[0m"
+
+echo "=== Setup: Create bare origin repo ==="
+TEST_DIR=$(mktemp -d)
+cd "$TEST_DIR"
+git init --bare origin.git
+echo "Created bare repo at $TEST_DIR/origin.git"
+
+# ============================================================================
+# Scenario 1: Fresh init and sync (happy path)
+# ============================================================================
+echo ""
+echo "=== Scenario 1: Fresh init and sync ==="
+git clone origin.git clone1
+cd clone1
+git commit --allow-empty -m "Initial commit"
+git push origin main
+
+# Initialize tbd
+tbd setup --auto --prefix=test
+
+# Create some issues
+tbd create "Issue 1" --type=task
+tbd create "Issue 2" --type=bug
+tbd sync
+
+# Verify worktree exists and issues are in correct location
+if [ -d ".tbd/data-sync-worktree/.tbd/data-sync/issues" ]; then
+  echo -e "$PASS Worktree created correctly"
+else
+  echo -e "$FAIL Worktree NOT created!"
+  exit 1
+fi
+
+ISSUE_COUNT=$(ls .tbd/data-sync-worktree/.tbd/data-sync/issues/*.yml 2>/dev/null | wc -l | tr -d ' ')
+if [ "$ISSUE_COUNT" -eq 2 ]; then
+  echo -e "$PASS Issues in correct location ($ISSUE_COUNT)"
+else
+  echo -e "$FAIL Issues NOT in correct location! Found $ISSUE_COUNT"
+  exit 1
+fi
+
+# Verify NO issues in wrong location
+WRONG_COUNT=$(ls .tbd/data-sync/issues/*.yml 2>/dev/null | wc -l | tr -d ' ')
+if [ "$WRONG_COUNT" -eq 0 ]; then
+  echo -e "$PASS No issues in wrong location"
+else
+  echo -e "$FAIL Issues in wrong location! Found $WRONG_COUNT"
+  exit 1
+fi
+
+cd "$TEST_DIR"
+
+# ============================================================================
+# Scenario 2: Fresh clone (User B clones after User A synced)
+# ============================================================================
+echo ""
+echo "=== Scenario 2: Fresh clone scenario ==="
+git clone origin.git clone2
+cd clone2
+
+# Before fix: tbd sync says "Already in sync" with 0 issues
+# After fix: tbd sync should create worktree from remote and show 2 issues
+
+tbd doctor
+# Expected output should detect: "Worktree is missing, remote branch exists"
+
+# After doctor --fix (or tbd sync with fix):
+tbd doctor --fix 2>/dev/null || tbd sync  # Depending on implementation
+
+CLONE2_COUNT=$(ls .tbd/data-sync-worktree/.tbd/data-sync/issues/*.yml 2>/dev/null | wc -l | tr -d ' ')
+if [ "$CLONE2_COUNT" -eq 2 ]; then
+  echo -e "$PASS Fresh clone: Issues pulled from remote ($CLONE2_COUNT)"
+else
+  echo -e "$FAIL Fresh clone: Expected 2 issues, got $CLONE2_COUNT"
+  # This will fail until Bug 6 is fixed
+fi
+
+cd "$TEST_DIR"
+
+# ============================================================================
+# Scenario 3: Worktree deleted (simulates ai-trade-arena bug)
+# ============================================================================
+echo ""
+echo "=== Scenario 3: Worktree deleted (prunable) ==="
+git clone origin.git clone3
+cd clone3
+
+# Initialize properly first
+tbd setup --auto
+
+# Create worktree from remote
+git fetch origin tbd-sync
+git worktree add .tbd/data-sync-worktree origin/tbd-sync
+
+# Verify it works
+tbd stats
+echo "Issues before deletion: $(ls .tbd/data-sync-worktree/.tbd/data-sync/issues/*.yml | wc -l | tr -d ' ')"
+
+# Now simulate the bug: delete the worktree directory
+rm -rf .tbd/data-sync-worktree
+
+# Verify git still knows about it (prunable state)
+if git worktree list --porcelain | grep -q "prunable"; then
+  echo -e "$PASS Worktree marked as prunable"
+else
+  echo -e "$FAIL Worktree not marked as prunable"
+fi
+
+# Create a new issue - this should go to WRONG location (before fix)
+# After fix: this should error or auto-repair
+tbd create "Issue 3 after worktree deleted" --type=task 2>/dev/null || true
+
+# Check doctor detects the problem
+tbd doctor
+
+# Expected: ERROR - Worktree is prunable
+# Expected: ERROR - Issues in wrong location (if any were created)
+
+# Repair with doctor --fix
+tbd doctor --fix
+
+# Verify repaired
+if [ -d ".tbd/data-sync-worktree/.tbd/data-sync/issues" ]; then
+  echo -e "$PASS Worktree repaired"
+else
+  echo -e "$FAIL Worktree NOT repaired"
+fi
+
+cd "$TEST_DIR"
+
+# ============================================================================
+# Scenario 4: Never initialized (simulates markform bug)
+# ============================================================================
+echo ""
+echo "=== Scenario 4: Never initialized (old tbd version) ==="
+git clone origin.git clone4
+cd clone4
+
+# Simulate old tbd: create .tbd/ but no worktree
+mkdir -p .tbd/data-sync/issues
+
+# Manually create an issue file in the WRONG location
+cat > .tbd/data-sync/issues/test-xxxx.yml << 'EOF'
+id: test-xxxx
+title: Issue created by old tbd
+type: task
+status: open
+priority: 2
+created_at: 2025-01-01T00:00:00.000Z
+updated_at: 2025-01-01T00:00:00.000Z
+EOF
+
+# Doctor should detect:
+# - Worktree missing
+# - No local branch
+# - Issues in wrong location
+tbd doctor
+
+# Repair
+tbd doctor --fix
+
+# Verify migrated
+if [ -f ".tbd/data-sync-worktree/.tbd/data-sync/issues/test-xxxx.yml" ]; then
+  echo -e "$PASS Issue migrated to worktree"
+else
+  echo -e "$FAIL Issue NOT migrated"
+fi
+
+cd "$TEST_DIR"
+
+# ============================================================================
+# Scenario 5: Never pushed (simulates lexikon-site)
+# ============================================================================
+echo ""
+echo "=== Scenario 5: Never pushed ==="
+git clone origin.git clone5
+cd clone5
+
+# Initialize and create issue
+tbd setup --auto --prefix=test5
+
+# Manually delete remote tracking (simulate never pushed)
+git push origin --delete tbd-sync 2>/dev/null || true
+
+# Create issue locally
+tbd create "Local only issue" --type=task
+
+# Doctor should warn about missing remote
+tbd doctor
+
+# Expected: WARNING - Remote branch does not exist
+
+# Fix: just sync
+tbd sync
+
+# Verify remote now exists
+if git ls-remote --heads origin tbd-sync | grep -q tbd-sync; then
+  echo -e "$PASS Remote branch created by sync"
+else
+  echo -e "$FAIL Remote branch NOT created"
+fi
+
+cd "$TEST_DIR"
+
+# ============================================================================
+# Cleanup
+# ============================================================================
+echo ""
+echo "=== Cleanup ==="
+rm -rf "$TEST_DIR"
+echo "Test directory cleaned up"
+
+echo ""
+echo "=== All scenarios tested ==="
+```
+
+**What this test validates:**
+
+| Scenario | Bug Tested | Expected Doctor Output | Expected Fix |
+| --- | --- | --- | --- |
+| 1. Fresh init | Happy path | No errors | N/A |
+| 2. Fresh clone | Bug 6 | "Worktree missing, remote exists" | Create from remote |
+| 3. Worktree deleted | Bugs 1-5 | "Worktree prunable" | Prune + recreate |
+| 4. Never initialized | Old version | "Worktree missing, issues in wrong location" | Create + migrate |
+| 5. Never pushed | Missing remote | "Remote branch missing" | Push on sync |
+
+This test should be added to CI and run after any changes to sync, paths, or worktree
+code.
+
 ## Rollout Plan
 
 1. **Immediate**: Document the bug and workaround for affected users
@@ -706,7 +1127,8 @@ it('never writes issues to .tbd/data-sync/ in production', async () => {
    - Recommendation: Only for tests with explicit `allowFallback: true`
 
 3. How to handle the backup before migration?
-   - Recommendation: Always backup to Attic/ before migrating, require confirmation
+   - Recommendation: Always backup to .tbd/backups/ before migrating, require
+     confirmation
 
 4. Should `resolveDataSyncDir` be sync or async?
    - Currently async (does fs.access), keep as-is
@@ -747,7 +1169,7 @@ Repairing tbd...
 
 ✓ Pruned stale worktree entry
 ✓ Created worktree at .tbd/data-sync-worktree
-✓ Backed up 951 issues to Attic/tbd-data-sync-backup-20260128-HHMMSS/
+✓ Backed up 951 issues to .tbd/backups/tbd-data-sync-backup-20260128-HHMMSS/
 ✓ Migrated 951 issues to worktree
 ✓ Committed migration to tbd-sync branch
 
@@ -807,7 +1229,7 @@ Repairing tbd...
 
 ✓ Created orphan branch 'tbd-sync'
 ✓ Created worktree at .tbd/data-sync-worktree
-✓ Backed up 8 issues to Attic/tbd-data-sync-backup-YYYYMMDD-HHMMSS/
+✓ Backed up 8 issues to .tbd/backups/tbd-data-sync-backup-YYYYMMDD-HHMMSS/
 ✓ Migrated 8 issues to worktree
 ✓ Committed migration to tbd-sync branch
 
@@ -836,7 +1258,40 @@ Checking tbd health...
 
 No `--fix` needed - just run `tbd sync` to push.
 
-## Appendix D: Doctor --fix Decision Tree
+## Appendix D: What Doctor Would Report for Fresh Clone
+
+For a freshly cloned repo where remote tbd-sync exists but no local setup:
+
+```
+Checking tbd health...
+
+✗ ERROR: Worktree is missing
+  Remote branch 'origin/tbd-sync' exists with issues.
+  Fix: Run `tbd doctor --fix` to create worktree from remote
+
+⚠ WARNING: Local branch 'tbd-sync' does not exist
+  Remote branch exists - will create from remote.
+  Fix: Run `tbd doctor --fix` to set up local sync
+
+1 error(s), 1 warning(s), 0 info(s)
+```
+
+After `tbd doctor --fix`:
+
+```
+Repairing tbd...
+
+✓ Created worktree at .tbd/data-sync-worktree from origin/tbd-sync
+✓ Set up local tbd-sync branch tracking origin/tbd-sync
+✓ Found 603 issues from remote
+
+Repository is ready. Run `tbd stats` to see issue counts.
+```
+
+**Key difference from other modes:** No migration needed - issues already exist on
+remote, we just need to set up local worktree.
+
+## Appendix E: Doctor --fix Decision Tree
 
 The `tbd doctor --fix` command follows this decision tree:
 
@@ -845,6 +1300,8 @@ START
   │
   ├─► Check worktree status
   │   ├─► HEALTHY → skip to step 4
+  │   ├─► CORRUPTED → (0) BACKUP to .tbd/backups/corrupted-worktree-backup-YYYYMMDD-HHMMSS/
+  │   │               then remove directory
   │   ├─► PRUNABLE → (1) git worktree prune
   │   └─► MISSING → continue
   │
@@ -856,7 +1313,7 @@ START
   │
   ├─► Check wrong location (.tbd/data-sync/)
   │   ├─► HAS DATA →
-  │   │   ├─► (3) Backup to Attic/tbd-data-sync-backup-YYYYMMDD-HHMMSS/
+  │   │   ├─► (3) Backup to .tbd/backups/tbd-data-sync-backup-YYYYMMDD-HHMMSS/
   │   │   ├─► (4) Copy to .tbd/data-sync-worktree/.tbd/data-sync/
   │   │   ├─► (5) git -C worktree add -A && git commit
   │   │   └─► (6) Remove wrong location data (optional, with confirmation)
@@ -865,15 +1322,24 @@ START
   └─► Done - remind user to run `tbd sync`
 ```
 
+**IMPORTANT: Backup before removal**
+
+Step (0) is critical for corrupted worktrees: the worktree may contain uncommitted issue
+data that would be lost if simply deleted.
+The backup is stored in `.tbd/backups/` which is gitignored, allowing users to manually
+recover data if needed.
+
 **Failure mode mapping:**
 
 | Failure Mode | Steps Executed |
 | --- | --- |
+| Corrupted worktree | 0, 2, (3-6 if data in wrong location) |
 | ai-trade-arena (prunable) | 1, 2, 3, 4, 5, 6 |
 | markform (never initialized) | 2b, 3, 4, 5, 6 |
 | lexikon-site (never pushed) | None (no --fix needed) |
+| Fresh clone (never initialized) | 2a (create from remote) |
 
-## Appendix E: Manual Recovery Steps for ai-trade-arena
+## Appendix F: Manual Recovery Steps for ai-trade-arena
 
 If manual recovery is needed (or before `tbd doctor --fix` is implemented):
 
@@ -884,7 +1350,7 @@ git worktree list --porcelain | grep -A3 data-sync-worktree
 # Should show: prunable gitdir file points to non-existent location
 
 # 1. Backup (already done)
-# Data backed up to: Attic/tbd-data-sync-backup-20260128-142024/
+# Data backed up to: .tbd/backups/tbd-data-sync-backup-20260128-142024/
 
 # 2. Prune the stale worktree entry from git's tracking
 git worktree prune
@@ -925,7 +1391,7 @@ tbd stats
 # Keep .tbd/data-sync/.gitkeep if it exists
 ```
 
-## Appendix F: Root Cause Summary
+## Appendix G: Root Cause Summary
 
 **Why did this happen?**
 

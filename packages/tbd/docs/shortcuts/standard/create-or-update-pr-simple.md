@@ -1,6 +1,7 @@
 ---
 title: Create or Update PR (Simple)
 description: Create or update a pull request with a concise summary
+author: Joshua Levy (github.com/jlevy) with LLM assistance
 ---
 Shortcut: Create or Update PR (Simple)
 
