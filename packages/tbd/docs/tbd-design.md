@@ -777,7 +777,7 @@ Created automatically by `tbd init` or first `tbd sync`:
 
 ```bash
 # Create hidden worktree (done by tbd internally)
-git worktree add .tbd/data-sync-worktree tbd-sync --detach
+git worktree add .tbd/data-sync-worktree tbd-sync
 
 # Or if tbd-sync doesn't exist yet
 git worktree add .tbd/data-sync-worktree --orphan tbd-sync
@@ -785,7 +785,11 @@ git worktree add .tbd/data-sync-worktree --orphan tbd-sync
 
 **Key properties:**
 
-- **Detached HEAD**: Worktree tracks commits, not branch name, to avoid branch lock
+- **Attached to sync branch**: Worktree is checked out to `tbd-sync` branch so commits
+  update the branch ref.
+  This ensures `git push` operations can detect new commits.
+  If the worktree becomes detached (from old tbd versions), it’s automatically repaired
+  before commits.
 
 - **Hidden location**: Inside `.tbd/` which is partially gitignored
 
@@ -864,9 +868,9 @@ START: Any tbd command
     │   └─ NO ↓
     │
     ├─ Does tbd-sync branch exist (local or remote)?
-    │   ├─ YES (local) → git worktree add .tbd/data-sync-worktree tbd-sync --detach
+    │   ├─ YES (local) → git worktree add .tbd/data-sync-worktree tbd-sync
     │   ├─ YES (remote only) → git fetch origin tbd-sync
-    │   │                      git worktree add .tbd/data-sync-worktree origin/tbd-sync --detach
+    │   │                      git worktree add .tbd/data-sync-worktree tbd-sync
     │   └─ NO → This is a fresh tbd init, create orphan worktree:
     │           git worktree add .tbd/data-sync-worktree --orphan tbd-sync
     │           (Initialize .tbd/data-sync/ structure in worktree)
@@ -3065,9 +3069,8 @@ The `--fix` flag performs repairs in this order:
    - Remove the corrupted worktree directory
 2. If worktree prunable: `git worktree prune`
 3. If worktree missing (or was just removed):
-   - If local tbd-sync exists:
-     `git worktree add .tbd/data-sync-worktree tbd-sync --detach`
-   - Else if remote exists: `git fetch && git worktree add ... origin/tbd-sync`
+   - If local tbd-sync exists: `git worktree add .tbd/data-sync-worktree tbd-sync`
+   - Else if remote exists: `git fetch && git worktree add ... tbd-sync`
    - Else: `git worktree add --orphan tbd-sync ...`
 4. If data in wrong location (`.tbd/data-sync/`):
    - Backup to `.tbd/backups/tbd-data-sync-backup-YYYYMMDD-HHMMSS/`

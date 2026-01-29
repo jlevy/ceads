@@ -1240,6 +1240,33 @@ export async function repairWorktree(
 }
 
 /**
+ * Ensure worktree is attached to sync branch, not detached HEAD.
+ * Old tbd versions (pre-v0.1.9) created worktrees with --detach flag.
+ * This repairs them automatically.
+ *
+ * @param worktreePath - Path to the worktree directory
+ * @returns true if worktree was detached and repaired, false if already attached
+ */
+export async function ensureWorktreeAttached(worktreePath: string): Promise<boolean> {
+  try {
+    const currentBranch = await git('-C', worktreePath, 'branch', '--show-current').catch(() => '');
+
+    if (!currentBranch) {
+      // Detached HEAD - re-attach to sync branch
+      // This is a one-time repair for repos created with old tbd versions
+      await git('-C', worktreePath, 'checkout', SYNC_BRANCH);
+      return true; // Was detached, now repaired
+    }
+
+    return false; // Already attached
+  } catch (error) {
+    // If we can't check/fix, that's a problem but don't fail the operation
+    console.warn('Warning: Could not check worktree HEAD status:', error);
+    return false;
+  }
+}
+
+/**
  * Migrate data from wrong location (.tbd/data-sync/) to worktree.
  *
  * Used when data was incorrectly written to the direct path instead of the worktree.
@@ -1268,6 +1295,8 @@ export async function migrateDataToWorktree(
   const worktreePath = join(baseDir, WORKTREE_DIR);
 
   try {
+    // Ensure worktree is attached to sync branch (repair old tbd repos)
+    await ensureWorktreeAttached(worktreePath);
     // Check if there's data in the wrong location
     const wrongIssuesPath = join(wrongPath, 'issues');
     const wrongMappingsPath = join(wrongPath, 'mappings');
@@ -1321,7 +1350,6 @@ export async function migrateDataToWorktree(
     await git('-C', worktreePath, 'add', '-A');
 
     // Check if there are staged changes before committing
-    // git diff --cached --quiet returns 0 if no changes, 1 if changes
     const hasChanges = await git('-C', worktreePath, 'diff', '--cached', '--quiet')
       .then(() => false)
       .catch(() => true);

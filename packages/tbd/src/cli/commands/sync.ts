@@ -23,6 +23,7 @@ import {
   pushWithRetry,
   checkWorktreeHealth,
   repairWorktree,
+  ensureWorktreeAttached,
   type ConflictEntry,
   type PushResult,
 } from '../../file/git.js';
@@ -352,6 +353,9 @@ class SyncHandler extends BaseCommand {
     const worktreePath = join(this.tbdRoot, WORKTREE_DIR);
 
     try {
+      // Ensure worktree is attached to sync branch (repair old tbd repos)
+      await ensureWorktreeAttached(worktreePath);
+
       // Check for uncommitted changes (untracked, modified, or deleted)
       const status = await git('-C', worktreePath, 'status', '--porcelain');
       if (!status || status.trim() === '') {
@@ -609,6 +613,7 @@ class SyncHandler extends BaseCommand {
           // Stage resolved files and complete merge
           // Use --no-verify to bypass parent repo hooks (lefthook, husky, etc.)
           await git('-C', worktreePath, 'add', '-A');
+
           try {
             await git(
               '-C',
