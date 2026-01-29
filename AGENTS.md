@@ -248,6 +248,7 @@ Run `tbd shortcut <name>` to use any of these shortcuts:
 
 | Name | Title | Description |
 | --- | --- | --- |
+| agent-handoff | Agent Handoff | Generate a concise handoff prompt for another coding agent to continue work |
 | commit-code | Commit Code | Run pre-commit checks, review changes, and commit code |
 | create-or-update-pr-simple | Create or Update PR (Simple) | Create or update a pull request with a concise summary |
 | create-or-update-pr-with-validation-plan | Create or Update PR with Validation Plan | Create or update a pull request with a detailed test/validation plan |
@@ -257,6 +258,7 @@ Run `tbd shortcut <name>` to use any of these shortcuts:
 | new-implementation-beads-from-spec | New Implementation Beads from Spec | Create implementation issues (beads) from a feature planning spec |
 | new-plan-spec | New Plan Spec | Create a new feature planning specification document |
 | new-research-brief | New Research Doc | Create a research document for investigating a topic or technology |
+| new-shortcut | New Shortcut | Create a new shortcut (reusable instruction template) for tbd |
 | new-validation-plan | New Validation Plan | Create a validation/test plan for a feature or change |
 | precommit-process | Pre-Commit Process | Full pre-commit checklist including spec sync, code review, and testing |
 | review-code-python | Review Code (Python) | Perform a code review for Python code following best practices |
