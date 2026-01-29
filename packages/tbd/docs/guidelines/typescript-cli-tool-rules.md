@@ -326,6 +326,80 @@ seamlessly in local dev and in remote environments.
 - **Make scripts composable:** Design scripts to work well in pipelines and automation.
   Consider how they’ll be used in CI/CD and shell scripts.
 
+## Sub-Command Logging for Testability
+
+When CLIs call external commands (git, npm, docker, etc.), add a debug flag to log those
+operations. This enables “transparent box” golden testing that catches silent error
+swallowing bugs.
+
+### The Pattern
+
+```ts
+interface SubCommandLog {
+  command: string;
+  args: string[];
+  exitCode: number;
+  stdout: string;
+  stderr: string;
+}
+
+// Global log, populated when SHOW_COMMANDS=1 or --show-commands
+const subCommandLog: SubCommandLog[] = [];
+
+async function runCommand(cmd: string, args: string[]): Promise<ExecResult> {
+  const result = await exec(cmd, args);
+
+  // Log for golden tests
+  if (process.env.SHOW_COMMANDS === '1') {
+    subCommandLog.push({
+      command: cmd,
+      args,
+      exitCode: result.exitCode,
+      stdout: result.stdout.trim(),
+      stderr: result.stderr.trim(),
+    });
+  }
+
+  return result;
+}
+
+// Expose via flag: mycli sync --show-commands
+program.option('--show-commands', 'Log all sub-command invocations');
+```
+
+### Why This Matters
+
+**Silent Error Swallowing Detection**: Without sub-command logging, a golden test might
+show “Already in sync” with exit code 0, which looks correct.
+With logging, you’d see that `git push` returned exit code 1 with “HTTP 403” - revealing
+the bug.
+
+**Correlation**: Golden tests can verify that sub-command failures are reflected in user
+output and exit codes.
+
+### Usage in Tests
+
+```bash
+# In tryscripts/golden tests
+export SHOW_COMMANDS=1
+mycli sync  # Output now includes all git operations with exit codes
+```
+
+### Auto-Assertions
+
+Generate assertions from sub-command logs:
+
+```ts
+// If any sub-command failed, user should see an error
+const failedOps = log.filter(op => op.exitCode !== 0);
+if (failedOps.length > 0) {
+  expect(userOutput).toMatch(/error|fail/i);
+  expect(exitCode).not.toBe(0);
+}
+```
+
+See `golden-testing-guidelines` for full patterns on transparent box testing.
+
 ## Library/CLI Hybrid Packages
 
 When building a package that functions as both a library and a CLI tool, isolate all
