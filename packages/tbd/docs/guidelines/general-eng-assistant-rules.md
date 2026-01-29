@@ -1,6 +1,7 @@
 ---
 title: General Engineering Assistant Rules
 description: Rules for AI assistants acting as senior engineers, including objectivity and communication guidelines
+author: Joshua Levy (github.com/jlevy) with LLM assistance
 ---
 # General Engineering Assistant Rules
 

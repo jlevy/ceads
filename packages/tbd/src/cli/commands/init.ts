@@ -24,7 +24,12 @@ import {
   TBD_TEMPLATES_DIR,
   TBD_DOCS_DIR,
 } from '../../lib/paths.js';
-import { initWorktree, checkGitVersion, MIN_GIT_VERSION } from '../../file/git.js';
+import {
+  initWorktree,
+  checkGitVersion,
+  checkWorktreeHealth,
+  MIN_GIT_VERSION,
+} from '../../file/git.js';
 
 interface InitOptions {
   prefix?: string;
@@ -81,6 +86,9 @@ class InitHandler extends BaseCommand {
         '# Local state',
         'state.yml',
         '',
+        '# Migration backups (local only, not synced)',
+        'backups/',
+        '',
         '# Temporary files',
         '*.tmp',
         '*.temp',
@@ -125,6 +133,15 @@ class InitHandler extends BaseCommand {
           this.output.debug(`Created hidden worktree at ${TBD_DIR}/${WORKTREE_DIR_NAME}/`);
         } else {
           this.output.debug(`Worktree already exists at ${TBD_DIR}/${WORKTREE_DIR_NAME}/`);
+        }
+
+        // Verify worktree health after creation (prevents silent failures)
+        const health = await checkWorktreeHealth(cwd);
+        if (!health.valid) {
+          this.output.warn(
+            `Worktree created but failed verification (status: ${health.status}). ` +
+              `Run 'tbd doctor' to diagnose.`,
+          );
         }
       } else {
         // Worktree creation failed - this is ok if not in a git repo

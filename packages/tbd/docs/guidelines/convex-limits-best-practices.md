@@ -1,6 +1,7 @@
 ---
 title: Convex Limits and Best Practices
 description: Comprehensive reference for Convex platform limits, workarounds, and performance best practices
+author: Joshua Levy (github.com/jlevy) with LLM assistance
 ---
 # Convex Database Limits, Best Practices, and Workarounds
 

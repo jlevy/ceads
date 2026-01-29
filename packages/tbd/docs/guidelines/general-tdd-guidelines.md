@@ -1,6 +1,7 @@
 ---
 title: TDD Guidelines
 description: Test-Driven Development methodology and best practices
+author: Joshua Levy (github.com/jlevy) with LLM assistance
 ---
 # Test-Driven Development (TDD) Guidelines
 

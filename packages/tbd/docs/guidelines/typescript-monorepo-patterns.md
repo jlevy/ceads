@@ -1,6 +1,7 @@
 ---
 title: TypeScript Monorepo Patterns
 description: Modern patterns for TypeScript monorepo architecture
+author: Joshua Levy (github.com/jlevy) with LLM assistance
 ---
 # TypeScript Monorepo Patterns
 

@@ -1,6 +1,7 @@
 ---
 title: Backward Compatibility Rules
 description: Guidelines for maintaining backward compatibility across code, APIs, file formats, and database schemas
+author: Joshua Levy (github.com/jlevy) with LLM assistance
 ---
 ## Backward Compatibility Guidelines
 

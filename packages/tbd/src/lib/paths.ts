@@ -203,11 +203,39 @@ export function getAtticPath(issueId: string, filename: string): string {
 import { access } from 'node:fs/promises';
 
 /**
+ * Options for resolveDataSyncDir.
+ */
+export interface ResolveDataSyncDirOptions {
+  /**
+   * Allow fallback to direct path when worktree is missing.
+   * Set to true for test environments or diagnostic tools.
+   * Default: true (for backward compatibility)
+   *
+   * When false and worktree is missing, throws WorktreeMissingError.
+   */
+  allowFallback?: boolean;
+}
+
+/**
+ * Error thrown when worktree is missing and fallback is not allowed.
+ * Defined inline to avoid circular dependency with errors.ts.
+ */
+export class WorktreeMissingError extends Error {
+  constructor(
+    message = "Worktree not found at .tbd/data-sync-worktree/. Run 'tbd doctor --fix' to repair.",
+  ) {
+    super(message);
+    this.name = 'WorktreeMissingError';
+  }
+}
+
+/**
  * Cache for resolved data sync directory.
  * Reset when baseDir changes.
  */
 let _resolvedDataSyncDir: string | null = null;
 let _resolvedBaseDir: string | null = null;
+let _resolvedAllowFallback: boolean | null = null;
 
 /**
  * Resolve the actual data sync directory path.
@@ -217,14 +245,27 @@ let _resolvedBaseDir: string | null = null;
  *
  * Order of preference:
  * 1. Worktree path if worktree exists: .tbd/data-sync-worktree/.tbd/data-sync/
- * 2. Direct path as fallback: .tbd/data-sync/
+ * 2. Direct path as fallback (only if allowFallback: true)
  *
  * @param baseDir - The base directory of the repository (default: process.cwd())
+ * @param options - Options for path resolution
  * @returns Resolved data sync directory path
+ * @throws WorktreeMissingError if worktree missing and allowFallback is false
+ *
+ * See: plan-2026-01-28-sync-worktree-recovery-and-hardening.md
  */
-export async function resolveDataSyncDir(baseDir: string = process.cwd()): Promise<string> {
-  // Return cached result if baseDir hasn't changed
-  if (_resolvedDataSyncDir && _resolvedBaseDir === baseDir) {
+export async function resolveDataSyncDir(
+  baseDir: string = process.cwd(),
+  options?: ResolveDataSyncDirOptions,
+): Promise<string> {
+  const allowFallback = options?.allowFallback ?? true;
+
+  // Return cached result if baseDir and options haven't changed
+  if (
+    _resolvedDataSyncDir &&
+    _resolvedBaseDir === baseDir &&
+    _resolvedAllowFallback === allowFallback
+  ) {
     return _resolvedDataSyncDir;
   }
 
@@ -236,11 +277,25 @@ export async function resolveDataSyncDir(baseDir: string = process.cwd()): Promi
     await access(worktreePath);
     _resolvedDataSyncDir = worktreePath;
     _resolvedBaseDir = baseDir;
+    _resolvedAllowFallback = allowFallback;
     return worktreePath;
   } catch {
-    // Worktree doesn't exist, use direct path
+    // Worktree doesn't exist
+    if (!allowFallback) {
+      throw new WorktreeMissingError();
+    }
+
+    // Fallback to direct path (test mode or diagnostic tools)
+    // Note: In production, sync.ts checks worktree health before calling this
+    // Debug warning to help detect unintended fallback usage
+    if (process.env.DEBUG || process.env.TBD_DEBUG) {
+      console.warn(
+        '[tbd:paths] resolveDataSyncDir: worktree not found, falling back to direct path',
+      );
+    }
     _resolvedDataSyncDir = directPath;
     _resolvedBaseDir = baseDir;
+    _resolvedAllowFallback = allowFallback;
     return directPath;
   }
 }
@@ -248,24 +303,33 @@ export async function resolveDataSyncDir(baseDir: string = process.cwd()): Promi
 /**
  * Resolve issues directory path.
  */
-export async function resolveIssuesDir(baseDir: string = process.cwd()): Promise<string> {
-  const dataSyncDir = await resolveDataSyncDir(baseDir);
+export async function resolveIssuesDir(
+  baseDir: string = process.cwd(),
+  options?: ResolveDataSyncDirOptions,
+): Promise<string> {
+  const dataSyncDir = await resolveDataSyncDir(baseDir, options);
   return join(dataSyncDir, 'issues');
 }
 
 /**
  * Resolve mappings directory path.
  */
-export async function resolveMappingsDir(baseDir: string = process.cwd()): Promise<string> {
-  const dataSyncDir = await resolveDataSyncDir(baseDir);
+export async function resolveMappingsDir(
+  baseDir: string = process.cwd(),
+  options?: ResolveDataSyncDirOptions,
+): Promise<string> {
+  const dataSyncDir = await resolveDataSyncDir(baseDir, options);
   return join(dataSyncDir, 'mappings');
 }
 
 /**
  * Resolve attic directory path.
  */
-export async function resolveAtticDir(baseDir: string = process.cwd()): Promise<string> {
-  const dataSyncDir = await resolveDataSyncDir(baseDir);
+export async function resolveAtticDir(
+  baseDir: string = process.cwd(),
+  options?: ResolveDataSyncDirOptions,
+): Promise<string> {
+  const dataSyncDir = await resolveDataSyncDir(baseDir, options);
   return join(dataSyncDir, 'attic');
 }
 
@@ -276,6 +340,7 @@ export async function resolveAtticDir(baseDir: string = process.cwd()): Promise<
 export function clearPathCache(): void {
   _resolvedDataSyncDir = null;
   _resolvedBaseDir = null;
+  _resolvedAllowFallback = null;
 }
 
 // =============================================================================

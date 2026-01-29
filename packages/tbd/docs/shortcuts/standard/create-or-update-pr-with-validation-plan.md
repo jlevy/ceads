@@ -1,6 +1,7 @@
 ---
 title: Create or Update PR with Validation Plan
 description: Create or update a pull request with a detailed test/validation plan
+author: Joshua Levy (github.com/jlevy) with LLM assistance
 ---
 Shortcut: Create or Update PR with Validation Plan
 

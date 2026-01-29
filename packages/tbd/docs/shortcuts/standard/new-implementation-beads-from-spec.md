@@ -1,6 +1,7 @@
 ---
 title: New Implementation Beads from Spec
 description: Create implementation issues (beads) from a feature planning spec
+author: Joshua Levy (github.com/jlevy) with LLM assistance
 ---
 Shortcut: New Implementation Beads from Spec
 

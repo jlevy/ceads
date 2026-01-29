@@ -1,6 +1,7 @@
 ---
 title: Pre-Commit Process
 description: Full pre-commit checklist including spec sync, code review, and testing
+author: Joshua Levy (github.com/jlevy) with LLM assistance
 ---
 Shortcut: Pre-Commit Process
 

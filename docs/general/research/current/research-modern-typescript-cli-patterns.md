@@ -1160,6 +1160,9 @@ tools. The pattern eliminates per-command duplication and matches framework conv
 19. **Load `.env` files at startup** with upward directory walk; separate
     framework-managed (`.env.local`) from user-managed (`.env`) config
 
+20. **Handle `--no-X` flags correctly** — Commander sets `options.X = false`, not
+    `options.noX = true`; destructure with `{ X = true }` pattern
+
 * * *
 
 ## References

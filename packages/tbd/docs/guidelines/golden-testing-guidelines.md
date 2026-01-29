@@ -1,6 +1,7 @@
 ---
 title: Golden Testing Guidelines
 description: Guidelines for implementing golden/snapshot testing for complex systems
+author: Joshua Levy (github.com/jlevy) with LLM assistance
 ---
 # Golden Testing Guidelines
 

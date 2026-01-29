@@ -1,6 +1,7 @@
 ---
 title: TypeScript Code Coverage
 description: Best practices for code coverage in TypeScript with Vitest and v8 provider
+author: Joshua Levy (github.com/jlevy) with LLM assistance
 ---
 # Code Coverage Best Practices for TypeScript with Vitest
 

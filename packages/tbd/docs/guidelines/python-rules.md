@@ -1,6 +1,7 @@
 ---
 title: Python Rules
 description: Python coding rules and best practices
+author: Joshua Levy (github.com/jlevy) with LLM assistance
 ---
 # Python Rules
 

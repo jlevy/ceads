@@ -13,3 +13,7 @@ state.yml
 # Temporary files
 *.tmp
 *.temp
+
+
+# Migration backups (local only, not synced)
+backups/

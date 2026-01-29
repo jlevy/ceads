@@ -1,6 +1,7 @@
 ---
 title: General Comment Rules
 description: Language-agnostic rules for writing clean, maintainable comments
+author: Joshua Levy (github.com/jlevy) with LLM assistance
 ---
 # General Comment Rules
 

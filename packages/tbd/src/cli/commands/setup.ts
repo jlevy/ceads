@@ -56,7 +56,7 @@ import {
   TBD_GUIDELINES_DIR,
   TBD_TEMPLATES_DIR,
 } from '../../lib/paths.js';
-import { initWorktree, isInGitRepo, findGitRoot } from '../../file/git.js';
+import { initWorktree, isInGitRepo, findGitRoot, checkWorktreeHealth } from '../../file/git.js';
 import { DocCache, generateShortcutDirectory } from '../../file/doc-cache.js';
 
 /**
@@ -1207,6 +1207,9 @@ class SetupDefaultHandler extends BaseCommand {
         '# Local state',
         'state.yml',
         '',
+        '# Migration backups (local only, not synced)',
+        'backups/',
+        '',
         '# Temporary files',
         '*.tmp',
         '*.temp',
@@ -1427,6 +1430,9 @@ class SetupDefaultHandler extends BaseCommand {
       '# Local state',
       'state.yml',
       '',
+      '# Migration backups (local only, not synced)',
+      'backups/',
+      '',
       '# Temporary files',
       '*.tmp',
       '*.temp',
@@ -1441,7 +1447,17 @@ class SetupDefaultHandler extends BaseCommand {
     // 3. Initialize worktree for sync branch
     try {
       await initWorktree(cwd);
-      console.log(`  ${colors.success('✓')} Initialized sync branch`);
+
+      // Verify worktree health after creation (prevents silent failures)
+      const health = await checkWorktreeHealth(cwd);
+      if (health.valid) {
+        console.log(`  ${colors.success('✓')} Initialized sync branch`);
+      } else {
+        console.log(
+          `  ${colors.warn('!')} Sync branch created but verification failed (status: ${health.status})`,
+        );
+        console.log(`      Run 'tbd doctor' to diagnose`);
+      }
     } catch {
       // Non-fatal - sync will work, just not optimally
       console.log(`  ${colors.dim('○')} Sync branch will be created on first sync`);

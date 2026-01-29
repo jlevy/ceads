@@ -646,8 +646,14 @@ export async function getRemoteUrl(remote: string): Promise<string | null> {
 // See: tbd-design.md §2.3 Hidden Worktree Model
 // =============================================================================
 
-import { access, rm } from 'node:fs/promises';
-import { WORKTREE_DIR, TBD_DIR, DATA_SYNC_DIR_NAME, SYNC_BRANCH } from '../lib/paths.js';
+import { access, rm, cp } from 'node:fs/promises';
+import {
+  WORKTREE_DIR,
+  WORKTREE_DIR_NAME,
+  TBD_DIR,
+  DATA_SYNC_DIR_NAME,
+  SYNC_BRANCH,
+} from '../lib/paths.js';
 
 /**
  * Check if the hidden worktree exists and is valid.
@@ -665,28 +671,114 @@ export async function worktreeExists(baseDir: string): Promise<boolean> {
 }
 
 /**
+ * Worktree health status values.
+ * See: tbd-design.md §2.3.4 Worktree Health States
+ */
+export type WorktreeStatus = 'valid' | 'missing' | 'prunable' | 'corrupted';
+
+/**
  * Worktree health status.
  */
 export interface WorktreeHealth {
+  /** Whether the worktree directory exists on disk */
   exists: boolean;
+  /** Whether the worktree is valid and functional */
   valid: boolean;
+  /** Detailed status: valid, missing, prunable, or corrupted */
+  status: WorktreeStatus;
+  /** The branch checked out in the worktree */
   branch: string | null;
+  /** The commit HEAD points to */
   commit: string | null;
+  /** Error message if status is not 'valid' */
   error?: string;
 }
 
 /**
  * Check worktree health and return status.
  * See: tbd-design.md §2.3 Worktree Lifecycle
+ * See: plan-2026-01-28-sync-worktree-recovery-and-hardening.md §3
  */
 export async function checkWorktreeHealth(baseDir: string): Promise<WorktreeHealth> {
   const worktreePath = join(baseDir, WORKTREE_DIR);
+
+  // First check if git reports the worktree as prunable
+  // This catches the case where worktree directory was deleted but git still tracks it
+  try {
+    const worktreeList = await git('-C', baseDir, 'worktree', 'list', '--porcelain');
+
+    // Check if our worktree path appears in the list as prunable
+    const lines = worktreeList.split('\n');
+    let foundWorktree = false;
+    let isPrunable = false;
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      // Check if this entry is for our worktree path
+      if (line?.startsWith('worktree ') && line.includes(WORKTREE_DIR_NAME)) {
+        foundWorktree = true;
+        // Look for prunable marker in subsequent lines until next worktree entry
+        for (let j = i + 1; j < lines.length && !lines[j]?.startsWith('worktree '); j++) {
+          if (lines[j]?.startsWith('prunable')) {
+            isPrunable = true;
+            break;
+          }
+        }
+        break;
+      }
+    }
+
+    if (isPrunable) {
+      return {
+        exists: false,
+        valid: false,
+        status: 'prunable',
+        branch: null,
+        commit: null,
+        error: 'Worktree directory was deleted but git still tracks it. Run: git worktree prune',
+      };
+    }
+
+    // If git doesn't know about the worktree, check if directory exists
+    if (!foundWorktree) {
+      try {
+        await access(worktreePath);
+        // Directory exists but git doesn't know about it - corrupted
+        return {
+          exists: true,
+          valid: false,
+          status: 'corrupted',
+          branch: null,
+          commit: null,
+          error: 'Worktree directory exists but is not registered with git',
+        };
+      } catch {
+        // Directory doesn't exist and git doesn't know about it - missing
+        return {
+          exists: false,
+          valid: false,
+          status: 'missing',
+          branch: null,
+          commit: null,
+        };
+      }
+    }
+  } catch {
+    // git worktree list failed - likely not in a git repo
+    // Fall through to directory-based checks
+  }
 
   // Check if worktree directory exists
   try {
     await access(worktreePath);
   } catch {
-    return { exists: false, valid: false, branch: null, commit: null };
+    return {
+      exists: false,
+      valid: false,
+      status: 'missing',
+      branch: null,
+      commit: null,
+    };
   }
 
   // Check if it's a valid git worktree
@@ -696,9 +788,10 @@ export async function checkWorktreeHealth(baseDir: string): Promise<WorktreeHeal
     return {
       exists: true,
       valid: false,
+      status: 'corrupted',
       branch: null,
       commit: null,
-      error: 'Worktree directory exists but is not a valid git worktree',
+      error: 'Worktree directory exists but is not a valid git worktree (missing .git)',
     };
   }
 
@@ -716,11 +809,12 @@ export async function checkWorktreeHealth(baseDir: string): Promise<WorktreeHeal
       branch = null;
     }
 
-    return { exists: true, valid: true, branch, commit };
+    return { exists: true, valid: true, status: 'valid', branch, commit };
   } catch (error) {
     return {
       exists: true,
       valid: false,
+      status: 'corrupted',
       branch: null,
       commit: null,
       error: error instanceof Error ? error.message : String(error),
@@ -760,24 +854,28 @@ export async function initWorktree(
     // Check if local branch exists
     const localExists = await branchExists(syncBranch);
     if (localExists) {
-      // Create worktree from local branch with detached HEAD
-      await git('-C', baseDir, 'worktree', 'add', worktreePath, syncBranch, '--detach');
+      // Create worktree on local branch (no --detach, so commits update the branch)
+      // Note: Don't use --detach here - we want commits to update tbd-sync branch
+      await git('-C', baseDir, 'worktree', 'add', worktreePath, syncBranch);
       return { success: true, path: worktreePath, created: true };
     }
 
     // Check if remote branch exists
     const remoteExists = await remoteBranchExists(remote, syncBranch);
     if (remoteExists) {
-      // Fetch and create worktree from remote branch
+      // Fetch and create worktree from remote branch with local tracking branch
       await git('-C', baseDir, 'fetch', remote, syncBranch);
+      // Use -b to create local branch tracking remote, not --detach
+      // This ensures commits update the local branch which can then be pushed
       await git(
         '-C',
         baseDir,
         'worktree',
         'add',
+        '-b',
+        syncBranch,
         worktreePath,
         `${remote}/${syncBranch}`,
-        '--detach',
       );
       return { success: true, path: worktreePath, created: true };
     }
@@ -799,8 +897,9 @@ export async function initWorktree(
     await writeFile(join(dataSyncPath, 'mappings', '.gitkeep'), '');
 
     // Stage and commit the initial structure
+    // Use --no-verify to bypass parent repo hooks (lefthook, husky, etc.)
     await git('-C', worktreePath, 'add', '.');
-    await git('-C', worktreePath, 'commit', '-m', 'Initialize tbd-sync branch');
+    await git('-C', worktreePath, 'commit', '--no-verify', '-m', 'Initialize tbd-sync branch');
 
     return { success: true, path: worktreePath, created: true };
   } catch (error) {
@@ -874,6 +973,176 @@ export async function updateWorktree(
   }
 }
 
+// =============================================================================
+// Branch Health Checks
+// See: tbd-design.md §2.3 Hidden Worktree Model, plan spec §4b
+// =============================================================================
+
+/**
+ * Local branch health status.
+ */
+export interface LocalBranchHealth {
+  exists: boolean;
+  orphaned: boolean;
+  head?: string;
+}
+
+/**
+ * Check local sync branch health.
+ * See: plan-2026-01-28-sync-worktree-recovery-and-hardening.md §4b
+ *
+ * @param syncBranch - The sync branch name (default: 'tbd-sync')
+ * @returns Health status indicating if branch exists and has commits
+ */
+export async function checkLocalBranchHealth(
+  syncBranch: string = SYNC_BRANCH,
+): Promise<LocalBranchHealth> {
+  try {
+    const head = await git('rev-parse', `refs/heads/${syncBranch}`);
+    return { exists: true, orphaned: false, head: head.trim() };
+  } catch {
+    // Check if branch ref exists but is orphaned (no commits)
+    try {
+      await git('show-ref', '--verify', `refs/heads/${syncBranch}`);
+      return { exists: true, orphaned: true };
+    } catch {
+      return { exists: false, orphaned: false };
+    }
+  }
+}
+
+/**
+ * Remote branch health status.
+ */
+export interface RemoteBranchHealth {
+  exists: boolean;
+  diverged: boolean;
+  head?: string;
+}
+
+/**
+ * Check remote sync branch health.
+ * See: plan-2026-01-28-sync-worktree-recovery-and-hardening.md §4b
+ *
+ * @param remote - The remote name (default: 'origin')
+ * @param syncBranch - The sync branch name (default: 'tbd-sync')
+ * @returns Health status indicating if remote branch exists and divergence state
+ */
+export async function checkRemoteBranchHealth(
+  remote = 'origin',
+  syncBranch: string = SYNC_BRANCH,
+): Promise<RemoteBranchHealth> {
+  try {
+    await git('fetch', remote, syncBranch);
+    const head = await git('rev-parse', `refs/remotes/${remote}/${syncBranch}`);
+    const remoteHead = head.trim();
+
+    // Check for divergence (only if local branch exists)
+    let diverged = false;
+    try {
+      const mergeBase = await git('merge-base', syncBranch, `${remote}/${syncBranch}`);
+      const localHead = await git('rev-parse', syncBranch);
+
+      // Diverged if merge-base is neither local nor remote HEAD
+      diverged = mergeBase.trim() !== localHead.trim() && mergeBase.trim() !== remoteHead;
+    } catch {
+      // Local branch doesn't exist - can't be diverged
+      diverged = false;
+    }
+
+    return { exists: true, diverged, head: remoteHead };
+  } catch {
+    return { exists: false, diverged: false };
+  }
+}
+
+/**
+ * Sync consistency status.
+ */
+export interface SyncConsistency {
+  /** Worktree HEAD commit SHA */
+  worktreeHead: string;
+  /** Local branch HEAD commit SHA */
+  localHead: string;
+  /** Remote branch HEAD commit SHA */
+  remoteHead: string;
+  /** Whether worktree HEAD matches local branch HEAD */
+  worktreeMatchesLocal: boolean;
+  /** Number of commits local is ahead of remote */
+  localAhead: number;
+  /** Number of commits local is behind remote */
+  localBehind: number;
+}
+
+/**
+ * Check consistency between worktree, local branch, and remote.
+ * See: plan-2026-01-28-sync-worktree-recovery-and-hardening.md §4b
+ *
+ * @param baseDir - The base directory of the repository
+ * @param syncBranch - The sync branch name (default: 'tbd-sync')
+ * @param remote - The remote name (default: 'origin')
+ * @returns Consistency status with HEAD comparisons and ahead/behind counts
+ */
+export async function checkSyncConsistency(
+  baseDir: string,
+  syncBranch: string = SYNC_BRANCH,
+  remote = 'origin',
+): Promise<SyncConsistency> {
+  const worktreePath = join(baseDir, WORKTREE_DIR);
+
+  // Get worktree HEAD
+  const worktreeHead = await git('-C', worktreePath, 'rev-parse', 'HEAD').catch(() => '');
+
+  // Get local branch HEAD
+  const localHead = await git('-C', baseDir, 'rev-parse', syncBranch).catch(() => '');
+
+  // Get remote branch HEAD
+  const remoteHead = await git('-C', baseDir, 'rev-parse', `${remote}/${syncBranch}`).catch(
+    () => '',
+  );
+
+  // Calculate ahead/behind counts
+  let localAhead = 0;
+  let localBehind = 0;
+
+  if (localHead && remoteHead) {
+    try {
+      const aheadOutput = await git(
+        '-C',
+        baseDir,
+        'rev-list',
+        '--count',
+        `${remote}/${syncBranch}..${syncBranch}`,
+      );
+      localAhead = parseInt(aheadOutput.trim(), 10) || 0;
+    } catch {
+      // Ignore errors
+    }
+
+    try {
+      const behindOutput = await git(
+        '-C',
+        baseDir,
+        'rev-list',
+        '--count',
+        `${syncBranch}..${remote}/${syncBranch}`,
+      );
+      localBehind = parseInt(behindOutput.trim(), 10) || 0;
+    } catch {
+      // Ignore errors
+    }
+  }
+
+  return {
+    worktreeHead: worktreeHead.trim(),
+    localHead: localHead.trim(),
+    remoteHead: remoteHead.trim(),
+    worktreeMatchesLocal: worktreeHead.trim() === localHead.trim(),
+    localAhead,
+    localBehind,
+  };
+}
+
 /**
  * Remove the hidden worktree.
  * Used by doctor --fix when worktree is corrupted.
@@ -899,6 +1168,196 @@ export async function removeWorktree(
   } catch (error) {
     return {
       success: false,
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
+}
+
+/**
+ * Repair an unhealthy worktree.
+ *
+ * Follows decision tree from spec Appendix E:
+ * - PRUNABLE: git worktree prune, then recreate
+ * - CORRUPTED: backup to .tbd/backups/, remove, then recreate
+ * - MISSING: just create
+ *
+ * See: plan-2026-01-28-sync-worktree-recovery-and-hardening.md
+ *
+ * @param baseDir - The base directory of the repository
+ * @param status - Current worktree health status
+ * @param remote - The remote name (default: 'origin')
+ * @param syncBranch - The sync branch name (default: 'tbd-sync')
+ */
+export async function repairWorktree(
+  baseDir: string,
+  status: 'missing' | 'prunable' | 'corrupted',
+  remote = 'origin',
+  syncBranch: string = SYNC_BRANCH,
+): Promise<{ success: boolean; path?: string; backedUp?: string; error?: string }> {
+  const worktreePath = join(baseDir, WORKTREE_DIR);
+
+  try {
+    // Always prune stale worktree entries first for missing and prunable states
+    // This ensures git's worktree list is clean before creating a new worktree
+    if (status === 'missing' || status === 'prunable') {
+      await git('-C', baseDir, 'worktree', 'prune');
+    }
+
+    // Handle corrupted status: backup before removal
+    if (status === 'corrupted') {
+      const backupsDir = join(baseDir, TBD_DIR, 'backups');
+      await mkdir(backupsDir, { recursive: true });
+
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+      const backupPath = join(backupsDir, `corrupted-worktree-backup-${timestamp}`);
+
+      // Copy corrupted worktree to backup before removal
+      try {
+        await cp(worktreePath, backupPath, { recursive: true });
+      } catch {
+        // If copy fails, the directory might not exist or be accessible
+        // Continue with repair anyway
+      }
+
+      // Remove the corrupted worktree
+      await rm(worktreePath, { recursive: true, force: true });
+      await git('-C', baseDir, 'worktree', 'prune');
+
+      // Initialize fresh worktree
+      const result = await initWorktree(baseDir, remote, syncBranch);
+      return { ...result, backedUp: backupPath };
+    }
+
+    // For missing or prunable (after prune), just initialize
+    const result = await initWorktree(baseDir, remote, syncBranch);
+    return result;
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
+}
+
+/**
+ * Migrate data from wrong location (.tbd/data-sync/) to worktree.
+ *
+ * Used when data was incorrectly written to the direct path instead of the worktree.
+ * Per spec Appendix E:
+ * 1. Backup to .tbd/backups/
+ * 2. Copy issues/mappings from .tbd/data-sync/ to worktree
+ * 3. Commit in worktree
+ * 4. Optionally remove wrong location data
+ *
+ * See: plan-2026-01-28-sync-worktree-recovery-and-hardening.md
+ *
+ * @param baseDir - The base directory of the repository
+ * @param removeSource - Whether to remove data from wrong location after migration
+ */
+export async function migrateDataToWorktree(
+  baseDir: string,
+  removeSource = false,
+): Promise<{
+  success: boolean;
+  migratedCount: number;
+  backupPath?: string;
+  error?: string;
+}> {
+  const wrongPath = join(baseDir, TBD_DIR, DATA_SYNC_DIR_NAME);
+  const correctPath = join(baseDir, WORKTREE_DIR, TBD_DIR, DATA_SYNC_DIR_NAME);
+  const worktreePath = join(baseDir, WORKTREE_DIR);
+
+  try {
+    // Check if there's data in the wrong location
+    const wrongIssuesPath = join(wrongPath, 'issues');
+    const wrongMappingsPath = join(wrongPath, 'mappings');
+
+    let issueFiles: string[] = [];
+    let mappingFiles: string[] = [];
+
+    try {
+      const { readdir } = await import('node:fs/promises');
+      issueFiles = await readdir(wrongIssuesPath).catch(() => []);
+      mappingFiles = await readdir(wrongMappingsPath).catch(() => []);
+    } catch {
+      // Directory doesn't exist
+    }
+
+    // Filter out .gitkeep files
+    issueFiles = issueFiles.filter((f) => f !== '.gitkeep');
+    mappingFiles = mappingFiles.filter((f) => f !== '.gitkeep');
+
+    if (issueFiles.length === 0 && mappingFiles.length === 0) {
+      return { success: true, migratedCount: 0 };
+    }
+
+    // Step 1: Backup to .tbd/backups/
+    const backupsDir = join(baseDir, TBD_DIR, 'backups');
+    await mkdir(backupsDir, { recursive: true });
+
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+    const backupPath = join(backupsDir, `data-sync-backup-${timestamp}`);
+
+    await cp(wrongPath, backupPath, { recursive: true });
+
+    // Step 2: Copy issues and mappings to worktree
+    const correctIssuesPath = join(correctPath, 'issues');
+    const correctMappingsPath = join(correctPath, 'mappings');
+
+    await mkdir(correctIssuesPath, { recursive: true });
+    await mkdir(correctMappingsPath, { recursive: true });
+
+    for (const file of issueFiles) {
+      await cp(join(wrongIssuesPath, file), join(correctIssuesPath, file));
+    }
+
+    for (const file of mappingFiles) {
+      await cp(join(wrongMappingsPath, file), join(correctMappingsPath, file));
+    }
+
+    // Step 3: Commit in worktree (if there are changes)
+    // Use --no-verify to bypass parent repo hooks (lefthook, husky, etc.)
+    const totalFiles = issueFiles.length + mappingFiles.length;
+    await git('-C', worktreePath, 'add', '-A');
+
+    // Check if there are staged changes before committing
+    // git diff --cached --quiet returns 0 if no changes, 1 if changes
+    const hasChanges = await git('-C', worktreePath, 'diff', '--cached', '--quiet')
+      .then(() => false)
+      .catch(() => true);
+
+    if (hasChanges) {
+      await git(
+        '-C',
+        worktreePath,
+        'commit',
+        '--no-verify',
+        '-m',
+        `tbd: migrate ${totalFiles} file(s) from incorrect location`,
+      );
+    }
+    // If no changes, files were already migrated - that's fine
+
+    // Step 4: Optionally remove wrong location data
+    if (removeSource) {
+      // Remove issue and mapping files, but keep directory structure
+      for (const file of issueFiles) {
+        await rm(join(wrongIssuesPath, file));
+      }
+      for (const file of mappingFiles) {
+        await rm(join(wrongMappingsPath, file));
+      }
+    }
+
+    return {
+      success: true,
+      migratedCount: totalFiles,
+      backupPath,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      migratedCount: 0,
       error: error instanceof Error ? error.message : String(error),
     };
   }

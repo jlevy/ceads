@@ -1,6 +1,7 @@
 ---
 title: Implement Beads
 description: Implement issues from a spec, following TDD and project rules
+author: Joshua Levy (github.com/jlevy) with LLM assistance
 ---
 Shortcut: Implement Beads
 

@@ -1,10 +1,15 @@
 ---
 title: Research Brief Template
 description: Template for research documents
+author: Joshua Levy (github.com/jlevy) with LLM assistance
 ---
 # Research: [Topic]
 
-**Date:** YYYY-MM-DD **Author:** [Name] **Status:** In Progress | Complete
+**Date:** YYYY-MM-DD (last updated YYYY-MM-DD)
+
+**Author:** [Name]
+
+**Status:** In Progress | Complete
 
 ## Overview
 

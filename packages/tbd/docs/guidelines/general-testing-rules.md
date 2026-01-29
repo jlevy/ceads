@@ -1,6 +1,7 @@
 ---
 title: General Testing Rules
 description: Rules for writing minimal, effective tests with maximum coverage
+author: Joshua Levy (github.com/jlevy) with LLM assistance
 ---
 ## General Testing Rules
 
