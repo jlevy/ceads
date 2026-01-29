@@ -3,8 +3,6 @@ title: Commit Code
 description: Run pre-commit checks, review changes, and commit code
 author: Joshua Levy (github.com/jlevy) with LLM assistance
 ---
-Shortcut: Run Pre-Commit Rules, Review, and Commit
-
 We track issues with tbd.
 Run `tbd` for more on using tbd and current status.
 

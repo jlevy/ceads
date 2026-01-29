@@ -94,7 +94,7 @@ status or context or knowledge and know what to do next:
 | What you say | What happens | What runs |
 | --- | --- | --- |
 | "Let's plan a new feature that …" | Agent creates a spec from a template | `tbd shortcut new-plan-spec` |
-| "Break this spec into beads" | Agent creates implementation beads from the spec | `tbd shortcut new-implementation-beads-from-spec` |
+| "Break this spec into beads" | Agent creates implementation beads from the spec | `tbd shortcut plan-implementation-with-beads` |
 | "Implement these beads" | Agent works through beads systematically | `tbd shortcut implement-beads` |
 | "Create a bead for the bug where …" | Agent creates and tracks a bead | `tbd create "..." --type=bug` |
 | "Let's work on current beads" | Agent finds ready beads and starts working | `tbd ready` |
@@ -340,7 +340,7 @@ tbd template --add=<url> --name=<name>
 | `new-research-brief` | Create a research document |
 | `new-architecture-doc` | Create an architecture document |
 | `new-validation-plan` | Create a test/validation plan |
-| `new-implementation-beads-from-spec` | Break a spec into implementation beads |
+| `plan-implementation-with-beads` | Break a spec into implementation beads |
 | `implement-beads` | Implement beads from a spec |
 | `precommit-process` | Pre-commit review and testing |
 | `commit-code` | Commit with pre-commit checks |
@@ -386,7 +386,7 @@ For non-trivial features, tbd supports a full spec-driven workflow:
 
 1. **Plan**: Create a planning spec (`tbd shortcut new-plan-spec`)
 2. **Break down**: Convert spec into implementation beads
-   (`tbd shortcut new-implementation-beads-from-spec`)
+   (`tbd shortcut plan-implementation-with-beads`)
 3. **Implement**: Work through beads systematically (`tbd shortcut implement-beads`)
 4. **Validate**: Create validation plan, run tests (`tbd shortcut new-validation-plan`)
 5. **Ship**: Commit, create PR (`tbd shortcut create-or-update-pr-with-validation-plan`)

@@ -2,8 +2,6 @@
 title: Shortcut System Explanation
 description: How tbd shortcuts work for agents
 ---
-# tbd Shortcuts
-
 Shortcuts are reusable instructions for common tasks.
 Give a name or description and tbd will find the matching shortcut and output its
 instructions.

@@ -32,15 +32,17 @@ docs_cache:
     guidelines/typescript-code-coverage.md: internal:guidelines/typescript-code-coverage.md
     guidelines/typescript-monorepo-patterns.md: internal:guidelines/typescript-monorepo-patterns.md
     guidelines/typescript-rules.md: internal:guidelines/typescript-rules.md
+    shortcuts/standard/agent-handoff.md: internal:shortcuts/standard/agent-handoff.md
     shortcuts/standard/commit-code.md: internal:shortcuts/standard/commit-code.md
     shortcuts/standard/create-or-update-pr-simple.md: internal:shortcuts/standard/create-or-update-pr-simple.md
     shortcuts/standard/create-or-update-pr-with-validation-plan.md: internal:shortcuts/standard/create-or-update-pr-with-validation-plan.md
     shortcuts/standard/implement-beads.md: internal:shortcuts/standard/implement-beads.md
     shortcuts/standard/new-architecture-doc.md: internal:shortcuts/standard/new-architecture-doc.md
     shortcuts/standard/new-guideline.md: internal:shortcuts/standard/new-guideline.md
-    shortcuts/standard/new-implementation-beads-from-spec.md: internal:shortcuts/standard/new-implementation-beads-from-spec.md
+    shortcuts/standard/plan-implementation-with-beads.md: internal:shortcuts/standard/plan-implementation-with-beads.md
     shortcuts/standard/new-plan-spec.md: internal:shortcuts/standard/new-plan-spec.md
     shortcuts/standard/new-research-brief.md: internal:shortcuts/standard/new-research-brief.md
+    shortcuts/standard/new-shortcut.md: internal:shortcuts/standard/new-shortcut.md
     shortcuts/standard/new-validation-plan.md: internal:shortcuts/standard/new-validation-plan.md
     shortcuts/standard/precommit-process.md: internal:shortcuts/standard/precommit-process.md
     shortcuts/standard/review-code-python.md: internal:shortcuts/standard/review-code-python.md

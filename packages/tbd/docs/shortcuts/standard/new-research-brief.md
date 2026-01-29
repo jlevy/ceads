@@ -3,8 +3,6 @@ title: New Research Doc
 description: Create a research document for investigating a topic or technology
 author: Joshua Levy (github.com/jlevy) with LLM assistance
 ---
-Shortcut: New Research Doc
-
 We track issues with tbd.
 Run `tbd` for more on using tbd and current status.
 

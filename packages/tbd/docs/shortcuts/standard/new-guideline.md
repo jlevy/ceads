@@ -3,8 +3,6 @@ title: New Guideline
 description: Create a new coding guideline document for tbd
 author: Joshua Levy (github.com/jlevy) with LLM assistance
 ---
-Shortcut: New Guideline
-
 This shortcut helps create new guideline documents that agents can reference via
 `tbd guidelines <name>`.
 

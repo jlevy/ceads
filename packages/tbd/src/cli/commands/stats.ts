@@ -12,6 +12,7 @@ import { listIssues } from '../../file/storage.js';
 import type { Issue, IssueStatusType, IssueKindType } from '../../lib/types.js';
 import { resolveDataSyncDir } from '../../lib/paths.js';
 import { formatPriority } from '../../lib/priority.js';
+import { renderStatisticsSection, renderFooter } from '../lib/sections.js';
 
 class StatsHandler extends BaseCommand {
   async run(): Promise<void> {
@@ -95,18 +96,29 @@ class StatsHandler extends BaseCommand {
     this.output.data(stats, () => {
       const colors = this.output.getColors();
 
-      // Summary section
+      // Summary heading (stats uses "Summary:" while doctor uses "STATISTICS")
       console.log(colors.bold('Summary:'));
-      console.log(`  Ready:       ${stats.ready}`);
-      console.log(`  In progress: ${stats.byStatus.in_progress}`);
-      console.log(`  Blocked:     ${stats.blocked}`);
-      console.log(`  Open:        ${stats.byStatus.open}`);
-      console.log(`  Total:       ${stats.total}`);
+
+      // STATISTICS section (shared with doctor command)
+      renderStatisticsSection(
+        {
+          ready: stats.ready,
+          inProgress: stats.byStatus.in_progress,
+          blocked: stats.blocked,
+          open: stats.byStatus.open,
+          total: stats.total,
+        },
+        colors,
+        { showHeading: false }, // stats doesn't need the STATISTICS heading since it has Summary
+      );
 
       if (stats.total === 0) {
-        console.log('');
-        console.log(
-          `Use ${colors.bold("'tbd status'")} for setup info, ${colors.bold("'tbd doctor'")} for health checks.`,
+        renderFooter(
+          [
+            { command: 'tbd status', description: 'setup info' },
+            { command: 'tbd doctor', description: 'health checks' },
+          ],
+          colors,
         );
         return;
       }
@@ -137,9 +149,13 @@ class StatsHandler extends BaseCommand {
         }
       }
 
-      console.log('');
-      console.log(
-        `Use ${colors.bold("'tbd status'")} for setup info, ${colors.bold("'tbd doctor'")} for health checks.`,
+      // Footer (shared format)
+      renderFooter(
+        [
+          { command: 'tbd status', description: 'setup info' },
+          { command: 'tbd doctor', description: 'health checks' },
+        ],
+        colors,
       );
     });
   }

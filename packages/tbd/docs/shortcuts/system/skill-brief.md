@@ -1,5 +1,7 @@
-# tbd Workflow Rules (Brief)
-
+---
+title: tbd Workflow (Brief)
+description: Condensed tbd workflow guide for agents
+---
 **`tbd` helps humans and agents ship code with greater speed, quality, and discipline.**
 
 1. **Issue Tracking**: Git-native tasks/bugs.

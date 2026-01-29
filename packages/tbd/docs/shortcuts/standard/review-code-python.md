@@ -3,8 +3,6 @@ title: Review Code (Python)
 description: Perform a code review for Python code following best practices
 author: Joshua Levy (github.com/jlevy) with LLM assistance
 ---
-Shortcut: Review Code (Python)
-
 We track issues with tbd.
 Run `tbd` for more on using tbd and current status.
 

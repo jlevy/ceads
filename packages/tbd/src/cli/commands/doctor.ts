@@ -32,6 +32,11 @@ import {
 import { type DiagnosticResult, renderDiagnostics } from '../lib/diagnostics.js';
 import { VERSION } from '../lib/version.js';
 import { formatHeading } from '../lib/output.js';
+import {
+  renderRepositorySection,
+  renderConfigSection,
+  renderStatisticsSection,
+} from '../lib/sections.js';
 
 const CONFIG_DIR = TBD_DIR;
 
@@ -135,38 +140,42 @@ class DoctorHandler extends BaseCommand {
       () => {
         const colors = this.output.getColors();
 
-        // REPOSITORY section (matches status command)
-        console.log(colors.bold(formatHeading('Repository')));
-        console.log(`tbd v${VERSION}`);
-        console.log(`Repository: ${this.cwd}`);
-        console.log(`  ${colors.success('✓')} Initialized (.tbd/)`);
-        if (statusInfo.gitBranch) {
-          console.log(`  ${colors.success('✓')} Git repository (${statusInfo.gitBranch})`);
-        }
+        // REPOSITORY section (shared with status command)
+        renderRepositorySection(
+          {
+            version: VERSION,
+            workingDirectory: this.cwd,
+            initialized: true, // doctor requires init
+            gitRepository: !!statusInfo.gitBranch,
+            gitBranch: statusInfo.gitBranch,
+            gitVersion: null, // Git version is shown in health checks
+            gitVersionSupported: true,
+          },
+          colors,
+          { showHeading: true },
+        );
+
+        // CONFIG section (shared with status command)
         if (this.config) {
-          console.log('');
-          console.log(`${colors.dim('Sync branch:')} ${this.config.sync.branch}`);
-          console.log(`${colors.dim('Remote:')} ${this.config.sync.remote}`);
-          if (this.config.display.id_prefix) {
-            console.log(`${colors.dim('ID prefix:')} ${this.config.display.id_prefix}-`);
-          }
+          renderConfigSection(
+            {
+              syncBranch: this.config.sync.branch,
+              remote: this.config.sync.remote,
+              displayPrefix: this.config.display.id_prefix,
+            },
+            colors,
+          );
         }
 
-        // STATISTICS section
-        console.log('');
-        console.log(colors.bold(formatHeading('Statistics')));
-        console.log(`  Ready:       ${statsInfo.ready}`);
-        console.log(`  In progress: ${statsInfo.inProgress}`);
-        console.log(`  Blocked:     ${statsInfo.blocked}`);
-        console.log(`  Open:        ${statsInfo.open}`);
-        console.log(`  Total:       ${statsInfo.total}`);
+        // STATISTICS section (shared with stats command)
+        renderStatisticsSection(statsInfo, colors);
 
-        // INTEGRATIONS section (matches status command)
+        // INTEGRATIONS section
         console.log('');
         console.log(colors.bold(formatHeading('Integrations')));
         renderDiagnostics(integrationChecks, colors);
 
-        // HEALTH CHECKS section
+        // HEALTH CHECKS section (doctor-only)
         console.log('');
         console.log(colors.bold(formatHeading('Health Checks')));
         renderDiagnostics(healthChecks, colors);

@@ -122,7 +122,7 @@ them systematically using issues to track each part.
 **The spec-driven workflow**:
 1. **Plan**: Create a planning spec (`tbd shortcut new-plan-spec`)
 2. **Break down**: Convert spec into implementation issues
-   (`tbd shortcut new-implementation-beads-from-spec`)
+   (`tbd shortcut plan-implementation-with-beads`)
 3. **Implement**: Work through issues systematically (`tbd shortcut implement-beads`)
 4. **Validate**: Create validation plan, run tests (`tbd shortcut new-validation-plan`)
 5. **Ship**: Commit, create PR, get it merged (`tbd shortcut commit-code`,
@@ -149,7 +149,7 @@ repetitive workflows.
 | Category | Shortcuts | Purpose |
 | --- | --- | --- |
 | **Planning** | `new-plan-spec`, `new-research-brief`, `new-architecture-doc` | Structure thinking before coding |
-| **Issue Creation** | `new-implementation-beads-from-spec` | Break plans into trackable work |
+| **Issue Creation** | `plan-implementation-with-beads` | Break plans into trackable work |
 | **Implementation** | `implement-beads` | Execute planned work with TDD |
 | **Validation** | `new-validation-plan`, `precommit-process` | Ensure quality before shipping |
 | **Shipping** | `commit-code`, `create-or-update-pr-simple`, `create-or-update-pr-with-validation-plan` | Ship code professionally |
@@ -522,7 +522,7 @@ These are **informational commands** - they display guidance the agent should fo
 | `tbd shortcut new-plan-spec` | Plan Feature | How to create a feature planning specification |
 | `tbd shortcut new-research-brief` | Research Topic | How to create a research document |
 | `tbd shortcut new-architecture-doc` | Design Architecture | How to create an architecture document |
-| `tbd shortcut new-implementation-beads-from-spec` | Create Issues | How to break a spec into implementation issues |
+| `tbd shortcut plan-implementation-with-beads` | Create Issues | How to break a spec into implementation issues |
 | `tbd shortcut new-validation-plan` | Validation Plan | How to create a test/validation plan |
 | `tbd shortcut precommit-process` | Pre-Commit | Full pre-commit checklist |
 | `tbd shortcut review-code-typescript` | Review TypeScript | How to review TypeScript code |
@@ -579,7 +579,7 @@ DEVELOPMENT WORKFLOWS (Shortcuts)
     new-architecture-doc   Design system architecture
 
   Implementation:
-    new-implementation-beads-from-spec   Break plan into issues
+    plan-implementation-with-beads   Break plan into issues
     implement-beads        Implement issues with TDD
 
   Quality:

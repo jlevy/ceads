@@ -1,5 +1,7 @@
-# tbd Workflow
-
+---
+title: tbd Workflow
+description: Full tbd workflow guide for agents
+---
 **`tbd` helps humans and agents ship code with greater speed, quality, and discipline.**
 
 1. **Issue Tracking**: Git-native tasks/bugs.
@@ -90,7 +92,7 @@ This table shows what the user says naturally and what you (the agent) do in res
 | "Review these changes" (TypeScript) | `tbd guidelines typescript-rules` | You follow the guidelines |
 | "Review these changes" (Python) | `tbd guidelines python-rules` | You follow the guidelines |
 | "Let's plan a new feature" | `tbd shortcut new-plan-spec` | You follow the spec template |
-| "Break spec into issues" | `tbd shortcut new-implementation-beads-from-spec` | You create implementation issues |
+| "Break spec into issues" | `tbd shortcut plan-implementation-with-beads` | You create implementation issues |
 | "Implement these issues" | `tbd shortcut implement-beads` | You implement systematically |
 | "Commit this" | `tbd shortcut commit-code` | You review and commit |
 | "Create a PR" | `tbd shortcut create-or-update-pr-simple` | You create the PR |

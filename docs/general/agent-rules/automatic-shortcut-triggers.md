@@ -36,7 +36,7 @@ instructions.
 
 | If user request involves... | Use shortcut |
 | --- | --- |
-| Creating implementation beads from a spec | @shortcut-new-implementation-beads-from-spec.md |
+| Creating implementation beads from a spec | @shortcut-plan-implementation-with-beads.md |
 | Implementing beads | @shortcut-implement-beads.md |
 | Implementing a spec (legacy, no beads) | @shortcut-implement-spec.md |
 | Exploratory coding / prototype / spike | @shortcut-coding-spike.md |
@@ -84,7 +84,7 @@ Always complete the full chain when applicable.
 
 When user says “implement this spec” or similar:
 
-1. @shortcut-new-implementation-beads-from-spec.md — Create beads from the spec
+1. @shortcut-plan-implementation-with-beads.md — Create beads from the spec
 
 2. @shortcut-implement-beads.md — Implement all beads
 
@@ -108,7 +108,7 @@ When user says “implement this spec” or similar:
 
 1. @shortcut-new-plan-spec.md — Create plan spec
 
-2. @shortcut-new-implementation-beads-from-spec.md — Create implementation beads
+2. @shortcut-plan-implementation-with-beads.md — Create implementation beads
 
 3. @shortcut-implement-beads.md — Implement beads
 

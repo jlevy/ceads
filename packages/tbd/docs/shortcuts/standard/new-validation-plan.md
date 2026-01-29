@@ -3,8 +3,6 @@ title: New Validation Plan
 description: Create a validation/test plan for a feature or change
 author: Joshua Levy (github.com/jlevy) with LLM assistance
 ---
-Shortcut: New Validation Plan
-
 We track issues with tbd.
 Run `tbd` for more on using tbd and current status.
 

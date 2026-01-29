@@ -3,8 +3,6 @@ title: New Plan Spec
 description: Create a new feature planning specification document
 author: Joshua Levy (github.com/jlevy) with LLM assistance
 ---
-Shortcut: New Plan Spec
-
 We track issues with tbd.
 Run `tbd` for more on using tbd and current status.
 

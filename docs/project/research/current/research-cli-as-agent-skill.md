@@ -1031,7 +1031,7 @@ This helps agents find relevant resources based on what they’re trying to acco
 | Category | Resources | When to Use |
 | --- | --- | --- |
 | Planning | `new-plan-spec`, `new-research-brief`, `new-architecture-doc` | Starting new work |
-| Implementation | `implement-beads`, `new-implementation-beads-from-spec` | Building features |
+| Implementation | `implement-beads`, `plan-implementation-with-beads` | Building features |
 | Quality | `new-validation-plan`, `precommit-process`, `review-code-*` | Ensuring quality |
 | Shipping | `commit-code`, `create-pr-*` | Delivering work |
 
