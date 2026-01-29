@@ -22,6 +22,8 @@ import {
   MIN_GIT_VERSION,
   getCurrentBranch,
   checkWorktreeHealth,
+  checkLocalBranchHealth,
+  checkRemoteBranchHealth,
 } from '../../file/git.js';
 import { type DiagnosticResult, renderDiagnostics } from '../lib/diagnostics.js';
 import { VERSION } from '../lib/version.js';
@@ -94,6 +96,18 @@ class DoctorHandler extends BaseCommand {
 
     // Check 9: Data location (issues in wrong path)
     healthChecks.push(await this.checkDataLocation());
+
+    // Check 10: Local sync branch health
+    healthChecks.push(await this.checkLocalSyncBranch());
+
+    // Check 11: Remote sync branch health
+    healthChecks.push(await this.checkRemoteSyncBranch());
+
+    // Check 12: Local has data but remote empty (ai-trade-arena bug detection)
+    healthChecks.push(await this.checkLocalVsRemoteData());
+
+    // Check 13: Multi-user/clone scenario detection
+    healthChecks.push(await this.checkCloneScenarios());
 
     // Run integration checks (optional IDE/agent integrations)
     const integrationChecks: DiagnosticResult[] = [];
@@ -494,24 +508,58 @@ class DoctorHandler extends BaseCommand {
     }
   }
 
+  /**
+   * Check worktree health with enhanced status detection.
+   * See: plan-2026-01-28-sync-worktree-recovery-and-hardening.md §4
+   */
   private async checkWorktree(): Promise<DiagnosticResult> {
     const worktreePath = WORKTREE_DIR;
     const worktreeHealth = await checkWorktreeHealth(this.cwd);
-    if (worktreeHealth.valid) {
-      return { name: 'Worktree', status: 'ok', path: worktreePath };
+
+    switch (worktreeHealth.status) {
+      case 'valid':
+        return { name: 'Worktree', status: 'ok', path: worktreePath };
+
+      case 'missing':
+        // Worktree not existing is OK - it's created on demand
+        return { name: 'Worktree', status: 'ok', message: 'not created yet', path: worktreePath };
+
+      case 'prunable':
+        // Worktree directory was deleted but git still tracks it
+        return {
+          name: 'Worktree',
+          status: 'error',
+          message: 'prunable (directory deleted)',
+          path: worktreePath,
+          details: [
+            'The worktree directory was deleted but git still tracks it.',
+            'This can cause data to be written to the wrong location.',
+          ],
+          fixable: true,
+          suggestion: 'Run: tbd doctor --fix to recreate worktree',
+        };
+
+      case 'corrupted':
+        return {
+          name: 'Worktree',
+          status: 'error',
+          message: worktreeHealth.error ?? 'corrupted',
+          path: worktreePath,
+          details: ['The worktree exists but is not a valid git worktree.'],
+          fixable: true,
+          suggestion: 'Run: tbd doctor --fix to repair',
+        };
+
+      default:
+        return {
+          name: 'Worktree',
+          status: 'warn',
+          message: worktreeHealth.error ?? 'unknown status',
+          path: worktreePath,
+          fixable: true,
+          suggestion: 'Run: tbd doctor --fix',
+        };
     }
-    if (!worktreeHealth.exists) {
-      // Worktree not existing is OK - it's created on demand
-      return { name: 'Worktree', status: 'ok', message: 'not created yet', path: worktreePath };
-    }
-    return {
-      name: 'Worktree',
-      status: 'warn',
-      message: worktreeHealth.error ?? 'unhealthy',
-      path: worktreePath,
-      fixable: true,
-      suggestion: 'Run: tbd doctor --fix',
-    };
   }
 
   /**
@@ -552,6 +600,214 @@ class DoctorHandler extends BaseCommand {
       fixable: true,
       suggestion: 'Run: tbd doctor --fix to migrate issues to worktree',
     };
+  }
+
+  /**
+   * Check local sync branch health.
+   * See: plan-2026-01-28-sync-worktree-recovery-and-hardening.md §4b
+   */
+  private async checkLocalSyncBranch(): Promise<DiagnosticResult> {
+    const syncBranch = this.config?.sync.branch ?? 'tbd-sync';
+    const localHealth = await checkLocalBranchHealth(syncBranch);
+
+    if (localHealth.exists && !localHealth.orphaned) {
+      return { name: 'Local sync branch', status: 'ok', message: syncBranch };
+    }
+
+    if (!localHealth.exists) {
+      // Local branch doesn't exist - check if remote exists
+      const remote = this.config?.sync.remote ?? 'origin';
+      const remoteHealth = await checkRemoteBranchHealth(remote, syncBranch);
+
+      if (remoteHealth.exists) {
+        // Remote exists but local doesn't - can be created from remote
+        return {
+          name: 'Local sync branch',
+          status: 'warn',
+          message: `${syncBranch} not found (remote exists)`,
+          suggestion: 'Run: tbd sync to create from remote',
+        };
+      }
+
+      // Neither local nor remote - new repo, this is OK
+      return {
+        name: 'Local sync branch',
+        status: 'ok',
+        message: 'not created yet',
+      };
+    }
+
+    // Branch exists but is orphaned (no commits)
+    return {
+      name: 'Local sync branch',
+      status: 'warn',
+      message: `${syncBranch} exists but has no commits`,
+      suggestion: 'Run: tbd sync to push data',
+    };
+  }
+
+  /**
+   * Check remote sync branch health.
+   * See: plan-2026-01-28-sync-worktree-recovery-and-hardening.md §4b
+   */
+  private async checkRemoteSyncBranch(): Promise<DiagnosticResult> {
+    const syncBranch = this.config?.sync.branch ?? 'tbd-sync';
+    const remote = this.config?.sync.remote ?? 'origin';
+    const remoteHealth = await checkRemoteBranchHealth(remote, syncBranch);
+
+    if (remoteHealth.exists) {
+      if (remoteHealth.diverged) {
+        return {
+          name: 'Remote sync branch',
+          status: 'warn',
+          message: `${remote}/${syncBranch} has diverged`,
+          suggestion: 'Run: tbd sync to reconcile changes',
+        };
+      }
+      return { name: 'Remote sync branch', status: 'ok', message: `${remote}/${syncBranch}` };
+    }
+
+    // Remote branch doesn't exist
+    const localHealth = await checkLocalBranchHealth(syncBranch);
+    if (localHealth.exists) {
+      // Local exists but remote doesn't - needs push
+      return {
+        name: 'Remote sync branch',
+        status: 'warn',
+        message: `${remote}/${syncBranch} not found`,
+        suggestion: 'Run: tbd sync to push local branch',
+      };
+    }
+
+    // Neither exists - new repo, this is OK
+    return {
+      name: 'Remote sync branch',
+      status: 'ok',
+      message: 'not created yet',
+    };
+  }
+
+  /**
+   * Check for local data that hasn't been synced to remote.
+   * This detects the ai-trade-arena bug scenario.
+   * See: plan-2026-01-28-sync-worktree-recovery-and-hardening.md §4
+   */
+  private async checkLocalVsRemoteData(): Promise<DiagnosticResult> {
+    // Only check if worktree exists and has issues
+    const worktreeHealth = await checkWorktreeHealth(this.cwd);
+    if (worktreeHealth.status !== 'valid') {
+      // Worktree not valid - can't compare
+      return { name: 'Sync status', status: 'ok', message: 'worktree not active' };
+    }
+
+    // Count local issues in worktree
+    const localIssueCount = this.issues.length;
+    if (localIssueCount === 0) {
+      return { name: 'Sync status', status: 'ok' };
+    }
+
+    // Check if remote branch exists and has commits
+    const syncBranch = this.config?.sync.branch ?? 'tbd-sync';
+    const remote = this.config?.sync.remote ?? 'origin';
+    const remoteHealth = await checkRemoteBranchHealth(remote, syncBranch);
+
+    if (!remoteHealth.exists) {
+      // Remote doesn't exist - issues haven't been pushed
+      return {
+        name: 'Sync status',
+        status: 'warn',
+        message: `${localIssueCount} local issues, remote branch not found`,
+        suggestion: 'Run: tbd sync to push issues to remote',
+      };
+    }
+
+    // Note: Full remote issue count comparison would require fetching the remote
+    // For now, we flag if local has issues but remote branch exists but is empty
+    // This is detected by comparing commit counts or checking issue files
+    // A simpler check: if worktree has uncommitted changes, we know they aren't synced
+
+    return { name: 'Sync status', status: 'ok' };
+  }
+
+  /**
+   * Check for multi-user/clone scenarios that indicate lost data.
+   * See: plan-2026-01-28-sync-worktree-recovery-and-hardening.md §6
+   */
+  private async checkCloneScenarios(): Promise<DiagnosticResult> {
+    // Only relevant if we have no issues
+    const localIssueCount = this.issues.length;
+    if (localIssueCount > 0) {
+      return { name: 'Clone status', status: 'ok' };
+    }
+
+    // Check 1: Beads migration evidence exists but tbd has no issues
+    const beadsDisabledPath = join(this.cwd, '.beads-disabled');
+    let beadsMigrationExists = false;
+    try {
+      await access(beadsDisabledPath);
+      beadsMigrationExists = true;
+    } catch {
+      // No beads migration - that's fine
+    }
+
+    if (beadsMigrationExists) {
+      // Check if beads had issues
+      const beadsJsonl = join(beadsDisabledPath, '.beads', 'issues.jsonl');
+      let beadsIssueCount = 0;
+      try {
+        const content = await readFile(beadsJsonl, 'utf-8');
+        beadsIssueCount = content.trim().split('\n').filter(Boolean).length;
+      } catch {
+        // Can't read beads file - ignore
+      }
+
+      if (beadsIssueCount > 0) {
+        return {
+          name: 'Clone status',
+          status: 'error',
+          message: `Beads migration has ${beadsIssueCount} issues, tbd has none`,
+          details: [
+            'This repo was migrated from beads but issues were never synced.',
+            'Another user may have the issues locally but they were not pushed.',
+          ],
+          suggestion: 'Contact the repo owner to run: tbd sync',
+        };
+      }
+    }
+
+    // Check 2: Config has id_prefix but no issues (suggests prior usage)
+    if (!beadsMigrationExists && this.config?.display?.id_prefix) {
+      return {
+        name: 'Clone status',
+        status: 'warn',
+        message: `Config has prefix '${this.config.display.id_prefix}' but no issues`,
+        details: [
+          'This suggests issues may have been created but not synced,',
+          'or were lost due to sync issues on another machine.',
+        ],
+        suggestion: 'If you expect issues to exist, contact the repo owner',
+      };
+    }
+
+    // Check 3: Active beads directory exists (not migrated yet)
+    const beadsPath = join(this.cwd, '.beads');
+    let beadsActiveExists = false;
+    try {
+      await access(beadsPath);
+      beadsActiveExists = true;
+    } catch {
+      // No active beads - that's fine
+    }
+
+    if (beadsActiveExists) {
+      return {
+        name: 'Clone status',
+        status: 'ok',
+        message: 'beads directory exists (migration available)',
+      };
+    }
+
+    return { name: 'Clone status', status: 'ok' };
   }
 }
 

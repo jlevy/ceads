@@ -647,7 +647,13 @@ export async function getRemoteUrl(remote: string): Promise<string | null> {
 // =============================================================================
 
 import { access, rm } from 'node:fs/promises';
-import { WORKTREE_DIR, TBD_DIR, DATA_SYNC_DIR_NAME, SYNC_BRANCH } from '../lib/paths.js';
+import {
+  WORKTREE_DIR,
+  WORKTREE_DIR_NAME,
+  TBD_DIR,
+  DATA_SYNC_DIR_NAME,
+  SYNC_BRANCH,
+} from '../lib/paths.js';
 
 /**
  * Check if the hidden worktree exists and is valid.
@@ -665,28 +671,114 @@ export async function worktreeExists(baseDir: string): Promise<boolean> {
 }
 
 /**
+ * Worktree health status values.
+ * See: tbd-design.md §2.3.4 Worktree Health States
+ */
+export type WorktreeStatus = 'valid' | 'missing' | 'prunable' | 'corrupted';
+
+/**
  * Worktree health status.
  */
 export interface WorktreeHealth {
+  /** Whether the worktree directory exists on disk */
   exists: boolean;
+  /** Whether the worktree is valid and functional */
   valid: boolean;
+  /** Detailed status: valid, missing, prunable, or corrupted */
+  status: WorktreeStatus;
+  /** The branch checked out in the worktree */
   branch: string | null;
+  /** The commit HEAD points to */
   commit: string | null;
+  /** Error message if status is not 'valid' */
   error?: string;
 }
 
 /**
  * Check worktree health and return status.
  * See: tbd-design.md §2.3 Worktree Lifecycle
+ * See: plan-2026-01-28-sync-worktree-recovery-and-hardening.md §3
  */
 export async function checkWorktreeHealth(baseDir: string): Promise<WorktreeHealth> {
   const worktreePath = join(baseDir, WORKTREE_DIR);
+
+  // First check if git reports the worktree as prunable
+  // This catches the case where worktree directory was deleted but git still tracks it
+  try {
+    const worktreeList = await git('-C', baseDir, 'worktree', 'list', '--porcelain');
+
+    // Check if our worktree path appears in the list as prunable
+    const lines = worktreeList.split('\n');
+    let foundWorktree = false;
+    let isPrunable = false;
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      // Check if this entry is for our worktree path
+      if (line?.startsWith('worktree ') && line.includes(WORKTREE_DIR_NAME)) {
+        foundWorktree = true;
+        // Look for prunable marker in subsequent lines until next worktree entry
+        for (let j = i + 1; j < lines.length && !lines[j]?.startsWith('worktree '); j++) {
+          if (lines[j] === 'prunable') {
+            isPrunable = true;
+            break;
+          }
+        }
+        break;
+      }
+    }
+
+    if (isPrunable) {
+      return {
+        exists: false,
+        valid: false,
+        status: 'prunable',
+        branch: null,
+        commit: null,
+        error: 'Worktree directory was deleted but git still tracks it. Run: git worktree prune',
+      };
+    }
+
+    // If git doesn't know about the worktree, check if directory exists
+    if (!foundWorktree) {
+      try {
+        await access(worktreePath);
+        // Directory exists but git doesn't know about it - corrupted
+        return {
+          exists: true,
+          valid: false,
+          status: 'corrupted',
+          branch: null,
+          commit: null,
+          error: 'Worktree directory exists but is not registered with git',
+        };
+      } catch {
+        // Directory doesn't exist and git doesn't know about it - missing
+        return {
+          exists: false,
+          valid: false,
+          status: 'missing',
+          branch: null,
+          commit: null,
+        };
+      }
+    }
+  } catch {
+    // git worktree list failed - likely not in a git repo
+    // Fall through to directory-based checks
+  }
 
   // Check if worktree directory exists
   try {
     await access(worktreePath);
   } catch {
-    return { exists: false, valid: false, branch: null, commit: null };
+    return {
+      exists: false,
+      valid: false,
+      status: 'missing',
+      branch: null,
+      commit: null,
+    };
   }
 
   // Check if it's a valid git worktree
@@ -696,9 +788,10 @@ export async function checkWorktreeHealth(baseDir: string): Promise<WorktreeHeal
     return {
       exists: true,
       valid: false,
+      status: 'corrupted',
       branch: null,
       commit: null,
-      error: 'Worktree directory exists but is not a valid git worktree',
+      error: 'Worktree directory exists but is not a valid git worktree (missing .git)',
     };
   }
 
@@ -716,11 +809,12 @@ export async function checkWorktreeHealth(baseDir: string): Promise<WorktreeHeal
       branch = null;
     }
 
-    return { exists: true, valid: true, branch, commit };
+    return { exists: true, valid: true, status: 'valid', branch, commit };
   } catch (error) {
     return {
       exists: true,
       valid: false,
+      status: 'corrupted',
       branch: null,
       commit: null,
       error: error instanceof Error ? error.message : String(error),
