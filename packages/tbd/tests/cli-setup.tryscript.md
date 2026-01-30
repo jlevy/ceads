@@ -71,7 +71,7 @@ Setup & Configuration:
 
 Working With Issues:
   create [options] [title]      Create a new issue
-  show <id>                     Show issue details
+  show [options] <id>           Show issue details
   update [options] <id>         Update an issue
   close [options] <id>          Close an issue
   reopen [options] <id>         Reopen a closed issue
