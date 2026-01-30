@@ -54,7 +54,7 @@ Remote: origin
 ID prefix: mf-
 
 INTEGRATIONS
-✓ Claude Code hooks (~/.claude/settings.json)
+✓ Claude Code hooks (./.claude/settings.json)
 ✓ Codex AGENTS.md (./AGENTS.md)
 
 Worktree: /Users/levy/wrk/aisw/markform/.tbd/data-sync-worktree (healthy)

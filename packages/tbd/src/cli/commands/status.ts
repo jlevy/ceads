@@ -13,7 +13,6 @@
 import { Command } from 'commander';
 import { access, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { homedir } from 'node:os';
 
 import { VERSION } from '../lib/version.js';
 import { BaseCommand } from '../lib/base-command.js';
@@ -30,10 +29,17 @@ import {
 import { readConfig, findTbdRoot } from '../../file/config.js';
 import { WORKTREE_DIR } from '../../lib/paths.js';
 import {
+  getClaudePaths,
+  getAgentsMdPath,
+  CLAUDE_SETTINGS_DISPLAY,
+  AGENTS_MD_DISPLAY,
+} from '../../lib/integration-paths.js';
+import {
   git,
   getCurrentBranch,
   checkWorktreeHealth,
   checkGitVersion,
+  findGitRoot,
   MIN_GIT_VERSION,
 } from '../../file/git.js';
 
@@ -75,6 +81,13 @@ class StatusHandler extends BaseCommand {
     // Find tbd root (may be in parent directory)
     const tbdRoot = await findTbdRoot(cwd);
 
+    // Find git root for checking integrations (.claude/, .beads/ are at git root)
+    const gitRoot = await findGitRoot(cwd);
+
+    // Use tbdRoot if available, otherwise gitRoot, otherwise cwd
+    // .tbd/, .claude/, .beads/ are all at the project root (adjacent to .git/)
+    const projectRoot = tbdRoot ?? gitRoot ?? cwd;
+
     const statusData: StatusData = {
       initialized: tbdRoot !== null,
       tbd_version: VERSION,
@@ -92,9 +105,9 @@ class StatusHandler extends BaseCommand {
       worktree_healthy: null,
       integrations: {
         claude_code: false,
-        claude_code_path: '~/.claude/settings.json',
+        claude_code_path: CLAUDE_SETTINGS_DISPLAY,
         codex: false,
-        codex_path: './AGENTS.md',
+        codex_path: AGENTS_MD_DISPLAY,
       },
     };
 
@@ -114,13 +127,13 @@ class StatusHandler extends BaseCommand {
       }
     }
 
-    // Check for beads
-    const beadsInfo = await this.checkBeads(cwd);
+    // Check for beads (at project root, not cwd)
+    const beadsInfo = await this.checkBeads(projectRoot);
     statusData.beads_detected = beadsInfo.detected;
     statusData.beads_issue_count = beadsInfo.issueCount;
 
-    // Check integrations (always show)
-    statusData.integrations = await this.checkIntegrations(cwd);
+    // Check integrations at project root (not cwd)
+    statusData.integrations = await this.checkIntegrations(projectRoot);
 
     if (statusData.initialized && tbdRoot) {
       // Load config and issue info
@@ -149,8 +162,10 @@ class StatusHandler extends BaseCommand {
     }
   }
 
-  private async checkBeads(cwd: string): Promise<{ detected: boolean; issueCount: number | null }> {
-    const beadsDir = join(cwd, '.beads');
+  private async checkBeads(
+    projectRoot: string,
+  ): Promise<{ detected: boolean; issueCount: number | null }> {
+    const beadsDir = join(projectRoot, '.beads');
     try {
       await access(beadsDir);
       // Count issues in beads
@@ -170,21 +185,22 @@ class StatusHandler extends BaseCommand {
     }
   }
 
-  private async checkIntegrations(cwd: string): Promise<StatusData['integrations']> {
-    const claudeSettingsPath = join(homedir(), '.claude', 'settings.json');
-    const agentsPath = join(cwd, 'AGENTS.md');
+  private async checkIntegrations(projectRoot: string): Promise<StatusData['integrations']> {
+    // All integrations use project-local paths (relative to git/project root)
+    const claudePaths = getClaudePaths(projectRoot);
+    const agentsPath = getAgentsMdPath(projectRoot);
 
     const result: StatusData['integrations'] = {
       claude_code: false,
-      claude_code_path: claudeSettingsPath.replace(homedir(), '~'),
+      claude_code_path: CLAUDE_SETTINGS_DISPLAY,
       codex: false,
-      codex_path: './AGENTS.md',
+      codex_path: AGENTS_MD_DISPLAY,
     };
 
-    // Check Claude Code hooks
+    // Check Claude Code hooks in project-local settings
     try {
-      await access(claudeSettingsPath);
-      const content = await readFile(claudeSettingsPath, 'utf-8');
+      await access(claudePaths.settings);
+      const content = await readFile(claudePaths.settings, 'utf-8');
       const settings = JSON.parse(content) as Record<string, unknown>;
       const hooks = settings.hooks as Record<string, unknown> | undefined;
       if (hooks) {

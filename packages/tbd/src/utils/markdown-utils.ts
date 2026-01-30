@@ -16,7 +16,7 @@ export interface ParsedMarkdown {
 /**
  * Normalize line endings to LF.
  */
-function normalizeLineEndings(content: string): string {
+export function normalizeLineEndings(content: string): string {
   return content.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 }
 

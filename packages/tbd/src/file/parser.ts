@@ -18,6 +18,7 @@
  */
 
 import matter from 'gray-matter';
+import { normalizeLineEndings } from '../utils/markdown-utils.js';
 import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
 
 import type { Issue } from '../lib/types.js';
@@ -52,7 +53,7 @@ export interface ParsedIssueFile {
  */
 export function parseMarkdownWithFrontmatter(content: string): ParsedIssueFile {
   // Normalize CRLF to LF before parsing
-  const normalizedContent = content.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+  const normalizedContent = normalizeLineEndings(content);
 
   // Check for valid frontmatter
   if (!matter.test(normalizedContent)) {

@@ -16,6 +16,12 @@ import { listIssues } from '../../file/storage.js';
 import { readConfig } from '../../file/config.js';
 import type { Config, Issue, IssueStatusType } from '../../lib/types.js';
 import { resolveDataSyncDir, TBD_DIR, WORKTREE_DIR, DATA_SYNC_DIR } from '../../lib/paths.js';
+import {
+  getClaudePaths,
+  getAgentsMdPath,
+  CLAUDE_SKILL_REL,
+  AGENTS_MD_REL,
+} from '../../lib/integration-paths.js';
 import { validateIssueId } from '../../lib/ids.js';
 import {
   checkGitVersion,
@@ -481,36 +487,34 @@ class DoctorHandler extends BaseCommand {
   }
 
   private async checkClaudeSkill(): Promise<DiagnosticResult> {
-    const skillRelPath = join('.claude', 'skills', 'tbd', 'SKILL.md');
-    const skillPath = join(process.cwd(), skillRelPath);
+    const claudePaths = getClaudePaths(this.cwd);
     try {
-      await access(skillPath);
-      return { name: 'Claude Code skill', status: 'ok', path: skillRelPath };
+      await access(claudePaths.skill);
+      return { name: 'Claude Code skill', status: 'ok', path: CLAUDE_SKILL_REL };
     } catch {
       return {
         name: 'Claude Code skill',
         status: 'warn',
         message: 'not installed',
-        path: skillRelPath,
+        path: CLAUDE_SKILL_REL,
         suggestion: 'Run: tbd setup --auto',
       };
     }
   }
 
   private async checkCodexAgents(): Promise<DiagnosticResult> {
-    const agentsRelPath = 'AGENTS.md';
-    const agentsPath = join(this.cwd, agentsRelPath);
+    const agentsPath = getAgentsMdPath(this.cwd);
     try {
       await access(agentsPath);
       const content = await readFile(agentsPath, 'utf-8');
       if (content.includes('BEGIN TBD INTEGRATION')) {
-        return { name: 'Codex AGENTS.md', status: 'ok', path: agentsRelPath };
+        return { name: 'Codex AGENTS.md', status: 'ok', path: AGENTS_MD_REL };
       }
       return {
         name: 'Codex AGENTS.md',
         status: 'warn',
         message: 'exists but missing tbd integration',
-        path: agentsRelPath,
+        path: AGENTS_MD_REL,
         suggestion: 'Run: tbd setup --auto',
       };
     } catch {
@@ -518,7 +522,7 @@ class DoctorHandler extends BaseCommand {
         name: 'Codex AGENTS.md',
         status: 'warn',
         message: 'not installed',
-        path: agentsRelPath,
+        path: AGENTS_MD_REL,
         suggestion: 'Run: tbd setup --auto',
       };
     }

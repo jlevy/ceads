@@ -2903,7 +2903,7 @@ Issues:
   Total: 127
 
 Integrations:
-  ✓ Claude Code hooks installed (~/.claude/settings.json)
+  ✓ Claude Code hooks installed (./.claude/settings.json)
   ✗ Codex AGENTS.md not installed
 
 Worktree: .tbd/data-sync-worktree/ (healthy)

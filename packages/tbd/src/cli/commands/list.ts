@@ -7,6 +7,7 @@
 import { Command } from 'commander';
 
 import { BaseCommand } from '../lib/base-command.js';
+import { applyLimit } from '../lib/limit-utils.js';
 import { requireInit, CLIError } from '../lib/errors.js';
 import { loadDataContext, type TbdDataContext } from '../lib/data-context.js';
 import type { Issue, IssueStatusType, IssueKindType } from '../../lib/types.js';
@@ -70,12 +71,7 @@ class ListHandler extends BaseCommand {
     issues = this.sortIssues(issues, options.sort ?? 'priority', dataCtx.mapping);
 
     // Apply limit
-    if (options.limit) {
-      const limit = parseInt(options.limit, 10);
-      if (!isNaN(limit) && limit > 0) {
-        issues = issues.slice(0, limit);
-      }
-    }
+    issues = applyLimit(issues, options.limit);
 
     // Count-only mode for testing
     if (options.count) {
