@@ -13,6 +13,7 @@ import { fileURLToPath } from 'node:url';
 
 import { TBD_DOCS_DIR } from '../lib/paths.js';
 import { fetchWithGhFallback } from './github-fetch.js';
+import { readConfig, writeConfig, updateLocalState } from './config.js';
 
 // =============================================================================
 // Types
@@ -403,4 +404,188 @@ export function isDocsStale(lastSyncAt: string | undefined, autoSyncHours: numbe
   const hoursSinceSync = (now - lastSync) / (1000 * 60 * 60);
 
   return hoursSinceSync >= autoSyncHours;
+}
+
+// =============================================================================
+// Unified Doc Sync with Defaults
+// =============================================================================
+
+/** Prefix for internal bundled doc sources */
+const INTERNAL_SOURCE_PREFIX = 'internal:';
+
+/**
+ * Options for syncDocsWithDefaults.
+ */
+export interface SyncDocsOptions {
+  /** If true, suppress output (for auto-sync) */
+  quiet?: boolean;
+  /** If true, don't write files or config (dry run for --status) */
+  dryRun?: boolean;
+}
+
+/**
+ * Result of syncDocsWithDefaults.
+ */
+export interface SyncDocsResult {
+  /** Paths of newly downloaded/copied docs */
+  added: string[];
+  /** Paths of updated docs (content changed) */
+  updated: string[];
+  /** Paths of removed docs (no longer in config) */
+  removed: string[];
+  /** Entries removed due to missing internal sources */
+  pruned: string[];
+  /** Whether the config was modified (new defaults merged or stale pruned) */
+  configChanged: boolean;
+  /** Errors encountered during sync */
+  errors: { path: string; error: string }[];
+  /** Whether the sync was successful overall */
+  success: boolean;
+}
+
+/**
+ * Check if an internal bundled doc exists.
+ *
+ * @param location - The internal doc path (without 'internal:' prefix)
+ * @returns true if the doc exists in any of the bundled doc paths
+ */
+export async function internalDocExists(location: string): Promise<boolean> {
+  const basePaths = getDocsBasePath();
+
+  for (const basePath of basePaths) {
+    const fullPath = join(basePath, location);
+    try {
+      await access(fullPath);
+      return true;
+    } catch {
+      // Try next path
+    }
+  }
+
+  return false;
+}
+
+/**
+ * Prune entries from config that point to non-existent internal sources.
+ *
+ * This handles the case where a bundled doc is removed in a tbd update -
+ * the stale config entry is automatically cleaned up.
+ *
+ * @param config - The doc_cache config to prune
+ * @returns Object with pruned config and list of removed entries
+ */
+export async function pruneStaleInternals(
+  config: Record<string, string>,
+): Promise<{ config: Record<string, string>; pruned: string[] }> {
+  const result: Record<string, string> = {};
+  const pruned: string[] = [];
+
+  for (const [dest, source] of Object.entries(config)) {
+    if (source.startsWith(INTERNAL_SOURCE_PREFIX)) {
+      const location = source.slice(INTERNAL_SOURCE_PREFIX.length);
+      const exists = await internalDocExists(location);
+      if (!exists) {
+        pruned.push(dest);
+        continue; // Don't include in result
+      }
+    }
+    result[dest] = source;
+  }
+
+  return { config: result, pruned };
+}
+
+/**
+ * Deep equality check for config objects.
+ */
+function configsEqual(a: Record<string, string>, b: Record<string, string>): boolean {
+  const keysA = Object.keys(a).sort();
+  const keysB = Object.keys(b).sort();
+
+  if (keysA.length !== keysB.length) {
+    return false;
+  }
+
+  for (const key of keysA) {
+    if (!Object.hasOwn(b, key) || a[key] !== b[key]) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+/**
+ * Sync docs with merged defaults and auto-pruning.
+ *
+ * This is the single entry point for all doc sync operations that need
+ * to pick up new bundled docs from tbd upgrades.
+ *
+ * Steps:
+ * 1. Read current config
+ * 2. Generate defaults from bundled docs
+ * 3. Merge: defaults as base, user config overlays
+ * 4. Prune entries with missing internal sources
+ * 5. Sync files to .tbd/docs/
+ * 6. Write config if changed
+ * 7. Update last_doc_sync_at in state
+ *
+ * @param tbdRoot - The tbd project root directory
+ * @param options - Sync options (quiet, dryRun)
+ * @returns Sync result with added/updated/removed/pruned counts
+ */
+export async function syncDocsWithDefaults(
+  tbdRoot: string,
+  options: SyncDocsOptions = {},
+): Promise<SyncDocsResult> {
+  // 1. Read current config
+  const config = await readConfig(tbdRoot);
+  const originalFiles = config.docs_cache?.files ?? {};
+
+  // 2. Generate defaults from bundled docs
+  const defaults = await generateDefaultDocCacheConfig();
+
+  // 3. Merge: defaults as base, user config overlays
+  const merged = mergeDocCacheConfig(originalFiles, defaults);
+
+  // 4. Prune entries with missing internal sources
+  const { config: prunedConfig, pruned } = await pruneStaleInternals(merged);
+
+  // 5. Sync files to .tbd/docs/
+  const docSync = new DocSync(tbdRoot, prunedConfig);
+  const syncResult = await docSync.sync({ dryRun: options.dryRun });
+
+  // 6. Check if config changed
+  const configChanged = !configsEqual(prunedConfig, originalFiles);
+
+  // 7. Write config if changed (and not dry run)
+  if (configChanged && !options.dryRun) {
+    // Preserve existing lookup_path or use default
+    const lookupPath = config.docs_cache?.lookup_path ?? [
+      '.tbd/docs/shortcuts/system',
+      '.tbd/docs/shortcuts/standard',
+    ];
+    config.docs_cache = {
+      lookup_path: lookupPath,
+      files: prunedConfig,
+    };
+    await writeConfig(tbdRoot, config);
+  }
+
+  // 8. Update state (and not dry run)
+  if (!options.dryRun) {
+    await updateLocalState(tbdRoot, {
+      last_doc_sync_at: new Date().toISOString(),
+    });
+  }
+
+  return {
+    added: syncResult.added,
+    updated: syncResult.updated,
+    removed: syncResult.removed,
+    pruned,
+    configChanged,
+    errors: syncResult.errors,
+    success: syncResult.success,
+  };
 }

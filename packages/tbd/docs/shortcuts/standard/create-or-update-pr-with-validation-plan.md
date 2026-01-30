@@ -10,14 +10,24 @@ Instructions:
 
 Create a to-do list with the following items then perform all of them:
 
-1. Determine repository and branch info:
-   - Get the current branch: `git rev-parse --abbrev-ref HEAD`
-   - Extract the GitHub repo (OWNER/REPO) from the remote URL. The remote may be:
-     - Standard GitHub URL: `https://github.com/OWNER/REPO.git` or
-       `git@github.com:OWNER/REPO.git`
-     - Proxy URL (Claude Code): `http://local_proxy@127.0.0.1:PORT/git/OWNER/REPO`
-   - For proxy URLs, extract OWNER/REPO from the path after `/git/`
-   - Store as `REPO=OWNER/REPO` and `BRANCH=current-branch-name`
+1. Determine repository and branch info (**CRITICAL - do this first**):
+   - Run: `BRANCH=$(git rev-parse --abbrev-ref HEAD)`
+   - Run: `REMOTE_URL=$(git remote get-url origin)`
+   - Extract OWNER/REPO from the remote URL. The sed command handles both formats:
+     - Standard GitHub: `https://github.com/OWNER/REPO.git` or
+       `git@github.com:OWNER/REPO`
+     - Proxy URL (Claude Code Cloud): `http://...127.0.0.1:.../git/OWNER/REPO`
+   - Run:
+     `REPO=$(echo "$REMOTE_URL" | sed -E 's#.*/git/##; s#.*github.com[:/]##; s#\.git$##')`
+   - Verify: `echo "REPO=$REPO BRANCH=$BRANCH"`
+
+   **Why `--repo` is required:** The `gh` CLI needs to know which GitHub repository to
+   target. Using `--repo $REPO` explicitly works in all environments:
+   - Direct connections: Works (gh could auto-detect, but explicit is reliable)
+   - Proxy connections (Claude Code Cloud): Required (gh cannot detect repo from proxy
+     URL)
+
+   Always use `--repo $REPO` on all gh commands for consistency and reliability.
 
 2. Check if a PR already exists for this branch:
    - Run: `gh pr view $BRANCH --repo $REPO --json number,url 2>/dev/null`

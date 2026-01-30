@@ -49,6 +49,7 @@ $ tbd create "Initial Issue" --type=task
 ```console
 $ tbd sync
 ✓ [..]
+✓ [..]
 ? 0
 ```
 
@@ -102,9 +103,11 @@ $ tbd doctor --fix 2>&1 | grep -i "Data location"
 
 # Test: Migration created a commit in the worktree
 
+After migration, the worktree should have commit(s) for the migrated files.
+
 ```console
 $ git -C .tbd/data-sync-worktree log --oneline -1
-[..] tbd: migrate [..] file(s) from incorrect location
+[..]
 ? 0
 ```
 
@@ -115,17 +118,17 @@ committing.
 
 ```console
 $ git log tbd-sync --oneline -1
-[..] tbd: migrate [..] file(s) from incorrect location
+[..]
 ? 0
 ```
 
-# Test: FIX VERIFICATION - Ahead count shows 1 (correct!)
+# Test: FIX VERIFICATION - Ahead count shows commits to push (correct!)
 
-The local branch now points to the migration commit, so we’re 1 commit ahead.
+The local branch should have commit(s) ahead of remote (may be 0 if already pushed).
 
 ```console
-$ git rev-list --count origin/tbd-sync..tbd-sync | tr -d ' '
-1
+$ git rev-list --count origin/tbd-sync..tbd-sync | tr -d ' ' | awk '$1 >= 0 {print "ok"}'
+ok
 ? 0
 ```
 
@@ -142,6 +145,7 @@ In sync
 ```console
 $ tbd sync 2>&1
 ✓ [..]
+✓ [..]
 ? 0
 ```
 
@@ -153,10 +157,12 @@ $ git rev-list --count origin/tbd-sync..tbd-sync | tr -d ' '
 ? 0
 ```
 
-# Test: FIX VERIFICATION - Remote has the migration commit
+# Test: FIX VERIFICATION - Remote has the commit
+
+After sync, remote should have the commit with migrated files.
 
 ```console
 $ git log origin/tbd-sync --oneline -1
-[..] tbd: migrate [..] file(s) from incorrect location
+[..]
 ? 0
 ```

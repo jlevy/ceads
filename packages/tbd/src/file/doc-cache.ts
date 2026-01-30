@@ -14,8 +14,8 @@ import { readdir, readFile } from 'node:fs/promises';
 import { join, basename } from 'node:path';
 import matter from 'gray-matter';
 
-import { readConfig, readLocalState, updateLocalState, findTbdRoot } from './config.js';
-import { DocSync, generateDefaultDocCacheConfig, isDocsStale } from './doc-sync.js';
+import { readConfig, readLocalState, findTbdRoot } from './config.js';
+import { isDocsStale, syncDocsWithDefaults } from './doc-sync.js';
 import { estimateTokens } from '../lib/format-utils.js';
 
 // =============================================================================
@@ -155,6 +155,9 @@ export class DocCache {
    * Check if docs are stale and auto-sync if needed.
    * Respects the quiet option - only silent when explicitly requested.
    *
+   * Uses syncDocsWithDefaults() to ensure auto-sync also picks up new bundled
+   * docs from tbd upgrades, not just existing config entries.
+   *
    * @param quiet - If true, suppress sync output
    */
   private async checkAutoSync(quiet: boolean): Promise<void> {
@@ -173,20 +176,9 @@ export class DocCache {
         return;
       }
 
-      // Get doc cache files config
-      let filesConfig = config.docs_cache?.files;
-      if (!filesConfig || Object.keys(filesConfig).length === 0) {
-        filesConfig = await generateDefaultDocCacheConfig();
-      }
-
-      // Sync docs, respecting quiet option
-      const sync = new DocSync(tbdRoot, filesConfig);
-      await sync.sync({ silent: quiet });
-
-      // Update last sync time
-      await updateLocalState(tbdRoot, {
-        last_doc_sync_at: new Date().toISOString(),
-      });
+      // Use syncDocsWithDefaults to merge bundled defaults with user config
+      // This ensures new bundled docs from tbd upgrades are picked up by auto-sync
+      await syncDocsWithDefaults(tbdRoot, { quiet });
     } catch {
       // Auto-sync errors are silent - don't interrupt the user
     }

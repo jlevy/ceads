@@ -7,7 +7,7 @@ path:
   - ../dist
 timeout: 30000
 patterns:
-  VERSION: 'v[0-9]+\.[0-9]+\.[0-9]+(-[a-z0-9.]+)?'
+  VERSION: 'v[0-9]+\.[0-9]+\.[0-9]+(-[a-z0-9.-]+)?'
   GIT_VERSION: '[0-9]+\.[0-9]+\.[0-9]+'
   PATH: '/[^\s]+'
 before: |

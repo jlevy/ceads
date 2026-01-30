@@ -1,10 +1,11 @@
 /**
- * `tbd docs` - Display CLI documentation and manage doc cache.
+ * `tbd docs` - Display CLI documentation.
  *
  * Shows the bundled documentation for tbd CLI.
  * Documentation can be filtered by section.
  *
- * Also provides --refresh and --status for syncing the doc cache from config.
+ * Note: Doc cache sync functionality has moved to `tbd sync --docs`.
+ * See: docs/project/specs/active/plan-2026-01-29-unified-sync-command.md
  */
 
 import { Command } from 'commander';
@@ -13,16 +14,10 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
 import { BaseCommand } from '../lib/base-command.js';
-import { CLIError, NotFoundError, NotInitializedError } from '../lib/errors.js';
+import { CLIError, NotFoundError } from '../lib/errors.js';
 import { renderMarkdown } from '../lib/output.js';
 import type { DocSection } from '../../lib/types.js';
 import GithubSlugger from 'github-slugger';
-import { findTbdRoot, readConfig, updateLocalState } from '../../file/config.js';
-import {
-  DocSync,
-  generateDefaultDocCacheConfig,
-  mergeDocCacheConfig,
-} from '../../file/doc-sync.js';
 
 /**
  * Get the path to the bundled docs file.
@@ -40,23 +35,10 @@ interface DocsOptions {
   section?: string;
   list?: boolean;
   all?: boolean;
-  refresh?: boolean;
-  status?: boolean;
 }
 
 class DocsHandler extends BaseCommand {
   async run(topic: string | undefined, options: DocsOptions): Promise<void> {
-    // Handle doc cache sync options first
-    if (options.refresh) {
-      await this.handleRefresh();
-      return;
-    }
-
-    if (options.status) {
-      await this.handleStatus();
-      return;
-    }
-
     let content: string;
     try {
       content = await readFile(getDocsPath(), 'utf-8');
@@ -194,140 +176,6 @@ class DocsHandler extends BaseCommand {
   }
 
   /**
-   * Handle --refresh: Sync docs from config.
-   * Merges user's config with defaults to ensure new bundled docs are included.
-   */
-  private async handleRefresh(): Promise<void> {
-    const cwd = process.cwd();
-    const tbdRoot = await findTbdRoot(cwd);
-
-    if (!tbdRoot) {
-      throw new NotInitializedError(cwd);
-    }
-
-    const config = await readConfig(tbdRoot);
-    const colors = this.output.getColors();
-
-    // Merge user's config with defaults (ensures new bundled docs are added)
-    const defaults = await generateDefaultDocCacheConfig();
-    const filesConfig = mergeDocCacheConfig(config.docs_cache?.files, defaults);
-
-    const sync = new DocSync(tbdRoot, filesConfig);
-    const result = await sync.sync();
-
-    // Update last sync time
-    await updateLocalState(tbdRoot, {
-      last_doc_sync_at: new Date().toISOString(),
-    });
-
-    // Report results
-    this.output.data(result, () => {
-      if (result.added.length > 0) {
-        console.log(colors.success(`Added ${result.added.length} doc(s)`));
-        for (const path of result.added) {
-          console.log(`  + ${path}`);
-        }
-      }
-
-      if (result.updated.length > 0) {
-        console.log(colors.success(`Updated ${result.updated.length} doc(s)`));
-        for (const path of result.updated) {
-          console.log(`  ~ ${path}`);
-        }
-      }
-
-      if (result.removed.length > 0) {
-        console.log(colors.warn(`Removed ${result.removed.length} doc(s)`));
-        for (const path of result.removed) {
-          console.log(`  - ${path}`);
-        }
-      }
-
-      if (result.errors.length > 0) {
-        console.log(colors.error(`Errors: ${result.errors.length}`));
-        for (const { path, error } of result.errors) {
-          console.log(`  ! ${path}: ${error}`);
-        }
-      }
-
-      if (
-        result.added.length === 0 &&
-        result.updated.length === 0 &&
-        result.removed.length === 0 &&
-        result.errors.length === 0
-      ) {
-        console.log(colors.dim('Docs are up to date.'));
-      }
-    });
-  }
-
-  /**
-   * Handle --status: Show what would change without actually changing files.
-   * Merges user's config with defaults to ensure new bundled docs are included.
-   */
-  private async handleStatus(): Promise<void> {
-    const cwd = process.cwd();
-    const tbdRoot = await findTbdRoot(cwd);
-
-    if (!tbdRoot) {
-      throw new NotInitializedError(cwd);
-    }
-
-    const config = await readConfig(tbdRoot);
-    const colors = this.output.getColors();
-
-    // Merge user's config with defaults (ensures new bundled docs are added)
-    const defaults = await generateDefaultDocCacheConfig();
-    const filesConfig = mergeDocCacheConfig(config.docs_cache?.files, defaults);
-
-    const sync = new DocSync(tbdRoot, filesConfig);
-    const result = await sync.status();
-
-    // Report results
-    this.output.data(result, () => {
-      const total = result.added.length + result.updated.length + result.removed.length;
-
-      if (total === 0 && result.errors.length === 0) {
-        console.log(colors.success('Docs are up to date. No changes needed.'));
-        return;
-      }
-
-      console.log(colors.bold('Doc sync status (dry run):'));
-
-      if (result.added.length > 0) {
-        console.log(`  Would add ${result.added.length} doc(s):`);
-        for (const path of result.added) {
-          console.log(`    + ${path}`);
-        }
-      }
-
-      if (result.updated.length > 0) {
-        console.log(`  Would update ${result.updated.length} doc(s):`);
-        for (const path of result.updated) {
-          console.log(`    ~ ${path}`);
-        }
-      }
-
-      if (result.removed.length > 0) {
-        console.log(`  Would remove ${result.removed.length} doc(s):`);
-        for (const path of result.removed) {
-          console.log(`    - ${path}`);
-        }
-      }
-
-      if (result.errors.length > 0) {
-        console.log(colors.error(`  Errors: ${result.errors.length}`));
-        for (const { path, error } of result.errors) {
-          console.log(`    ! ${path}: ${error}`);
-        }
-      }
-
-      console.log('');
-      console.log(colors.dim('Run tbd docs --refresh to apply these changes.'));
-    });
-  }
-
-  /**
    * Show a comprehensive listing of all documentation resources organized by purpose.
    */
   private async showComprehensiveListing(): Promise<void> {
@@ -384,13 +232,11 @@ class DocsHandler extends BaseCommand {
 }
 
 export const docsCommand = new Command('docs')
-  .description('Display CLI documentation and manage doc cache')
+  .description('Display CLI documentation (use tbd sync --docs for doc cache sync)')
   .argument('[topic]', 'Topic to display (e.g., "commands", "id-system")')
   .option('--section <name>', 'Show specific section (e.g., "commands", "workflows")')
   .option('--list', 'List available sections')
   .option('--all', 'Show comprehensive listing of all documentation resources')
-  .option('--refresh', 'Sync docs from config to .tbd/docs/')
-  .option('--status', 'Show what would change without actually syncing')
   .action(async (topic: string | undefined, options: DocsOptions, command: Command) => {
     const handler = new DocsHandler(command);
     await handler.run(topic, options);

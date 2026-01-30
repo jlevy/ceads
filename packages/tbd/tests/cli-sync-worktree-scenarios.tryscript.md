@@ -95,6 +95,7 @@ $ ls .tbd/data-sync/issues/*.md 2>/dev/null | wc -l | tr -d ' '
 ```console
 $ tbd sync
 ✓ [..]
+✓ [..]
 ? 0
 ```
 
@@ -132,7 +133,7 @@ $ tbd doctor 2>&1 | grep -E "(Worktree|prunable|missing)" || echo "worktree issu
 # Test: Sync with --fix repairs the worktree
 
 ```console
-$ tbd sync --fix 2>&1 | head -1
+$ tbd sync --fix 2>&1 | head -2 | tail -1
 ✓ Worktree repaired successfully
 ? 0
 ```
@@ -216,6 +217,7 @@ created 3 issues
 ```console
 $ tbd sync
 ✓ [..]
+✓ [..]
 ? 0
 ```
 
@@ -260,6 +262,7 @@ This is the critical test - sync must recognize the migration commit needs pushi
 
 ```console
 $ tbd sync 2>&1
+✓ [..]
 ✓ [..]
 ? 0
 ```

@@ -57,6 +57,7 @@ $ tbd create "Initial Issue 2" --type=bug
 ```console
 $ tbd sync
 ✓ [..]
+✓ [..]
 ? 0
 ```
 
@@ -138,6 +139,7 @@ $ git rev-list --count origin/tbd-sync..tbd-sync | tr -d ' '
 
 ```console
 $ tbd sync 2>&1
+✓ Docs up to date
 ✓ [..]
 ? 0
 ```

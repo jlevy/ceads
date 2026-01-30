@@ -42,6 +42,28 @@ The separation is an implementation detail, not a meaningful distinction for use
   \- Original doc cache implementation
 - [plan-2026-01-28-sync-worktree-recovery-and-hardening.md](active/plan-2026-01-28-sync-worktree-recovery-and-hardening.md)
   \- Worktree sync improvements
+- [plan-2026-01-29-silent-error-swallowing-postmortem.md](active/plan-2026-01-29-silent-error-swallowing-postmortem.md)
+  \- Post-mortem documenting silent push failure bug and engineering guidelines
+- [plan-2026-01-29-claude-code-session-sync.md](active/plan-2026-01-29-claude-code-session-sync.md)
+  \- Claude Code session-specific sync branch support (local outbox fallback)
+
+### Prerequisites (Completed)
+
+These bugs were fixed before the unified sync work to ensure a solid foundation:
+
+| ID | Type | Description | Fix |
+| --- | --- | --- | --- |
+| `tbd-93q3` | P0 bug | Sync silently swallowed push failures, reported "Already in sync" | Now reports push errors explicitly with retry instructions |
+| `tbd-6y2j` | P1 bug | Worktree not auto-created on fresh clones, required `--fix` | Auto-creates worktree when `missing` state detected |
+
+**Post-mortem insights applied:**
+- Push failures now surface to users (not just debug logs)
+- Exit codes reflect actual success/failure
+- Error messages are actionable (tell user what to do)
+
+See
+[plan-2026-01-29-silent-error-swallowing-postmortem.md](active/plan-2026-01-29-silent-error-swallowing-postmortem.md)
+for detailed engineering guidelines to prevent similar bugs.
 
 ### Tracked Issues
 
@@ -438,3 +460,26 @@ async run(options: SyncOptions): Promise<void> {
 
    **Recommendation**: Show summary in default output ("Synced: +2 ~1 docs"), details in
    verbose mode.
+
+## Future Work
+
+### Local Outbox for Sync Reliability
+
+The
+[plan-2026-01-29-claude-code-session-sync.md](active/plan-2026-01-29-claude-code-session-sync.md)
+spec proposes a local outbox mechanism to handle environments where push may fail
+(Claude Code sessions, network issues, etc.). Key points:
+
+- **Local outbox (`.tbd/outbox/`)**: Stores issue data locally when remote sync fails
+- **Guaranteed persistence**: Data never lost regardless of push failures
+- **Automatic recovery**: Outbox merged to worktree when push succeeds
+
+This is a separate spec but complements unified sync by ensuring no data loss even when
+issue sync fails. The unified sync’s “docs first, issues second” approach is compatible
+with this design - docs sync locally while issues may write to outbox if push fails.
+
+### Integration with Stats Redesign
+
+The stats command was redesigned (see commit `4530996`) with improved icons, colors, and
+alignment. When implementing unified sync output, follow the same design patterns for
+consistency.

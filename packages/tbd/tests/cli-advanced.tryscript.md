@@ -361,10 +361,10 @@ $ tbd sync --status
 ? 0
 ```
 
-# Test: Sync status as JSON
+# Test: Sync status as JSON (issues only)
 
 ```console
-$ tbd sync --status --json
+$ tbd sync --status --issues --json
 {
 ...
 }

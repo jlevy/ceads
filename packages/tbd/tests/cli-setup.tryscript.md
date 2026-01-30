@@ -59,7 +59,8 @@ Documentation:
   guidelines [options] [query]  Find and output coding guidelines
   template [options] [query]    Find and output document templates
   closing                       Display the session closing protocol reminder
-  docs [options] [topic]        Display CLI documentation and manage doc cache
+  docs [options] [topic]        Display CLI documentation (use tbd sync --docs
+                                for doc cache sync)
   design [options] [topic]      Display design documentation and Beads
                                 comparison
 
@@ -88,7 +89,7 @@ Labels and Dependencies:
   label                         Manage issue labels
 
 Sync and Status:
-  sync [options]                Synchronize with remote
+  sync [options]                Synchronize issues and docs (both by default)
   status                        Show repository status and orientation
   stats                         Show repository statistics
 
