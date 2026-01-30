@@ -134,24 +134,22 @@ $ tbd search "nonexistentxyz123" --json
 
 ```console
 $ tbd stats
-Summary:
-  Ready:       5
-  In progress: 0
-  Blocked:     0
-  Open:        5
-  Total:       5
-
 By status:
-  open           5
+  ○ open               5
+  ──────────────────────
+  active               5
+  ✓ closed             0
+  ══════════════════════
+  total                5
 
-By kind:
-  bug            2
-  feature        1
-  task           1
-  chore          1
+By kind:          active closed  total
+  bug                  2      0      2
+  feature              1      0      1
+  task                 1      0      1
+  chore                1      0      1
 
-By priority:
-  P2 (Medium  ) 5
+By priority:      active closed  total
+  P2 (Medium)          5      0      5
 
 Use 'tbd status' for setup info, 'tbd doctor' for health checks.
 ? 0
