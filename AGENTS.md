@@ -30,10 +30,10 @@ Work is NOT complete until `git push` succeeds.
 - If push fails, resolve and retry until it succeeds
 
 ## <!-- BEGIN TBD INTEGRATION -->
-
-## title: tbd Workflow
+---
+title: tbd Workflow
 description: Full tbd workflow guide for agents
-
+---
 **`tbd` helps humans and agents ship code with greater speed, quality, and discipline.**
 
 1. **Beads**: Git-native issue tracking (tasks, bugs, features).
