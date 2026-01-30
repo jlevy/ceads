@@ -3,7 +3,7 @@ title: Create or Update PR (Simple)
 description: Create or update a pull request with a concise summary
 author: Joshua Levy (github.com/jlevy) with LLM assistance
 ---
-We track issues with tbd.
+We track work as beads using tbd.
 Run `tbd` for more on using tbd and current status.
 
 Instructions:
@@ -31,6 +31,11 @@ Create a to-do list with the following items then perform all of them:
 4. Write a PR title and description:
    - Title should be concise and describe the change (e.g., “Add user authentication”)
    - Description should have a brief summary of what changed and why
+   - If you’re changing an existing PR, update the title to be current
+   - Use conventional commit prefixes: `feat`, `fix`, `docs`, `style`, `refactor`,
+     `test`, `chore`, `plan`, `research`, `ops`, `process`. Scope is optional—only add
+     when it resolves an important ambiguity.
+     (See `tbd guidelines commit-conventions` for details.)
 
 5. Create or update the PR:
    - If creating:

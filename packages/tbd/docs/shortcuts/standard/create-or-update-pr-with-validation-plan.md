@@ -3,7 +3,7 @@ title: Create or Update PR with Validation Plan
 description: Create or update a pull request with a detailed test/validation plan
 author: Joshua Levy (github.com/jlevy) with LLM assistance
 ---
-We track issues with tbd.
+We track work as beads using tbd.
 Run `tbd` for more on using tbd and current status.
 
 Instructions:
@@ -29,7 +29,11 @@ Create a to-do list with the following items then perform all of them:
    - Run `git diff main...HEAD` to see all changes
    - Review any related specs in docs/project/specs/active/
 
-4. Write a PR title and description with these sections:
+4. Write a PR title and description with these sections.
+   Use conventional commit prefixes: `feat`, `fix`, `docs`, `style`, `refactor`, `test`,
+   `chore`, `plan`, `research`, `ops`, `process`. Scope is optional—only add when it
+   resolves an important ambiguity.
+   (See `tbd guidelines commit-conventions` for details.)
 
    ## Summary
 
@@ -47,9 +51,9 @@ Create a to-do list with the following items then perform all of them:
    - [ ] Manual testing steps (list specific scenarios to test)
    - [ ] Edge cases considered (list any)
 
-   ## Related Issues
+   ## Related Beads
 
-   Link any related tbd issues using their IDs.
+   Link any related beads using their IDs.
 
 5. Create or update the PR:
    - If creating:

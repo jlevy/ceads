@@ -3,7 +3,7 @@ title: Review Code (TypeScript)
 description: Perform a code review for TypeScript code following best practices
 author: Joshua Levy (github.com/jlevy) with LLM assistance
 ---
-We track issues with tbd.
+We track work as beads using tbd.
 Run `tbd` for more on using tbd and current status.
 
 Instructions:

@@ -3,7 +3,7 @@ title: Pre-Commit Process
 description: Full pre-commit checklist including spec sync, code review, and testing
 author: Joshua Levy (github.com/jlevy) with LLM assistance
 ---
-We track issues with tbd.
+We track work as beads using tbd.
 Run `tbd` for more on using tbd and current status.
 
 Instructions:
@@ -81,7 +81,10 @@ Create a to-do list with the following items then perform all of them:
    Make any updates to the spec based on the fixes or issues discovered during review
    and testing.
 
-6. **Summarize and commit:** Summarize what was done and write a clear commit message
-   following `tbd guidelines commit-conventions` (use conventional commits format with
-   appropriate type). If all checks pass, commit directly.
-   Only ask the user if there are unresolved issues or problems.
+6. **Summarize and commit:** Summarize what was done and write a clear commit message.
+   Use conventional commit prefixes: `feat`, `fix`, `docs`, `style`, `refactor`, `test`,
+   `chore`, `plan`, `research`, `ops`, `process`. Scope is optional—only add when it
+   resolves an important ambiguity.
+   (See `tbd guidelines commit-conventions` for details.)
+   If all checks pass, commit directly.
+   Only ask the user if there are unresolved problems.

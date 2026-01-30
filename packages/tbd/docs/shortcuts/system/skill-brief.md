@@ -4,19 +4,19 @@ description: Condensed tbd workflow guide for agents
 ---
 **`tbd` helps humans and agents ship code with greater speed, quality, and discipline.**
 
-1. **Issue Tracking**: Git-native tasks/bugs.
+1. **Beads**: Git-native issue tracking (tasks, bugs, features).
    Never lose work across sessions.
-2. **Spec-Driven Workflows**: Plan features → break into issues → implement
+2. **Spec-Driven Workflows**: Plan features → break into beads → implement
    systematically.
-3. **Shortcuts**: Pre-built processes for commits, PRs, reviews.
-4. **Guidelines**: Best practices for TypeScript, Python, testing.
+3. **Shortcuts**: Reusable instruction templates for common workflows.
+4. **Guidelines**: Coding rules and best practices.
 
 ## Core Commands
 
 ```bash
-tbd ready              # Find work ready to start
-tbd show <id>          # View issue details
-tbd create "title"     # Create new issue
+tbd ready              # Find beads ready to start
+tbd show <id>          # View bead details
+tbd create "title"     # Create new bead
 tbd close <id>         # Mark complete
 tbd sync               # Sync with remote
 ```
@@ -37,6 +37,6 @@ tbd sync               # Sync with remote
 
 1. Commit and push: `git add . && git commit && git push`
 2. Watch CI: `gh pr checks <PR> --watch 2>&1`
-3. Update issues: `tbd close <id> --reason="..."`
+3. Update beads: `tbd close <id> --reason="..."`
 4. Sync: `tbd sync`
 5. Confirm CI passed before declaring “done”
