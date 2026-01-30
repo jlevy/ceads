@@ -108,19 +108,19 @@ status or context or knowledge and know what to do next:
 
 | What you say | What happens | What runs |
 | --- | --- | --- |
-| "Let's plan a new feature that …" | Agent creates a spec from a template | `tbd shortcut new-plan-spec` |
-| "Break this spec into beads" | Agent creates implementation beads from the spec | `tbd shortcut plan-implementation-with-beads` |
-| "Implement these beads" | Agent works through beads systematically | `tbd shortcut implement-beads` |
+| "Let's plan a new feature that …" | Agent creates a spec from a template | [`tbd shortcut new-plan-spec`](packages/tbd/docs/shortcuts/standard/new-plan-spec.md) |
+| "Break this spec into beads" | Agent creates implementation beads from the spec | [`tbd shortcut plan-implementation-with-beads`](packages/tbd/docs/shortcuts/standard/plan-implementation-with-beads.md) |
+| "Implement these beads" | Agent works through beads systematically | [`tbd shortcut implement-beads`](packages/tbd/docs/shortcuts/standard/implement-beads.md) |
 | "Create a bead for the bug where …" | Agent creates and tracks a bead | `tbd create "..." --type=bug` |
 | "Let's work on current beads" | Agent finds ready beads and starts working | `tbd ready` |
-| "Code review all changes on this branch" | Agent loads language-specific review guidelines | `tbd shortcut review-code-typescript` or `tbd shortcut review-code-python` |
-| "Use the shortcut to commit" | Agent runs full pre-commit checks, code review, and commits | `tbd shortcut commit-code` |
-| "Create a PR" | Agent creates or updates the pull request | `tbd shortcut create-or-update-pr-simple` |
-| "Let's create a research brief on …" | Agent creates a research document using a template | `tbd shortcut new-research-brief` |
-| "How could we test this better?" | Agent loads TDD and testing guidelines | `tbd guidelines general-tdd-guidelines` |
-| "How can we make this a well-designed TypeScript CLI?" | Agent loads TypeScript CLI guidelines | `tbd guidelines typescript-cli-tool-rules` |
-| "Can you review if this TypeScript package setup follows best practices" | Agent loads monorepo patterns | `tbd guidelines typescript-monorepo-patterns` |
-| "How can we do a better job of testing?" | Agent loads golden testing guidelines | `tbd guidelines golden-testing-guidelines` |
+| "Code review all changes on this branch" | Agent loads language-specific review guidelines | [`tbd shortcut review-code-typescript`](packages/tbd/docs/shortcuts/standard/review-code-typescript.md) or [`tbd shortcut review-code-python`](packages/tbd/docs/shortcuts/standard/review-code-python.md) |
+| "Use the shortcut to commit" | Agent runs full pre-commit checks, code review, and commits | [`tbd shortcut commit-code`](packages/tbd/docs/shortcuts/standard/commit-code.md) |
+| "Create a PR" | Agent creates or updates the pull request | [`tbd shortcut create-or-update-pr-simple`](packages/tbd/docs/shortcuts/standard/create-or-update-pr-simple.md) |
+| "Let's create a research brief on …" | Agent creates a research document using a template | [`tbd shortcut new-research-brief`](packages/tbd/docs/shortcuts/standard/new-research-brief.md) |
+| "How could we test this better?" | Agent loads TDD and testing guidelines | [`tbd guidelines general-tdd-guidelines`](packages/tbd/docs/guidelines/general-tdd-guidelines.md) |
+| "How can we make this a well-designed TypeScript CLI?" | Agent loads TypeScript CLI guidelines | [`tbd guidelines typescript-cli-tool-rules`](packages/tbd/docs/guidelines/typescript-cli-tool-rules.md) |
+| "Can you review if this TypeScript package setup follows best practices" | Agent loads monorepo patterns | [`tbd guidelines typescript-monorepo-patterns`](packages/tbd/docs/guidelines/typescript-monorepo-patterns.md) |
+| "How can we do a better job of testing?" | Agent loads golden testing guidelines | [`tbd guidelines golden-testing-guidelines`](packages/tbd/docs/guidelines/golden-testing-guidelines.md) |
 
 Under the hood, your agent runs these `tbd` commands automatically.
 You just talk naturally.
@@ -152,17 +152,23 @@ You just talk naturally.
 
 ## Why?
 
-With the right structures, agents can often write 100% of your code.
-But without structure and knowledge, the results are hit-or-miss and they don’t scale to
-large projects.
+Engineers are still adjusting to how fast things are changing.
+But the reality is that most of the time now, if you’re doing it right, *agents should
+write 100% of your code*.
 
-Agents by nature are mediocre engineers.
+But anyone who’s coded a lot with agents knows they they can be very bad or very good,
+depending on the situation.
+Without structure and knowledge, the results are often slop or have critical flaws or
+they don’t scale to large projects.
 They forget conventions between sessions, skip testing, and don’t follow your team’s
-patterns. The usual fix—pasting rules into prompts or CLAUDE.md files—is fragile and
-doesn’t scale.
+patterns.
 
-Beads (git-native CLI-based issue tracking) solve the task management problem
-brilliantly. If you’re not using beads already, you should be!
+The usual tactics like pasting rules into prompts is fragile and tiring.
+And even adding all these rules to CLAUDE.md or AGENTS.md doesn’t scale.
+
+Beads (git-native CLI-based issue tracking) is one element of the solution.
+It solves the task management problem brilliantly.
+If you’re not using beads already, you should be!
 
 But task tracking alone doesn’t help with *planning* or *quality*. You still need a way
 to think through what you’re building before you start, and a way to make sure the agent
@@ -184,10 +190,19 @@ And yes, all the code *and* all the speccs of `tbd` are agent written—see
 
 When you run `tbd setup`, your agent gets instant access to
 [17+ guideline documents](packages/tbd/docs/guidelines/) covering real-world engineering
-practices. These aren’t generic tips — they’re detailed, opinionated rules with concrete
-examples, built from months of heavy agentic coding.
+practices. These aren’t generic tips; they’re mostly my own detailed and sometimes
+opinionated rules with concrete examples, built from months of heavy agentic coding.
 
-**Highlights:**
+> [!TIP]
+> 
+> An example: I *strongly* believe there are much better ways to do testing
+> proliferating hundreds of unit and integration tests.
+> So (with help from some Opus 4.5 and GPT-5 Pro) I wrote a multi-page brief about
+> “[golden testing](packages/tbd/docs/guidelines/golden-testing-guidelines.md)”
+> techniques, which allow the LLM to do end-to-end testing of CLI or web app flows in a
+> clean, token-friendly way.
+> Now simply telling your agent “check the guidelines on golden testing” can make a huge
+> difference, encouraging far more maintainable, deeper tests.
 
 | Guideline | What it covers |
 | --- | --- |
