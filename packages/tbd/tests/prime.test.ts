@@ -66,7 +66,7 @@ describe('prime command', () => {
       expect(result.stdout).toContain('PROJECT STATUS');
       // Should include static skill content (workflow rules)
       expect(result.stdout).toContain('Session Closing Protocol');
-      expect(result.stdout).toContain('Issue Tracking Rules');
+      expect(result.stdout).toContain('Bead Tracking Rules');
     });
 
     it('tbd prime --brief shows abbreviated orientation', () => {
