@@ -36,7 +36,7 @@ with atomic_output_file("some-dir/my-final-output.txt") as temp_target:
 with atomic_output_file("some-dir/my-final-output.txt",
                         make_parents=True, backup_suffix=".old.{timestamp}") as temp_target:
     with open(temp_target, "w") as f:
-        sf.write("some contents")
+        f.write("some contents")
 ```
 
 ## String Abbreviations, Plurals, and Date, Time, and Time Delta Formats
