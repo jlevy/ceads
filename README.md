@@ -20,34 +20,45 @@ things that are each powerful on their own but unreasonably effective together:
    These are essentially “self-injected context” for an agent to get smarter when it
    needs it.
 
-tbd comes pre-installed with guideline docs on 17+ topics, like TDD, golden testing,
-TypeScript and Python best practices, Convex, monorepo architecture, backward
-compatibility rules.
-But you can use your own if you prefer.
+`tbd` comes pre-installed with guideline docs on dozens of topics, notably TypeScript
+and Python best practices and common agent pitfalls, red-green TDD, golden testing,
+Convex, monorepo project setup, error handling practices, and backward compatibility
+rules. But you can use your own if you prefer.
 
-I use tbd most frequently in Claude Code, where it self-installs as a skill, but it will
-work in Cursor, Codex, or any agent environment that can use the `tbd` CLI.
+I use `tbd` most frequently in Claude Code, where it self-installs as a skill, but it
+will work in Cursor, Codex, or any agent environment that can use the `tbd` CLI.
 
-## Should You Use tbd?
+## Should You Use `tbd`?
 
-If you wish, you can use tbd simply as a Beads replacement.
-It’s largely compatible with `bd` at the CLI level for core issue tracking
+Firstly, you can use `tbd` simply as a Beads replacement.
+It’s largely compatible with the original `bd` at the CLI level for core issue tracking
 functionality.
-Its design, such as using only one sync branch and separate Markdown files
-for every bead to avoid conflicts, carefully avoids some key pracctical frustrations
-I’ve had with Beads (like frequent merge/sync confusions, fighting with the daemon, and
-SQLite not working in Claude Code Cloud—see the [FAQ](#how-does-tbd-compare-to-beads)).
 
-But it’s more powerful than that: the spec-driven workflows and engineering guidelines
-combine with better task management to help agents ship code with speed, quality, and
-discipline.
+Unfortunately, inspite of the power of the beads ideas, there are quite a few
+[practical frustrations](#how-does-tbd-compare-to-beads) with the original
+implementation—notably the daemon modifying files, merge conflicts, sync confusions
+across branches and database, and SQLite not working in Claude Code Cloud.
+
+`tbd` is *very* new but aims to be a fully functional option for those who want an
+alternative to `bd` for agent issue tracking.
+I now use it instead of `bd` now.
+
+But what excites me now is that `tbd` is more than just task management: the CLI is a
+way to **inject engineering rules and best practices** and **streamline reproducible
+workflows with shortcuts**.
+
+By combining task management, knowledge injection, and shortcuts, I find my agents ship
+code with speed, quality, and discipline.
+I can now ship entire large features just with voice prompts like “use the shortcut to
+create a new plan spec that …” and “now use the shortcut to file a PR with a validation
+plan.”
 
 These workflows arose from several months of
 [heavy spec-driven agentic coding](https://github.com/jlevy/speculate/blob/main/about/lessons_in_spec_coding.md).
 Basically 100% of the code I now write is agent-written, planned and tracked through
 specs and beads and streamlined with shortcuts.
 
-tbd focuses on the *durable layer* of agent development: issue tracking, planning, and
+`tbd` focuses on the *durable layer* of agent development: issue tracking, planning, and
 knowledge that persist in git across sessions.
 It does not (yet) try to solve real-time multi-agent coordination features of Beads or
 [Gas Town](https://github.com/steveyegge/gastown) or
@@ -153,7 +164,7 @@ But task tracking alone doesn’t help with *planning* or *quality*. You still n
 to think through what you’re building before you start, and a way to make sure the agent
 follows good engineering practices while it works.
 
-tbd combines all three: beads for task management, spec-driven workflows for planning,
+`tbd` combines all three: beads for task management, spec-driven workflows for planning,
 and curated engineering guidelines for quality.
 Together, they let you hand an agent a well-defined spec with clear beads and expert
 knowledge, and get back careful, well-structured code—even overnight, even across
@@ -382,7 +393,7 @@ tbd template --add=<url> --name=<name>
 
 ### Spec-Driven Development
 
-For non-trivial features, tbd supports a full spec-driven workflow:
+For non-trivial features, `tbd` supports a full spec-driven workflow:
 
 1. **Plan**: Create a planning spec (`tbd shortcut new-plan-spec`)
 2. **Break down**: Convert spec into implementation beads
