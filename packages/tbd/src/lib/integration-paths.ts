@@ -2,8 +2,8 @@
  * Centralized path constants and utilities for coding agent integrations.
  *
  * IMPORTANT: All tbd integration files (hooks, settings, skills) are installed
- * to PROJECT-LOCAL directories (.claude/, AGENTS.md). We do NOT install to
- * global/user directories (~/.claude/) except for legacy cleanup.
+ * to PROJECT-LOCAL directories (.claude/, AGENTS.md) ONLY. We do NOT install to
+ * global/user directories (~/.claude/).
  *
  * This file defines all path constants in one place to:
  * 1. Ensure consistency across the codebase
@@ -70,30 +70,15 @@ export const GH_CLI_SCRIPT_REL = '.claude/scripts/ensure-gh-cli.sh';
 export const AGENTS_MD_REL = 'AGENTS.md';
 
 // =============================================================================
-// Legacy Global Paths (for cleanup only - DO NOT use for new installs)
+// Global Paths (for detection only - NOT for installation)
 // =============================================================================
 
 /**
  * Global Claude Code directory in user's home.
- * Only used for:
- * 1. Detecting if Claude Code is installed (for agent detection)
- * 2. Cleaning up legacy tbd installations from older versions
+ * Used ONLY for detecting if Claude Code is installed (for agent detection).
+ * All installations are project-local.
  */
 export const GLOBAL_CLAUDE_DIR = join(homedir(), '.claude');
-
-/**
- * Global Claude Code settings file.
- * Only used for cleaning up legacy hooks from older tbd versions.
- */
-export const GLOBAL_CLAUDE_SETTINGS = join(homedir(), '.claude', 'settings.json');
-
-/**
- * Legacy global scripts that may need cleanup.
- */
-export const LEGACY_GLOBAL_SCRIPTS = [
-  join(homedir(), '.claude', 'scripts', 'tbd-session.sh'),
-  join(homedir(), '.claude', 'scripts', 'ensure-tbd-cli.sh'),
-];
 
 // =============================================================================
 // Path Resolution Utilities

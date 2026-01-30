@@ -18,7 +18,6 @@ import { readFile, mkdir, access, rm, rename, chmod, readdir } from 'node:fs/pro
 import { spawnSync } from 'node:child_process';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { homedir } from 'node:os';
 import { writeFile } from 'atomically';
 
 import { BaseCommand } from '../lib/base-command.js';
@@ -55,8 +54,6 @@ import {
   getClaudePaths,
   getAgentsMdPath,
   GLOBAL_CLAUDE_DIR,
-  GLOBAL_CLAUDE_SETTINGS,
-  LEGACY_GLOBAL_SCRIPTS,
   CLAUDE_SKILL_REL,
   AGENTS_MD_REL,
 } from '../../lib/integration-paths.js';
@@ -368,24 +365,23 @@ class SetupClaudeHandler extends BaseCommand {
   }
 
   async run(options: SetupClaudeOptions): Promise<void> {
-    const settingsPath = join(homedir(), '.claude', 'settings.json');
     const cwd = this.projectDir ?? process.cwd();
-    const skillPath = join(cwd, '.claude', 'skills', 'tbd', 'SKILL.md');
+    const claudePaths = getClaudePaths(cwd);
 
     if (options.check) {
-      await this.checkClaudeSetup(settingsPath, skillPath);
+      await this.checkClaudeSetup(claudePaths.skill);
       return;
     }
 
     if (options.remove) {
-      await this.removeClaudeSetup(settingsPath, skillPath);
+      await this.removeClaudeSetup(claudePaths.skill);
       return;
     }
 
-    await this.installClaudeSetup(settingsPath, skillPath);
+    await this.installClaudeSetup(claudePaths.skill);
   }
 
-  private async checkClaudeSetup(_settingsPath: string, skillPath: string): Promise<void> {
+  private async checkClaudeSetup(skillPath: string): Promise<void> {
     const cwd = this.projectDir ?? process.cwd();
     let sessionScriptInstalled = false;
     let sessionStartHook = false;
@@ -565,7 +561,7 @@ class SetupClaudeHandler extends BaseCommand {
     );
   }
 
-  private async removeClaudeSetup(_settingsPath: string, skillPath: string): Promise<void> {
+  private async removeClaudeSetup(skillPath: string): Promise<void> {
     const cwd = this.projectDir ?? process.cwd();
     const claudePaths = getClaudePaths(cwd);
     let removedHooks = false;
@@ -620,63 +616,12 @@ class SetupClaudeHandler extends BaseCommand {
       // Hook script doesn't exist
     }
 
-    // Remove tbd scripts from project (and legacy global locations for cleanup)
-    const scriptsToRemove = [
-      claudePaths.sessionScript,
-      // Legacy global locations - clean up from older installs
-      ...LEGACY_GLOBAL_SCRIPTS,
-    ];
-    for (const script of scriptsToRemove) {
-      try {
-        await rm(script);
-        removedScripts = true;
-      } catch {
-        // Script doesn't exist
-      }
-    }
-
-    // Also clean up legacy hooks from global settings (from older installs)
-    const globalSettingsPath = GLOBAL_CLAUDE_SETTINGS;
+    // Remove tbd scripts from project
     try {
-      await access(globalSettingsPath);
-      const content = await readFile(globalSettingsPath, 'utf-8');
-      const settings = JSON.parse(content) as Record<string, unknown>;
-
-      if (settings.hooks) {
-        const hooks = settings.hooks as Record<string, unknown>;
-        const filterLegacy = (arr: { hooks?: { command?: string }[] }[] | undefined) => {
-          if (!arr) return undefined;
-          return arr.filter(
-            (h) =>
-              !h.hooks?.some(
-                (hook) =>
-                  (hook.command?.includes('tbd prime') ?? false) ||
-                  (hook.command?.includes('tbd-session.sh') ?? false) ||
-                  (hook.command?.includes('ensure-tbd-cli.sh') ?? false),
-              ),
-          );
-        };
-
-        let modified = false;
-        for (const hookType of ['SessionStart', 'PreCompact'] as const) {
-          if (hooks[hookType]) {
-            const filtered = filterLegacy(hooks[hookType] as { hooks?: { command?: string }[] }[]);
-            if (filtered?.length !== (hooks[hookType] as unknown[])?.length) {
-              modified = true;
-              if (filtered?.length === 0) delete hooks[hookType];
-              else if (filtered) hooks[hookType] = filtered;
-            }
-          }
-        }
-
-        if (modified) {
-          if (Object.keys(hooks).length === 0) delete settings.hooks;
-          await writeFile(globalSettingsPath, JSON.stringify(settings, null, 2) + '\n');
-          removedHooks = true;
-        }
-      }
+      await rm(claudePaths.sessionScript);
+      removedScripts = true;
     } catch {
-      // Global settings file doesn't exist
+      // Script doesn't exist
     }
 
     // Remove skill file from project
@@ -701,36 +646,30 @@ class SetupClaudeHandler extends BaseCommand {
     }
   }
 
-  private async installClaudeSetup(_settingsPath: string, skillPath: string): Promise<void> {
+  private async installClaudeSetup(skillPath: string): Promise<void> {
+    const cwd = this.projectDir ?? process.cwd();
+    const claudePaths = getClaudePaths(cwd);
+
     if (
       this.checkDryRun('Would install Claude Code hooks and skill file', {
-        settingsPath: _settingsPath,
+        settingsPath: claudePaths.settings,
         skillPath,
       })
     ) {
       return;
     }
 
-    const cwd = this.projectDir ?? process.cwd();
-    const projectClaudeDir = join(cwd, '.claude');
-    const projectSettingsPath = join(projectClaudeDir, 'settings.json');
-    const scriptsDir = join(projectClaudeDir, 'scripts');
-
     try {
-      // Note: Legacy script/hook cleanup is now done in SetupAutoHandler.run()
-      // before any integration-specific setup runs. This ensures cleanup happens
-      // regardless of which coding agents are detected.
-
       // Always install to project .claude/ directory (create if needed).
       // This avoids confusion between global vs project-level settings and
       // ensures hooks work in any environment (local dev, Claude Code Cloud, etc.).
-      await mkdir(projectClaudeDir, { recursive: true });
+      await mkdir(claudePaths.dir, { recursive: true });
 
       // Read existing project settings
       let settings: Record<string, unknown> = {};
       try {
-        await access(projectSettingsPath);
-        const content = await readFile(projectSettingsPath, 'utf-8');
+        await access(claudePaths.settings);
+        const content = await readFile(claudePaths.settings, 'utf-8');
         settings = JSON.parse(content) as Record<string, unknown>;
       } catch {
         // File doesn't exist, start fresh
@@ -778,11 +717,10 @@ class SetupClaudeHandler extends BaseCommand {
         }
 
         // Install the script file
-        await mkdir(scriptsDir, { recursive: true });
-        const ghScriptPath = join(scriptsDir, 'ensure-gh-cli.sh');
+        await mkdir(claudePaths.scriptsDir, { recursive: true });
         const ghScriptContent = await loadBundledScript('ensure-gh-cli.sh');
-        await writeFile(ghScriptPath, ghScriptContent);
-        await chmod(ghScriptPath, 0o755);
+        await writeFile(claudePaths.ghCliScript, ghScriptContent);
+        await chmod(claudePaths.ghCliScript, 0o755);
         this.output.success('Installed gh CLI setup script');
       } else {
         // Remove gh CLI hook entries
@@ -794,9 +732,8 @@ class SetupClaudeHandler extends BaseCommand {
         );
 
         // Remove the script file
-        const ghScriptPath = join(scriptsDir, 'ensure-gh-cli.sh');
         try {
-          await rm(ghScriptPath);
+          await rm(claudePaths.ghCliScript);
           this.output.success('Removed gh CLI setup script');
         } catch {
           // Script doesn't exist, ignore
@@ -810,20 +747,19 @@ class SetupClaudeHandler extends BaseCommand {
       }
 
       // Write all hooks to project settings in a single write
-      await writeFile(projectSettingsPath, JSON.stringify(settings, null, 2) + '\n');
+      await writeFile(claudePaths.settings, JSON.stringify(settings, null, 2) + '\n');
       this.output.success('Installed hooks to .claude/settings.json');
 
       // Install tbd-session.sh script
-      await mkdir(scriptsDir, { recursive: true });
-      const tbdSessionScript = join(scriptsDir, 'tbd-session.sh');
-      await writeFile(tbdSessionScript, TBD_SESSION_SCRIPT);
-      await chmod(tbdSessionScript, 0o755);
+      await mkdir(claudePaths.scriptsDir, { recursive: true });
+      await writeFile(claudePaths.sessionScript, TBD_SESSION_SCRIPT);
+      await chmod(claudePaths.sessionScript, 0o755);
 
-      // Clean up legacy scripts
+      // Clean up legacy scripts in project
       const legacyScripts = ['ensure-tbd-cli.sh', 'setup-tbd.sh', 'ensure-tbd.sh'];
       for (const script of legacyScripts) {
         try {
-          await rm(join(scriptsDir, script));
+          await rm(join(claudePaths.scriptsDir, script));
         } catch {
           // Script doesn't exist, ignore
         }
@@ -833,7 +769,7 @@ class SetupClaudeHandler extends BaseCommand {
 
       // Add .claude/.gitignore to ignore backup files
       // NOTE: Pattern re-addition is intentional - see comment in initializeTbd
-      const claudeGitignorePath = join(cwd, '.claude', '.gitignore');
+      const claudeGitignorePath = join(claudePaths.dir, '.gitignore');
       const claudeGitignoreResult = await ensureGitignorePatterns(claudeGitignorePath, [
         '# Backup files',
         '*.bak',
@@ -846,10 +782,9 @@ class SetupClaudeHandler extends BaseCommand {
       // else: file is up-to-date, no message needed
 
       // Install hook script
-      const hookScriptPath = join(projectClaudeDir, 'hooks', 'tbd-closing-reminder.sh');
-      await mkdir(dirname(hookScriptPath), { recursive: true });
-      await writeFile(hookScriptPath, TBD_CLOSE_PROTOCOL_SCRIPT);
-      await chmod(hookScriptPath, 0o755);
+      await mkdir(claudePaths.hooksDir, { recursive: true });
+      await writeFile(claudePaths.closingReminder, TBD_CLOSE_PROTOCOL_SCRIPT);
+      await chmod(claudePaths.closingReminder, 0o755);
       this.output.success('Installed sync reminder hook script');
 
       // Install skill file in project (with shortcut directory appended)
