@@ -39,6 +39,8 @@ import {
   parseGitStatus,
   parseGitDiff,
 } from '../../lib/sync-summary.js';
+import { syncDocsWithDefaults, type SyncDocsResult } from '../../file/doc-sync.js';
+import { ValidationError } from '../lib/errors.js';
 
 interface SyncOptions {
   push?: boolean;
@@ -46,6 +48,8 @@ interface SyncOptions {
   status?: boolean;
   force?: boolean;
   fix?: boolean;
+  issues?: boolean;
+  docs?: boolean;
 }
 
 interface SyncStatus {
@@ -66,7 +70,36 @@ class SyncHandler extends BaseCommand {
     const tbdRoot = await requireInit();
     this.tbdRoot = tbdRoot;
 
-    // Check worktree health before any sync operations
+    // Validate mutually exclusive options
+    // --push/--pull only apply to issues (network operations)
+    if ((options.push || options.pull) && options.docs) {
+      throw new ValidationError('--push/--pull only work with issue sync, not --docs');
+    }
+
+    // Determine what to sync:
+    // - If neither --issues nor --docs specified, sync both
+    // - If --push or --pull specified (without --issues/--docs), sync only issues
+    const hasExclusiveIssueFlag = Boolean(options.push) || Boolean(options.pull);
+    const hasSelectiveFlag = Boolean(options.issues) || Boolean(options.docs);
+
+    // Sync docs: explicit --docs, or default (no selective flags and no push/pull)
+    const syncDocs = Boolean(options.docs) || (!hasSelectiveFlag && !hasExclusiveIssueFlag);
+    // Sync issues: explicit --issues, push/pull flags, or default (no selective flags)
+    const syncIssues = Boolean(options.issues) || hasExclusiveIssueFlag || !hasSelectiveFlag;
+
+    // STEP 1: Sync docs first (fast, local operations)
+    // This ensures docs are updated even if issue sync fails
+    if (syncDocs) {
+      await this.syncDocs(options.status);
+
+      // If only doing docs, return after doc sync
+      if (!syncIssues) {
+        return;
+      }
+    }
+
+    // STEP 2: Sync issues (network operations)
+    // Check worktree health before any issue sync operations
     // See: plan-2026-01-28-sync-worktree-recovery-and-hardening.md
     let worktreeHealth = await checkWorktreeHealth(tbdRoot);
     if (!worktreeHealth.valid) {
@@ -120,7 +153,7 @@ class SyncHandler extends BaseCommand {
     const remote = config.sync.remote;
 
     if (options.status) {
-      await this.showStatus(syncBranch, remote);
+      await this.showIssueStatus(syncBranch, remote);
       return;
     }
 
@@ -135,6 +168,100 @@ class SyncHandler extends BaseCommand {
     } else {
       // Full sync: pull then push
       await this.fullSync(syncBranch, remote, options.force);
+    }
+  }
+
+  /**
+   * Sync docs from bundled sources and config.
+   * This is a fast, local operation (no network required).
+   */
+  private async syncDocs(statusOnly?: boolean): Promise<SyncDocsResult> {
+    if (statusOnly) {
+      // Show status without making changes
+      const result = await syncDocsWithDefaults(this.tbdRoot, { dryRun: true });
+      this.showDocStatus(result);
+      return result;
+    }
+
+    const spinner = this.output.spinner('Syncing docs...');
+    const result = await syncDocsWithDefaults(this.tbdRoot);
+    spinner.stop();
+
+    // Report results
+    this.showDocSyncResult(result);
+    return result;
+  }
+
+  /**
+   * Show doc sync status (what would change).
+   */
+  private showDocStatus(result: SyncDocsResult): void {
+    const colors = this.output.getColors();
+    const hasChanges =
+      result.added.length > 0 ||
+      result.updated.length > 0 ||
+      result.removed.length > 0 ||
+      result.pruned.length > 0;
+
+    if (!hasChanges) {
+      this.output.success('Docs up to date');
+      return;
+    }
+
+    console.log(colors.bold('Docs:'));
+    if (result.added.length > 0) {
+      console.log(`  ${colors.success(`+${result.added.length}`)} new doc(s) available`);
+    }
+    if (result.updated.length > 0) {
+      console.log(`  ${colors.warn(`~${result.updated.length}`)} doc(s) to update`);
+    }
+    if (result.removed.length > 0) {
+      console.log(`  ${colors.error(`-${result.removed.length}`)} doc(s) to remove`);
+    }
+    if (result.pruned.length > 0) {
+      console.log(`  ${colors.dim(`${result.pruned.length}`)} stale config entry/entries`);
+    }
+  }
+
+  /**
+   * Show doc sync result after sync.
+   */
+  private showDocSyncResult(result: SyncDocsResult): void {
+    const hasChanges =
+      result.added.length > 0 ||
+      result.updated.length > 0 ||
+      result.removed.length > 0 ||
+      result.pruned.length > 0;
+
+    if (!hasChanges) {
+      this.output.success('Docs up to date');
+      return;
+    }
+
+    // Build summary string
+    const parts: string[] = [];
+    if (result.added.length > 0) {
+      parts.push(`+${result.added.length}`);
+    }
+    if (result.updated.length > 0) {
+      parts.push(`~${result.updated.length}`);
+    }
+    if (result.removed.length > 0) {
+      parts.push(`-${result.removed.length}`);
+    }
+
+    if (parts.length > 0) {
+      this.output.success(`Synced docs: ${parts.join(' ')} doc(s)`);
+    }
+
+    // Report pruned entries
+    if (result.pruned.length > 0) {
+      this.output.info(`Removed ${result.pruned.length} stale config entry/entries`);
+    }
+
+    // Report errors
+    for (const err of result.errors) {
+      this.output.warn(`Doc sync error: ${err.path}: ${err.error}`);
     }
   }
 
@@ -169,7 +296,7 @@ class SyncHandler extends BaseCommand {
     }
   }
 
-  private async showStatus(syncBranch: string, remote: string): Promise<void> {
+  private async showIssueStatus(syncBranch: string, remote: string): Promise<void> {
     const status = await this.getSyncStatus(syncBranch, remote);
 
     this.output.data(status, () => {
@@ -724,9 +851,11 @@ class SyncHandler extends BaseCommand {
 }
 
 export const syncCommand = new Command('sync')
-  .description('Synchronize with remote')
-  .option('--push', 'Push local changes only')
-  .option('--pull', 'Pull remote changes only')
+  .description('Synchronize issues and docs (both by default)')
+  .option('--issues', 'Sync only issues (not docs)')
+  .option('--docs', 'Sync only docs (not issues)')
+  .option('--push', 'Push local issue changes only')
+  .option('--pull', 'Pull remote issue changes only')
   .option('--status', 'Show sync status')
   .option('--force', 'Force sync (overwrite conflicts)')
   .option('--fix', 'Attempt to repair unhealthy worktree before syncing')
