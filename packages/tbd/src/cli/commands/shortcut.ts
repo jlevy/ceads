@@ -18,6 +18,7 @@ import { addDoc } from '../../file/doc-add.js';
 import { readConfig } from '../../file/config.js';
 import { DEFAULT_SHORTCUT_PATHS } from '../../lib/paths.js';
 import { truncate } from '../../lib/truncate.js';
+import { formatDocSize } from '../../lib/format-utils.js';
 import { getTerminalWidth } from '../lib/output.js';
 
 interface ShortcutOptions {
@@ -190,6 +191,8 @@ class ShortcutHandler extends BaseCommand {
           description: d.frontmatter?.description,
           path: d.path,
           sourceDir: d.sourceDir,
+          sizeBytes: d.sizeBytes,
+          approxTokens: d.approxTokens,
           shadowed: cache.isShadowed(d),
         })),
       );
@@ -215,8 +218,9 @@ class ShortcutHandler extends BaseCommand {
         const line = `${name} (${doc.sourceDir}) [shadowed]`;
         console.log(pc.dim(truncate(line, maxWidth)));
       } else {
-        // Line 1: name (bold) + (sourceDir) (dimmed)
-        console.log(`${pc.bold(name)} ${pc.dim(`(${doc.sourceDir})`)}`);
+        // Line 1: name (bold) + size/token info (dimmed)
+        const sizeInfo = formatDocSize(doc.sizeBytes, doc.approxTokens);
+        console.log(`${pc.bold(name)} ${pc.dim(sizeInfo)}`);
 
         // Line 2+: Indented "Title: Description"
         // Only truncate fallback body text; never truncate actual title/description

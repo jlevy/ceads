@@ -12,6 +12,7 @@ import { DocCommandHandler, type DocCommandOptions } from '../lib/doc-command-ha
 import { CLIError } from '../lib/errors.js';
 import { DEFAULT_GUIDELINES_PATHS } from '../../lib/paths.js';
 import { truncate } from '../../lib/truncate.js';
+import { formatDocSize } from '../../lib/format-utils.js';
 import { getTerminalWidth } from '../lib/output.js';
 
 /**
@@ -124,6 +125,8 @@ class GuidelinesHandler extends DocCommandHandler {
           category: inferGuidelineCategory(d.name),
           path: d.path,
           sourceDir: d.sourceDir,
+          sizeBytes: d.sizeBytes,
+          approxTokens: d.approxTokens,
           shadowed: this.cache!.isShadowed(d),
         })),
       );
@@ -153,7 +156,8 @@ class GuidelinesHandler extends DocCommandHandler {
         const line = `${name} (${doc.sourceDir}) [shadowed]`;
         console.log(pc.dim(truncate(line, maxWidth)));
       } else {
-        console.log(`${pc.bold(name)} ${pc.dim(`(${doc.sourceDir})`)}`);
+        const sizeInfo = formatDocSize(doc.sizeBytes, doc.approxTokens);
+        console.log(`${pc.bold(name)} ${pc.dim(sizeInfo)}`);
         const hasFrontmatter = title ?? doc.frontmatter?.description;
         const content =
           title && description ? `${title}: ${description}` : (title ?? description ?? '');

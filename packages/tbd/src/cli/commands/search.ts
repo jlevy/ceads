@@ -16,6 +16,7 @@ import { listIssues } from '../../file/storage.js';
 import { IssueStatus } from '../../lib/schemas.js';
 import type { Issue, IssueStatusType, LocalState } from '../../lib/types.js';
 import { resolveDataSyncDir, STATE_FILE } from '../../lib/paths.js';
+import { formatTimestampAgo } from '../../lib/format-utils.js';
 import { now } from '../../utils/time-utils.js';
 import { formatDisplayId, formatDebugId } from '../../lib/ids.js';
 import { loadIdMapping } from '../../file/id-mapping.js';
@@ -80,9 +81,12 @@ class SearchHandler extends BaseCommand {
 
     // Check worktree staleness and auto-refresh if needed
     if (!options.noRefresh) {
+      const state = await readState();
       const stale = await isWorktreeStale();
       if (stale) {
-        this.output.info('Refreshing worktree...');
+        const lastSyncAgo = formatTimestampAgo(state.last_sync_at);
+        const staleInfo = lastSyncAgo ? ` (last synced ${lastSyncAgo})` : '';
+        this.output.info(`Refreshing worktree${staleInfo}...`);
         // Update state to mark as fresh (in a full implementation, would actually sync)
         await updateState({ last_sync_at: now() });
       }

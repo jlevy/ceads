@@ -16,6 +16,7 @@ import matter from 'gray-matter';
 
 import { readConfig, readLocalState, updateLocalState, findTbdRoot } from './config.js';
 import { DocSync, generateDefaultDocCacheConfig, isDocsStale } from './doc-sync.js';
+import { estimateTokens } from '../lib/format-utils.js';
 
 // =============================================================================
 // Scoring Constants
@@ -67,6 +68,10 @@ export interface CachedDoc {
   content: string;
   /** Which directory in the path this doc came from */
   sourceDir: string;
+  /** File size in bytes */
+  sizeBytes: number;
+  /** Estimated token count (based on ~3.5 chars/token) */
+  approxTokens: number;
 }
 
 /**
@@ -210,6 +215,8 @@ export class DocCache {
       try {
         const content = await readFile(filePath, 'utf-8');
         const frontmatter = this.parseFrontmatterData(content);
+        const sizeBytes = Buffer.byteLength(content, 'utf-8');
+        const approxTokens = estimateTokens(content);
 
         const doc: CachedDoc = {
           path: filePath,
@@ -217,6 +224,8 @@ export class DocCache {
           frontmatter,
           content,
           sourceDir,
+          sizeBytes,
+          approxTokens,
         };
 
         // Track all docs

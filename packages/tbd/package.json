@@ -73,6 +73,8 @@
     "marked": "^15.0.12",
     "marked-terminal": "^7.3.0",
     "picocolors": "^1.1.1",
+    "pretty-bytes": "^7.0.0",
+    "pretty-ms": "^9.0.0",
     "ulid": "^3.0.2",
     "yaml": "^2.8.2",
     "zod": "^3.25.76"

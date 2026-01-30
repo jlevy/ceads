@@ -16,6 +16,7 @@ import { requireInit, NotFoundError, ValidationError } from '../lib/errors.js';
 import { readIssue, writeIssue } from '../../file/storage.js';
 import { normalizeIssueId, formatDisplayId, formatDebugId } from '../../lib/ids.js';
 import { resolveDataSyncDir, resolveAtticDir } from '../../lib/paths.js';
+import { formatTimestampAgo } from '../../lib/format-utils.js';
 import { now } from '../../utils/time-utils.js';
 import { loadIdMapping } from '../../file/id-mapping.js';
 import { readConfig } from '../../file/config.js';
@@ -130,11 +131,12 @@ class AtticListHandler extends BaseCommand {
         return;
       }
       console.log(
-        `${colors.dim('ID'.padEnd(12))}${colors.dim('TIMESTAMP'.padEnd(22))}${colors.dim('FIELD'.padEnd(14))}${colors.dim('WINNER')}`,
+        `${colors.dim('ID'.padEnd(12))}${colors.dim('WHEN'.padEnd(14))}${colors.dim('FIELD'.padEnd(14))}${colors.dim('WINNER')}`,
       );
       for (const entry of output) {
+        const when = formatTimestampAgo(entry.timestamp) ?? entry.timestamp;
         console.log(
-          `${colors.id(entry.id.padEnd(12))}${entry.timestamp.padEnd(22)}${entry.field.padEnd(14)}${entry.winner}`,
+          `${colors.id(entry.id.padEnd(12))}${when.padEnd(14)}${entry.field.padEnd(14)}${entry.winner}`,
         );
       }
     });
@@ -182,8 +184,10 @@ class AtticShowHandler extends BaseCommand {
       console.log(`${colors.bold('Context:')}`);
       console.log(`  Local version: ${entry.context.local_version}`);
       console.log(`  Remote version: ${entry.context.remote_version}`);
-      console.log(`  Local updated: ${entry.context.local_updated_at}`);
-      console.log(`  Remote updated: ${entry.context.remote_updated_at}`);
+      const localAgo = formatTimestampAgo(entry.context.local_updated_at);
+      const remoteAgo = formatTimestampAgo(entry.context.remote_updated_at);
+      console.log(`  Local updated: ${localAgo ?? entry.context.local_updated_at}`);
+      console.log(`  Remote updated: ${remoteAgo ?? entry.context.remote_updated_at}`);
     });
   }
 }

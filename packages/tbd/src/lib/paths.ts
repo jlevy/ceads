@@ -386,3 +386,20 @@ export function resolveDocPath(docPath: string, baseDir: string = process.cwd())
   // Relative paths resolved from baseDir (tbd root)
   return join(baseDir, docPath);
 }
+
+// =============================================================================
+// Token Estimation Settings
+// =============================================================================
+
+/**
+ * Characters per token ratio for estimating token counts.
+ *
+ * Based on research of OpenAI (tiktoken) and Claude tokenizers:
+ * - Pure English prose: ~4-5 chars/token
+ * - Code and symbols: ~3 chars/token
+ * - Mixed markdown/code docs: ~3.5 chars/token
+ *
+ * We use 3.5 as our docs are markdown with code examples.
+ * This provides ~15-20% accuracy, sufficient for cost estimation.
+ */
+export const CHARS_PER_TOKEN = 3.5;

@@ -14,6 +14,7 @@ import { requireInit } from './errors.js';
 import { DocCache, SCORE_PREFIX_MATCH } from '../../file/doc-cache.js';
 import { addDoc, type DocType } from '../../file/doc-add.js';
 import { truncate } from '../../lib/truncate.js';
+import { formatDocSize } from '../../lib/format-utils.js';
 import { getTerminalWidth } from './output.js';
 
 /**
@@ -91,6 +92,8 @@ export abstract class DocCommandHandler extends BaseCommand {
           description: d.frontmatter?.description,
           path: d.path,
           sourceDir: d.sourceDir,
+          sizeBytes: d.sizeBytes,
+          approxTokens: d.approxTokens,
           shadowed: this.cache!.isShadowed(d),
         })),
       );
@@ -116,8 +119,9 @@ export abstract class DocCommandHandler extends BaseCommand {
         const line = `${name} (${doc.sourceDir}) [shadowed]`;
         console.log(pc.dim(truncate(line, maxWidth)));
       } else {
-        // Line 1: name (bold) + (sourceDir) (dimmed)
-        console.log(`${pc.bold(name)} ${pc.dim(`(${doc.sourceDir})`)}`);
+        // Line 1: name (bold) + size/token info (dimmed)
+        const sizeInfo = formatDocSize(doc.sizeBytes, doc.approxTokens);
+        console.log(`${pc.bold(name)} ${pc.dim(sizeInfo)}`);
 
         // Line 2+: Indented "Title: Description"
         const hasFrontmatter = title ?? doc.frontmatter?.description;
