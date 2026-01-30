@@ -1,5 +1,12 @@
 # get-tbd
 
+## 0.1.12
+
+### Patch Changes
+
+- 1509909: Bug fixes for sync reliability, stats output redesign, and documentation
+  improvements.
+
 ## 0.1.11
 
 ### Patch Changes
