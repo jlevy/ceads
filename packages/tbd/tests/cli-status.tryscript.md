@@ -207,18 +207,21 @@ The status command provides orientation and points to stats for issue counts.
 $ tbd stats
 By status:
   ○ open               2
+  ◐ in_progress        0
+  ● blocked            0
+  ○ deferred           0
   ──────────────────────
-  active               2
+    active             2
   ✓ closed             0
   ══════════════════════
-  total                2
+    total              2
 
-By kind:          active closed  total
-  bug                  1      0      1
-  task                 1      0      1
+By kind:            active  closed   total
+  bug                    1       0       1
+  task                   1       0       1
 
-By priority:      active closed  total
-  P2 (Medium)          2      0      2
+By priority:        active  closed   total
+  P2 (Medium)            2       0       2
 
 Use 'tbd status' for setup info, 'tbd doctor' for health checks.
 ? 0

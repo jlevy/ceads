@@ -130,39 +130,17 @@ $ tbd search "nonexistentxyz123" --json
 
 ## Stats Command
 
-# Test: Stats shows summary
+Note: Full text output golden test is in cli-orientation-golden.tryscript.md.
+These tests focus on JSON output and programmatic access.
 
-```console
-$ tbd stats
-By status:
-  ○ open               5
-  ──────────────────────
-  active               5
-  ✓ closed             0
-  ══════════════════════
-  total                5
-
-By kind:          active closed  total
-  bug                  2      0      2
-  feature              1      0      1
-  task                 1      0      1
-  chore                1      0      1
-
-By priority:      active closed  total
-  P2 (Medium)          5      0      5
-
-Use 'tbd status' for setup info, 'tbd doctor' for health checks.
-? 0
-```
-
-# Test: Stats as JSON
+# Test: Stats JSON output structure
 
 ```console
 $ tbd stats --json
 {
   "total": 5,
-  "activeTotal": 5,
-  "closedTotal": 0,
+  "active": 5,
+  "closed": 0,
   "byStatus": {
     "open": 5,
     "in_progress": 0,
@@ -210,11 +188,11 @@ total: 5
 ? 0
 ```
 
-# Test: Stats by kind
+# Test: Stats by kind (active)
 
 ```console
-$ tbd stats --json | node -e "d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log('bugs:', d.byKind.bug)"
-bugs: 2
+$ tbd stats --json | node -e "d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log('active bugs:', d.byKindActive.bug)"
+active bugs: 2
 ? 0
 ```
 

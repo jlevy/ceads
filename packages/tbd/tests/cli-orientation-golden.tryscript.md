@@ -123,7 +123,10 @@ HEALTH CHECKS
 
 ## Stats Command
 
-This is the complete output of `tbd stats`.
+This is the complete output of `tbd stats` showing the redesigned format with:
+- Status icons (○ open, ◐ in_progress, ● blocked, ○ deferred, ✓ closed)
+- Active/closed subtotals with separator lines
+- Three-column layout (active, closed, total) for kind and priority breakdowns
 
 # Test: Stats full output
 
@@ -131,18 +134,21 @@ This is the complete output of `tbd stats`.
 $ tbd stats
 By status:
   ○ open               2
+  ◐ in_progress        0
+  ● blocked            0
+  ○ deferred           0
   ──────────────────────
-  active               2
+    active             2
   ✓ closed             0
   ══════════════════════
-  total                2
+    total              2
 
-By kind:          active closed  total
-  bug                  1      0      1
-  task                 1      0      1
+By kind:            active  closed   total
+  bug                    1       0       1
+  task                   1       0       1
 
-By priority:      active closed  total
-  P2 (Medium)          2      0      2
+By priority:        active  closed   total
+  P2 (Medium)            2       0       2
 
 Use 'tbd status' for setup info, 'tbd doctor' for health checks.
 ? 0
@@ -173,8 +179,10 @@ The following differences exist between status and doctor:
 
 4. **STATISTICS section**:
    - status: Does not show statistics (points to `tbd stats`)
-   - doctor: Shows full statistics with `STATISTICS` heading
-   - stats: Shows statistics with `Summary:` heading (no caps)
+   - doctor: Shows summary statistics with `STATISTICS` heading (Ready/In
+     progress/Blocked/Open/Total)
+   - stats: Shows detailed breakdown with status icons, active/closed subtotals, and
+     three-column layout
 
 5. **Shared sections from sections.ts**:
    - Repository section: SHARED (but gitVersion param differs)
