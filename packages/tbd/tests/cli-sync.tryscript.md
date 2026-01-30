@@ -219,9 +219,13 @@ Error: Failed to pull: [..]
 
 # Test: Full sync handles missing remote gracefully
 
+Note: Without a remote configured, sync commits locally but shows a push failure.
+
 ```console
 $ tbd sync
-✓ [..]
+✗ Push failed: fatal: 'origin' does not appear to be a git repository
+  4 commit(s) not pushed to remote.
+  Run 'tbd sync' to retry or 'tbd sync --status' to check status.
 ? 0
 ```
 
@@ -231,15 +235,21 @@ $ tbd sync
 
 # Test: Running sync twice in a row is safe
 
+Note: Without a remote, sync shows push failure message each time.
+
 ```console
 $ tbd sync
-✓ [..]
+✗ Push failed: fatal: 'origin' does not appear to be a git repository
+  4 commit(s) not pushed to remote.
+  Run 'tbd sync' to retry or 'tbd sync --status' to check status.
 ? 0
 ```
 
 ```console
 $ tbd sync
-✓ [..]
+✗ Push failed: fatal: 'origin' does not appear to be a git repository
+  4 commit(s) not pushed to remote.
+  Run 'tbd sync' to retry or 'tbd sync --status' to check status.
 ? 0
 ```
 
