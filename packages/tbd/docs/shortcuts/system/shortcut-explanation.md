@@ -2,6 +2,8 @@
 title: Shortcut System Explanation
 description: How tbd shortcuts work for agents
 ---
+# tbd Shortcuts
+
 Shortcuts are reusable instructions for common tasks.
 Give a name or description and tbd will find the matching shortcut and output its
 instructions.
@@ -17,7 +19,7 @@ instructions.
 
 Each shortcut is a markdown document with step-by-step instructions.
 These may include:
-- Creating issues with `tbd create`
+- Creating beads with `tbd create`
 - Running other shortcuts via `tbd shortcut <name>`
 - File operations and git workflows
 - Prompts for gathering information from the user
@@ -29,7 +31,7 @@ User: “I want to create a new research brief”
 Agent:
 1. Runs `tbd shortcut new-research-brief`
 2. Follows the instructions in the output
-3. The instructions may say to create an issue, copy a template, etc.
+3. The instructions may say to create a bead, copy a template, etc.
 
 ## Shortcut Locations
 

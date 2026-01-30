@@ -11,26 +11,29 @@ import { requireInit, NotInitializedError } from '../lib/errors.js';
 import { listIssues } from '../../file/storage.js';
 import type { Issue, IssueStatusType, IssueKindType } from '../../lib/types.js';
 import { resolveDataSyncDir } from '../../lib/paths.js';
-import { getStatusIcon, getStatusColor } from '../../lib/status.js';
+import { formatPriority } from '../../lib/priority.js';
 import { renderFooter } from '../lib/sections.js';
-
-// Column widths for alignment
-const LABEL_WIDTH = 16;
-const NUMBER_WIDTH = 6;
+import { getStatusIcon, getStatusColor } from '../../lib/status.js';
 
 /**
- * Right-align a number within a given width.
+ * Active statuses (non-closed).
  */
-function rightAlign(num: number, width: number = NUMBER_WIDTH): string {
-  return String(num).padStart(width);
-}
+const ACTIVE_STATUSES: IssueStatusType[] = ['open', 'in_progress', 'blocked', 'deferred'];
 
 /**
- * Check if a status is "active" (not closed).
+ * All statuses in display order.
  */
-function isActiveStatus(status: IssueStatusType): boolean {
-  return status !== 'closed';
-}
+const STATUS_ORDER: IssueStatusType[] = ['open', 'in_progress', 'blocked', 'deferred', 'closed'];
+
+/**
+ * All kinds in display order.
+ */
+const KIND_ORDER: IssueKindType[] = ['bug', 'feature', 'task', 'epic', 'chore'];
+
+/**
+ * Priority labels for display.
+ */
+const PRIORITY_LABELS = ['Critical', 'High', 'Medium', 'Low', 'Lowest'];
 
 class StatsHandler extends BaseCommand {
   async run(): Promise<void> {
@@ -54,7 +57,7 @@ class StatsHandler extends BaseCommand {
       closed: 0,
     };
 
-    // Count by kind (active and closed separately)
+    // Count by kind (active vs closed)
     const byKindActive: Record<IssueKindType, number> = {
       bug: 0,
       feature: 0,
@@ -70,7 +73,7 @@ class StatsHandler extends BaseCommand {
       chore: 0,
     };
 
-    // Count by priority (active and closed separately)
+    // Count by priority (active vs closed)
     const byPriorityActive: Record<number, number> = { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0 };
     const byPriorityClosed: Record<number, number> = { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0 };
 
@@ -78,7 +81,7 @@ class StatsHandler extends BaseCommand {
     for (const issue of issues) {
       byStatus[issue.status]++;
 
-      const isActive = isActiveStatus(issue.status);
+      const isActive = issue.status !== 'closed';
       if (isActive) {
         byKindActive[issue.kind]++;
         if (issue.priority >= 0 && issue.priority <= 4) {
@@ -93,14 +96,14 @@ class StatsHandler extends BaseCommand {
     }
 
     // Calculate totals
-    const activeTotal = byStatus.open + byStatus.in_progress + byStatus.blocked + byStatus.deferred;
+    const activeTotal = ACTIVE_STATUSES.reduce((sum, s) => sum + byStatus[s], 0);
     const closedTotal = byStatus.closed;
     const total = issues.length;
 
     const stats = {
       total,
-      activeTotal,
-      closedTotal,
+      active: activeTotal,
+      closed: closedTotal,
       byStatus,
       byKindActive,
       byKindClosed,
@@ -112,7 +115,7 @@ class StatsHandler extends BaseCommand {
       const colors = this.output.getColors();
 
       if (stats.total === 0) {
-        console.log(colors.dim('No issues yet.'));
+        console.log(colors.dim('No issues found.'));
         renderFooter(
           [
             { command: 'tbd status', description: 'setup info' },
@@ -123,80 +126,73 @@ class StatsHandler extends BaseCommand {
         return;
       }
 
-      // ─────────────────────────────────────────────────────────────
-      // By status section
-      // ─────────────────────────────────────────────────────────────
+      // Column width for counts (right-aligned)
+      const countWidth = 6;
+
+      // === BY STATUS SECTION ===
       console.log(colors.bold('By status:'));
 
-      // Show each active status with icon and color
-      const activeStatuses: IssueStatusType[] = ['open', 'in_progress', 'blocked', 'deferred'];
-      for (const status of activeStatuses) {
+      // Find max count for determining column alignment
+      const maxStatusCount = Math.max(...Object.values(stats.byStatus), activeTotal, total);
+      const statusCountWidth = Math.max(countWidth, String(maxStatusCount).length + 2);
+
+      // Show each status with icon and color
+      for (const status of STATUS_ORDER) {
         const count = stats.byStatus[status];
-        if (count > 0) {
-          const icon = getStatusIcon(status);
-          const colorFn = getStatusColor(status, colors);
-          const label = `${icon} ${status}`.padEnd(LABEL_WIDTH);
-          console.log(`  ${colorFn(label)}${rightAlign(count)}`);
-        }
+        if (status === 'closed') continue; // Show closed after subtotal
+        const icon = getStatusIcon(status);
+        const colorFn = getStatusColor(status, colors);
+        const countStr = String(count).padStart(statusCountWidth);
+        console.log(`  ${colorFn(icon)} ${status.padEnd(14)}${countStr}`);
       }
 
-      // Separator and active subtotal
-      console.log(colors.dim(`  ${'─'.repeat(LABEL_WIDTH + NUMBER_WIDTH)}`));
-      console.log(`  ${'active'.padEnd(LABEL_WIDTH)}${rightAlign(activeTotal)}`);
+      // Subtotal separator and active total
+      console.log(`  ${'─'.repeat(16 + statusCountWidth)}`);
+      console.log(`    ${'active'.padEnd(14)}${String(activeTotal).padStart(statusCountWidth)}`);
 
       // Closed with icon
       const closedIcon = getStatusIcon('closed');
       const closedColorFn = getStatusColor('closed', colors);
       console.log(
-        `  ${closedColorFn(`${closedIcon} closed`.padEnd(LABEL_WIDTH))}${rightAlign(closedTotal)}`,
+        `  ${closedColorFn(closedIcon)} ${'closed'.padEnd(14)}${String(closedTotal).padStart(statusCountWidth)}`,
       );
 
-      // Double separator and total
-      console.log(colors.dim(`  ${'═'.repeat(LABEL_WIDTH + NUMBER_WIDTH)}`));
-      console.log(colors.bold(`  ${'total'.padEnd(LABEL_WIDTH)}${rightAlign(total)}`));
+      // Total separator and total
+      console.log(`  ${'═'.repeat(16 + statusCountWidth)}`);
+      console.log(`    ${'total'.padEnd(14)}${String(total).padStart(statusCountWidth)}`);
 
-      // ─────────────────────────────────────────────────────────────
-      // By kind section (with active/closed/total columns)
-      // ─────────────────────────────────────────────────────────────
+      // === BY KIND SECTION ===
       console.log('');
-      // Column headers for multi-column sections (add 2 for "  " prefix on data rows)
-      const colHeaders = colors.dim(
-        `${'active'.padStart(NUMBER_WIDTH)} ${'closed'.padStart(NUMBER_WIDTH)} ${'total'.padStart(NUMBER_WIDTH)}`,
-      );
-      console.log(colors.bold('By kind:') + ' '.repeat(LABEL_WIDTH - 6) + colHeaders);
+      const kindHeader = `${'By kind:'.padEnd(18)}${'active'.padStart(countWidth + 2)}${'closed'.padStart(countWidth + 2)}${'total'.padStart(countWidth + 2)}`;
+      console.log(colors.bold(kindHeader));
 
-      const kindOrder: IssueKindType[] = ['bug', 'feature', 'task', 'epic', 'chore'];
-      for (const kind of kindOrder) {
+      for (const kind of KIND_ORDER) {
         const active = stats.byKindActive[kind];
         const closed = stats.byKindClosed[kind];
         const kindTotal = active + closed;
-        if (kindTotal > 0) {
-          console.log(
-            `  ${kind.padEnd(LABEL_WIDTH)}${rightAlign(active)} ${rightAlign(closed)} ${rightAlign(kindTotal)}`,
-          );
-        }
+        if (kindTotal === 0) continue;
+
+        const line = `  ${kind.padEnd(16)}${String(active).padStart(countWidth + 2)}${String(closed).padStart(countWidth + 2)}${String(kindTotal).padStart(countWidth + 2)}`;
+        console.log(line);
       }
 
-      // ─────────────────────────────────────────────────────────────
-      // By priority section (with active/closed/total columns)
-      // ─────────────────────────────────────────────────────────────
+      // === BY PRIORITY SECTION ===
       console.log('');
-      console.log(colors.bold('By priority:') + ' '.repeat(LABEL_WIDTH - 10) + colHeaders);
+      const priorityHeader = `${'By priority:'.padEnd(18)}${'active'.padStart(countWidth + 2)}${'closed'.padStart(countWidth + 2)}${'total'.padStart(countWidth + 2)}`;
+      console.log(colors.bold(priorityHeader));
 
-      const priorityLabels = ['Critical', 'High', 'Medium', 'Low', 'Lowest'];
       for (let i = 0; i <= 4; i++) {
         const active = stats.byPriorityActive[i] ?? 0;
         const closed = stats.byPriorityClosed[i] ?? 0;
         const priorityTotal = active + closed;
-        if (priorityTotal > 0) {
-          const label = `P${i} (${priorityLabels[i]})`;
-          console.log(
-            `  ${label.padEnd(LABEL_WIDTH)}${rightAlign(active)} ${rightAlign(closed)} ${rightAlign(priorityTotal)}`,
-          );
-        }
+        if (priorityTotal === 0) continue;
+
+        const label = `${formatPriority(i)} (${PRIORITY_LABELS[i]})`;
+        const line = `  ${label.padEnd(16)}${String(active).padStart(countWidth + 2)}${String(closed).padStart(countWidth + 2)}${String(priorityTotal).padStart(countWidth + 2)}`;
+        console.log(line);
       }
 
-      // Footer
+      // Footer (shared format)
       renderFooter(
         [
           { command: 'tbd status', description: 'setup info' },

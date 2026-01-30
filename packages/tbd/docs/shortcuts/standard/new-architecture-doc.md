@@ -3,7 +3,7 @@ title: New Architecture Doc
 description: Create an architecture document for a system or component design
 author: Joshua Levy (github.com/jlevy) with LLM assistance
 ---
-We track issues with tbd.
+We track work as beads using tbd.
 Run `tbd` for more on using tbd and current status.
 
 Instructions:

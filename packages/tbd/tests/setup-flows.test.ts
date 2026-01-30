@@ -402,6 +402,7 @@ describe('setup flows', () => {
       await expect(access(scriptPath)).rejects.toThrow();
     });
 
+    // Longer timeout for Windows where spawning processes is slower
     it('preserves non-gh SessionStart hooks when adding/removing gh hook', async () => {
       initGitRepo();
 
@@ -458,7 +459,7 @@ describe('setup flows', () => {
           h.hooks?.some((hook) => hook.command?.includes('ensure-gh-cli')),
         ),
       ).toBe(false);
-    });
+    }, 15000);
 
     it('installed script matches bundled ensure-gh-cli.sh', async () => {
       initGitRepo();

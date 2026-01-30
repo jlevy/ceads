@@ -27,6 +27,7 @@ docs_cache:
     guidelines/general-testing-rules.md: internal:guidelines/general-testing-rules.md
     guidelines/golden-testing-guidelines.md: internal:guidelines/golden-testing-guidelines.md
     guidelines/python-cli-patterns.md: internal:guidelines/python-cli-patterns.md
+    guidelines/python-modern-guidelines.md: internal:guidelines/python-modern-guidelines.md
     guidelines/python-rules.md: internal:guidelines/python-rules.md
     guidelines/typescript-cli-tool-rules.md: internal:guidelines/typescript-cli-tool-rules.md
     guidelines/typescript-code-coverage.md: internal:guidelines/typescript-code-coverage.md
@@ -39,11 +40,11 @@ docs_cache:
     shortcuts/standard/implement-beads.md: internal:shortcuts/standard/implement-beads.md
     shortcuts/standard/new-architecture-doc.md: internal:shortcuts/standard/new-architecture-doc.md
     shortcuts/standard/new-guideline.md: internal:shortcuts/standard/new-guideline.md
-    shortcuts/standard/plan-implementation-with-beads.md: internal:shortcuts/standard/plan-implementation-with-beads.md
     shortcuts/standard/new-plan-spec.md: internal:shortcuts/standard/new-plan-spec.md
     shortcuts/standard/new-research-brief.md: internal:shortcuts/standard/new-research-brief.md
     shortcuts/standard/new-shortcut.md: internal:shortcuts/standard/new-shortcut.md
     shortcuts/standard/new-validation-plan.md: internal:shortcuts/standard/new-validation-plan.md
+    shortcuts/standard/plan-implementation-with-beads.md: internal:shortcuts/standard/plan-implementation-with-beads.md
     shortcuts/standard/precommit-process.md: internal:shortcuts/standard/precommit-process.md
     shortcuts/standard/review-code-python.md: internal:shortcuts/standard/review-code-python.md
     shortcuts/standard/review-code-typescript.md: internal:shortcuts/standard/review-code-typescript.md

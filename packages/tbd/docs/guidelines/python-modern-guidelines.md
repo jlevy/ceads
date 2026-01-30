@@ -1,20 +1,29 @@
 ---
-description: Python Coding Guidelines - Oppinionated Additions
-globs: *.py, pyproject.toml
-alwaysApply: false
+title: Python Modern Guidelines
+description: Guidelines for modern Python projects using uv, with a few more opinionated practices
+author: Joshua Levy (github.com/jlevy) with LLM assistance
 ---
-# Python Coding Guidelines - Oppinionated Additions
+# Python Modern Guidelines
 
-These are additional rules for a modern Python project using uv.
-Use these rules *in addition to* all rules in @python-rules.md.
+These are rules for a modern Python project using uv.
 
-## Always Use `uv`!
+## Support Only Modern Python Versions
 
+Write for Python 3.11-3.14. Do NOT write code to support earlier versions of Python.
+Always use modern Python practices appropriate for Python 3.11-3.13.
+
+Always use full type annotations, generics, and other modern practices.
+
+## Very Strongly Prefer `uv`!
+
+Unless there is a compelling reason for backward compatibility, use uv.
 Use `uv` for all Python package management and one-off use cases.
 Use `uvx` to run packages that may not be installed.
+Use modern uv commands: `uv sync`, `uv run ...`, etc.
+Prefer `uv add` over `uv pip install`.
 
 DO NOT use `pip`, `pipx`, `pyenv`, `twine`, `virtualenv`, or `poetry` or any other older
-Python packaging tools.
+Python packaging tools unless absolutely necessary.
 
 [Read the uv docs overview here](https://docs.astral.sh/uv/llms.txt) to find the
 appropriate docs.
