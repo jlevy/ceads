@@ -14,6 +14,7 @@ import {
   type IssueForDisplay,
 } from './issue-format.js';
 import { comparisonChain, ordering } from '../../lib/comparison-chain.js';
+import type { InternalIssueId } from '../../lib/ids.js';
 
 /**
  * Options for tree rendering.
@@ -53,8 +54,9 @@ const TREE_CHARS = {
 export interface IssueForTree extends IssueForDisplay {
   parentId?: string;
   /** Internal ID for matching against order hints (optional, defaults to id) */
-  internalId?: string;
-  children_order_hints?: string[];
+  internalId?: InternalIssueId;
+  /** Ordered list of child internal IDs for preferred display order */
+  children_order_hints?: InternalIssueId[];
 }
 
 /**
@@ -72,7 +74,7 @@ function getInternalId(issue: IssueForTree): string {
  * Children not in hints appear after, sorted by ID for determinism.
  * Uses internalId for matching against hints (which contain internal IDs).
  */
-function sortChildren(children: TreeNode[], hints: string[] | undefined): void {
+function sortChildren(children: TreeNode[], hints: InternalIssueId[] | undefined): void {
   if (!hints || hints.length === 0) {
     // No hints - sort by ID for determinism
     children.sort(
@@ -85,9 +87,10 @@ function sortChildren(children: TreeNode[], hints: string[] | undefined): void {
 
   // Sort using manual ordering: items in hints first, then by ID
   // Use internalId for matching since hints contain internal IDs
+  // Cast to string[] since ordering.manual works with any strings
   children.sort(
     comparisonChain<TreeNode>()
-      .compare((n) => getInternalId(n.issue as IssueForTree), ordering.manual(hints))
+      .compare((n) => getInternalId(n.issue as IssueForTree), ordering.manual(hints as string[]))
       .compare((n) => n.issue.id) // Secondary sort for items not in hints
       .result(),
   );
@@ -106,8 +109,8 @@ function sortChildren(children: TreeNode[], hints: string[] | undefined): void {
 export function buildIssueTree(issues: IssueForTree[]): TreeNode[] {
   // Create a map for quick lookup by ID
   const issueMap = new Map<string, TreeNode>();
-  // Store order hints per parent
-  const orderHintsMap = new Map<string, string[]>();
+  // Store order hints per parent (internal IDs for child ordering)
+  const orderHintsMap = new Map<string, InternalIssueId[]>();
   const roots: TreeNode[] = [];
 
   // First pass: create nodes for all issues and collect order hints

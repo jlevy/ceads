@@ -12,10 +12,29 @@ import { tmpdir } from 'node:os';
 import { randomBytes } from 'node:crypto';
 
 import { writeIssue, readIssue, listIssues } from '../src/file/storage.js';
-import { buildIssueTree } from '../src/cli/lib/tree-view.js';
+import { buildIssueTree, type IssueForTree } from '../src/cli/lib/tree-view.js';
 import type { Issue } from '../src/lib/types.js';
+import type { InternalIssueId } from '../src/lib/ids.js';
 import { DATA_SYNC_DIR } from '../src/lib/paths.js';
 import { TEST_ULIDS, testId } from './test-helpers.js';
+
+/**
+ * Helper to convert stored issues to IssueForTree format.
+ * Casts children_order_hints from string[] to InternalIssueId[] since storage uses plain strings.
+ */
+function toIssueForTree(issue: Issue): IssueForTree {
+  return {
+    id: issue.id,
+    priority: issue.priority,
+    status: issue.status,
+    kind: issue.kind,
+    title: issue.title,
+    parentId: issue.parent_id ?? undefined,
+    children_order_hints: (issue.children_order_hints ?? undefined) as
+      | InternalIssueId[]
+      | undefined,
+  };
+}
 
 describe('child ordering', () => {
   let testDir: string;
@@ -109,15 +128,7 @@ describe('child ordering', () => {
       const issues = await listIssues(issuesDir);
 
       // Convert to display format with parent info
-      const issuesForTree = issues.map((issue) => ({
-        id: issue.id,
-        priority: issue.priority,
-        status: issue.status,
-        kind: issue.kind,
-        title: issue.title,
-        parentId: issue.parent_id ?? undefined,
-        children_order_hints: issue.children_order_hints ?? undefined,
-      }));
+      const issuesForTree = issues.map(toIssueForTree);
 
       const roots = buildIssueTree(issuesForTree);
 
@@ -176,15 +187,7 @@ describe('child ordering', () => {
       await writeIssue(issuesDir, createChild(childDId, 'Child D'));
 
       const issues = await listIssues(issuesDir);
-      const issuesForTree = issues.map((issue) => ({
-        id: issue.id,
-        priority: issue.priority,
-        status: issue.status,
-        kind: issue.kind,
-        title: issue.title,
-        parentId: issue.parent_id ?? undefined,
-        children_order_hints: issue.children_order_hints ?? undefined,
-      }));
+      const issuesForTree = issues.map(toIssueForTree);
 
       const roots = buildIssueTree(issuesForTree);
       const parentNode = roots[0]!;
@@ -237,15 +240,7 @@ describe('child ordering', () => {
       await writeIssue(issuesDir, createChild(childAId, 'Child A')); // Write A second
 
       const issues = await listIssues(issuesDir);
-      const issuesForTree = issues.map((issue) => ({
-        id: issue.id,
-        priority: issue.priority,
-        status: issue.status,
-        kind: issue.kind,
-        title: issue.title,
-        parentId: issue.parent_id ?? undefined,
-        children_order_hints: issue.children_order_hints ?? undefined,
-      }));
+      const issuesForTree = issues.map(toIssueForTree);
 
       const roots = buildIssueTree(issuesForTree);
       const parentNode = roots[0]!;
@@ -301,15 +296,7 @@ describe('child ordering', () => {
       // Note: staleId is NOT written - it's a stale reference
 
       const issues = await listIssues(issuesDir);
-      const issuesForTree = issues.map((issue) => ({
-        id: issue.id,
-        priority: issue.priority,
-        status: issue.status,
-        kind: issue.kind,
-        title: issue.title,
-        parentId: issue.parent_id ?? undefined,
-        children_order_hints: issue.children_order_hints ?? undefined,
-      }));
+      const issuesForTree = issues.map(toIssueForTree);
 
       const roots = buildIssueTree(issuesForTree);
       const parentNode = roots[0]!;

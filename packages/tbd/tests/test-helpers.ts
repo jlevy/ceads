@@ -6,6 +6,7 @@
  */
 
 import type { Issue } from '../src/lib/types.js';
+import type { InternalIssueId } from '../src/lib/ids.js';
 
 // Valid ULID strings for testing (exactly 26 lowercase alphanumeric characters)
 // Each uses format: 01 + identifier (8 chars) + padding zeros + number suffix = 26 total
@@ -116,8 +117,8 @@ export const TEST_ULIDS = {
 /**
  * Create a test issue ID from a ULID.
  */
-export function testId(ulid: string): string {
-  return `is-${ulid}`;
+export function testId(ulid: string): InternalIssueId {
+  return `is-${ulid}` as InternalIssueId;
 }
 
 /**
