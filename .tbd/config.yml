@@ -35,6 +35,9 @@ docs_cache:
     guidelines/typescript-monorepo-patterns.md: internal:guidelines/typescript-monorepo-patterns.md
     guidelines/typescript-rules.md: internal:guidelines/typescript-rules.md
     shortcuts/standard/agent-handoff.md: internal:shortcuts/standard/agent-handoff.md
+    shortcuts/standard/cleanup-all.md: internal:shortcuts/standard/cleanup-all.md
+    shortcuts/standard/cleanup-remove-trivial-tests.md: internal:shortcuts/standard/cleanup-remove-trivial-tests.md
+    shortcuts/standard/cleanup-update-docstrings.md: internal:shortcuts/standard/cleanup-update-docstrings.md
     shortcuts/standard/commit-code.md: internal:shortcuts/standard/commit-code.md
     shortcuts/standard/create-or-update-pr-simple.md: internal:shortcuts/standard/create-or-update-pr-simple.md
     shortcuts/standard/create-or-update-pr-with-validation-plan.md: internal:shortcuts/standard/create-or-update-pr-with-validation-plan.md

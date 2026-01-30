@@ -150,6 +150,9 @@ Run `tbd shortcut <name>` to use any of these shortcuts:
 | Name | Title | Description |
 | --- | --- | --- |
 | agent-handoff | Agent Handoff | Generate a concise handoff prompt for another coding agent to continue work |
+| cleanup-all | Clean Up All Code | Full cleanup cycle including duplicate removal, dead code, and code quality improvements |
+| cleanup-remove-trivial-tests |  |  |
+| cleanup-update-docstrings |  |  |
 | commit-code | Commit Code | Run pre-commit checks, review changes, and commit code |
 | create-or-update-pr-simple | Create or Update PR (Simple) | Create or update a pull request with a concise summary |
 | create-or-update-pr-with-validation-plan | Create or Update PR with Validation Plan | Create or update a pull request with a detailed test/validation plan |
