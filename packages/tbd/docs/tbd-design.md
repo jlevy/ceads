@@ -1206,6 +1206,40 @@ File path:      .tbd/data-sync/issues/is-01hx5zzkbkdetav9wevgemmvrz.md
 Display back:   proj-a7k2
 ```
 
+#### Type-Safe ID Handling (Branded Types)
+
+To prevent accidentally mixing internal and display IDs at compile time, tbd uses
+TypeScript branded types:
+
+```typescript
+// Branded type for internal IDs (stored in files)
+declare const InternalIssueIdBrand: unique symbol;
+export type InternalIssueId = string & { [InternalIssueIdBrand]: never };
+
+// Branded type for display IDs (shown to users)
+declare const DisplayIssueIdBrand: unique symbol;
+export type DisplayIssueId = string & { [DisplayIssueIdBrand]: never };
+
+// Helper functions for type casting
+export function asInternalId(id: string): InternalIssueId;
+export function asDisplayId(id: string): DisplayIssueId;
+```
+
+**Usage guidelines:**
+
+| Context | Use Type | Example |
+| --- | --- | --- |
+| `parent_id`, `dependencies`, `child_order_hints` | `InternalIssueId` | `is-01hx5zzkbk...` |
+| Storage, file operations | `InternalIssueId` | Reading/writing issue files |
+| CLI output, tree views | `DisplayIssueId` | `proj-a7k2` |
+| User input (after resolution) | `InternalIssueId` | `resolveToInternalId()` returns this |
+
+**Benefits:**
+
+- **Compile-time safety**: TypeScript errors if you pass wrong ID type to a function
+- **Self-documenting**: Function signatures clarify which ID format is expected
+- **Refactoring safety**: Changing ID handling shows all affected call sites
+
 ### 2.6 Schemas
 
 Schemas are defined in Zod (TypeScript).
@@ -1317,6 +1351,11 @@ const IssueSchema = BaseEntity.extend({
   // Hierarchical issues
   parent_id: IssueId.optional(),
 
+  // Child ordering hints - soft ordering for children under this parent.
+  // Array of internal IssueIds in preferred display order.
+  // May contain stale IDs; display logic filters for actual children.
+  child_order_hints: z.array(IssueId).nullable().optional(),
+
   // Spec linking - path to related spec/doc (relative to repo root)
   spec_path: z.string().optional(),
 
@@ -1368,6 +1407,24 @@ type Issue = z.infer<typeof IssueSchema>;
   Children with explicitly different `spec_path` values are not affected.
   Re-parenting a child (via `tbd update --parent`) also inherits the new parent’s
   `spec_path` if the child has no existing `spec_path`.
+
+- `child_order_hints`: Optional array of internal IssueIds specifying preferred display
+  order for children of this issue.
+  Used by `tbd list --pretty` to control child ordering in tree views.
+
+  **Soft hints model:** This is a “hints” approach rather than strict ordering:
+  - May contain stale IDs (deleted or re-parented issues) - silently ignored
+  - May be incomplete (not all children listed) - unlisted children appear after hinted
+    ones
+  - No automatic cleanup when children change
+
+  **Auto-population:** When a child is assigned to a parent via `--parent`, the child’s
+  internal ID is automatically appended to the parent’s `child_order_hints`.
+
+  **Manual control:** Use `tbd update <id> --child-order <ids>` to set the full ordering
+  list. Use `--child-order ""` to clear.
+
+  **Display:** Use `tbd show <id> --show-order` to view current hints.
 
 - `dependencies`: Only “blocks” type for now (affects `ready` command)
 
@@ -1563,6 +1620,31 @@ tbd update proj-c3d4 --parent proj-a1b2
 # List children of a parent
 tbd list --parent proj-a1b2
 ```
+
+**Child ordering:**
+
+When displaying children under a parent, tbd uses `child_order_hints` to control display
+order. This provides soft ordering hints - the parent suggests a display order for its
+children.
+
+```bash
+# Reorder children explicitly (replaces all hints)
+tbd update proj-a1b2 --child-order proj-c3d4,proj-e5f6,proj-g7h8
+
+# View current ordering
+tbd show proj-a1b2 --show-order
+```
+
+**Ordering behavior:**
+
+- **Auto-population**: When setting `--parent` on create/update, the child is
+  automatically appended to the parent’s `child_order_hints`
+- **Manual control**: Use `--child-order` to set explicit ordering
+- **Soft hints**: Hints may contain stale IDs (removed children); display logic filters
+  for actual children only
+- **Fallback**: Children not in hints are sorted by priority, then ID
+- **Tree view**: `tbd list --pretty` respects hint ordering within each parent’s
+  children
 
 #### 2.7.3 Dependency Relationships
 
@@ -2034,6 +2116,7 @@ const issueMergeRules: MergeRules<Issue> = {
   created_by: { strategy: 'preserve_oldest' },
   closed_at: { strategy: 'lww' }, // See status/closed_at rules below
   close_reason: { strategy: 'lww' },
+  child_order_hints: { strategy: 'lww' }, // Soft ordering, LWW on concurrent edits
 };
 ```
 
@@ -2381,6 +2464,7 @@ tbd show <id> [options]
 
 Options:
   --json                    Output as JSON instead of YAML+Markdown
+  --show-order              Display child_order_hints (if any)
 ```
 
 **Output:**
@@ -2459,6 +2543,7 @@ Options:
   --add-label <label>       Add label
   --remove-label <label>    Remove label
   --parent=<id>             Set parent
+  --child-order <ids>    Set child ordering hints (comma-separated)
   --no-sync                 Don't sync after update
 ```
 
@@ -2469,6 +2554,9 @@ tbd update proj-a1b2 --status=in_progress
 tbd update proj-a1b2 --title "New issue title"
 tbd update proj-a1b2 --add-label urgent --priority=P0
 tbd update proj-a1b2 --defer 2025-02-01
+
+# Set child display ordering for a parent issue
+tbd update proj-a1b2 --child-order proj-c3d4,proj-e5f6,proj-g7h8
 
 # Round-trip editing: export, modify, re-import
 tbd show proj-a1b2 > issue.md

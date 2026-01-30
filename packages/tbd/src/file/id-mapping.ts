@@ -18,6 +18,8 @@ import {
   makeInternalId,
   isInternalId,
   extractShortId,
+  asInternalId,
+  type InternalIssueId,
 } from '../lib/ids.js';
 import { naturalSort } from '../lib/sort.js';
 
@@ -208,12 +210,12 @@ export function createShortIdMapping(internalId: string, mapping: IdMapping): st
  * @returns The internal ID ({prefix}-{ulid})
  * @throws If the short ID is not found in the mapping
  */
-export function resolveToInternalId(input: string, mapping: IdMapping): string {
+export function resolveToInternalId(input: string, mapping: IdMapping): InternalIssueId {
   const lower = input.toLowerCase();
 
   // If it's already an internal ID, return it
   if (isInternalId(lower)) {
-    return lower;
+    return asInternalId(lower);
   }
 
   // Extract the short ID portion (strips any prefix like "bd-" or "is-")

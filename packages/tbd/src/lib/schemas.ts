@@ -124,6 +124,11 @@ export const IssueSchema = BaseEntity.extend({
   // Hierarchical issues
   parent_id: IssueId.nullable().optional(),
 
+  // Child ordering hints - soft ordering for children under this parent.
+  // Array of internal IssueIds in preferred display order.
+  // May contain stale IDs; display logic filters for actual children.
+  child_order_hints: z.array(IssueId).nullable().optional(),
+
   // Beads compatibility
   due_date: Timestamp.nullable().optional(),
   deferred_until: Timestamp.nullable().optional(),

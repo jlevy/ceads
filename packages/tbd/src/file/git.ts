@@ -280,6 +280,7 @@ const FIELD_STRATEGIES: Record<keyof Issue, MergeStrategy> = {
   priority: 'lww',
   assignee: 'lww',
   parent_id: 'lww',
+  child_order_hints: 'lww',
   updated_at: 'max',
   closed_at: 'lww',
   close_reason: 'lww',

@@ -498,6 +498,68 @@ They deserve the same review rigor as code.
 
 - Over-approval without careful review → tests pass but behavior is wrong.
 
+### Anti-Patterns for Session Tests (tryscript/golden tests)
+
+**Anti-pattern 1: Using patterns for stable/known fields**
+
+Don’t use pattern matching for fields you control.
+If you create an issue with `--priority=2`, the output will always show `P2`. Patterns
+should only match truly unstable fields:
+
+```yaml
+# WRONG: Using patterns for known values
+patterns:
+  PRIORITY: 'P[0-4]'
+  STATUS_ICON: '[○◐●✓]'
+
+# Then in test:
+test-[SHORTID]     [PRIORITY]  [STATUS_ICON] open  [task] My Task
+```
+
+```yaml
+# RIGHT: Only pattern unstable fields (IDs, timestamps)
+patterns:
+  SHORTID: '[0-9a-z]{4,5}'
+  TIMESTAMP: "\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d+)?Z"
+
+# Then in test:
+test-[SHORTID]     P2  ○ open  [task] My Task
+```
+
+**Why**: Patterns hide actual values, reducing test coverage.
+If priority changes from P2 to P1 unexpectedly, a pattern won’t catch it.
+Use patterns only for non-deterministic values like generated IDs and timestamps.
+
+**Anti-pattern 2: Complex inline parsing instead of showing full output**
+
+Don’t embed complex parsing logic to extract specific values.
+Instead, show the full command output (within reason) or use simple tools like `jq`:
+
+```bash
+# WRONG: Complex inline JavaScript parsing
+$ tbd show issue --json | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log('has hints:', Array.isArray(d.child_order_hints), 'count:', d.child_order_hints?.length)"
+has hints: true count: 4
+
+# RIGHT: Use jq for simple extractions
+$ tbd show issue --json | jq '.child_order_hints | length'
+4
+
+# BETTER: Show full output when size is reasonable
+$ tbd show issue --json
+{
+  "id": "test-abc1",
+  "title": "My Issue",
+  "child_order_hints": ["is-xxx", "is-yyy", "is-zzz", "is-www"],
+  ...
+}
+```
+
+**Why**: The goal of session golden tests is to reveal the full state of the system at
+each point in time. Complex parsing hides state, making it harder to catch unexpected
+changes. Full output provides better coverage and makes failures more informative.
+Use `jq` for simple extractions when you need to reduce output size or capture values
+for later use.
+
 * * *
 
 ## Reading Session Diffs

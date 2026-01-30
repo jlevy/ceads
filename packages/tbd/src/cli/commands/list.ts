@@ -101,6 +101,8 @@ class ListHandler extends BaseCommand {
       assignee: i.assignee ?? undefined,
       labels: i.labels,
       spec_path: i.spec_path ?? undefined,
+      // Use internal IDs for order hints (buildIssueTree compares against internal IDs)
+      child_order_hints: i.child_order_hints ?? undefined,
     }));
 
     this.output.data(displayIssues, () => {

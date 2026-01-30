@@ -225,7 +225,8 @@ Created child
 ## Test: --specs with --pretty Tree View
 
 The `--specs --pretty` combination shows tree view within each spec group.
-In pretty mode, children are nested under parents, so P1 collision is deterministic.
+In pretty mode, children are nested under parents with full columns (ID, priority,
+status). Items are sorted by priority.
 Only actual parent-child relationships form trees; other beads in the same spec group
 appear as standalone roots:
 

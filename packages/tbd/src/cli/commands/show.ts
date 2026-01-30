@@ -15,8 +15,12 @@ import { formatPriority, getPriorityColor } from '../../lib/priority.js';
 import { getStatusColor } from '../../lib/status.js';
 import type { IssueStatusType } from '../../lib/types.js';
 
+interface ShowOptions {
+  showOrder?: boolean;
+}
+
 class ShowHandler extends BaseCommand {
-  async run(id: string, command: Command): Promise<void> {
+  async run(id: string, command: Command, options: ShowOptions): Promise<void> {
     // Load unified context with data and helpers
     const ctx = await loadFullContext(command);
 
@@ -72,6 +76,20 @@ class ShowHandler extends BaseCommand {
           console.log(line);
         }
       }
+
+      // Show child_order_hints if --show-order is specified
+      if (options.showOrder) {
+        console.log('');
+        console.log(colors.dim('child_order_hints:'));
+        if (issue.child_order_hints && issue.child_order_hints.length > 0) {
+          for (const hintId of issue.child_order_hints) {
+            const shortId = ctx.displayId(hintId);
+            console.log(`  - ${colors.id(shortId)}`);
+          }
+        } else {
+          console.log(`  ${colors.dim('(none)')}`);
+        }
+      }
     });
   }
 }
@@ -79,7 +97,8 @@ class ShowHandler extends BaseCommand {
 export const showCommand = new Command('show')
   .description('Show issue details')
   .argument('<id>', 'Issue ID')
-  .action(async (id, _options, command) => {
+  .option('--show-order', 'Display children ordering hints')
+  .action(async (id, options, command) => {
     const handler = new ShowHandler(command);
-    await handler.run(id, command);
+    await handler.run(id, command, options);
   });

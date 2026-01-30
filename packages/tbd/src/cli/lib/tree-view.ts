@@ -13,6 +13,8 @@ import {
   ISSUE_COLUMNS,
   type IssueForDisplay,
 } from './issue-format.js';
+import { comparisonChain, ordering } from '../../lib/comparison-chain.js';
+import type { InternalIssueId } from '../../lib/ids.js';
 
 /**
  * Options for tree rendering.
@@ -47,22 +49,76 @@ const TREE_CHARS = {
 } as const;
 
 /**
+ * Issue input for tree building, with optional parent and ordering hints.
+ */
+export interface IssueForTree extends IssueForDisplay {
+  parentId?: string;
+  /** Internal ID for matching against order hints (optional, defaults to id) */
+  internalId?: InternalIssueId;
+  /** Ordered list of child internal IDs for preferred display order */
+  child_order_hints?: InternalIssueId[];
+}
+
+/**
+ * Get the internal ID for an issue (used for matching against order hints).
+ * Falls back to display ID if internalId is not set.
+ */
+function getInternalId(issue: IssueForTree): string {
+  return issue.internalId ?? issue.id;
+}
+
+/**
+ * Sort children using order hints from the parent.
+ *
+ * Children in hints appear first, in hints order.
+ * Children not in hints appear after, sorted by ID for determinism.
+ * Uses internalId for matching against hints (which contain internal IDs).
+ */
+function sortChildren(children: TreeNode[], hints: InternalIssueId[] | undefined): void {
+  if (!hints || hints.length === 0) {
+    // No hints - sort by ID for determinism
+    children.sort(
+      comparisonChain<TreeNode>()
+        .compare((n) => n.issue.id)
+        .result(),
+    );
+    return;
+  }
+
+  // Sort using manual ordering: items in hints first, then by ID
+  // Use internalId for matching since hints contain internal IDs
+  // Cast to string[] since ordering.manual works with any strings
+  children.sort(
+    comparisonChain<TreeNode>()
+      .compare((n) => getInternalId(n.issue as IssueForTree), ordering.manual(hints as string[]))
+      .compare((n) => n.issue.id) // Secondary sort for items not in hints
+      .result(),
+  );
+}
+
+/**
  * Build a tree structure from a flat list of issues.
  *
  * Groups children under their parents based on parent_id.
  * Issues without a parent (or whose parent is not in the list) become root nodes.
+ * Children are sorted according to parent's child_order_hints if available.
  *
- * @param issues - Flat list of issues with optional parent_id
+ * @param issues - Flat list of issues with optional parent_id and child_order_hints
  * @returns Array of root tree nodes with nested children
  */
-export function buildIssueTree(issues: (IssueForDisplay & { parentId?: string })[]): TreeNode[] {
+export function buildIssueTree(issues: IssueForTree[]): TreeNode[] {
   // Create a map for quick lookup by ID
   const issueMap = new Map<string, TreeNode>();
+  // Store order hints per parent (internal IDs for child ordering)
+  const orderHintsMap = new Map<string, InternalIssueId[]>();
   const roots: TreeNode[] = [];
 
-  // First pass: create nodes for all issues
+  // First pass: create nodes for all issues and collect order hints
   for (const issue of issues) {
     issueMap.set(issue.id, { issue, children: [] });
+    if (issue.child_order_hints) {
+      orderHintsMap.set(issue.id, issue.child_order_hints);
+    }
   }
 
   // Second pass: build parent-child relationships
@@ -78,6 +134,16 @@ export function buildIssueTree(issues: (IssueForDisplay & { parentId?: string })
       roots.push(node);
     }
   }
+
+  // Third pass: sort children using parent's order hints
+  for (const node of issueMap.values()) {
+    if (node.children.length > 0) {
+      const hints = orderHintsMap.get(node.issue.id);
+      sortChildren(node.children, hints);
+    }
+  }
+
+  // Root nodes preserve their input order (list command already sorts by priority)
 
   return roots;
 }
