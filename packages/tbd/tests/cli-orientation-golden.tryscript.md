@@ -53,7 +53,7 @@ Remote: origin
 ID prefix: go-
 
 INTEGRATIONS
-  ✗ Claude Code hooks (~/.claude/settings.json)
+  ✗ Claude Code hooks (./.claude/settings.json)
   ✗ Codex AGENTS.md (./AGENTS.md)
 
 Run tbd setup auto to configure detected agents
@@ -165,7 +165,7 @@ The following differences exist between status and doctor:
    - doctor: Shows in HEALTH CHECKS section as `✓ Git version - X.Y.Z`
 
 2. **INTEGRATIONS section uses different checks**:
-   - status: Checks “Claude Code hooks” in ~/.claude/settings.json
+   - status: Checks “Claude Code hooks” in ./.claude/settings.json
      (renderIntegrationsSection)
    - doctor: Checks “Claude Code skill” in .claude/skills/tbd/SKILL.md
      (renderDiagnostics)

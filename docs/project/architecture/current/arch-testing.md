@@ -1,6 +1,6 @@
 # Testing Architecture
 
-Last updated: 2026-01-17
+Last updated: 2026-01-30
 
 Maintenance: When revising this doc you must follow instructions in
 @shortcut-revise-architecture-doc.md.
@@ -48,20 +48,20 @@ Tests are organized by **what they require to run**:
 │              Performance (7 tests)                 │  Large datasets
 │        (Validates timing targets)                  │  1000+ issues
 ├───────────────────────────────────────────────────┤
-│    Tryscript Golden (~2.5 min, 334 tests)         │  CLI subprocess
+│       Tryscript Golden (~3 min, 33 files)         │  CLI subprocess
 │     (Markdown-based, pattern matching)            │  Primary golden testing
 ├───────────────────────────────────────────────────┤
 │      Vitest Golden (~50 sec, 7 scenarios)         │  CLI subprocess
 │     (YAML-based, exact comparison)                │  Supplementary golden
 ├───────────────────────────────────────────────────┤
-│        Integration (~1 min, 50 tests)             │  Temp directories
+│     Integration (~1.5 min, ~500 tests)            │  Temp directories
 │        (File I/O, multi-component)                │  Data round-trips
 ├───────────────────────────────────────────────────┤
-│          Unit (~30 sec, 108 tests)                │  No I/O
+│          Unit (~30 sec, ~300 tests)               │  No I/O
 │        (Pure functions, schemas)                   │  Mocked boundaries
 └───────────────────────────────────────────────────┘
 
-Total: 172 vitest tests + 334 tryscript tests = 506 tests
+Total: 843 vitest tests + tryscript tests (~1000+ total assertions)
 ```
 
 ## Terminology
@@ -94,16 +94,20 @@ They mock all external boundaries.
 
 **When to run**: Every commit
 
-**Current Coverage:**
+**Current Coverage (select examples):**
 
-| File | Tests | Scope |
-| --- | --- | --- |
-| `schemas.test.ts` | 11 | Zod schema validation |
-| `ids.test.ts` | 43 | ULID generation, short ID resolution |
-| `hash.test.ts` | 13 | Content hashing for conflicts |
-| `parser.test.ts` | 8 | YAML frontmatter parsing |
-| `merge.test.ts` | 20 | Merge strategies, conflict resolution |
-| `errors.test.ts` | 13 | Error message formatting |
+| File | Scope |
+| --- | --- |
+| `schemas.test.ts` | Zod schema validation |
+| `ids.test.ts` | ULID generation, short ID resolution |
+| `parser.test.ts` | YAML frontmatter parsing |
+| `merge.test.ts` | Merge strategies, conflict resolution |
+| `errors.test.ts` | Error message formatting |
+| `priority.test.ts` | Priority parsing and formatting |
+| `status.test.ts` | Status icons and colors |
+| `truncate.test.ts` | Text truncation utilities |
+| `issue-format.test.ts` | Issue line formatting |
+| `comparison-chain.test.ts` | Multi-field sorting |
 
 ### 2. Integration Tests (CI-Safe)
 
@@ -120,17 +124,21 @@ flows. They verify that storage, config, and workflow layers work correctly toge
 
 **When to run**: Every commit
 
-**Current Coverage:**
+**Current Coverage (select examples):**
 
-| File | Tests | Scope |
-| --- | --- | --- |
-| `storage.test.ts` | 13 | Atomic writes, issue CRUD |
-| `config.test.ts` | 5 | Config file operations |
-| `workflow.test.ts` | 6 | Ready, blocked, stale logic |
-| `close-reopen.test.ts` | 8 | Issue state transitions |
-| `label-depends.test.ts` | 7 | Label and dependency operations |
-| `doctor-sync.test.ts` | 4 | Health checks, sync status |
-| `attic-import.test.ts` | 7 | Attic operations, import mapping |
+| File | Scope |
+| --- | --- |
+| `storage.test.ts` | Atomic writes, issue CRUD |
+| `config.test.ts` | Config file operations |
+| `workflow.test.ts` | Ready, blocked, stale logic |
+| `close-reopen.test.ts` | Issue state transitions |
+| `label-depends.test.ts` | Label and dependency operations |
+| `doctor-sync.test.ts` | Health checks, sync status |
+| `setup-flows.test.ts` | Setup and migration flows |
+| `setup-hooks.test.ts` | Claude Code hooks setup |
+| `project-paths.test.ts` | Path detection and resolution |
+| `doc-sync.test.ts` | Documentation sync operations |
+| `github-fetch.test.ts` | GitHub API integration |
 
 ### 3. Tryscript Tests (CI-Safe) — Primary Golden Testing
 
@@ -153,23 +161,33 @@ output. Tryscript handles:
 
 **When to run**: Every commit
 
-**Current Coverage (334 tests across 13 files):**
+**Current Coverage (33 tryscript files):**
 
-| File | Tests | Commands Covered |
-| --- | --- | --- |
-| `cli-setup.tryscript.md` | ~25 | --help, --version, init, info |
-| `cli-crud.tryscript.md` | ~60 | create, show, update, list, close, reopen |
-| `cli-workflow.tryscript.md` | ~50 | ready, blocked, stale, label, depends |
-| `cli-advanced.tryscript.md` | ~45 | search, sync, doctor, config, attic, stats |
-| `cli-import.tryscript.md` | ~20 | import (JSONL, validation) |
-| `cli-import-e2e.tryscript.md` | ~15 | import --from-beads (full workflow) |
-| `cli-help-all.tryscript.md` | ~25 | <cmd> --help for all commands |
-| `cli-uninitialized.tryscript.md` | ~15 | commands without init |
-| `cli-filesystem.tryscript.md` | ~20 | file location verification |
-| `cli-id-format.tryscript.md` | ~20 | ID format validation |
-| `cli-import-status.tryscript.md` | ~15 | status mapping coverage |
-| `cli-edge-cases.tryscript.md` | ~10 | error handling edge cases |
-| `cli-color-modes.tryscript.md` | ~16 | --color flag, NO_COLOR env var |
+| File | Commands Covered |
+| --- | --- |
+| `cli-setup.tryscript.md` | --help, --version, init, info |
+| `cli-crud.tryscript.md` | create, show, update, list, close, reopen |
+| `cli-workflow.tryscript.md` | ready, blocked, stale, label, depends |
+| `cli-advanced.tryscript.md` | search, sync, doctor, config, attic, stats |
+| `cli-import.tryscript.md` | import (JSONL, validation) |
+| `cli-import-e2e.tryscript.md` | import --from-beads (full workflow) |
+| `cli-help-all.tryscript.md` | <cmd> --help for all commands |
+| `cli-uninitialized.tryscript.md` | commands without init |
+| `cli-filesystem.tryscript.md` | file location verification |
+| `cli-id-format.tryscript.md` | ID format validation |
+| `cli-import-status.tryscript.md` | status mapping coverage |
+| `cli-edge-cases.tryscript.md` | error handling edge cases |
+| `cli-color-modes.tryscript.md` | --color flag, NO_COLOR env var |
+| `cli-sync.tryscript.md` | sync command, worktree operations |
+| `cli-sync-remote.tryscript.md` | remote sync scenarios |
+| `cli-sync-worktree-scenarios.tryscript.md` | worktree edge cases |
+| `cli-status.tryscript.md` | status command output |
+| `cli-prime.tryscript.md` | prime command behavior |
+| `cli-spec-linking.tryscript.md` | spec-bead linking |
+| `cli-spec-inherit.tryscript.md` | spec inheritance |
+| `cli-list-*.tryscript.md` | list command variations |
+| `cli-setup-commands.tryscript.md` | setup subcommands |
+| (+ 11 more files) | Various CLI scenarios |
 
 **Tryscript File Format:**
 
@@ -294,30 +312,20 @@ tests/
 │   ├── README.md                 # Usage docs
 │   └── scenarios/                # Golden baselines (YAML)
 │       ├── core-workflow.yaml
-│       ├── update-close.yaml
 │       └── ...
 ├── test-helpers.ts               # Shared test utilities
-├── schemas.test.ts               # Unit: Zod schemas
-├── ids.test.ts                   # Unit: ID generation/resolution
-├── hash.test.ts                  # Unit: Content hashing
-├── parser.test.ts                # Unit: YAML parsing
-├── merge.test.ts                 # Unit: Merge strategies
-├── errors.test.ts                # Unit: Error formatting
-├── storage.test.ts               # Integration: File I/O
-├── config.test.ts                # Integration: Config files
-├── workflow.test.ts              # Integration: Workflow logic
-├── close-reopen.test.ts          # Integration: State transitions
-├── label-depends.test.ts         # Integration: Labels/deps
-├── doctor-sync.test.ts           # Integration: Health checks
-├── attic-import.test.ts          # Integration: Import/attic
+├── *.test.ts                     # 47 vitest test files (unit + integration)
+│   ├── Unit tests: schemas, ids, parser, merge, errors, priority,
+│   │              status, truncate, issue-format, comparison-chain, etc.
+│   └── Integration: storage, config, workflow, setup-flows, setup-hooks,
+│                    project-paths, doc-sync, github-fetch, etc.
 ├── performance.test.ts           # Performance: Large dataset tests
-├── cli-setup.tryscript.md        # Tryscript: init, info, help
-├── cli-crud.tryscript.md         # Tryscript: create, show, update, list
-├── cli-workflow.tryscript.md     # Tryscript: ready, blocked, stale
-├── cli-advanced.tryscript.md     # Tryscript: search, sync, doctor
-├── cli-import.tryscript.md       # Tryscript: import validation
-├── cli-color-modes.tryscript.md  # Tryscript: --color flag, NO_COLOR
-└── ...                           # (7 more tryscript files)
+└── *.tryscript.md                # 33 tryscript files covering all CLI commands
+    ├── cli-setup.tryscript.md    # init, info, help
+    ├── cli-crud.tryscript.md     # create, show, update, list
+    ├── cli-workflow.tryscript.md # ready, blocked, stale
+    ├── cli-sync*.tryscript.md    # sync operations (4 files)
+    └── ...                       # (28 more tryscript files)
 ```
 
 ## Golden Test Infrastructure
@@ -464,11 +472,7 @@ export function hasCorrectFrontmatterFormat(content: string): boolean;
 ### Status Mapping Constants
 
 ```typescript
-export const BEADS_STATUS_VALUES = [
-  'open', 'in_progress', 'done', 'closed', 'tombstone', 'blocked', 'deferred'
-] as const;
-
-export const BEADS_TO_TBD_STATUS = {
+export const BEADS_TO_TBD_STATUS: Record<string, string> = {
   open: 'open',
   in_progress: 'in_progress',
   done: 'closed',      // Critical mapping
@@ -516,7 +520,7 @@ git diff tests/golden/scenarios/   # Review changes
 
 ```bash
 pnpm test               # Full vitest suite (unit + integration + golden + performance)
-pnpm test:tryscript     # Tryscript CLI tests (334 tests)
+pnpm test:tryscript     # Tryscript CLI tests (33 files)
 pnpm test:coverage      # Combined coverage report (vitest + tryscript)
 pnpm test:watch         # Watch mode for TDD
 ```

@@ -1,6 +1,6 @@
 # CLI Interface Design System Architecture
 
-Last updated: 2026-01-17
+Last updated: 2026-01-30
 
 Maintenance: When revising this doc you must follow instructions in
 @shortcut-revise-architecture-doc.md.
@@ -16,7 +16,7 @@ verbose/debug logging, and progress indicators.
 
 **Related Documents:**
 
-- [plan-2026-01-17-cli-output-design-system.md](../specs/active/plan-2026-01-17-cli-output-design-system.md)
+- [plan-2026-01-17-cli-output-design-system.md](../../specs/active/plan-2026-01-17-cli-output-design-system.md)
   \- Implementation plan
 - [output.ts](packages/tbd/src/cli/lib/output.ts) - OutputManager implementation
 - [context.ts](packages/tbd/src/cli/lib/context.ts) - Command context and modes
@@ -752,7 +752,7 @@ For mentioning an issue inline in messages or logs:
 
 #### Formatting Utility Functions
 
-**File(s)**: `packages/tbd/src/cli/lib/issueFormat.ts`
+**File(s)**: `packages/tbd/src/cli/lib/issue-format.ts`
 
 All commands MUST use these shared utilities for consistent formatting:
 
@@ -819,7 +819,7 @@ import {
   formatIssueCompact,
   formatIssueInline,
   formatIssueLong,
-} from '../lib/issueFormat.js';
+} from '../lib/issue-format.js';
 
 // List view (standard)
 console.log(formatIssueHeader(colors));

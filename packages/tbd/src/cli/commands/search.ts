@@ -11,16 +11,16 @@ import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
 import { writeFile } from 'atomically';
 
 import { BaseCommand } from '../lib/base-command.js';
+import { applyLimit } from '../lib/limit-utils.js';
+import { loadDataContext, type TbdDataContext } from '../lib/data-context.js';
 import { requireInit, NotInitializedError, ValidationError } from '../lib/errors.js';
 import { listIssues } from '../../file/storage.js';
 import { IssueStatus } from '../../lib/schemas.js';
 import type { Issue, IssueStatusType, LocalState } from '../../lib/types.js';
-import { resolveDataSyncDir, STATE_FILE } from '../../lib/paths.js';
+import { STATE_FILE } from '../../lib/paths.js';
 import { formatTimestampAgo } from '../../lib/format-utils.js';
 import { now } from '../../utils/time-utils.js';
 import { formatDisplayId, formatDebugId } from '../../lib/ids.js';
-import { loadIdMapping } from '../../file/id-mapping.js';
-import { readConfig } from '../../file/config.js';
 import { formatIssueCompact, type IssueForDisplay } from '../lib/issue-format.js';
 
 // Staleness threshold for worktree (5 minutes)
@@ -92,12 +92,12 @@ class SearchHandler extends BaseCommand {
       }
     }
 
-    // Load all issues
+    // Load data context and issues
     let issues: Issue[];
-    let dataSyncDir: string;
+    let dataCtx: TbdDataContext;
     try {
-      dataSyncDir = await resolveDataSyncDir(tbdRoot);
-      issues = await listIssues(dataSyncDir);
+      dataCtx = await loadDataContext(tbdRoot);
+      issues = await listIssues(dataCtx.dataSyncDir);
     } catch {
       throw new NotInitializedError('No issue store found. Run `tbd init` first.');
     }
@@ -136,17 +136,9 @@ class SearchHandler extends BaseCommand {
     }
 
     // Apply limit
-    if (options.limit) {
-      const limit = parseInt(options.limit, 10);
-      if (!isNaN(limit) && limit > 0) {
-        results = results.slice(0, limit);
-      }
-    }
+    results = applyLimit(results, options.limit);
 
-    // Load ID mapping and config for display
-    const mapping = await loadIdMapping(dataSyncDir);
-    const config = await readConfig(tbdRoot);
-    const prefix = config.display.id_prefix;
+    const { mapping, prefix } = dataCtx;
     const showDebug = this.ctx.debug;
 
     // Format output

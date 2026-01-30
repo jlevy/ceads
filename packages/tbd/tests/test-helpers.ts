@@ -231,17 +231,6 @@ export function hasCorrectFrontmatterFormat(content: string): boolean {
 // Status Mapping Helpers (tbd-1840)
 // ============================================================================
 
-/** All valid beads status values for testing */
-export const BEADS_STATUS_VALUES = [
-  'open',
-  'in_progress',
-  'done', // Maps to 'closed' in tbd
-  'closed',
-  'tombstone', // Should be skipped or mapped to 'closed'
-  'blocked',
-  'deferred',
-] as const;
-
 /** Expected tbd status for each beads status */
 export const BEADS_TO_TBD_STATUS: Record<string, string> = {
   open: 'open',

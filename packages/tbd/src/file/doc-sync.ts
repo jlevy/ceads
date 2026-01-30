@@ -46,9 +46,9 @@ export interface SyncResult {
 }
 
 /**
- * Options for sync operations.
+ * Options for doc sync operations.
  */
-export interface SyncOptions {
+export interface DocSyncOptions {
   /** If true, don't actually write/delete files (dry run) */
   dryRun?: boolean;
   /** If true, suppress normal output (only report errors) */
@@ -202,7 +202,7 @@ export class DocSync {
    *
    * @param options - Sync options (dryRun, silent)
    */
-  async sync(options: SyncOptions = {}): Promise<SyncResult> {
+  async sync(options: DocSyncOptions = {}): Promise<SyncResult> {
     const result: SyncResult = {
       added: [],
       updated: [],
