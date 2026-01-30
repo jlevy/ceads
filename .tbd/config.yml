@@ -7,8 +7,8 @@ display:
 #   - Full URL for external docs (e.g., "https://raw.githubusercontent.com/org/repo/main/file.md")
 # lookup_path: Search paths for doc lookup (like shell $PATH). Earlier paths take precedence.
 #
-# To sync docs: tbd docs --refresh
-# To check status: tbd docs --status
+# To sync docs: tbd sync --docs
+# To check status: tbd sync --status
 #
 # Auto-sync: Docs are automatically synced when stale (default: every 24 hours).
 # Configure with settings.doc_auto_sync_hours (0 = disabled).
