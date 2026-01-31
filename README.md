@@ -60,15 +60,14 @@ You can then always ask questions like: “what can I do with tbd?”
 
 ### Drop-In `bd` Replacement
 
-Firstly, you can use `tbd` simply as a replacement for the original Beads (`bd`). It’s
-largely compatible with the original `bd` at the CLI level for core issue tracking
-functionality.
+You can use `tbd` as a drop-in replacement for the original Beads (`bd`). It’s largely
+compatible at the CLI level for core issue tracking functionality.
 
-Unfortunately, in spite of the power of the beads ideas, there are quite a few
+Despite the general power of the beads, there are quite a few
 [practical frustrations](#how-does-tbd-compare-to-beads) with the original Beads
 implementation—notably the daemon modifying files, merge conflicts, sync confusions
-across branches and database, and SQLite not working in Claude Code Cloud.
-After using `bd` for over a month, this became my greatest pain point.
+across branches and database, and SQLite not working on network drives, such as Claude
+Code Cloud. After using `bd` for over a month, this became my greatest pain point.
 I now use `tbd` for all my agent coding and its sync architecture works pretty well.
 
 ### Spec-Driven Coding and Review
@@ -182,7 +181,7 @@ Engineers are still adjusting to how fast things are changing.
 But the reality is that most of the time now, if you’re doing it right, *agents should
 write 100% of your code*.
 
-But anyone who’s coded a lot with agents knows they they can be very bad or very good,
+But anyone who’s coded a lot with agents knows they can be very bad or very good,
 depending on the situation.
 Without structure and knowledge, the results are often slop or have critical flaws or
 they don’t scale to large projects.
@@ -407,28 +406,9 @@ tbd template --add=<url> --name=<name>
 | `create-or-update-pr-simple` | Basic PR creation |
 | `create-or-update-pr-with-validation-plan` | PR with a validation plan |
 
-**Available guidelines** (see
-[Built-in Engineering Knowledge](#built-in-engineering-knowledge) for details):
-
-| Guideline | Description |
-| --- | --- |
-| [`general-tdd-guidelines`](packages/tbd/docs/guidelines/general-tdd-guidelines.md) | TDD methodology |
-| [`golden-testing-guidelines`](packages/tbd/docs/guidelines/golden-testing-guidelines.md) | Golden/snapshot testing |
-| [`general-testing-rules`](packages/tbd/docs/guidelines/general-testing-rules.md) | General testing principles |
-| [`typescript-code-coverage`](packages/tbd/docs/guidelines/typescript-code-coverage.md) | Code coverage with Vitest and v8 |
-| [`typescript-rules`](packages/tbd/docs/guidelines/typescript-rules.md) | TypeScript coding rules |
-| [`typescript-monorepo-patterns`](packages/tbd/docs/guidelines/typescript-monorepo-patterns.md) | pnpm workspaces, package setup, monorepo architecture |
-| [`typescript-cli-tool-rules`](packages/tbd/docs/guidelines/typescript-cli-tool-rules.md) | CLI tools with Commander.js |
-| [`python-rules`](packages/tbd/docs/guidelines/python-rules.md) | Python coding rules |
-| [`python-cli-patterns`](packages/tbd/docs/guidelines/python-cli-patterns.md) | Python CLI architecture |
-| [`backward-compatibility-rules`](packages/tbd/docs/guidelines/backward-compatibility-rules.md) | API and schema compatibility |
-| [`general-coding-rules`](packages/tbd/docs/guidelines/general-coding-rules.md) | Constants, magic numbers, practices |
-| [`general-comment-rules`](packages/tbd/docs/guidelines/general-comment-rules.md) | Comment best practices |
-| [`general-style-rules`](packages/tbd/docs/guidelines/general-style-rules.md) | Auto-formatting and output formatting |
-| [`general-eng-assistant-rules`](packages/tbd/docs/guidelines/general-eng-assistant-rules.md) | AI assistant objectivity and communication |
-| [`commit-conventions`](packages/tbd/docs/guidelines/commit-conventions.md) | Conventional commits format |
-| [`convex-rules`](packages/tbd/docs/guidelines/convex-rules.md) | Convex database patterns |
-| [`convex-limits-best-practices`](packages/tbd/docs/guidelines/convex-limits-best-practices.md) | Convex platform limits and workarounds |
+**Available guidelines:** See
+[Built-in Engineering Knowledge](#built-in-engineering-knowledge) for the full list of
+17+ guidelines covering TypeScript, Python, testing, TDD, and more.
 
 **Available templates:**
 
@@ -547,7 +527,7 @@ implementing, validating, and shipping.
 
 ### Was tbd built with tbd?
 
-Of course! I boostrapped with the original `bd`. It imported from `bd` and began
+Of course! I bootstrapped with the original `bd`. It imported from `bd` and began
 self-hosting its own tasks, then took over its own specs and reminds itself of its own
 coding guidelines. Here’s what that looks like in practice:
 
