@@ -26,6 +26,7 @@ import {
   isValidWorkspaceName,
   DATA_SYNC_DIR,
 } from '../lib/paths.js';
+import { extractUlidFromInternalId } from '../lib/ids.js';
 import { now } from '../utils/time-utils.js';
 import type { AtticEntry, Issue } from '../lib/types.js';
 
@@ -54,6 +55,10 @@ export interface SaveResult {
   conflicts: number;
   /** Target directory where issues were saved */
   targetDir: string;
+  /** Total issues in source before filtering (for informational messages) */
+  totalSource: number;
+  /** Whether filtering was applied (updatesOnly or outbox) */
+  filtered: boolean;
 }
 
 /**
@@ -265,7 +270,9 @@ export async function saveToWorkspace(
   await ensureDir(atticDir);
 
   // List all issues in source (worktree)
-  let sourceIssues = await listIssues(dataSyncDir);
+  const allSourceIssues = await listIssues(dataSyncDir);
+  const totalSource = allSourceIssues.length;
+  let sourceIssues = allSourceIssues;
 
   // Filter to only updated issues if requested
   const isUpdatesOnly = options.updatesOnly ?? options.outbox;
@@ -274,7 +281,7 @@ export async function saveToWorkspace(
       // Fetch and compare with remote tbd-sync
       await git('-C', tbdRoot, 'fetch', 'origin', 'tbd-sync');
       const remoteIssues = await readRemoteIssues(tbdRoot, 'origin', 'tbd-sync');
-      sourceIssues = getUpdatedIssues(sourceIssues, remoteIssues);
+      sourceIssues = getUpdatedIssues(allSourceIssues, remoteIssues);
     } catch {
       // If fetch fails (offline, remote doesn't exist, etc.), save all issues
       // This is the fallback behavior mentioned in the spec
@@ -329,13 +336,17 @@ export async function saveToWorkspace(
     }
   }
 
-  // Copy ID mappings from source to target (union operation)
+  // Copy ID mappings from source to target (only for saved issues)
+  // Build set of saved issue ULIDs (without prefix) to filter mappings
+  const savedIssueUlids = new Set(sourceIssues.map((issue) => extractUlidFromInternalId(issue.id)));
+
   const sourceMapping = await loadIdMapping(dataSyncDir);
   const targetMapping = await loadIdMapping(targetDir);
 
-  // Merge: add source mappings to target (don't overwrite existing)
+  // Merge: add source mappings to target (only for saved issues, don't overwrite existing)
   for (const [shortId, ulid] of sourceMapping.shortToUlid) {
-    if (!targetMapping.shortToUlid.has(shortId)) {
+    // Only copy mapping if the ULID corresponds to a saved issue
+    if (savedIssueUlids.has(ulid) && !targetMapping.shortToUlid.has(shortId)) {
       addIdMapping(targetMapping, ulid, shortId);
     }
   }
@@ -345,6 +356,8 @@ export async function saveToWorkspace(
     saved,
     conflicts,
     targetDir,
+    totalSource,
+    filtered: isUpdatesOnly ?? false,
   };
 }
 

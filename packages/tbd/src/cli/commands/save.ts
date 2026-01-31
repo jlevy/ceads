@@ -63,12 +63,24 @@ class SaveHandler extends BaseCommand {
         saved: result.saved,
         conflicts: result.conflicts,
         target: targetName,
+        totalSource: result.totalSource,
+        filtered: result.filtered,
       },
       () => {
         if (result.saved === 0) {
-          this.output.info('No issues to save');
+          if (result.filtered) {
+            this.output.info(`No issues to save (0 of ${result.totalSource} issues have updates)`);
+          } else {
+            this.output.info('No issues to save');
+          }
         } else {
-          this.output.success(`Saved ${result.saved} issue(s) to ${targetName}`);
+          if (result.filtered) {
+            this.output.success(
+              `Saved ${result.saved} issue(s) to ${targetName} (${result.saved} of ${result.totalSource} filtered)`,
+            );
+          } else {
+            this.output.success(`Saved ${result.saved} issue(s) to ${targetName}`);
+          }
           if (result.conflicts > 0) {
             this.output.warn(`${result.conflicts} conflict(s) moved to attic`);
           }

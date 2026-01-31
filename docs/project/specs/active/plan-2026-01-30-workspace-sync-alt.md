@@ -338,6 +338,32 @@ This identical structure means:
 - Existing issue parsing code works on workspace files
 - Standard file comparison works
 
+### ID Mapping Behavior
+
+**IMPORTANT**: When saving to a workspace with `--updates-only` or `--outbox`:
+
+- **Mappings are filtered**: Only ID mappings for issues that are actually saved to the
+  workspace are included.
+  This prevents bloating the workspace with mappings for issues that weren’t exported.
+- **Rationale**: The workspace should be self-contained with only the data it needs.
+  If the user exports 2 issues out of 100, the mappings file should only contain 2
+  entries, not 100.
+
+When saving without `--updates-only` (full export), all mappings are copied since all
+issues are being saved.
+
+### Output Messages
+
+**When no updates exist** (`--updates-only` or `--outbox` with nothing to save):
+- Print an informational message: “No issues to save (0 of N issues have updates)”
+- This is NOT an error - exit code is 0
+- The workspace directory structure is still created (empty issues/, mappings/, attic/)
+- This allows the user to see that the save operation ran correctly but found nothing
+
+**When updates exist**:
+- Print: “Saved M issue(s) to {target} (M of N total filtered)”
+- This helps the user understand how many issues were filtered vs the total
+
 ### Sync Flow with Workspaces
 
 The workspace feature does NOT change the normal `tbd sync` flow.
@@ -489,8 +515,12 @@ The outbox model is recommended if:
 - [x] Implement `--updates-only` (compare with remote tbd-sync) - tbd-lka2 DONE
 - [x] Use `mergeIssues()` for proper three-way merge - tbd-hg05 DONE
 - [x] Copy ID mappings to workspace - tbd-eglf DONE
+- [ ] **BUG FIX**: Only copy mappings for issues being saved (not all mappings) -
+  tbd-vq9f
 - [x] Conflicts go to workspace attic
 - [x] Report what was saved
+- [ ] Print informational message when no updates (not an error) - tbd-ffmg
+- [ ] Golden session tests for --outbox scenarios - tbd-da94
 
 **`tbd import` Command:**
 - [x] Parse `--workspace=<name>`, `--dir=<path>`, `--outbox` flags
@@ -530,6 +560,10 @@ The outbox model is recommended if:
 **Save Operations:**
 - `saveToWorkspace()` - creates workspace, copies issues
 - `saveToWorkspace()` with `--updates-only` - only unsynced issues
+- `saveToWorkspace()` with `--updates-only` - only includes mappings for saved issues
+  (not all)
+- `saveToWorkspace()` with `--updates-only` when no updates - prints info message,
+  creates empty workspace
 - `saveToWorkspace()` with existing workspace - merges correctly
 - Conflicts go to workspace attic
 
@@ -583,6 +617,42 @@ describe('Workspace save', () => {
     // Outbox should have only the new issue
     const outboxIssues = await listIssues(join(tbdRoot, '.tbd/workspaces/outbox/issues'));
     expect(outboxIssues.length).toBe(1);
+  });
+
+  it('--updates-only only includes mappings for saved issues', async () => {
+    // Setup: 5 synced issues (all have mappings), then modify 1
+    await createAndSyncIssues(5);
+    await updateIssue('issue-1');
+
+    // Save with --updates-only
+    await tbd('save', '--workspace=my-changes', '--updates-only');
+
+    // Workspace should have only 1 issue
+    const wsIssues = await listIssues(join(tbdRoot, '.tbd/workspaces/my-changes/issues'));
+    expect(wsIssues.length).toBe(1);
+
+    // Workspace mappings should only contain the 1 saved issue's mapping
+    const wsMappings = await loadIdMapping(join(tbdRoot, '.tbd/workspaces/my-changes'));
+    expect(wsMappings.shortToUlid.size).toBe(1);
+  });
+
+  it('--outbox with no updates prints info message and creates empty workspace', async () => {
+    // Setup: synced issues, no local changes
+    await createAndSyncIssues(3);
+
+    // Save with --outbox
+    const result = await tbd('save', '--outbox');
+
+    // Should print informational message (not error)
+    expect(result.stdout).toContain('No issues to save');
+    expect(result.exitCode).toBe(0);
+
+    // Workspace should have 0 issues and 0 mappings
+    const outboxIssues = await listIssues(join(tbdRoot, '.tbd/workspaces/outbox/issues'));
+    expect(outboxIssues.length).toBe(0);
+
+    const outboxMappings = await loadIdMapping(join(tbdRoot, '.tbd/workspaces/outbox'));
+    expect(outboxMappings.shortToUlid.size).toBe(0);
   });
 
   it('merges with existing workspace data', async () => {
@@ -1226,3 +1296,328 @@ The only downside is requiring explicit user action on sync failure, but:
 2. `--outbox` shortcuts for common recovery workflow
 3. `tbd workspace list/delete` for management
 4. Integration with sync failure messages
+
+## Future Directions: Private Workspaces
+
+### Overview
+
+The current workspace model supports saving issues *from* the shared worktree *to* a
+workspace. A natural extension is **workspace-scoped issue creation**: creating issues
+directly in a workspace without ever touching the shared data-sync directory.
+
+This enables “private mode” workflows where issues are drafted, worked on, and
+potentially discarded without polluting the shared namespace.
+
+### Use Cases
+
+#### Spec Implementation with Private Issues
+
+When implementing a spec, an agent might create a dozen issues for tracking sub-tasks.
+Currently these all go to the shared namespace immediately:
+
+```bash
+# Current behavior: issues created in shared data-sync
+tbd create "Implement parser" --parent=tbd-spec1
+tbd create "Add validation" --parent=tbd-spec1
+tbd create "Write tests" --parent=tbd-spec1
+# All 3 issues are now visible to everyone, synced on next tbd sync
+```
+
+With private workspaces:
+
+```bash
+# Proposed: issues created only in the workspace
+tbd create "Implement parser" --workspace=spec-impl
+tbd create "Add validation" --workspace=spec-impl
+tbd create "Write tests" --workspace=spec-impl
+
+# Work on them privately...
+
+# If spec is completed successfully:
+tbd import --workspace=spec-impl   # Issues move to shared namespace
+
+# If spec is abandoned:
+tbd workspace delete spec-impl     # Issues never existed in shared namespace
+```
+
+#### Private Experimentation
+
+An agent or user experimenting with an approach might create many issues for tracking
+work.
+If the experiment fails, they can delete the workspace without any shared namespace
+pollution.
+
+#### Session-Scoped Private Mode
+
+For extended private work sessions:
+
+```bash
+# Set session default (hypothetical)
+tbd config set default-workspace my-session
+
+# All creates go to workspace by default
+tbd create "Task 1"   # Goes to my-session workspace
+tbd create "Task 2"   # Goes to my-session workspace
+
+# Explicit override still possible
+tbd create "Shared task" --workspace=shared  # Or some flag for shared namespace
+```
+
+### Design Considerations
+
+#### Issue ID Uniqueness
+
+Since all issue IDs include ULIDs (which are globally unique), issues created in a
+workspace will have unique IDs that won’t conflict when imported to the shared
+namespace. No special handling needed.
+
+#### Parent-Child Workspace Inheritance
+
+When creating a child issue with `--parent`, the child should inherit the parent’s
+workspace by default:
+
+```bash
+# Epic in private workspace
+tbd create "Feature Epic" --type=epic --workspace=my-feature
+
+# Child automatically goes to same workspace
+tbd create "Subtask 1" --parent=tbd-epic1
+# → Goes to my-feature workspace (inherited from parent)
+```
+
+This prevents accidentally splitting a hierarchy across workspaces.
+
+#### Spec Attachment Inheritance
+
+Similarly, when an issue is attached to a spec that’s associated with an epic in a
+workspace, child issues should follow:
+
+```bash
+# Epic attached to spec, in workspace
+tbd create "Spec Epic" --spec=plan-xyz.md --workspace=draft-spec
+
+# Child issues for the spec inherit workspace
+tbd create "Implementation task" --spec=plan-xyz.md
+# → Goes to draft-spec workspace (inherited from spec's epic)
+```
+
+#### Cross-Workspace Reference Rules
+
+**Critical constraint**: References must not create dangling pointers.
+
+| From | To | Allowed? | Rationale |
+| --- | --- | --- | --- |
+| Workspace issue | Shared issue | ✅ Yes | Shared issues are stable, always visible |
+| Workspace issue | Same workspace issue | ✅ Yes | Both in same context |
+| Workspace A issue | Workspace B issue | ❌ No | Would break if either workspace deleted |
+| Shared issue | Workspace issue | ❌ No | Would break if workspace deleted |
+
+**Implementation**: When creating a dependency or relationship, validate:
+1. If source is in shared namespace → target must be in shared namespace
+2. If source is in workspace X → target must be in shared namespace OR workspace X
+
+```bash
+# In workspace my-feature:
+tbd dep add tbd-ws1 tbd-shared1   # ✅ OK: workspace → shared
+tbd dep add tbd-ws1 tbd-ws2       # ✅ OK: same workspace → same workspace
+
+# From shared namespace:
+tbd dep add tbd-shared1 tbd-ws1   # ❌ ERROR: cannot reference workspace issue
+```
+
+#### Listing and Visibility
+
+Commands would need workspace awareness:
+
+```bash
+# List only shared issues (current behavior, default)
+tbd list
+
+# List only workspace issues
+tbd list --workspace=my-feature
+
+# List all issues across shared + specific workspace
+tbd list --include-workspace=my-feature
+
+# Show which workspace an issue belongs to
+tbd show tbd-abc1
+# workspace: my-feature  (or "shared" for data-sync issues)
+```
+
+#### Import Behavior
+
+When importing a workspace:
+- All issues move to shared namespace
+- All internal references remain valid (same IDs)
+- References to shared issues remain valid
+- Workspace is optionally cleared after import
+
+#### Backup vs Private Workspaces
+
+There are two distinct use patterns with different UX expectations:
+
+| Aspect | Backup Workspace | Private Workspace |
+| --- | --- | --- |
+| **Created by** | `tbd save --workspace=X` | `tbd create --workspace=X` |
+| **Contains** | Copies of shared issues | Original issues (never in shared) |
+| **Purpose** | Point-in-time backup, sync failure recovery | Draft work, scoped implementation |
+| **Import default** | Preserve workspace (may want multiple restores) | Clear workspace (work is done) |
+| **Typical workflow** | Save → (disaster) → Import → Sync | Create issues → Work → Publish |
+
+This suggests:
+- **Backup workspaces**: `tbd import --workspace=X` preserves by default (use
+  `--clear-on-success` explicitly)
+- **Private workspaces**: `tbd publish --workspace=X` clears by default and syncs (the
+  work is done, make it public)
+
+Implementation options:
+1. Track workspace type in metadata (backup vs private)
+2. Different commands for different intents (`import` vs `publish`)
+3. Heuristic: if workspace was created by `tbd save`, preserve; if by `tbd create`,
+   clear
+
+Option 2 (different commands) is clearest - `publish` implies “make this public/shared”
+while `import` implies “merge this data in (for recovery)”.
+
+### Open Questions
+
+1. **Should there be a “default workspace” setting?**
+   - For session-level private mode
+   - Could be set in config or environment variable
+   - What’s the UX for temporarily overriding it?
+
+2. **How to handle `tbd ready` with workspaces?**
+   - Show only shared issues by default?
+   - Option to include specific workspace?
+   - Or show all issues user has access to?
+
+3. **What about `tbd sync` with workspace issues?**
+   - Workspace issues should NOT be synced (by design)
+   - Need clear separation between “sync shared issues” and “save workspace”
+
+4. **Workspace metadata storage?**
+   - Need to track which workspace each issue belongs to
+   - Could be a field in issue YAML or separate mapping file
+
+5. **Migration path for existing issues?**
+   - Can a shared issue be “moved” to a workspace?
+   - Probably not - that would break external references
+   - But workspace issues can always be imported to shared
+
+6. **Multiple workspace contexts?**
+   - Can an issue belong to multiple workspaces?
+   - Probably not - simpler to have 1:1 relationship
+   - Use import/export to copy between workspaces if needed
+
+7. **`tbd publish` command for private workspaces**
+   - For private workspace workflows, the common pattern is:
+     1. Complete work on issues in workspace
+     2. Import all to shared namespace
+     3. Delete workspace
+     4. Sync to remote
+   - Current approach requires:
+     `tbd import --workspace=X --clear-on-success && tbd sync`
+
+   **Key insight**: `tbd import` should remain general-purpose:
+   - Works with `--workspace=X` (named workspaces in `.tbd/workspaces/`)
+   - Works with `--dir=/path` (arbitrary directories for backups, bulk edits,
+     cross-repo)
+   - Preserves source by default (use `--clear-on-success` explicitly)
+   - Does NOT auto-sync (user reviews first)
+
+   **`tbd publish`** is the natural complement to `tbd create --workspace=X`:
+   - Only works with workspaces in `.tbd/workspaces/` (not arbitrary directories)
+   - Semantics: “make this private work public”
+   - Behavior: import + clear workspace + sync (all in one)
+   - The streamlined “I’m done with this draft” command
+
+   ```bash
+   # Private workspace workflow
+   tbd create "Task 1" --workspace=my-feature
+   tbd create "Task 2" --workspace=my-feature
+   # ... work on tasks ...
+   
+   # When done: one command to publish all
+   tbd publish my-feature
+   # → imports issues to shared namespace
+   # → deletes my-feature workspace
+   # → syncs to remote
+   ```
+
+   **Command structure options**:
+   - `tbd publish <workspace-name>` - top-level command (simple, discoverable)
+   - `tbd workspace publish <name>` - subcommand (groups with list/delete)
+
+   Either works; top-level `tbd publish` may be more discoverable since it’s the
+   complement to `tbd create --workspace`.
+
+### Implementation Sketch
+
+#### Phase 1: Core Infrastructure
+
+- Add `workspace` field to issue schema (optional, null = shared)
+- Update `tbd create` to accept `--workspace=<name>` flag
+- Create workspace directory structure on first use
+- Update `tbd list`, `tbd show`, `tbd ready` for workspace awareness
+
+#### Phase 2: Inheritance Rules
+
+- Parent-child workspace inheritance in `tbd create --parent`
+- Spec attachment workspace inheritance
+- Default workspace configuration
+
+#### Phase 3: Reference Validation
+
+- Validate cross-workspace references on create/update
+- Clear error messages for invalid references
+- `tbd doctor` checks for invalid cross-workspace references
+
+#### Phase 4: Enhanced Commands
+
+- `tbd list --workspace=<name>` filtering
+- Workspace metadata in `tbd show` output
+- `tbd publish <workspace-name>` - the complement to `tbd create --workspace`:
+  - Only works with workspaces in `.tbd/workspaces/` (not `--dir`)
+  - Imports all issues to shared namespace
+  - Deletes the workspace
+  - Syncs to remote
+  - One command to complete private workspace work
+
+### Relationship to Current Design
+
+This feature builds on the existing workspace infrastructure:
+
+| Current Feature | Private Workspace Extension |
+| --- | --- |
+| `.tbd/workspaces/<name>/` directory | Same location, but issues created directly there |
+| `tbd save --workspace` | Copies from shared → workspace (backup) |
+| `tbd import --workspace` | Merges workspace → shared (unchanged, general purpose) |
+| `tbd workspace list/delete` | Works with private workspaces too |
+| *(new)* `tbd publish <name>` | Complement to `create --workspace` (import + clear + sync) |
+
+The key difference: current workspaces are for *backup/export* of shared issues.
+Private workspaces are for *creating issues that never touch shared namespace* until
+explicitly published.
+
+### Risk Assessment
+
+| Risk | Likelihood | Impact | Mitigation |
+| --- | --- | --- | --- |
+| Complexity of reference validation | Medium | User confusion | Clear error messages, `tbd doctor` checks |
+| Forgetting to import completed work | Medium | Lost visibility | Warnings in `tbd status`, session reminders |
+| Workspace proliferation | Low | Clutter | `tbd workspace list` shows all, periodic cleanup prompts |
+| Cross-workspace reference bugs | Medium | Data integrity | Strict validation, comprehensive tests |
+
+### Conclusion
+
+Private workspaces are a natural extension of the current design that enables important
+workflows:
+- Draft work without namespace pollution
+- Atomic promotion of related issues when work completes
+- Easy cleanup when work is abandoned
+
+The main complexity is reference validation to prevent dangling pointers.
+This is solvable with clear rules and validation at relationship creation time.
+
+**Recommendation**: Consider this for a future iteration after the current workspace
+sync feature is fully stable and tested.
