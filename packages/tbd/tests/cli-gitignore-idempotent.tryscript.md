@@ -1,0 +1,381 @@
+---
+sandbox: true
+env:
+  NO_COLOR: '1'
+  FORCE_COLOR: '0'
+path:
+  - ../dist
+timeout: 30000
+patterns:
+  ULID: '[0-9a-z]{26}'
+  SHORTID: '[0-9a-z]{4,5}'
+  TIMESTAMP: "\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d+)?Z"
+before: |
+  # Set up a test git repository
+  git init --initial-branch=main
+  git config user.email "test@example.com"
+  git config user.name "Test User"
+  git config commit.gpgsign false
+  echo "# Test repo" > README.md
+  git add README.md
+  git commit -m "Initial commit"
+---
+# tbd CLI: .gitignore Idempotent Behavior
+
+Validates that `.tbd/.gitignore` is created correctly during initialization and updated
+idempotently during setup, ensuring all required patterns are present.
+
+* * *
+
+## Fresh Init Creates Complete .gitignore
+
+# Test: Initialize tbd
+
+```console
+$ tbd init --prefix=test --quiet
+? 0
+```
+
+# Test: .tbd/.gitignore has all required patterns
+
+```console
+$ cat .tbd/.gitignore
+# Installed documentation (regenerated on setup)
+docs/
+
+# Hidden worktree for tbd-sync branch
+data-sync-worktree/
+
+# Data sync directory (only exists in worktree)
+data-sync/
+
+# Local state
+state.yml
+
+# Migration backups (local only, not synced)
+backups/
+
+# Temporary files
+*.tmp
+*.temp
+? 0
+```
+
+* * *
+
+## Setup on Already Initialized Project is Idempotent
+
+# Test: Run setup --auto on already initialized project
+
+```console
+$ tbd setup --auto 2>&1 | head -5
+tbd: Git-native issue tracking for AI agents and humans
+
+Checking repository...
+  ✓ Git repository detected
+  ✓ tbd initialized (prefix: test)
+? 0
+```
+
+# Test: .gitignore unchanged after setup (no duplicates)
+
+```console
+$ cat .tbd/.gitignore
+# Installed documentation (regenerated on setup)
+docs/
+
+# Hidden worktree for tbd-sync branch
+data-sync-worktree/
+
+# Data sync directory (only exists in worktree)
+data-sync/
+
+# Local state
+state.yml
+
+# Migration backups (local only, not synced)
+backups/
+
+# Temporary files
+*.tmp
+*.temp
+? 0
+```
+
+# Test: Multiple setup runs remain idempotent
+
+```console
+$ tbd setup --auto 2>&1 | head -5
+tbd: Git-native issue tracking for AI agents and humans
+
+Checking repository...
+  ✓ Git repository detected
+  ✓ tbd initialized (prefix: test)
+? 0
+```
+
+```console
+$ tbd setup --auto 2>&1 | head -5
+tbd: Git-native issue tracking for AI agents and humans
+
+Checking repository...
+  ✓ Git repository detected
+  ✓ tbd initialized (prefix: test)
+? 0
+```
+
+# Test: Still no duplicates after multiple runs
+
+```console
+$ cat .tbd/.gitignore
+# Installed documentation (regenerated on setup)
+docs/
+
+# Hidden worktree for tbd-sync branch
+data-sync-worktree/
+
+# Data sync directory (only exists in worktree)
+data-sync/
+
+# Local state
+state.yml
+
+# Migration backups (local only, not synced)
+backups/
+
+# Temporary files
+*.tmp
+*.temp
+? 0
+```
+
+* * *
+
+## Old .gitignore Missing docs/ Gets Updated
+
+This tests the upgrade scenario where an old version of tbd created a `.gitignore`
+without the `docs/` pattern.
+
+# Test: Create a new repo for upgrade scenario
+
+```console
+$ mkdir old-repo && cd old-repo && git init --initial-branch=main > /dev/null && git config user.email "test@example.com" && git config user.name "Test" && echo "# Test" > README.md && git add README.md && git commit -m "Initial" > /dev/null && echo "repo created"
+repo created
+? 0
+```
+
+# Test: Create old-style .tbd with config (simulating older version)
+
+```console
+$ cd old-repo && mkdir -p .tbd && printf '%s\n' 'display:' '  id_prefix: old' 'sync:' '  branch: tbd-sync' '  remote: origin' 'tbd_version: "0.1.0"' 'tbd_format: "f03"' > .tbd/config.yml && echo "config created"
+config created
+? 0
+```
+
+# Test: Create old-style .gitignore WITHOUT docs/ pattern
+
+```console
+$ cd old-repo && printf '%s\n' '# Hidden worktree for tbd-sync branch' 'data-sync-worktree/' '' '# Data sync directory (only exists in worktree)' 'data-sync/' '' '# Local state' 'state.yml' '' '# Migration backups (local only, not synced)' 'backups/' '' '# Temporary files' '*.tmp' '*.temp' > .tbd/.gitignore && echo "gitignore created"
+gitignore created
+? 0
+```
+
+# Test: Old .gitignore before upgrade (missing docs/)
+
+```console
+$ cd old-repo && cat .tbd/.gitignore
+# Hidden worktree for tbd-sync branch
+data-sync-worktree/
+
+# Data sync directory (only exists in worktree)
+data-sync/
+
+# Local state
+state.yml
+
+# Migration backups (local only, not synced)
+backups/
+
+# Temporary files
+*.tmp
+*.temp
+? 0
+```
+
+# Test: Run setup --auto to upgrade
+
+```console
+$ cd old-repo && tbd setup --auto 2>&1 | grep -E "(tbd initialized|Updated.*gitignore)"
+  ✓ tbd initialized (prefix: old)
+[..]
+? 0
+```
+
+# Test: .gitignore after upgrade now has docs/
+
+```console
+$ cd old-repo && cat .tbd/.gitignore
+# Hidden worktree for tbd-sync branch
+data-sync-worktree/
+
+# Data sync directory (only exists in worktree)
+data-sync/
+
+# Local state
+state.yml
+
+# Migration backups (local only, not synced)
+backups/
+
+# Temporary files
+*.tmp
+*.temp
+
+# Synced documentation cache (regenerated by tbd sync --docs)
+docs/
+? 0
+```
+
+* * *
+
+## Trailing Slash Normalization
+
+Tests that patterns with and without trailing slashes are handled correctly.
+
+# Test: Create repo with trailing slash variations
+
+```console
+$ mkdir slash-repo && cd slash-repo && git init --initial-branch=main > /dev/null && git config user.email "test@example.com" && git config user.name "Test" && echo "# Test" > README.md && git add README.md && git commit -m "Initial" > /dev/null && echo "repo created"
+repo created
+? 0
+```
+
+# Test: Create config for slash-repo
+
+```console
+$ cd slash-repo && mkdir -p .tbd && printf '%s\n' 'display:' '  id_prefix: slash' 'sync:' '  branch: tbd-sync' '  remote: origin' 'tbd_version: "0.1.0"' 'tbd_format: "f03"' > .tbd/config.yml && echo "config created"
+config created
+? 0
+```
+
+# Test: Create .gitignore with “docs” (no trailing slash)
+
+```console
+$ cd slash-repo && printf '%s\n' '# Docs without trailing slash' 'docs' > .tbd/.gitignore && cat .tbd/.gitignore
+# Docs without trailing slash
+docs
+? 0
+```
+
+# Test: Run setup --auto
+
+```console
+$ cd slash-repo && tbd setup --auto 2>&1 | head -5
+tbd: Git-native issue tracking for AI agents and humans
+
+Checking repository...
+  ✓ Git repository detected
+  ✓ tbd initialized (prefix: slash)
+? 0
+```
+
+# Test: No duplicate docs added (trailing slash normalized)
+
+The function normalizes trailing slashes, so “docs” and “docs/” are treated as the same
+pattern. Only the missing patterns are added.
+
+```console
+$ cd slash-repo && cat .tbd/.gitignore
+# Docs without trailing slash
+docs
+
+
+# Hidden worktree for tbd-sync branch
+data-sync-worktree/
+
+# Data sync directory (only exists in worktree)
+data-sync/
+
+# Local state
+state.yml
+
+# Migration backups (local only, not synced)
+backups/
+
+# Temporary files
+*.tmp
+*.temp
+? 0
+```
+
+* * *
+
+## User Customizations Preserved
+
+# Test: Add user patterns to .gitignore
+
+```console
+$ printf '\n# User custom patterns\nmy-secret-file.txt\n' >> .tbd/.gitignore && cat .tbd/.gitignore
+# Installed documentation (regenerated on setup)
+docs/
+
+# Hidden worktree for tbd-sync branch
+data-sync-worktree/
+
+# Data sync directory (only exists in worktree)
+data-sync/
+
+# Local state
+state.yml
+
+# Migration backups (local only, not synced)
+backups/
+
+# Temporary files
+*.tmp
+*.temp
+
+# User custom patterns
+my-secret-file.txt
+? 0
+```
+
+# Test: Run setup --auto with user patterns
+
+```console
+$ tbd setup --auto 2>&1 | head -5
+tbd: Git-native issue tracking for AI agents and humans
+
+Checking repository...
+  ✓ Git repository detected
+  ✓ tbd initialized (prefix: test)
+? 0
+```
+
+# Test: User customizations are preserved
+
+```console
+$ cat .tbd/.gitignore
+# Installed documentation (regenerated on setup)
+docs/
+
+# Hidden worktree for tbd-sync branch
+data-sync-worktree/
+
+# Data sync directory (only exists in worktree)
+data-sync/
+
+# Local state
+state.yml
+
+# Migration backups (local only, not synced)
+backups/
+
+# Temporary files
+*.tmp
+*.temp
+
+# User custom patterns
+my-secret-file.txt
+? 0
+```
