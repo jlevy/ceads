@@ -26,10 +26,14 @@ Create a to-do list with the following items then perform all of them:
 
 4. If there is a PR already filed for this branch, update the PR description and **wait
    for CI to pass**:
-   - Check for PR: `gh pr view --json number,url 2>/dev/null`
+   - **GitHub CLI setup** (if issues, run `tbd shortcut setup-github-cli`):
+     ```
+     REPO=$(git remote get-url origin | sed -E 's#.*/git/##; s#.*github.com[:/]##; s#\.git$##')
+     ```
+   - Check for PR: `gh pr view --repo $REPO --json number,url 2>/dev/null`
    - If PR exists, update it with current changes summary
    - Inform the user you are waiting for CI
-   - Run: `gh pr checks --watch 2>&1`
+   - Run: `gh pr checks --repo $REPO --watch 2>&1`
    - **IMPORTANT**: The `--watch` flag blocks until ALL checks complete.
      Do NOT see “passing” in early output and move on—wait for the **final summary**
      showing all checks passed.
