@@ -834,6 +834,7 @@ class SyncHandler extends BaseCommand {
           this.output.error(`Push failed: ${displayError}`);
           console.log(`  ${aheadCommits} commit(s) not pushed to remote.`);
           console.log(`  Run 'tbd sync' to retry or 'tbd sync --status' to check status.`);
+          console.log(`  To preserve changes locally: tbd save --outbox`);
         },
       );
       return;
