@@ -28,19 +28,9 @@ Create a to-do list with the following items then perform all of them:
    - Review the commits: `gh pr view <PR_NUMBER> --repo $REPO --json commits`
 
 4. **Review for code quality:**
-   - Run `tbd guidelines typescript-rules` or `tbd guidelines python-rules` as
-     appropriate
-   - Run `tbd guidelines general-coding-rules` for general rules
-   - Check for:
-     - [ ] Types properly defined (no unnecessary `any`)
-     - [ ] Error handling is appropriate
-     - [ ] No unused imports or variables
-     - [ ] Functions are small and focused
-     - [ ] Names are descriptive and consistent
-     - [ ] Comments explain “why” not “what”
-     - [ ] No code duplication
-     - [ ] No hardcoded secrets or credentials
-     - [ ] Input validation where needed
+   - Load language-specific rules: `tbd guidelines typescript-rules` or `python-rules`
+   - Perform a thorough senior engineering review: assess design, maintainability,
+     clarity, antipatterns, and specific corrections needed.
 
 5. **Check documentation and specs:**
    - Verify any related specs in `docs/project/specs/active/` are in sync
@@ -58,14 +48,16 @@ Create a to-do list with the following items then perform all of them:
    - **Suggestions**: Optional improvements (not blockers)
    - **CI Status**: Current state of checks
 
-8. **Present review to user and ask for action:** Show the review and ask the user:
-   - **Add as PR comment**: Post the review as a comment on the PR
-   - **Create fix beads**: Create tbd beads for issues found and begin fixing
-   - **Just show me**: No action needed, review is informational only
+8. **Determine next action:**
+   - If the user already specified what to do (e.g., “review and comment”, “review and
+     fix”), follow those instructions
+   - Otherwise, present the review and ask the user:
+     - **Add as PR comment**: Post the review as a comment on the PR
+     - **Create fix beads**: Create tbd beads for issues found and begin fixing
 
 9. **Take the requested action:**
    - If adding as comment:
      `gh pr review <PR_NUMBER> --repo $REPO --comment --body "<review>"`
    - If creating fix beads: Create a bead for each issue using
-     `tbd create "..." --type bug` Then follow `tbd shortcut implement-beads` to fix
+     `tbd create "..." --type bug`, then follow `tbd shortcut implement-beads` to fix
      them
