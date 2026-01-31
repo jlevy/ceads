@@ -1,5 +1,12 @@
 # get-tbd
 
+## 0.1.13
+
+### Patch Changes
+
+- Workspace sync feature, child bead ordering hints, unified review-code shortcut, and
+  various improvements.
+
 ## 0.1.12
 
 ### Patch Changes
