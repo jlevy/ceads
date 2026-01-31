@@ -97,10 +97,9 @@ Sync and Status:
 Maintenance:
   doctor [options]              Diagnose and repair repository
   attic                         Manage conflict archive (attic)
-  workspace                     Manage workspaces
+  workspace                     Manage workspaces for sync recovery and backups
   import [options] [file]       Import issues from JSONL file or workspace.
-                                For Beads migration, use: tbd setup
-                                --from-beads
+                                For Beads migration, use: tbd setup --from-beads
                                 For workspace import, use: tbd import
                                 --workspace=<name> or --outbox
   uninstall [options]           Remove tbd from this repository

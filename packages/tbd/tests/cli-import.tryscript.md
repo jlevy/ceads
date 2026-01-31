@@ -53,32 +53,30 @@ For Beads migration, use: tbd setup --from-beads
 For workspace import, use: tbd import --workspace=<name> or --outbox
 
 Arguments:
-  file                    JSONL file to import
+  file                JSONL file to import
 
 Options:
-  --beads-dir <path>      Beads data directory (for --validate)
-  --merge                 Merge with existing issues instead of skipping
-                          duplicates
-  --verbose               Show detailed import progress
-  --validate              Validate existing import against Beads source
-  --workspace <name>      Import from named workspace under .tbd/workspaces/
-  --dir <path>            Import from arbitrary directory
-  --outbox                Shortcut for --workspace=outbox --clear-on-success
-  --clear-on-success      Delete workspace after successful import
-  -h, --help              display help for command
+  --beads-dir <path>  Beads data directory (for --validate)
+  --merge             Merge with existing issues instead of skipping duplicates
+  --verbose           Show detailed import progress
+  --validate          Validate existing import against Beads source
+  --workspace <name>  Import from named workspace under .tbd/workspaces/
+  --dir <path>        Import from arbitrary directory
+  --outbox            Shortcut for --workspace=outbox --clear-on-success
+  --clear-on-success  Delete workspace after successful import
+  -h, --help          display help for command
 
 Global Options:
-  --version               Show version number
-  --dry-run               Show what would be done without making changes
-  --verbose               Enable verbose output
-  --quiet                 Suppress non-essential output
-  --json                  Output as JSON
-  --color <when>          Colorize output: auto, always, never (default:
-                          "auto")
-  --non-interactive       Disable all prompts, fail if input required
-  --yes                   Assume yes to confirmation prompts
-  --no-sync               Skip automatic sync after write operations
-  --debug                 Show internal IDs alongside public IDs for debugging
+  --version           Show version number
+  --dry-run           Show what would be done without making changes
+  --verbose           Enable verbose output
+  --quiet             Suppress non-essential output
+  --json              Output as JSON
+  --color <when>      Colorize output: auto, always, never (default: "auto")
+  --non-interactive   Disable all prompts, fail if input required
+  --yes               Assume yes to confirmation prompts
+  --no-sync           Skip automatic sync after write operations
+  --debug             Show internal IDs alongside public IDs for debugging
 ...
 ? 0
 ```
