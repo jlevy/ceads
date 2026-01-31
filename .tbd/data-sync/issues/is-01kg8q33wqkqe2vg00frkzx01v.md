@@ -1,4 +1,6 @@
 ---
+close_reason: Implemented --updates-only flag for tbd save. Fetches remote tbd-sync, compares with local issues using getUpdatedIssues(), and saves only new/modified issues. Falls back to all issues if fetch fails.
+closed_at: 2026-01-31T01:27:32.275Z
 created_at: 2026-01-31T00:26:20.951Z
 dependencies: []
 id: is-01kg8q33wqkqe2vg00frkzx01v
@@ -7,11 +9,11 @@ labels: []
 parent_id: is-01kg8ksme85ymkbyt1cxj9gpe3
 priority: 2
 spec_path: docs/project/specs/active/plan-2026-01-30-workspace-sync-alt.md
-status: open
+status: closed
 title: Implement --updates-only for tbd save command
 type: is
-updated_at: 2026-01-31T00:26:28.180Z
-version: 3
+updated_at: 2026-01-31T01:27:32.276Z
+version: 4
 ---
 Compare local worktree issues with origin/tbd-sync to identify issues that are new, modified, or missing from remote. These are the 'updated' issues that --updates-only should save.
 
