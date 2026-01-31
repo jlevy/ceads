@@ -10,12 +10,12 @@ import {
   readConfig,
   writeConfig,
   initConfig,
-  CONFIG_FILE_PATH,
   readLocalState,
   updateLocalState,
   hasSeenWelcome,
   markWelcomeSeen,
 } from '../src/file/config.js';
+import { CONFIG_FILE } from '../src/lib/paths.js';
 import type { Config } from '../src/lib/types.js';
 
 describe('config operations', () => {
@@ -33,7 +33,7 @@ describe('config operations', () => {
     it('creates config file with defaults', async () => {
       await initConfig(tempDir, '3.0.0', 'test');
 
-      const configPath = join(tempDir, CONFIG_FILE_PATH);
+      const configPath = join(tempDir, CONFIG_FILE);
       const content = await readFile(configPath, 'utf-8');
 
       expect(content).toContain('tbd_version: 3.0.0');

@@ -6,7 +6,8 @@
  *
  * WHEN TO BUMP THE FORMAT VERSION:
  * - Bump when changes REQUIRE migration (deleting files, changing formats, moving files)
- * - Do NOT bump for additive changes (new optional config fields, new directories)
+ * - **Bump when changing config schema** (adding, removing, or modifying fields)
+ * - Do NOT bump for additive changes that don't affect config.yml (new directories, etc.)
  *
  * HOW TO ADD A NEW FORMAT VERSION:
  * 1. Add entry to FORMAT_HISTORY with detailed description
@@ -14,6 +15,18 @@
  * 3. Add case to migrateToLatest()
  * 4. Update CURRENT_FORMAT
  * 5. Add tests for the migration path
+ *
+ * FORWARD COMPATIBILITY POLICY:
+ * ConfigSchema uses Zod's strip() mode, which discards unknown fields. To prevent
+ * data loss when users mix tbd versions:
+ *
+ * 1. When changing config schema, bump the format version (e.g., f03 → f04)
+ * 2. config.ts checks format compatibility via isCompatibleFormat()
+ * 3. Older tbd versions will error with "format 'fXX' is from a newer tbd version"
+ * 4. The error tells users to upgrade: npm install -g get-tbd@latest
+ *
+ * This ensures older versions fail fast rather than silently corrupting config.
+ * See ConfigSchema in schemas.ts and checkFormatCompatibility() in config.ts.
  */
 
 // =============================================================================

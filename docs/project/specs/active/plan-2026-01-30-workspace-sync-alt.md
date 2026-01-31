@@ -431,17 +431,8 @@ When an AI agent encounters a sync push failure:
 
 ### Configuration
 
-The workspace feature is always available (no config flag needed to enable it).
-However, the suggested recovery command can be configured:
-
-```yaml
-# .tbd/config.yml
-sync:
-  branch: tbd-sync
-  remote: origin
-  # What to suggest when push fails (default: "tbd save --outbox")
-  failure_suggestion: "tbd save --outbox"
-```
+The workspace feature is always available with no configuration needed.
+Workspaces are purely filesystem-based (stored in `.tbd/workspaces/`).
 
 ## Comparison: Workspace vs Outbox Model
 

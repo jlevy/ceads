@@ -303,8 +303,8 @@ alwaysApply: true
   library (such as a top-level `index.ts`).
 
   - If a function or type is moved from one file to another, ALWAYS update all imports
-    in the codebase to the location.
-    DO NOT re-export types a type or other value from its old location:
+    in the codebase to the new location.
+    DO NOT re-export types or values from the old location:
 
     ```ts
     // BAD: Do not re-export imports for re-import elsewhere:
@@ -312,6 +312,24 @@ alwaysApply: true
     
     // GOOD: Import directly from the new location:
     import { backtestStep } from './experimentExecution';
+    ```
+
+  - **Do NOT re-export for pointless “backward compatibility”.** Re-exports are
+    appropriate for: (1) published libraries with real external consumers, (2)
+    structuring a public API surface (e.g., a root `index.ts`), or (3) genuine
+    deprecation periods.
+    But internal codebases, CLI tools, and applications have no API stability
+    guarantees—just update the imports.
+    Comments like “re-exported for backward compatibility” in application code add
+    needless maintenance complexity:
+
+    ```ts
+    // BAD: Pointless backward compatibility in an internal codebase
+    // Re-export for backward compatibility
+    export { githubBlobToRawUrl as githubToRawUrl } from './github-fetch.js';
+    
+    // GOOD: Just update imports to use the new name/location directly
+    import { githubBlobToRawUrl } from './github-fetch.js';
     ```
 
 - **Barrel files:** The rules differ for libraries vs applications.

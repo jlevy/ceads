@@ -219,6 +219,20 @@ export const DocsCacheSchema = z.object({
  *
  * ⚠️ FORMAT VERSIONING: See tbd-format.ts for version history and migration rules.
  * The tbd_format field tracks breaking changes to this schema.
+ *
+ * ⚠️ FORWARD COMPATIBILITY POLICY:
+ * This schema uses Zod's default strip() mode, which discards unknown fields.
+ * To prevent data loss when users mix tbd versions:
+ *
+ * 1. **When changing config schema (adding, removing, or modifying fields), ALWAYS
+ *    bump the format version** (e.g., f03 → f04)
+ * 2. Older tbd versions will error when they see an unknown format version
+ * 3. The error message tells users to upgrade tbd
+ *
+ * This ensures older versions fail fast rather than silently corrupting config.
+ * The format version check happens in config.ts via isCompatibleFormat().
+ *
+ * See tbd-format.ts for format version history and migration rules.
  */
 export const ConfigSchema = z.object({
   /**

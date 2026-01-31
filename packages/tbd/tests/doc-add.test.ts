@@ -23,54 +23,49 @@ vi.mock('../src/file/github-fetch.js', async (importOriginal) => {
   };
 });
 
-import {
-  githubToRawUrl,
-  validateDocContent,
-  getDocTypeSubdir,
-  addDoc,
-} from '../src/file/doc-add.js';
+import { validateDocContent, getDocTypeSubdir, addDoc } from '../src/file/doc-add.js';
 
-import { fetchWithGhFallback } from '../src/file/github-fetch.js';
+import { githubBlobToRawUrl, fetchWithGhFallback } from '../src/file/github-fetch.js';
 
 // =============================================================================
-// GitHub URL Conversion (re-exported from github-fetch.ts)
+// GitHub URL Conversion
 // =============================================================================
 
-describe('githubToRawUrl', () => {
+describe('githubBlobToRawUrl', () => {
   it('converts GitHub blob URL to raw URL', () => {
     const url =
       'https://github.com/jlevy/tbd/blob/413ac0b770e9ddc415f4095af30b64869cf8d0d2/docs/general/research/current/research-modern-bun-monorepo-patterns.md';
     const expected =
       'https://raw.githubusercontent.com/jlevy/tbd/413ac0b770e9ddc415f4095af30b64869cf8d0d2/docs/general/research/current/research-modern-bun-monorepo-patterns.md';
-    expect(githubToRawUrl(url)).toBe(expected);
+    expect(githubBlobToRawUrl(url)).toBe(expected);
   });
 
   it('converts GitHub blob URL with branch name', () => {
     const url = 'https://github.com/org/repo/blob/main/docs/file.md';
-    expect(githubToRawUrl(url)).toBe(
+    expect(githubBlobToRawUrl(url)).toBe(
       'https://raw.githubusercontent.com/org/repo/main/docs/file.md',
     );
   });
 
   it('passes through raw.githubusercontent.com URLs unchanged', () => {
     const url = 'https://raw.githubusercontent.com/org/repo/main/docs/file.md';
-    expect(githubToRawUrl(url)).toBe(url);
+    expect(githubBlobToRawUrl(url)).toBe(url);
   });
 
   it('passes through non-GitHub URLs unchanged', () => {
     const url = 'https://example.com/docs/file.md';
-    expect(githubToRawUrl(url)).toBe(url);
+    expect(githubBlobToRawUrl(url)).toBe(url);
   });
 
   it('passes through GitHub non-blob URLs unchanged', () => {
     const url = 'https://github.com/org/repo/tree/main/docs';
-    expect(githubToRawUrl(url)).toBe(url);
+    expect(githubBlobToRawUrl(url)).toBe(url);
   });
 
   it('handles nested paths correctly', () => {
     const url = 'https://github.com/owner/repo/blob/feature/branch/src/deep/nested/path/file.md';
     // Note: 'feature/branch' is the ref because the regex captures the first segment after blob/
-    expect(githubToRawUrl(url)).toBe(
+    expect(githubBlobToRawUrl(url)).toBe(
       'https://raw.githubusercontent.com/owner/repo/feature/branch/src/deep/nested/path/file.md',
     );
   });

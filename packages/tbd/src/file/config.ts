@@ -20,14 +20,38 @@ import {
   CURRENT_FORMAT,
   needsMigration,
   migrateToLatest,
+  isCompatibleFormat,
   type RawConfig,
 } from '../lib/tbd-format.js';
 
 /**
- * Path to config file relative to project root.
- * Re-exported from paths.ts for backwards compatibility.
+ * Error thrown when the config format version is from a newer tbd version.
+ * This prevents older tbd versions from silently stripping new config fields.
  */
-export const CONFIG_FILE_PATH = CONFIG_FILE;
+export class IncompatibleFormatError extends Error {
+  constructor(
+    public readonly foundFormat: string,
+    public readonly supportedFormat: string,
+  ) {
+    super(
+      `Config format '${foundFormat}' is from a newer tbd version.\n` +
+        `This tbd version supports up to format '${supportedFormat}'.\n` +
+        `Please upgrade tbd: npm install -g get-tbd@latest`,
+    );
+    this.name = 'IncompatibleFormatError';
+  }
+}
+
+/**
+ * Check if config format is compatible, throw if not.
+ * This prevents older tbd versions from silently stripping fields added by newer versions.
+ */
+function checkFormatCompatibility(data: RawConfig): void {
+  const format = data.tbd_format;
+  if (format && !isCompatibleFormat(format)) {
+    throw new IncompatibleFormatError(format, CURRENT_FORMAT);
+  }
+}
 
 /**
  * Create default config for a new project.
@@ -75,14 +99,18 @@ export async function initConfig(
  *
  * ⚠️ FORMAT VERSIONING: See tbd-format.ts for version history and migration rules.
  *
+ * @throws {IncompatibleFormatError} If config is from a newer tbd version.
  * @throws If config file doesn't exist or is invalid.
  */
 export async function readConfig(baseDir: string): Promise<Config> {
-  const configPath = join(baseDir, CONFIG_FILE_PATH);
+  const configPath = join(baseDir, CONFIG_FILE);
   const content = await readFile(configPath, 'utf-8');
   const data = parseYaml(content) as RawConfig;
 
-  // Check if migration is needed
+  // Check for incompatible (future) format versions first
+  checkFormatCompatibility(data);
+
+  // Check if migration is needed (for older formats)
   if (needsMigration(data)) {
     const result = migrateToLatest(data);
     // Note: We don't automatically write the migrated config here.
@@ -96,13 +124,18 @@ export async function readConfig(baseDir: string): Promise<Config> {
 /**
  * Read config from file, returning migration info if a migration was applied.
  * Use this when you need to know if the config was migrated.
+ *
+ * @throws {IncompatibleFormatError} If config is from a newer tbd version.
  */
 export async function readConfigWithMigration(
   baseDir: string,
 ): Promise<{ config: Config; migrated: boolean; changes: string[] }> {
-  const configPath = join(baseDir, CONFIG_FILE_PATH);
+  const configPath = join(baseDir, CONFIG_FILE);
   const content = await readFile(configPath, 'utf-8');
   const data = parseYaml(content) as RawConfig;
+
+  // Check for incompatible (future) format versions first
+  checkFormatCompatibility(data);
 
   if (needsMigration(data)) {
     const result = migrateToLatest(data);
@@ -124,7 +157,7 @@ export async function readConfigWithMigration(
  * Write config to file with explanatory comments.
  */
 export async function writeConfig(baseDir: string, config: Config): Promise<void> {
-  const configPath = join(baseDir, CONFIG_FILE_PATH);
+  const configPath = join(baseDir, CONFIG_FILE);
 
   const yaml = stringifyYaml(config, {
     sortMapEntries: true,

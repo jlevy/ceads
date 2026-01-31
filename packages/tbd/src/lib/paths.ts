@@ -248,16 +248,6 @@ export const DEFAULT_TEMPLATE_PATHS = [
 ];
 
 /**
- * @deprecated Use DEFAULT_SHORTCUT_PATHS instead.
- * Legacy alias that includes all doc types for backward compatibility.
- */
-export const DEFAULT_DOC_PATHS = [
-  ...DEFAULT_SHORTCUT_PATHS,
-  ...DEFAULT_GUIDELINES_PATHS,
-  ...DEFAULT_TEMPLATE_PATHS,
-];
-
-/**
  * Get the full path to an issue file.
  */
 export function getIssuePath(issueId: string): string {
@@ -291,9 +281,7 @@ export interface ResolveDataSyncDirOptions {
   /**
    * Allow fallback to direct path when worktree is missing.
    * Set to true for test environments or diagnostic tools.
-   * Default: true (for backward compatibility)
-   *
-   * When false and worktree is missing, throws WorktreeMissingError.
+   * Default: true. When false and worktree is missing, throws WorktreeMissingError.
    */
   allowFallback?: boolean;
 }

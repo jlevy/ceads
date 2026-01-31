@@ -55,6 +55,7 @@ agents.
       - [ID Resolution (CLI)](#id-resolution-cli)
       - [File Naming](#file-naming)
       - [Display Format](#display-format)
+      - [Type-Safe ID Handling (Branded Types)](#type-safe-id-handling-branded-types)
     - [2.7 Schemas](#27-schemas)
       - [2.7.1 Common Types](#271-common-types)
       - [2.7.2 BaseEntity](#272-baseentity)
@@ -1565,6 +1566,19 @@ const ConfigSchema = z.object({
     .default({}),
 });
 ```
+
+> **Forward Compatibility Policy:** ConfigSchema uses Zod’s `strip()` mode, which
+> discards unknown fields.
+> To prevent data loss when users mix tbd versions:
+> 
+> 1. **When changing config schema (adding, removing, or modifying fields), always bump
+>    the format version** (e.g., f03 → f04)
+> 2. Older tbd versions will error when they see an unknown format version
+> 3. The error tells users to upgrade: `npm install -g get-tbd@latest`
+> 
+> This ensures older versions fail fast rather than silently corrupting config.
+> See `tbd-format.ts` for format version history and `config.ts` for the compatibility
+> check via `isCompatibleFormat()`.
 
 #### 2.7.5 MetaSchema
 

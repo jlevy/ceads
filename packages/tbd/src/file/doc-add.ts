@@ -14,10 +14,6 @@ import { readConfig, writeConfig } from './config.js';
 import { githubBlobToRawUrl, fetchWithGhFallback } from './github-fetch.js';
 import { TBD_DOCS_DIR } from '../lib/paths.js';
 
-// Re-export for backward compatibility (tests import from here)
-export { githubBlobToRawUrl as githubToRawUrl } from './github-fetch.js';
-export { fetchWithGhFallback } from './github-fetch.js';
-
 // =============================================================================
 // Types
 // =============================================================================
