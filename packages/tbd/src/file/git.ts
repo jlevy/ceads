@@ -22,11 +22,22 @@ import { now, nowFilenameTimestamp } from '../utils/time-utils.js';
 const execFileAsync = promisify(execFile);
 
 /**
+ * Maximum buffer size for git command output.
+ *
+ * Node.js child_process.execFile() defaults to 1MB (1024 * 1024 bytes).
+ * When exceeded, the child process is terminated with "stdout maxBuffer length exceeded".
+ * Git commands like push/fetch with verbose output or diff on large changesets can exceed 1MB.
+ *
+ * See: https://nodejs.org/api/child_process.html#child_processexecfilefile-args-options-callback
+ */
+const GIT_MAX_BUFFER = 50 * 1024 * 1024; // 50MB
+
+/**
  * Execute a git command and return stdout.
  * Uses execFile for security - prevents shell injection attacks.
  */
 export async function git(...args: string[]): Promise<string> {
-  const { stdout } = await execFileAsync('git', args);
+  const { stdout } = await execFileAsync('git', args, { maxBuffer: GIT_MAX_BUFFER });
   return stdout.trim();
 }
 
