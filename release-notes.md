@@ -4,8 +4,9 @@
 
 - **Workspace sync feature**: New commands for managing local workspace backups:
   - `tbd save` to export issues to workspace directories (supports `--updates-only` and
-    `--outbox`)
-  - `tbd workspace list` to show saved workspaces with issue counts by status
+    `--outbox`); correctly filters ID mappings to saved issues only
+  - `tbd workspace list` to show saved workspaces with issue counts
+    (open/in_progress/closed/total)
   - `tbd import --workspace` to restore from workspace backups
   - Workspace save suggested on sync push failures as safety net
 - **Child bead ordering hints**: New `child_order` field allows explicit ordering of
@@ -14,17 +15,14 @@
   changes, branch work, GitHub PR) with language-specific guideline loading
 - **Review-github-pr shortcut**: Dedicated shortcut for GitHub PR reviews with follow-up
   actions (commenting, CI checks, fix bead creation)
-- **Forward compatibility check**: Older tbd versions now error clearly when
-  encountering newer config format versions instead of silently stripping unknown fields
-- **Workspace issue counts**: `tbd workspace list` displays
-  open/in_progress/closed/total counts per workspace
+- **Forward compatibility check**: Added config format version validation - tbd now
+  errors clearly when encountering configs from newer versions instead of silently
+  stripping unknown fields
 
 ### Fixes
 
 - **Git maxBuffer overflow**: Increased buffer from 1MB to 50MB to prevent sync failures
   on large repos
-- **Workspace mappings filtering**: Save now correctly includes only mappings for saved
-  issues
 - **Priority ordering in tree view**: Child beads maintain priority-based ordering when
   no explicit hints provided
 - **Tryscript test output formatting**: Updated help output column widths and test

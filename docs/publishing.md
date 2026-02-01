@@ -4,8 +4,7 @@ This project uses [Changesets](https://github.com/changesets/changesets) for ver
 management and tag-based releases with provenance attestation to npm.
 
 For daily development workflow, see [development.md](../../development.md).
-For release notes format and guidelines, see
-[release-notes-guidelines.md](../agent-guidelines/release-notes-guidelines.md).
+For release notes format and guidelines, see `tbd guidelines release-notes-guidelines`.
 
 ## One-Time Setup
 
@@ -116,7 +115,7 @@ git commit -m "chore: release get-tbd vX.X.X"
 ### Step 5: Write Release Notes
 
 **Before pushing**, write release notes following
-[release-notes-guidelines.md](../agent-guidelines/release-notes-guidelines.md).
+`tbd guidelines release-notes-guidelines`.
 
 ```bash
 # Review changes since last release
