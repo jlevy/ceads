@@ -49,3 +49,33 @@ Project-specific specifications, architecture, and research docs:
   docs (templates and output go here)
 
 - @docs/project/research/ — Research notes and technical investigations
+
+### tbd CLI Documentation Commands
+
+In addition to these repository docs, tbd provides built-in documentation via CLI:
+
+- `tbd shortcut --list` / `tbd shortcut <name>` — Workflow shortcuts (new-plan-spec,
+  code-review-and-commit, review-code-typescript, etc.)
+- `tbd guidelines --list` / `tbd guidelines <name>` — Coding guidelines
+  (typescript-rules, python-rules, general-tdd-guidelines, etc.)
+- `tbd template --list` / `tbd template <name>` — Document templates (plan-spec,
+  research-brief, architecture)
+
+These CLI-provided docs are installed locally in `.tbd/docs/` during `tbd setup --auto`
+and can be refreshed anytime by re-running setup.
+
+#### Adding external docs by URL
+
+You can register external documentation from any URL (including GitHub blob URLs):
+
+```bash
+tbd guidelines --add=<url> --name=<name>
+tbd shortcut --add=<url> --name=<name>
+tbd template --add=<url> --name=<name>
+```
+
+GitHub blob URLs are automatically converted to raw URLs.
+If direct fetch returns HTTP 403, the system falls back to `gh api` for authenticated
+access.
+User-added shortcuts are stored in `shortcuts/custom/` to keep them separate from
+bundled docs.

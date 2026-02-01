@@ -11,7 +11,7 @@ import { BaseCommand } from '../lib/base-command.js';
 import { requireInit, ValidationError, CLIError } from '../lib/errors.js';
 import type { Issue, IssueKindType, PriorityType } from '../../lib/types.js';
 import { generateInternalId, extractUlidFromInternalId } from '../../lib/ids.js';
-import { writeIssue } from '../../file/storage.js';
+import { readIssue, writeIssue } from '../../file/storage.js';
 import {
   loadIdMapping,
   saveIdMapping,
@@ -24,6 +24,7 @@ import { parsePriority } from '../../lib/priority.js';
 import { resolveDataSyncDir } from '../../lib/paths.js';
 import { now } from '../../utils/time-utils.js';
 import { readConfig } from '../../file/config.js';
+import { resolveAndValidatePath, getPathErrorMessage } from '../../lib/project-paths.js';
 
 interface CreateOptions {
   fromFile?: string;
@@ -36,6 +37,7 @@ interface CreateOptions {
   defer?: string;
   parent?: string;
   label?: string[];
+  spec?: string;
 }
 
 class CreateHandler extends BaseCommand {
@@ -56,12 +58,26 @@ class CreateHandler extends BaseCommand {
     if (options.file) {
       try {
         description = await readFile(options.file, 'utf-8');
-      } catch {
-        throw new CLIError(`Failed to read description from file: ${options.file}`);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        throw new CLIError(`Failed to read description from file '${options.file}': ${message}`);
       }
     }
 
-    if (this.checkDryRun('Would create issue', { title, kind, priority, ...options })) {
+    // Validate and normalize spec path if provided
+    let specPath: string | undefined;
+    if (options.spec) {
+      try {
+        const resolved = await resolveAndValidatePath(options.spec, tbdRoot, process.cwd());
+        specPath = resolved.relativePath;
+      } catch (error) {
+        throw new ValidationError(getPathErrorMessage(error));
+      }
+    }
+
+    if (
+      this.checkDryRun('Would create issue', { title, kind, priority, spec: specPath, ...options })
+    ) {
       return;
     }
 
@@ -94,6 +110,14 @@ class CreateHandler extends BaseCommand {
         }
       }
 
+      // Inherit spec_path from parent if not explicitly provided
+      if (!specPath && parentId) {
+        const parentIssue = await readIssue(dataSyncDir, parentId);
+        if (parentIssue.spec_path) {
+          specPath = parentIssue.spec_path;
+        }
+      }
+
       issue = {
         type: 'is',
         id,
@@ -111,11 +135,30 @@ class CreateHandler extends BaseCommand {
         due_date: options.due ?? undefined,
         deferred_until: options.defer ?? undefined,
         parent_id: parentId,
+        spec_path: specPath,
       };
 
       // Write both the issue and the mapping
       await writeIssue(dataSyncDir, issue);
       await saveIdMapping(dataSyncDir, mapping);
+
+      // When creating with a parent, append child to parent's child_order_hints
+      if (parentId) {
+        try {
+          const parentIssue = await readIssue(dataSyncDir, parentId);
+          const hints = parentIssue.child_order_hints ?? [];
+
+          // Only append if not already in hints (shouldn't happen for new issue, but safe)
+          if (!hints.includes(id)) {
+            parentIssue.child_order_hints = [...hints, id];
+            parentIssue.version += 1;
+            parentIssue.updated_at = timestamp;
+            await writeIssue(dataSyncDir, parentIssue);
+          }
+        } catch {
+          // Parent not found or other error - skip order hint update
+        }
+      }
     }, 'Failed to create issue');
 
     // Output with display ID (prefix + short ID)
@@ -155,6 +198,7 @@ export const createCommand = new Command('create')
   .option('--due <date>', 'Due date (ISO8601)')
   .option('--defer <date>', 'Defer until date (ISO8601)')
   .option('--parent <id>', 'Parent issue ID')
+  .option('--spec <path>', 'Link to spec document (relative path)')
   .option('-l, --label <label>', 'Add label (repeatable)', (val, prev: string[] = []) => [
     ...prev,
     val,

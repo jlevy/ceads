@@ -13,6 +13,7 @@ before: |
   git init --initial-branch=main
   git config user.email "test@example.com"
   git config user.name "Test User"
+  git config commit.gpgsign false
   echo "# Test repo" > README.md
   git add README.md
   git commit -m "Initial commit"
@@ -206,11 +207,11 @@ $ tbd doctor --help | grep -c "\-\-fix"
 ? 0
 ```
 
-# Test: import --help shows from-beads option
+# Test: import --help shows validate option
 
 ```console
-$ tbd import --help | grep -c "\-\-from-beads"
-1
+$ tbd import --help | grep -c "\-\-validate"
+2
 ? 0
 ```
 

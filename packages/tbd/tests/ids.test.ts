@@ -20,6 +20,7 @@ import {
   extractPrefix,
 } from '../src/lib/ids.js';
 import { IssueId } from '../src/lib/schemas.js';
+import { mergeIdMappings, parseIdMappingFromYaml } from '../src/file/id-mapping.js';
 
 // Sample valid ULID for testing (26 lowercase alphanumeric chars)
 const VALID_ULID = '01hx5zzkbkactav9wevgemmvrz';
@@ -365,6 +366,7 @@ describe('test helper: BEADS_TO_TBD_STATUS', () => {
 
 // Tests for adaptive short ID length and collision handling
 import {
+  addIdMapping,
   calculateOptimalLength,
   generateUniqueShortId,
   type IdMapping,
@@ -438,6 +440,8 @@ describe('generateUniqueShortId', () => {
       expect(mapping.shortToUlid.has(id)).toBe(false);
       expect(generated.has(id)).toBe(false);
       generated.add(id);
+      // Add to mapping so subsequent calls don't return duplicates
+      addIdMapping(mapping, `generated-ulid-${i}`, id);
     }
   });
 
@@ -509,5 +513,102 @@ describe('extractPrefix', () => {
   it('returns null for strings starting with numbers', () => {
     expect(extractPrefix('123-abc')).toBeNull();
     expect(extractPrefix('1abc-def')).toBeNull();
+  });
+});
+
+describe('mergeIdMappings', () => {
+  it('merges two disjoint mappings', () => {
+    const local = {
+      shortToUlid: new Map([['a1b2', '01hx5zzkbkactav9wevgemmvrz']]),
+      ulidToShort: new Map([['01hx5zzkbkactav9wevgemmvrz', 'a1b2']]),
+    };
+    const remote = {
+      shortToUlid: new Map([['c3d4', '01hx5zzkbkbctav9wevgemmvrw']]),
+      ulidToShort: new Map([['01hx5zzkbkbctav9wevgemmvrw', 'c3d4']]),
+    };
+
+    const merged = mergeIdMappings(local, remote);
+
+    expect(merged.shortToUlid.size).toBe(2);
+    expect(merged.shortToUlid.get('a1b2')).toBe('01hx5zzkbkactav9wevgemmvrz');
+    expect(merged.shortToUlid.get('c3d4')).toBe('01hx5zzkbkbctav9wevgemmvrw');
+  });
+
+  it('keeps local when short ID conflicts', () => {
+    const local = {
+      shortToUlid: new Map([['a1b2', '01hx5zzkbkactav9wevgemmvrz']]),
+      ulidToShort: new Map([['01hx5zzkbkactav9wevgemmvrz', 'a1b2']]),
+    };
+    const remote = {
+      shortToUlid: new Map([['a1b2', '01hx5zzkbkbctav9wevgemmvrw']]), // Same short ID, different ULID
+      ulidToShort: new Map([['01hx5zzkbkbctav9wevgemmvrw', 'a1b2']]),
+    };
+
+    const merged = mergeIdMappings(local, remote);
+
+    // Local wins in conflict
+    expect(merged.shortToUlid.size).toBe(1);
+    expect(merged.shortToUlid.get('a1b2')).toBe('01hx5zzkbkactav9wevgemmvrz');
+  });
+
+  it('handles empty local mapping', () => {
+    const local = {
+      shortToUlid: new Map<string, string>(),
+      ulidToShort: new Map<string, string>(),
+    };
+    const remote = {
+      shortToUlid: new Map([['c3d4', '01hx5zzkbkbctav9wevgemmvrw']]),
+      ulidToShort: new Map([['01hx5zzkbkbctav9wevgemmvrw', 'c3d4']]),
+    };
+
+    const merged = mergeIdMappings(local, remote);
+
+    expect(merged.shortToUlid.size).toBe(1);
+    expect(merged.shortToUlid.get('c3d4')).toBe('01hx5zzkbkbctav9wevgemmvrw');
+  });
+
+  it('handles empty remote mapping', () => {
+    const local = {
+      shortToUlid: new Map([['a1b2', '01hx5zzkbkactav9wevgemmvrz']]),
+      ulidToShort: new Map([['01hx5zzkbkactav9wevgemmvrz', 'a1b2']]),
+    };
+    const remote = {
+      shortToUlid: new Map<string, string>(),
+      ulidToShort: new Map<string, string>(),
+    };
+
+    const merged = mergeIdMappings(local, remote);
+
+    expect(merged.shortToUlid.size).toBe(1);
+    expect(merged.shortToUlid.get('a1b2')).toBe('01hx5zzkbkactav9wevgemmvrz');
+  });
+});
+
+describe('parseIdMappingFromYaml', () => {
+  it('parses valid YAML mapping', () => {
+    const yaml = `a1b2: 01hx5zzkbkactav9wevgemmvrz
+c3d4: 01hx5zzkbkbctav9wevgemmvrw`;
+
+    const mapping = parseIdMappingFromYaml(yaml);
+
+    expect(mapping.shortToUlid.size).toBe(2);
+    expect(mapping.shortToUlid.get('a1b2')).toBe('01hx5zzkbkactav9wevgemmvrz');
+    expect(mapping.shortToUlid.get('c3d4')).toBe('01hx5zzkbkbctav9wevgemmvrw');
+  });
+
+  it('handles empty YAML', () => {
+    const mapping = parseIdMappingFromYaml('');
+
+    expect(mapping.shortToUlid.size).toBe(0);
+  });
+
+  it('throws on invalid YAML with merge conflict markers', () => {
+    const yamlWithConflict = `<<<<<<< HEAD
+a1b2: 01hx5zzkbkactav9wevgemmvrz
+=======
+c3d4: 01hx5zzkbkbctav9wevgemmvrw
+>>>>>>> origin/tbd-sync`;
+
+    expect(() => parseIdMappingFromYaml(yamlWithConflict)).toThrow();
   });
 });

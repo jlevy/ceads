@@ -159,6 +159,79 @@ describe('IssueSchema', () => {
     const result = IssueSchema.safeParse(issue);
     expect(result.success).toBe(false);
   });
+
+  describe('spec_path field', () => {
+    it('accepts valid spec_path strings', () => {
+      const issue = {
+        type: 'is',
+        id: `is-${VALID_ULID}`,
+        version: 1,
+        title: 'Test issue',
+        spec_path: 'docs/project/specs/active/plan-2026-01-26-feature.md',
+        created_at: '2025-01-01T00:00:00Z',
+        updated_at: '2025-01-01T00:00:00Z',
+      };
+
+      const result = IssueSchema.safeParse(issue);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.spec_path).toBe('docs/project/specs/active/plan-2026-01-26-feature.md');
+      }
+    });
+
+    it('accepts missing spec_path (undefined)', () => {
+      const issue = {
+        type: 'is',
+        id: `is-${VALID_ULID}`,
+        version: 1,
+        title: 'Test issue',
+        created_at: '2025-01-01T00:00:00Z',
+        updated_at: '2025-01-01T00:00:00Z',
+      };
+
+      const result = IssueSchema.safeParse(issue);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.spec_path).toBeUndefined();
+      }
+    });
+
+    it('accepts null spec_path', () => {
+      const issue = {
+        type: 'is',
+        id: `is-${VALID_ULID}`,
+        version: 1,
+        title: 'Test issue',
+        spec_path: null,
+        created_at: '2025-01-01T00:00:00Z',
+        updated_at: '2025-01-01T00:00:00Z',
+      };
+
+      const result = IssueSchema.safeParse(issue);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.spec_path).toBeNull();
+      }
+    });
+
+    it('accepts short spec_path like filename only', () => {
+      const issue = {
+        type: 'is',
+        id: `is-${VALID_ULID}`,
+        version: 1,
+        title: 'Test issue',
+        spec_path: 'feature.md',
+        created_at: '2025-01-01T00:00:00Z',
+        updated_at: '2025-01-01T00:00:00Z',
+      };
+
+      const result = IssueSchema.safeParse(issue);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.spec_path).toBe('feature.md');
+      }
+    });
+  });
 });
 
 describe('ConfigSchema', () => {
@@ -186,5 +259,93 @@ describe('ConfigSchema', () => {
 
     const result = ConfigSchema.safeParse(config);
     expect(result.success).toBe(false);
+  });
+
+  describe('docs_cache', () => {
+    it('parses config with docs_cache.files', () => {
+      const config = {
+        tbd_version: '3.0.0',
+        display: { id_prefix: 'proj' },
+        docs_cache: {
+          files: {
+            'shortcuts/standard/code-review-and-commit.md':
+              'internal:shortcuts/standard/code-review-and-commit.md',
+            'custom/my-doc.md': 'https://example.com/my-doc.md',
+          },
+        },
+      };
+
+      const result = ConfigSchema.safeParse(config);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.docs_cache?.files).toEqual({
+          'shortcuts/standard/code-review-and-commit.md':
+            'internal:shortcuts/standard/code-review-and-commit.md',
+          'custom/my-doc.md': 'https://example.com/my-doc.md',
+        });
+      }
+    });
+
+    it('parses config with docs_cache.lookup_path', () => {
+      const config = {
+        tbd_version: '3.0.0',
+        display: { id_prefix: 'proj' },
+        docs_cache: {
+          lookup_path: [
+            '.tbd/docs/shortcuts/custom',
+            '.tbd/docs/shortcuts/system',
+            '.tbd/docs/shortcuts/standard',
+          ],
+        },
+      };
+
+      const result = ConfigSchema.safeParse(config);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.docs_cache?.lookup_path).toEqual([
+          '.tbd/docs/shortcuts/custom',
+          '.tbd/docs/shortcuts/system',
+          '.tbd/docs/shortcuts/standard',
+        ]);
+      }
+    });
+
+    it('parses config with full docs_cache structure', () => {
+      const config = {
+        tbd_version: '3.0.0',
+        display: { id_prefix: 'proj' },
+        docs_cache: {
+          files: {
+            'shortcuts/standard/code-review-and-commit.md':
+              'internal:shortcuts/standard/code-review-and-commit.md',
+          },
+          lookup_path: ['.tbd/docs/shortcuts/system', '.tbd/docs/shortcuts/standard'],
+        },
+      };
+
+      const result = ConfigSchema.safeParse(config);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.docs_cache?.files).toBeDefined();
+        expect(result.data.docs_cache?.lookup_path).toBeDefined();
+      }
+    });
+
+    it('uses default lookup_path when not specified', () => {
+      const config = {
+        tbd_version: '3.0.0',
+        display: { id_prefix: 'proj' },
+        docs_cache: {},
+      };
+
+      const result = ConfigSchema.safeParse(config);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.docs_cache?.lookup_path).toEqual([
+          '.tbd/docs/shortcuts/system',
+          '.tbd/docs/shortcuts/standard',
+        ]);
+      }
+    });
   });
 });

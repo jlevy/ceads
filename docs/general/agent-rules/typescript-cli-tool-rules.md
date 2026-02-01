@@ -112,6 +112,25 @@ These rules apply to all CLI tools, command-line scripts, and terminal utilities
   defined at the program level.
   Access them via `getCommandContext()`.
 
+- **Handle negated boolean flags (`--no-X`) correctly:** Commander.js sets
+  `options.X = false`, NOT `options.noX = true`. This is a common gotcha.
+
+  ```ts
+  // WRONG: options.noBrowser is ALWAYS undefined
+  program.option('--no-browser', 'Disable browser auto-open');
+  if (options.noBrowser) { /* Never executes! */ }
+  
+  // CORRECT: Check the positive property name
+  program.option('--no-browser', 'Disable browser auto-open');
+  if (options.browser === false) { /* This works */ }
+  
+  // Best practice: destructure with default true
+  const { browser = true } = options;
+  if (browser) {
+    await openBrowser(url);
+  }
+  ```
+
 ## Progress and Feedback
 
 - **Use @clack/prompts for interactive UI:** Import `@clack/prompts` as `p` for

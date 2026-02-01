@@ -13,7 +13,10 @@
   Actionable rules for CLI development
 
 - [Modern TypeScript Monorepo Package](research-modern-typescript-monorepo-patterns.md)
-  — Build tooling, package structure, CI/CD
+  — Build tooling, package structure, CI/CD (pnpm)
+
+- [Modern Bun Monorepo Patterns](research-modern-bun-monorepo-patterns.md) — Bun
+  workspace equivalent: runtime, bundler, test runner, package manager
 
 - [Commander.js Documentation](https://github.com/tj/commander.js)
 
@@ -1023,6 +1026,96 @@ Use `--format json` for assertions to avoid brittle text parsing.
 
 * * *
 
+### 17. Environment File Loading
+
+**Status**: Strongly Recommended
+
+**Details**:
+
+CLI tools that need API keys, configuration, or deployment URLs should load `.env` files
+at startup following established framework conventions.
+
+**File priority** (highest → lowest, following Vite/Next.js/dotenv-flow conventions):
+
+| Priority | File | Purpose | Git |
+| --- | --- | --- | --- |
+| 1 | `.env.[mode].local` | Mode-specific local overrides | Ignored |
+| 2 | `.env.[mode]` | Mode-specific defaults | Committed |
+| 3 | `.env.local` | Local overrides (secrets, deployment config) | Ignored |
+| 4 | `.env` | Shared defaults (non-secret) | Committed |
+
+**When to load**: At CLI startup, before command parsing.
+This ensures all commands have access to environment variables without duplicating
+loading logic per command.
+
+```ts
+// cli.ts — load before createProgram() or parseAsync()
+import dotenv from 'dotenv';
+import { existsSync } from 'fs';
+import path from 'path';
+
+/**
+ * Load .env.local and .env files, searching from CWD upward to the filesystem root.
+ * First file found wins for each name (dotenv doesn't overwrite existing values).
+ */
+function loadDotenvFiles(): void {
+  const names = ['.env.local', '.env'];
+  let dir = process.cwd();
+  const root = path.parse(dir).root;
+
+  while (true) {
+    for (const name of names) {
+      const filePath = path.join(dir, name);
+      if (existsSync(filePath)) {
+        dotenv.config({ path: filePath });
+      }
+    }
+    if (dir === root) break;
+    dir = path.dirname(dir);
+  }
+}
+
+// Call at startup, before any command logic
+loadDotenvFiles();
+const program = createProgram();
+await program.parseAsync(process.argv);
+```
+
+**Key design decisions**:
+
+1. **Upward directory walk** — Supports monorepo layouts where `.env` lives at the repo
+   root but the CLI runs from a subdirectory.
+   Closer files override farther ones because dotenv’s default is “first wins” (doesn’t
+   overwrite `process.env` values already set).
+
+2. **`.env.local` before `.env`** — Ensures local overrides (API keys, secrets) take
+   precedence over committed defaults.
+
+3. **No `override` option** — dotenv’s default “first wins” behavior is correct for
+   CLIs. System environment variables (set via shell, CI, Docker) should always take
+   precedence over file-based config.
+   This aligns with twelve-factor app principles.
+
+**Framework-managed vs user-managed files**:
+
+In projects using frameworks like Convex, Vercel, or similar that auto-generate
+deployment config, a clear separation of concerns is essential:
+
+| File | Owner | Contains | Overwritten? |
+| --- | --- | --- | --- |
+| `.env.local` | Framework CLI | Deployment URLs, connection strings | Yes (on mode switch) |
+| `.env` | Developer | API keys, feature flags | Never |
+
+This prevents framework mode-switching from destroying user secrets.
+Document this separation clearly and maintain a `.env.example` template showing which
+keys go where.
+
+**Assessment**: Loading `.env` files at startup with an upward directory walk is the
+simplest approach that works correctly for both standalone CLIs and monorepo-hosted
+tools. The pattern eliminates per-command duplication and matches framework conventions.
+
+* * *
+
 ## Best Practices Summary
 
 1. **Support agent/automation modes** with `--non-interactive`, `--yes`, and
@@ -1064,6 +1157,12 @@ Use `--format json` for assertions to avoid brittle text parsing.
 
 18. **Add docs/schema/examples commands** for human and machine documentation
 
+19. **Load `.env` files at startup** with upward directory walk; separate
+    framework-managed (`.env.local`) from user-managed (`.env`) config
+
+20. **Handle `--no-X` flags correctly** — Commander sets `options.X = false`, not
+    `options.noX = true`; destructure with `{ X = true }` pattern
+
 * * *
 
 ## References
@@ -1077,6 +1176,8 @@ Use `--format json` for assertions to avoid brittle text parsing.
 - [@clack/prompts](https://github.com/bombshell-dev/clack) — Interactive prompts
 
 - [cli-table3](https://github.com/cli-table/cli-table3) — Table formatting
+
+- [dotenv](https://github.com/motdotla/dotenv) — Environment file loading
 
 ### Related Documentation
 

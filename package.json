@@ -2,7 +2,7 @@
   "name": "tbd-workspace",
   "private": true,
   "type": "module",
-  "packageManager": "pnpm@10.28.0",
+  "packageManager": "pnpm@10.28.2",
   "engines": {
     "node": ">=20"
   },
@@ -14,17 +14,18 @@
   },
   "scripts": {
     "build": "pnpm -r build",
+    "build:check": "node packages/tbd/scripts/build-if-needed.mjs",
     "typecheck": "pnpm -r typecheck",
     "test": "pnpm -r test",
-    "test:coverage": "pnpm --filter tbd-git test:coverage",
+    "test:coverage": "pnpm --filter get-tbd test:coverage",
     "publint": "pnpm -r publint",
     "format": "prettier --write --log-level warn . && pnpm format:md",
     "format:check": "prettier --check --log-level warn .",
-    "format:md": "find README.md docs packages/tbd -name '*.md' -type f 2>/dev/null | xargs uvx flowmark@latest --auto",
+    "format:md": "find README.md docs packages/tbd -name '*.md' -type f -not -path '*/dist/*' -not -path '*/node_modules/*' 2>/dev/null | xargs uvx flowmark@latest --auto",
     "lint": "eslint . --fix && pnpm typecheck && eslint . --max-warnings 0",
     "lint:check": "pnpm typecheck && eslint . --max-warnings 0",
-    "precommit": "pnpm format && pnpm lint && pnpm test && pnpm build",
-    "ci": "pnpm format:check && pnpm lint:check && pnpm test && pnpm build",
+    "precommit": "pnpm format && pnpm lint && pnpm build && pnpm test",
+    "ci": "pnpm format:check && pnpm lint:check && pnpm build && pnpm test",
     "prepare": "lefthook install",
     "changeset": "changeset",
     "version-packages": "changeset version",
@@ -34,8 +35,8 @@
     "upgrade:major": "ncu --target latest --interactive --format group",
     "tbd": "TBD_DEV_VERSION=$(node packages/tbd/scripts/git-version.mjs) tsx packages/tbd/src/cli/bin.ts",
     "tbd:bin": "node packages/tbd/dist/bin.js",
-    "test:install": "pnpm --filter tbd-git test:install",
-    "test:uninstall": "pnpm --filter tbd-git test:uninstall"
+    "test:install": "pnpm --filter get-tbd test:install",
+    "test:uninstall": "pnpm --filter get-tbd test:uninstall"
   },
   "devDependencies": {
     "@changesets/cli": "^2.29.8",
@@ -44,9 +45,9 @@
     "eslint-config-prettier": "^10.1.8",
     "lefthook": "^1.13.6",
     "npm-check-updates": "^17.1.18",
-    "prettier": "^3.8.0",
+    "prettier": "^3.8.1",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
-    "typescript-eslint": "^8.53.0"
+    "typescript-eslint": "^8.54.0"
   }
 }

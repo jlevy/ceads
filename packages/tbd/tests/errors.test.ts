@@ -57,7 +57,7 @@ describe('NotInitializedError', () => {
     const error = new NotInitializedError();
 
     expect(error.message).toBe(
-      "Not a tbd repository (run 'tbd init' or 'tbd import --from-beads' first)",
+      "Not a tbd repository (run 'tbd setup --auto --prefix=<name>' first)",
     );
     expect(error.exitCode).toBe(1);
     expect(error.name).toBe('NotInitializedError');

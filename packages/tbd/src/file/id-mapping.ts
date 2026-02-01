@@ -10,7 +10,8 @@
 import { readFile, mkdir } from 'node:fs/promises';
 import { join, dirname } from 'node:path';
 import { writeFile } from 'atomically';
-import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
+import { stringify as stringifyYaml } from 'yaml';
+import { parseYamlWithConflictDetection } from '../utils/yaml-utils.js';
 
 import {
   generateShortId,
@@ -18,6 +19,8 @@ import {
   makeInternalId,
   isInternalId,
   extractShortId,
+  asInternalId,
+  type InternalIssueId,
 } from '../lib/ids.js';
 import { naturalSort } from '../lib/sort.js';
 
@@ -57,7 +60,8 @@ export async function loadIdMapping(baseDir: string): Promise<IdMapping> {
     };
   }
 
-  const data = (parseYaml(content) as Record<string, string>) || {};
+  // Parse with conflict detection - provides helpful error if file has merge markers
+  const data = parseYamlWithConflictDetection<Record<string, string>>(content, filePath) || {};
 
   const shortToUlid = new Map<string, string>();
   const ulidToShort = new Map<string, string>();
@@ -208,12 +212,12 @@ export function createShortIdMapping(internalId: string, mapping: IdMapping): st
  * @returns The internal ID ({prefix}-{ulid})
  * @throws If the short ID is not found in the mapping
  */
-export function resolveToInternalId(input: string, mapping: IdMapping): string {
+export function resolveToInternalId(input: string, mapping: IdMapping): InternalIssueId {
   const lower = input.toLowerCase();
 
   // If it's already an internal ID, return it
   if (isInternalId(lower)) {
-    return lower;
+    return asInternalId(lower);
   }
 
   // Extract the short ID portion (strips any prefix like "bd-" or "is-")
@@ -231,4 +235,64 @@ export function resolveToInternalId(input: string, mapping: IdMapping): string {
   }
 
   return makeInternalId(ulid);
+}
+
+/**
+ * Parse an ID mapping from raw YAML content.
+ * Used for loading mappings from git show output during conflict resolution.
+ *
+ * @throws MergeConflictError if content contains merge conflict markers
+ */
+export function parseIdMappingFromYaml(content: string): IdMapping {
+  // Parse with conflict detection - throws MergeConflictError if markers found
+  const data = parseYamlWithConflictDetection<Record<string, string>>(content) || {};
+
+  const shortToUlid = new Map<string, string>();
+  const ulidToShort = new Map<string, string>();
+
+  for (const [shortId, ulid] of Object.entries(data)) {
+    shortToUlid.set(shortId, ulid);
+    ulidToShort.set(ulid, shortId);
+  }
+
+  return { shortToUlid, ulidToShort };
+}
+
+/**
+ * Merge two ID mappings by combining all entries from both.
+ * ID mappings are always additive (new IDs are only added, never removed),
+ * so merging simply unions all key-value pairs.
+ *
+ * If the same short ID maps to different ULIDs in each mapping (a conflict),
+ * the local mapping takes precedence (caller should log a warning).
+ *
+ * @param local - The local ID mapping
+ * @param remote - The remote ID mapping
+ * @returns Merged mapping with all entries from both
+ */
+export function mergeIdMappings(local: IdMapping, remote: IdMapping): IdMapping {
+  const merged: IdMapping = {
+    shortToUlid: new Map(local.shortToUlid),
+    ulidToShort: new Map(local.ulidToShort),
+  };
+
+  // Add all remote entries that don't conflict
+  for (const [shortId, ulid] of remote.shortToUlid) {
+    if (!merged.shortToUlid.has(shortId)) {
+      merged.shortToUlid.set(shortId, ulid);
+      merged.ulidToShort.set(ulid, shortId);
+    }
+    // If shortId already exists with different ulid, keep local (conflict resolution)
+  }
+
+  // Also check for ULIDs that exist in remote but not in local
+  // (different short ID for same ULID - shouldn't happen but handle gracefully)
+  for (const [ulid, shortId] of remote.ulidToShort) {
+    if (!merged.ulidToShort.has(ulid) && !merged.shortToUlid.has(shortId)) {
+      merged.shortToUlid.set(shortId, ulid);
+      merged.ulidToShort.set(ulid, shortId);
+    }
+  }
+
+  return merged;
 }

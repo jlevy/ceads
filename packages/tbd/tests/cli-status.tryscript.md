@@ -14,6 +14,7 @@ before: |
   git init --initial-branch=main
   git config user.email "test@example.com"
   git config user.name "Test User"
+  git config commit.gpgsign false
   echo "# Test repo" > README.md
   git add README.md
   git commit -m "Initial commit"
@@ -42,7 +43,8 @@ Detected:
   ✗ tbd not initialized
 
 To get started:
-  tbd init                  # Start fresh
+  tbd setup --auto --prefix=<name>   # Full setup with prefix
+  tbd init --prefix=X       # Surgical init only
 ? 0
 ```
 
@@ -89,8 +91,8 @@ Detected:
   ✗ tbd not initialized
 
 To get started:
-  tbd import --from-beads   # Migrate from Beads (recommended)
-  tbd init                  # Start fresh
+  tbd setup --auto          # Migrate from Beads (recommended)
+  tbd init --prefix=X       # Surgical init only
 ? 0
 ```
 
@@ -203,22 +205,23 @@ The status command provides orientation and points to stats for issue counts.
 
 ```console
 $ tbd stats
-Summary:
-  Ready:       2
-  In progress: 0
-  Blocked:     0
-  Open:        2
-  Total:       2
-
 By status:
-  open           2
+  ○ open               2
+  ◐ in_progress        0
+  ● blocked            0
+  ○ deferred           0
+  ──────────────────────
+    active             2
+  ✓ closed             0
+  ══════════════════════
+    total              2
 
-By kind:
-  bug            1
-  task           1
+By kind:            active  closed   total
+  bug                    1       0       1
+  task                   1       0       1
 
-By priority:
-  P2 (Medium  ) 2
+By priority:        active  closed   total
+  P2 (Medium)            2       0       2
 
 Use 'tbd status' for setup info, 'tbd doctor' for health checks.
 ? 0

@@ -186,8 +186,9 @@ class UninstallHandler extends BaseCommand {
     try {
       await rm('.tbd', { recursive: true, force: true });
       console.log(`  ${colors.success('✓')} Removed .tbd directory`);
-    } catch {
-      throw new CLIError('Failed to remove .tbd directory');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      throw new CLIError(`Failed to remove .tbd directory: ${message}`);
     }
 
     console.log('');

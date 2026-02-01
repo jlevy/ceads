@@ -14,6 +14,7 @@ before: |
   git init --initial-branch=main
   git config user.email "test@example.com"
   git config user.name "Test User"
+  git config commit.gpgsign false
   echo "# Test repo" > README.md
   git add README.md
   git commit -m "Initial commit"
@@ -35,66 +36,86 @@ Usage: tbd [options] [command]
 Git-native issue tracking for AI agents and humans
 
 Options:
-  --version                 Show version number
-  --dry-run                 Show what would be done without making changes
-  --verbose                 Enable verbose output
-  --quiet                   Suppress non-essential output
-  --json                    Output as JSON
-  --color <when>            Colorize output: auto, always, never (default:
-                            "auto")
-  --non-interactive         Disable all prompts, fail if input required
-  --yes                     Assume yes to confirmation prompts
-  --no-sync                 Skip automatic sync after write operations
-  --debug                   Show internal IDs alongside public IDs for debugging
-  --help                    Display help for command
+  --version                     Show version number
+  --dry-run                     Show what would be done without making changes
+  --verbose                     Enable verbose output
+  --quiet                       Suppress non-essential output
+  --json                        Output as JSON
+  --color <when>                Colorize output: auto, always, never (default:
+                                "auto")
+  --non-interactive             Disable all prompts, fail if input required
+  --yes                         Assume yes to confirmation prompts
+  --no-sync                     Skip automatic sync after write operations
+  --debug                       Show internal IDs alongside public IDs for
+                                debugging
+  --help                        Display help for command
 
 Documentation:
-  readme                    Display the README (same as GitHub landing page)
-  prime [options]           Context-efficient instructions for agents, for use
-                            in every session
-  closing                   Display the session closing protocol reminder
-  docs [options] [topic]    Display CLI documentation
-  design [options] [topic]  Display design documentation and Beads comparison
+  readme                        Display the README (same as GitHub landing page)
+  prime [options]               Show full orientation with workflow context
+                                (default when running `tbd`)
+  skill [options]               Output AI agent skill file content
+  shortcut [options] [query]    Find and output documentation shortcuts
+  guidelines [options] [query]  Find and output coding guidelines
+  template [options] [query]    Find and output document templates
+  closing                       Display the session closing protocol reminder
+  docs [options] [topic]        Display CLI documentation (use tbd sync --docs
+                                for doc cache sync)
+  design [options] [topic]      Display design documentation and Beads
+                                comparison
 
 Setup & Configuration:
-  init [options]            Initialize tbd in a git repository
-  config                    Manage configuration
-  setup                     Configure tbd integration with editors and tools
+  init [options]                Initialize tbd in a git repository
+  config                        Manage configuration
+  setup [options]               Configure tbd integration with editors and tools
 
 Working With Issues:
-  create [options] [title]  Create a new issue
-  show <id>                 Show issue details
-  update [options] <id>     Update an issue
-  close [options] <id>      Close an issue
-  reopen [options] <id>     Reopen a closed issue
-  search [options] <query>  Search issues by text
+  create [options] [title]      Create a new issue
+  show [options] <id>           Show issue details
+  update [options] <id>         Update an issue
+  close [options] <id>          Close an issue
+  reopen [options] <id>         Reopen a closed issue
+  search [options] <query>      Search issues by text
 
 Views and Filtering:
-  ready [options]           List issues ready to work on (open, unblocked,
-                            unclaimed)
-  list [options]            List issues
-  blocked [options]         List blocked issues
-  stale [options]           List issues not updated recently
+  ready [options]               List issues ready to work on (open, unblocked,
+                                unclaimed)
+  list [options]                List issues
+  blocked [options]             List blocked issues
+  stale [options]               List issues not updated recently
 
 Labels and Dependencies:
-  dep                       Manage issue dependencies
-  label                     Manage issue labels
+  dep                           Manage issue dependencies
+  label                         Manage issue labels
 
 Sync and Status:
-  sync [options]            Synchronize with remote
-  status                    Show repository status and orientation
-  stats                     Show repository statistics
+  sync [options]                Synchronize issues and docs (both by default)
+  save [options]                Save issues to a workspace or directory
+  status                        Show repository status and orientation
+  stats                         Show repository statistics
 
 Maintenance:
-  doctor [options]          Diagnose and repair repository
-  attic                     Manage conflict archive (attic)
-  import [options] [file]   Import issues from Beads or JSONL file.
-                            Tip: Run "bd sync" and stop the beads daemon before
-                            importing for best results.
-  uninstall [options]       Remove tbd from this repository
+  doctor [options]              Diagnose and repair repository
+  attic                         Manage conflict archive (attic)
+  workspace                     Manage workspaces for sync recovery and backups
+  import [options] [file]       Import issues from JSONL file or workspace.
+                                For Beads migration, use: tbd setup --from-beads
+                                For workspace import, use: tbd import
+                                --workspace=<name> or --outbox
+  uninstall [options]           Remove tbd from this repository
 
 Commands:
-  help [command]            display help for command
+  help [command]                display help for command
+
+Getting Started:
+  npm install -g get-tbd@latest && tbd setup --auto --prefix=<name>
+
+  This initializes tbd and configures your coding agents automatically.
+  For interactive setup: tbd setup --interactive
+  For manual control: tbd init --help
+
+Orientation:
+  For workflow guidance, run: tbd prime
 
 For more on tbd, see: https://github.com/jlevy/tbd
 ? 0
@@ -133,6 +154,16 @@ Global Options:
   --yes                 Assume yes to confirmation prompts
   --no-sync             Skip automatic sync after write operations
   --debug               Show internal IDs alongside public IDs for debugging
+
+Getting Started:
+  npm install -g get-tbd@latest && tbd setup --auto --prefix=<name>
+
+  This initializes tbd and configures your coding agents automatically.
+  For interactive setup: tbd setup --interactive
+  For manual control: tbd init --help
+
+Orientation:
+  For workflow guidance, run: tbd prime
 
 For more on tbd, see: https://github.com/jlevy/tbd
 ? 0
@@ -259,7 +290,7 @@ Create a git repo outside any tbd directory hierarchy to test uninitialized beha
 ```console
 $ mkdir -p /tmp/tbd-uninit-test && cd /tmp/tbd-uninit-test && rm -rf .git .tbd && git init --initial-branch=main && git config user.email "test@example.com" && git config user.name "Test" && tbd list 2>&1
 Initialized empty Git repository in [..]
-Error: Not a tbd repository (run 'tbd init' or 'tbd import --from-beads' first)
+Error: Not a tbd repository (run 'tbd setup --auto --prefix=<name>' first)
 ? 1
 ```
 
@@ -276,6 +307,7 @@ Detected:
   ✗ tbd not initialized
 
 To get started:
-  tbd init                  # Start fresh
+  tbd setup --auto --prefix=<name>   # Full setup with prefix
+  tbd init --prefix=X       # Surgical init only
 ? 0
 ```

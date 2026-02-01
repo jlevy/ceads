@@ -17,10 +17,25 @@
  * See: tbd-design.md §2.1 Markdown + YAML Front Matter Format
  */
 
+import matter from 'gray-matter';
+import { normalizeLineEndings } from '../utils/markdown-utils.js';
 import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
 
 import type { Issue } from '../lib/types.js';
 import { IssueSchema } from '../lib/schemas.js';
+
+/**
+ * gray-matter options using the 'yaml' package as engine.
+ * This preserves date strings instead of converting them to Date objects.
+ */
+export const matterOptions = {
+  engines: {
+    yaml: {
+      parse: (str: string): object => parseYaml(str) as object,
+      stringify: (obj: object): string => stringifyYaml(obj),
+    },
+  },
+};
 
 /**
  * Parsed issue file content.
@@ -33,34 +48,41 @@ export interface ParsedIssueFile {
 
 /**
  * Parse a Markdown file with YAML front matter.
+ * Uses gray-matter for consistent frontmatter parsing.
+ * Handles both LF and CRLF line endings.
  */
 export function parseMarkdownWithFrontmatter(content: string): ParsedIssueFile {
-  const lines = content.split('\n');
+  // Normalize CRLF to LF before parsing
+  const normalizedContent = normalizeLineEndings(content);
 
-  // Find front matter boundaries
-  if (lines[0] !== '---') {
+  // Check for valid frontmatter
+  if (!matter.test(normalizedContent)) {
     throw new Error('Invalid format: missing front matter opening delimiter');
   }
 
-  let endIndex = -1;
-  for (let i = 1; i < lines.length; i++) {
-    if (lines[i] === '---') {
-      endIndex = i;
-      break;
+  const parsed = matter(normalizedContent, matterOptions);
+
+  // gray-matter returns empty object if no closing delimiter found
+  // but the raw matter string will be empty if parsing failed
+  if (parsed.matter === '' && !normalizedContent.includes('---\n---')) {
+    // Check if there's actually a closing delimiter
+    const lines = normalizedContent.split('\n');
+    let hasClosing = false;
+    for (let i = 1; i < lines.length; i++) {
+      if (lines[i]?.trim() === '---') {
+        hasClosing = true;
+        break;
+      }
+    }
+    if (!hasClosing) {
+      throw new Error('Invalid format: missing front matter closing delimiter');
     }
   }
 
-  if (endIndex === -1) {
-    throw new Error('Invalid format: missing front matter closing delimiter');
-  }
-
-  // Parse front matter
-  const frontmatterYaml = lines.slice(1, endIndex).join('\n');
-  const frontmatter = parseYaml(frontmatterYaml) as Record<string, unknown>;
+  const frontmatter = parsed.data as Record<string, unknown>;
 
   // Parse body - split into description and notes
-  const bodyLines = lines.slice(endIndex + 1);
-  const body = bodyLines.join('\n').trim();
+  const body = parsed.content.trim();
 
   // Find notes section
   const notesMatch = /\n## Notes\n/i.exec(body);

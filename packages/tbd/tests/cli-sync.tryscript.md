@@ -15,6 +15,7 @@ before: |
   git init --initial-branch=main
   git config user.email "test@example.com"
   git config user.name "Test User"
+  git config commit.gpgsign false
   echo "# Test repo" > README.md
   git add README.md
   git commit -m "Initial commit"
@@ -66,9 +67,17 @@ $ git -C .tbd/data-sync-worktree status --porcelain | head -3
 
 # Test: Sync commits the uncommitted files
 
+Note: Without a remote configured, sync commits locally but shows a push failure.
+The important behavior is that files get committed (verified in the next test).
+Sync now also syncs docs first (local operation), then issues.
+
 ```console
 $ tbd sync
-✓ Synced: sent [..] new
+✓ Synced docs: [..]
+✗ Push failed: fatal: 'origin' does not appear to be a git repository
+  2 commit(s) not pushed to remote.
+  Run 'tbd sync' to retry or 'tbd sync --status' to check status.
+  To preserve changes locally: tbd save --outbox
 ? 0
 ```
 
@@ -131,7 +140,11 @@ $ git -C .tbd/data-sync-worktree status --porcelain | grep -c "??" | tr -d ' '
 
 ```console
 $ tbd sync
-✓ Synced[..]
+✓ Docs up to date
+✗ Push failed: fatal: 'origin' does not appear to be a git repository
+  3 commit(s) not pushed to remote.
+  Run 'tbd sync' to retry or 'tbd sync --status' to check status.
+  To preserve changes locally: tbd save --outbox
 ? 0
 ```
 
@@ -150,6 +163,7 @@ $ git -C .tbd/data-sync-worktree status --porcelain
 
 ```console
 $ tbd sync --status
+✓ Docs up to date
 ✓ Repository is in sync
 ? 0
 ```
@@ -211,9 +225,15 @@ Error: Failed to pull: [..]
 
 # Test: Full sync handles missing remote gracefully
 
+Note: Without a remote configured, sync commits locally but shows a push failure.
+
 ```console
 $ tbd sync
-✓ [..]
+✓ Docs up to date
+✗ Push failed: fatal: 'origin' does not appear to be a git repository
+  4 commit(s) not pushed to remote.
+  Run 'tbd sync' to retry or 'tbd sync --status' to check status.
+  To preserve changes locally: tbd save --outbox
 ? 0
 ```
 
@@ -223,15 +243,25 @@ $ tbd sync
 
 # Test: Running sync twice in a row is safe
 
+Note: Without a remote, sync shows push failure message each time.
+
 ```console
 $ tbd sync
-✓ [..]
+✓ Docs up to date
+✗ Push failed: fatal: 'origin' does not appear to be a git repository
+  4 commit(s) not pushed to remote.
+  Run 'tbd sync' to retry or 'tbd sync --status' to check status.
+  To preserve changes locally: tbd save --outbox
 ? 0
 ```
 
 ```console
 $ tbd sync
-✓ [..]
+✓ Docs up to date
+✗ Push failed: fatal: 'origin' does not appear to be a git repository
+  4 commit(s) not pushed to remote.
+  Run 'tbd sync' to retry or 'tbd sync --status' to check status.
+  To preserve changes locally: tbd save --outbox
 ? 0
 ```
 
@@ -247,6 +277,8 @@ $ git -C .tbd/data-sync-worktree status --porcelain
 ## JSON Output
 
 # Test: Sync reports counts in JSON format
+
+Note: Without a remote, pushFailed is true and shows the error.
 
 ```console
 $ tbd sync --json
@@ -264,7 +296,65 @@ $ tbd sync --json
     },
     "conflicts": 0
   },
-  "conflicts": 0
+  "conflicts": 0,
+  "pushFailed": true,
+  "pushError": [..],
+  "unpushedCommits": 4
 }
+? 0
+```
+
+* * *
+
+## Bug Fix: Auto-create Worktree on Fresh Clones (tbd-6y2j)
+
+When the worktree is missing (fresh clone scenario), `tbd sync` should auto-create it
+without requiring `--fix`. Only `prunable` and `corrupted` states require `--fix`.
+
+The `missing` state means git has NO knowledge of the worktree.
+This is distinct from `prunable` (directory deleted but git still tracks it).
+
+# Test: Remove worktree AND prune git metadata to simulate fresh clone
+
+```console
+$ rm -rf .tbd/data-sync-worktree && git worktree prune
+? 0
+```
+
+# Test: Verify worktree is truly missing (not prunable)
+
+```console
+$ git worktree list | grep -c data-sync-worktree || true
+0
+? 0
+```
+
+# Test: tbd sync auto-creates worktree when missing
+
+Note: After repair, sync attempts push which fails without remote.
+Sync first syncs docs, then issues.
+Head -3 captures doc sync + worktree repair.
+
+```console
+$ tbd sync 2>&1 | head -3
+✓ Docs up to date
+✓ Worktree repaired successfully
+✗ Push failed: [..]
+? 0
+```
+
+# Test: Worktree exists after auto-creation
+
+```console
+$ test -d .tbd/data-sync-worktree && echo "worktree exists"
+worktree exists
+? 0
+```
+
+# Test: Issues are still accessible after worktree recreation
+
+```console
+$ tbd list --json | node -e "d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log('count:', d.length)"
+count: [..]
 ? 0
 ```

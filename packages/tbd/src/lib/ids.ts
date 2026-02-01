@@ -13,6 +13,56 @@
 import { ulid } from 'ulid';
 import { randomBytes } from 'node:crypto';
 
+// =============================================================================
+// Branded Types for Type-Safe ID Handling
+// =============================================================================
+
+/**
+ * Branded type for internal issue IDs (is-{ulid} format).
+ *
+ * Internal IDs are stored in files and used as the canonical identifier.
+ * Format: is-{26 lowercase alphanumeric chars}
+ * Example: is-01hx5zzkbkactav9wevgemmvrz
+ *
+ * Use this type when:
+ * - Reading/writing issue files
+ * - Storing parent_id, dependencies, child_order_hints
+ * - Passing IDs between internal functions
+ */
+declare const InternalIssueIdBrand: unique symbol;
+export type InternalIssueId = string & { [InternalIssueIdBrand]: never };
+
+/**
+ * Branded type for display issue IDs ({prefix}-{short} format).
+ *
+ * Display IDs are shown to users and accepted as CLI input.
+ * Format: {prefix}-{short} where short is typically 4 base36 chars
+ * Example: tbd-a7k2, bd-100
+ *
+ * Use this type when:
+ * - Formatting output for users
+ * - Accepting user input (before resolution)
+ * - Building tree views for display
+ */
+declare const DisplayIssueIdBrand: unique symbol;
+export type DisplayIssueId = string & { [DisplayIssueIdBrand]: never };
+
+/**
+ * Cast a string to InternalIssueId after validation.
+ * Use this when you've validated that a string is a valid internal ID.
+ */
+export function asInternalId(id: string): InternalIssueId {
+  return id as InternalIssueId;
+}
+
+/**
+ * Cast a string to DisplayIssueId.
+ * Use this when formatting an ID for display.
+ */
+export function asDisplayId(id: string): DisplayIssueId {
+  return id as DisplayIssueId;
+}
+
 /**
  * Prefix for internal IDs (ULID-based).
  * All internal IDs are formatted as: {INTERNAL_ID_PREFIX}-{ulid}
@@ -30,8 +80,8 @@ export const INTERNAL_ID_PREFIX_LENGTH = INTERNAL_ID_PREFIX.length + 1;
  * @param ulidValue - The ULID (26 chars)
  * @returns Internal ID in format {prefix}-{ulid}
  */
-export function makeInternalId(ulidValue: string): string {
-  return `${INTERNAL_ID_PREFIX}-${ulidValue.toLowerCase()}`;
+export function makeInternalId(ulidValue: string): InternalIssueId {
+  return `${INTERNAL_ID_PREFIX}-${ulidValue.toLowerCase()}` as InternalIssueId;
 }
 
 /**
@@ -44,7 +94,7 @@ export function makeInternalId(ulidValue: string): string {
  * - 80-bit randomness (no collisions)
  * - Lexicographic sort = chronological order
  */
-export function generateInternalId(): string {
+export function generateInternalId(): InternalIssueId {
   return makeInternalId(ulid());
 }
 
@@ -223,7 +273,11 @@ import type { IdMapping } from '../file/id-mapping.js';
  * @param prefix - Display prefix (should come from config.display.id_prefix; defaults to 'tbd' as fallback)
  * @throws Error if mapping is missing or ID not found in mapping
  */
-export function formatDisplayId(internalId: string, mapping: IdMapping, prefix = 'tbd'): string {
+export function formatDisplayId(
+  internalId: InternalIssueId | string,
+  mapping: IdMapping,
+  prefix = 'tbd',
+): DisplayIssueId {
   // Extract the ULID portion
   const ulidPart = extractUlidFromInternalId(internalId);
 
@@ -236,7 +290,7 @@ export function formatDisplayId(internalId: string, mapping: IdMapping, prefix =
     );
   }
 
-  return `${prefix}-${shortId}`;
+  return `${prefix}-${shortId}` as DisplayIssueId;
 }
 
 /**
@@ -246,7 +300,11 @@ export function formatDisplayId(internalId: string, mapping: IdMapping, prefix =
  * @param mapping - ID mapping for short ID lookup
  * @param prefix - Display prefix (should come from config.display.id_prefix; defaults to 'tbd' as fallback)
  */
-export function formatDebugId(internalId: string, mapping: IdMapping, prefix = 'tbd'): string {
+export function formatDebugId(
+  internalId: InternalIssueId | string,
+  mapping: IdMapping,
+  prefix = 'tbd',
+): string {
   const displayId = formatDisplayId(internalId, mapping, prefix);
   return `${displayId} (${internalId})`;
 }

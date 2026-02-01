@@ -43,20 +43,11 @@ class DesignHandler extends BaseCommand {
       try {
         const __filename = fileURLToPath(import.meta.url);
         const __dirname = dirname(__filename);
-        // During development without bundle: src/cli/commands -> src/docs
-        const devPath = join(__dirname, '..', '..', 'docs', 'tbd-design.md');
+        // During development: src/cli/commands -> packages/tbd/docs
+        const devPath = join(__dirname, '..', '..', '..', 'docs', 'tbd-design.md');
         content = await readFile(devPath, 'utf-8');
       } catch {
-        // Last fallback: repo-level docs
-        try {
-          const __filename = fileURLToPath(import.meta.url);
-          const __dirname = dirname(__filename);
-          // From packages/tbd/dist -> packages/tbd/../../docs
-          const repoPath = join(__dirname, '..', '..', '..', 'docs', 'tbd-design.md');
-          content = await readFile(repoPath, 'utf-8');
-        } catch {
-          throw new CLIError('Design documentation file not found. Please rebuild the CLI.');
-        }
+        throw new CLIError('Design documentation file not found. Please rebuild the CLI.');
       }
     }
 

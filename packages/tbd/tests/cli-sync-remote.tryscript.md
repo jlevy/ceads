@@ -19,6 +19,7 @@ before: |
   git init --initial-branch=main
   git config user.email "test@example.com"
   git config user.name "Test User"
+  git config commit.gpgsign false
   echo "# Test repo" > README.md
   git add README.md
   git commit -m "Initial commit"
@@ -53,6 +54,7 @@ $ git ls-remote origin tbd-sync | wc -l | tr -d ' '
 ```console
 $ tbd sync
 ✓ [..]
+✓ [..]
 ? 0
 ```
 
@@ -70,6 +72,7 @@ $ tbd create "Test issue A" --type=task
 
 ```console
 $ tbd sync
+✓ [..]
 ✓ [..]
 ? 0
 ```
@@ -97,6 +100,7 @@ $ tbd create "Test issue C" --type=feature
 
 ```console
 $ tbd sync
+✓ [..]
 ✓ [..]
 ? 0
 ```
@@ -134,6 +138,7 @@ $ tbd sync --pull
 
 ```console
 $ tbd sync --status
+✓ Docs up to date
 ✓ Repository is in sync
 ? 0
 ```

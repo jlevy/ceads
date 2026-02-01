@@ -7,13 +7,13 @@
 import { Command } from 'commander';
 
 import { BaseCommand } from '../lib/base-command.js';
+import { loadDataContext, type TbdDataContext } from '../lib/data-context.js';
 import { requireInit, NotInitializedError } from '../lib/errors.js';
+import { applyLimit } from '../lib/limit-utils.js';
 import { listIssues } from '../../file/storage.js';
 import type { Issue } from '../../lib/types.js';
-import { resolveDataSyncDir } from '../../lib/paths.js';
 import { formatDisplayId, formatDebugId } from '../../lib/ids.js';
-import { loadIdMapping } from '../../file/id-mapping.js';
-import { readConfig } from '../../file/config.js';
+import { comparisonChain } from '../../lib/comparison-chain.js';
 import {
   formatIssueLine,
   formatIssueLong,
@@ -31,20 +31,17 @@ class BlockedHandler extends BaseCommand {
   async run(options: BlockedOptions): Promise<void> {
     const tbdRoot = await requireInit();
 
-    // Load all issues
+    // Load data context and issues
     let issues: Issue[];
-    let dataSyncDir: string;
+    let dataCtx: TbdDataContext;
     try {
-      dataSyncDir = await resolveDataSyncDir(tbdRoot);
-      issues = await listIssues(dataSyncDir);
+      dataCtx = await loadDataContext(tbdRoot);
+      issues = await listIssues(dataCtx.dataSyncDir);
     } catch {
       throw new NotInitializedError('No issue store found. Run `tbd init` first.');
     }
 
-    // Load ID mapping and config for display
-    const mapping = await loadIdMapping(dataSyncDir);
-    const config = await readConfig(tbdRoot);
-    const prefix = config.display.id_prefix;
+    const { mapping, prefix } = dataCtx;
     const showDebug = this.ctx.debug;
 
     // Build lookup map for dependency resolution
@@ -101,15 +98,15 @@ class BlockedHandler extends BaseCommand {
     }
 
     // Sort by priority
-    blockedIssues.sort((a, b) => a.issue.priority - b.issue.priority);
+    blockedIssues.sort(
+      comparisonChain<{ issue: Issue }>()
+        .compare((b) => b.issue.priority)
+        .compare((b) => b.issue.id)
+        .result(),
+    );
 
     // Apply limit
-    if (options.limit) {
-      const limit = parseInt(options.limit, 10);
-      if (!isNaN(limit) && limit > 0) {
-        blockedIssues = blockedIssues.slice(0, limit);
-      }
-    }
+    blockedIssues = applyLimit(blockedIssues, options.limit);
 
     // Format output
     const colors = this.output.getColors();

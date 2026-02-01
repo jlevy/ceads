@@ -1,3 +1,7 @@
+---
+title: New Plan Spec
+description: Create a new feature planning specification document
+---
 Shortcut: New Plan Spec
 
 Instructions:

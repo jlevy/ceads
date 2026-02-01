@@ -31,7 +31,7 @@ jobs:
 
       - run: pnpm build
 
-      - run: pnpm --filter tbd-git test
+      - run: pnpm --filter get-tbd test
 
   coverage:
     name: Coverage & Lint
@@ -56,7 +56,7 @@ jobs:
 
       - run: pnpm publint
 
-      - run: pnpm --filter tbd-git test:coverage
+      - run: pnpm --filter get-tbd test:coverage
 
       - name: Coverage Report
         uses: davelosert/vitest-coverage-report-action@v2

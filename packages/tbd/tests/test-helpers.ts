@@ -6,6 +6,7 @@
  */
 
 import type { Issue } from '../src/lib/types.js';
+import type { InternalIssueId } from '../src/lib/ids.js';
 
 // Valid ULID strings for testing (exactly 26 lowercase alphanumeric characters)
 // Each uses format: 01 + identifier (8 chars) + padding zeros + number suffix = 26 total
@@ -103,13 +104,21 @@ export const TEST_ULIDS = {
   CONCURRENT_2: '01concurrent0000000000002a',
   CONCURRENT_3: '01concurrent0000000000003a',
   CONCURRENT_4: '01concurrent0000000000004a',
+
+  // Child ordering tests (26 chars)
+  CHILD_ORDER_PARENT: '01childorder0000000000001a',
+  CHILD_ORDER_A: '01childorder0000000000002a',
+  CHILD_ORDER_B: '01childorder0000000000003a',
+  CHILD_ORDER_C: '01childorder0000000000004a',
+  CHILD_ORDER_D: '01childorder0000000000005a',
+  CHILD_ORDER_E: '01childorder0000000000006a',
 };
 
 /**
  * Create a test issue ID from a ULID.
  */
-export function testId(ulid: string): string {
-  return `is-${ulid}`;
+export function testId(ulid: string): InternalIssueId {
+  return `is-${ulid}` as InternalIssueId;
 }
 
 /**
@@ -230,17 +239,6 @@ export function hasCorrectFrontmatterFormat(content: string): boolean {
 // ============================================================================
 // Status Mapping Helpers (tbd-1840)
 // ============================================================================
-
-/** All valid beads status values for testing */
-export const BEADS_STATUS_VALUES = [
-  'open',
-  'in_progress',
-  'done', // Maps to 'closed' in tbd
-  'closed',
-  'tombstone', // Should be skipped or mapped to 'closed'
-  'blocked',
-  'deferred',
-] as const;
 
 /** Expected tbd status for each beads status */
 export const BEADS_TO_TBD_STATUS: Record<string, string> = {

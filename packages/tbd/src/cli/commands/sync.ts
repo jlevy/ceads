@@ -7,7 +7,13 @@
 import { Command } from 'commander';
 
 import { BaseCommand } from '../lib/base-command.js';
-import { requireInit, NotInitializedError, SyncError } from '../lib/errors.js';
+import {
+  requireInit,
+  NotInitializedError,
+  SyncError,
+  WorktreeMissingError,
+  WorktreeCorruptedError,
+} from '../lib/errors.js';
 import { readConfig } from '../../file/config.js';
 import { listIssues, readIssue, writeIssue } from '../../file/storage.js';
 import {
@@ -15,6 +21,9 @@ import {
   withIsolatedIndex,
   mergeIssues,
   pushWithRetry,
+  checkWorktreeHealth,
+  repairWorktree,
+  ensureWorktreeAttached,
   type ConflictEntry,
   type PushResult,
 } from '../../file/git.js';
@@ -30,12 +39,23 @@ import {
   parseGitStatus,
   parseGitDiff,
 } from '../../lib/sync-summary.js';
+import { syncDocsWithDefaults, type SyncDocsResult } from '../../file/doc-sync.js';
+import { ValidationError } from '../lib/errors.js';
+import {
+  loadIdMapping,
+  saveIdMapping,
+  mergeIdMappings,
+  parseIdMappingFromYaml,
+} from '../../file/id-mapping.js';
 
 interface SyncOptions {
   push?: boolean;
   pull?: boolean;
   status?: boolean;
   force?: boolean;
+  fix?: boolean;
+  issues?: boolean;
+  docs?: boolean;
 }
 
 interface SyncStatus {
@@ -50,9 +70,80 @@ interface SyncStatus {
 
 class SyncHandler extends BaseCommand {
   private dataSyncDir = '';
+  private tbdRoot = '';
 
   async run(options: SyncOptions): Promise<void> {
     const tbdRoot = await requireInit();
+    this.tbdRoot = tbdRoot;
+
+    // Validate mutually exclusive options
+    // --push/--pull only apply to issues (network operations)
+    if ((options.push || options.pull) && options.docs) {
+      throw new ValidationError('--push/--pull only work with issue sync, not --docs');
+    }
+
+    // Determine what to sync:
+    // - If neither --issues nor --docs specified, sync both
+    // - If --push or --pull specified (without --issues/--docs), sync only issues
+    const hasExclusiveIssueFlag = Boolean(options.push) || Boolean(options.pull);
+    const hasSelectiveFlag = Boolean(options.issues) || Boolean(options.docs);
+
+    // Sync docs: explicit --docs, or default (no selective flags and no push/pull)
+    const syncDocs = Boolean(options.docs) || (!hasSelectiveFlag && !hasExclusiveIssueFlag);
+    // Sync issues: explicit --issues, push/pull flags, or default (no selective flags)
+    const syncIssues = Boolean(options.issues) || hasExclusiveIssueFlag || !hasSelectiveFlag;
+
+    // STEP 1: Sync docs first (fast, local operations)
+    // This ensures docs are updated even if issue sync fails
+    if (syncDocs) {
+      await this.syncDocs(options.status);
+
+      // If only doing docs, return after doc sync
+      if (!syncIssues) {
+        return;
+      }
+    }
+
+    // STEP 2: Sync issues (network operations)
+    // Check worktree health before any issue sync operations
+    // See: plan-2026-01-28-sync-worktree-recovery-and-hardening.md
+    let worktreeHealth = await checkWorktreeHealth(tbdRoot);
+    if (!worktreeHealth.valid) {
+      // Auto-create worktree if it's simply missing (normal for fresh clones)
+      // Only require --fix for corrupted/prunable states that need repair
+      if (worktreeHealth.status === 'missing') {
+        // Auto-create worktree - this is the expected state on fresh clones
+        await this.doRepairWorktree(tbdRoot, 'missing');
+        worktreeHealth = await checkWorktreeHealth(tbdRoot);
+        if (!worktreeHealth.valid) {
+          throw new WorktreeCorruptedError(
+            `Failed to create worktree. Status: ${worktreeHealth.status}. Run 'tbd doctor' for diagnostics.`,
+          );
+        }
+      } else if (options.fix) {
+        // Attempt repair when --fix is provided for corrupted/prunable states
+        await this.doRepairWorktree(tbdRoot, worktreeHealth.status as 'prunable' | 'corrupted');
+        // Re-check health after repair
+        worktreeHealth = await checkWorktreeHealth(tbdRoot);
+        if (!worktreeHealth.valid) {
+          throw new WorktreeCorruptedError(
+            `Worktree repair failed. Status: ${worktreeHealth.status}. Run 'tbd doctor' for diagnostics.`,
+          );
+        }
+      } else {
+        // No --fix flag, throw appropriate error for corrupted/prunable states
+        if (worktreeHealth.status === 'prunable') {
+          throw new WorktreeMissingError(
+            "Worktree directory was deleted but git still tracks it. Run 'tbd sync --fix' or 'tbd doctor --fix' to repair.",
+          );
+        }
+        if (worktreeHealth.status === 'corrupted') {
+          throw new WorktreeCorruptedError(
+            `Worktree is corrupted: ${worktreeHealth.error ?? 'unknown error'}. Run 'tbd sync --fix' or 'tbd doctor --fix' to repair.`,
+          );
+        }
+      }
+    }
 
     this.dataSyncDir = await resolveDataSyncDir(tbdRoot);
 
@@ -68,7 +159,7 @@ class SyncHandler extends BaseCommand {
     const remote = config.sync.remote;
 
     if (options.status) {
-      await this.showStatus(syncBranch, remote);
+      await this.showIssueStatus(syncBranch, remote);
       return;
     }
 
@@ -86,7 +177,132 @@ class SyncHandler extends BaseCommand {
     }
   }
 
-  private async showStatus(syncBranch: string, remote: string): Promise<void> {
+  /**
+   * Sync docs from bundled sources and config.
+   * This is a fast, local operation (no network required).
+   */
+  private async syncDocs(statusOnly?: boolean): Promise<SyncDocsResult> {
+    if (statusOnly) {
+      // Show status without making changes
+      const result = await syncDocsWithDefaults(this.tbdRoot, { dryRun: true });
+      this.showDocStatus(result);
+      return result;
+    }
+
+    const spinner = this.output.spinner('Syncing docs...');
+    const result = await syncDocsWithDefaults(this.tbdRoot);
+    spinner.stop();
+
+    // Report results
+    this.showDocSyncResult(result);
+    return result;
+  }
+
+  /**
+   * Show doc sync status (what would change).
+   */
+  private showDocStatus(result: SyncDocsResult): void {
+    const colors = this.output.getColors();
+    const hasChanges =
+      result.added.length > 0 ||
+      result.updated.length > 0 ||
+      result.removed.length > 0 ||
+      result.pruned.length > 0;
+
+    if (!hasChanges) {
+      this.output.success('Docs up to date');
+      return;
+    }
+
+    console.log(colors.bold('Docs:'));
+    if (result.added.length > 0) {
+      console.log(`  ${colors.success(`+${result.added.length}`)} new doc(s) available`);
+    }
+    if (result.updated.length > 0) {
+      console.log(`  ${colors.warn(`~${result.updated.length}`)} doc(s) to update`);
+    }
+    if (result.removed.length > 0) {
+      console.log(`  ${colors.error(`-${result.removed.length}`)} doc(s) to remove`);
+    }
+    if (result.pruned.length > 0) {
+      console.log(`  ${colors.dim(`${result.pruned.length}`)} stale config entry/entries`);
+    }
+  }
+
+  /**
+   * Show doc sync result after sync.
+   */
+  private showDocSyncResult(result: SyncDocsResult): void {
+    const hasChanges =
+      result.added.length > 0 ||
+      result.updated.length > 0 ||
+      result.removed.length > 0 ||
+      result.pruned.length > 0;
+
+    if (!hasChanges) {
+      this.output.success('Docs up to date');
+      return;
+    }
+
+    // Build summary string
+    const parts: string[] = [];
+    if (result.added.length > 0) {
+      parts.push(`+${result.added.length}`);
+    }
+    if (result.updated.length > 0) {
+      parts.push(`~${result.updated.length}`);
+    }
+    if (result.removed.length > 0) {
+      parts.push(`-${result.removed.length}`);
+    }
+
+    if (parts.length > 0) {
+      this.output.success(`Synced docs: ${parts.join(' ')} doc(s)`);
+    }
+
+    // Report pruned entries
+    if (result.pruned.length > 0) {
+      this.output.info(`Removed ${result.pruned.length} stale config entry/entries`);
+    }
+
+    // Report errors
+    for (const err of result.errors) {
+      this.output.warn(`Doc sync error: ${err.path}: ${err.error}`);
+    }
+  }
+
+  /**
+   * Attempt to repair an unhealthy worktree.
+   * See: plan-2026-01-28-sync-worktree-recovery-and-hardening.md
+   */
+  private async doRepairWorktree(
+    tbdRoot: string,
+    status: 'missing' | 'prunable' | 'corrupted',
+  ): Promise<void> {
+    const spinner = this.output.spinner(`Repairing worktree (${status})...`);
+
+    try {
+      // Use shared repairWorktree from git.ts
+      const result = await repairWorktree(tbdRoot, status);
+
+      spinner.stop();
+
+      if (!result.success) {
+        throw new WorktreeCorruptedError(`Failed to repair worktree: ${result.error}`);
+      }
+
+      if (result.backedUp) {
+        this.output.info(`Corrupted worktree backed up to: ${result.backedUp}`);
+      }
+      this.output.success('Worktree repaired successfully');
+    } catch (error) {
+      spinner.stop();
+      if (error instanceof WorktreeCorruptedError) throw error;
+      throw new WorktreeCorruptedError(`Failed to repair worktree: ${(error as Error).message}`);
+    }
+  }
+
+  private async showIssueStatus(syncBranch: string, remote: string): Promise<void> {
     const status = await this.getSyncStatus(syncBranch, remote);
 
     this.output.data(status, () => {
@@ -131,33 +347,29 @@ class SyncHandler extends BaseCommand {
     let ahead = 0;
     let behind = 0;
 
-    // Check for local issues
+    // Check for uncommitted changes in the worktree
+    // FIX Bug 2: Previously ran git status on main branch where data-sync/ is gitignored.
+    // Now check worktree status directly.
+    // See: plan-2026-01-28-sync-worktree-recovery-and-hardening.md
     try {
-      const issues = await listIssues(this.dataSyncDir);
-      // Check for uncommitted changes in the worktree
-      if (issues.length > 0) {
-        try {
-          const status = await git('status', '--porcelain', DATA_SYNC_DIR);
-          if (status) {
-            for (const line of status.split('\n')) {
-              if (!line) continue;
-              const statusCode = line.slice(0, 2).trim();
-              const file = line.slice(3);
-              if (statusCode === 'M') {
-                localChanges.push(`modified: ${file}`);
-              } else if (statusCode === 'A' || statusCode === '??') {
-                localChanges.push(`new: ${file}`);
-              } else if (statusCode === 'D') {
-                localChanges.push(`deleted: ${file}`);
-              }
-            }
+      const worktreePath = join(this.tbdRoot, WORKTREE_DIR);
+      const status = await git('-C', worktreePath, 'status', '--porcelain');
+      if (status) {
+        for (const line of status.split('\n')) {
+          if (!line) continue;
+          const statusCode = line.slice(0, 2).trim();
+          const file = line.slice(3);
+          if (statusCode === 'M') {
+            localChanges.push(`modified: ${file}`);
+          } else if (statusCode === 'A' || statusCode === '??') {
+            localChanges.push(`new: ${file}`);
+          } else if (statusCode === 'D') {
+            localChanges.push(`deleted: ${file}`);
           }
-        } catch {
-          this.output.debug('Git not available or not a git repo');
         }
       }
     } catch {
-      this.output.debug('No issues directory');
+      this.output.debug('Git worktree not available');
     }
 
     // Check for remote changes
@@ -270,9 +482,15 @@ class SyncHandler extends BaseCommand {
    * @returns Tallies of new/updated/deleted files committed
    */
   private async commitWorktreeChanges(): Promise<SyncTallies> {
-    const worktreePath = join(process.cwd(), WORKTREE_DIR);
+    // Use tbdRoot to derive worktree path consistently
+    // FIX Bug 1: Previously used process.cwd() which fails if not in repo root
+    // See: plan-2026-01-28-sync-worktree-recovery-and-hardening.md
+    const worktreePath = join(this.tbdRoot, WORKTREE_DIR);
 
     try {
+      // Ensure worktree is attached to sync branch (repair old tbd repos)
+      await ensureWorktreeAttached(worktreePath);
+
       // Check for uncommitted changes (untracked, modified, or deleted)
       const status = await git('-C', worktreePath, 'status', '--porcelain');
       if (!status || status.trim() === '') {
@@ -424,7 +642,8 @@ class SyncHandler extends BaseCommand {
     const spinner = this.output.spinner('Syncing with remote...');
     const summary: SyncSummary = emptySummary();
     const conflicts: ConflictEntry[] = [];
-    const worktreePath = join(process.cwd(), WORKTREE_DIR);
+    // Use tbdRoot for consistent path resolution
+    const worktreePath = join(this.tbdRoot, WORKTREE_DIR);
 
     try {
       // STEP 1: Commit local changes FIRST (before pulling)
@@ -526,10 +745,60 @@ class SyncHandler extends BaseCommand {
             }
           }
 
-          // Stage resolved files and complete merge
-          await git('-C', worktreePath, 'add', '-A');
+          // Merge ids.yml (ID mappings are always additive, so we union both sides)
           try {
-            await git('-C', worktreePath, 'commit', '-m', 'tbd sync: resolved merge conflicts');
+            const remoteIdsContent = await git(
+              'show',
+              `${remote}/${syncBranch}:${DATA_SYNC_DIR}/mappings/ids.yml`,
+            );
+            if (remoteIdsContent) {
+              const localMapping = await loadIdMapping(this.dataSyncDir);
+              const remoteMapping = parseIdMappingFromYaml(remoteIdsContent);
+              const mergedMapping = mergeIdMappings(localMapping, remoteMapping);
+              await saveIdMapping(this.dataSyncDir, mergedMapping);
+              this.output.debug(
+                `Merged ID mappings: ${localMapping.shortToUlid.size} local + ${remoteMapping.shortToUlid.size} remote = ${mergedMapping.shortToUlid.size} total`,
+              );
+            }
+          } catch (error) {
+            // Remote ids.yml doesn't exist or can't be parsed - keep local
+            this.output.debug(`Could not merge ids.yml: ${(error as Error).message}`);
+          }
+
+          // Stage resolved files and complete merge
+          // Use --no-verify to bypass parent repo hooks (lefthook, husky, etc.)
+          await git('-C', worktreePath, 'add', '-A');
+
+          // SAFETY CHECK: Never commit files with unresolved merge conflict markers
+          // This prevents the bug where ids.yml or other files get committed with
+          // <<<<<<< HEAD markers still present
+          const conflictCheck = await git(
+            '-C',
+            worktreePath,
+            'diff',
+            '--cached',
+            '-S<<<<<<< ',
+            '--name-only',
+          );
+          if (conflictCheck.trim()) {
+            const conflictedFiles = conflictCheck.trim().split('\n');
+            throw new SyncError(
+              `Cannot commit: ${conflictedFiles.length} file(s) still have merge conflict markers:\n` +
+                conflictedFiles.map((f) => `  - ${f}`).join('\n') +
+                `\n\nThis is a bug in tbd sync. Please report it and manually resolve conflicts in:\n` +
+                `  ${worktreePath}`,
+            );
+          }
+
+          try {
+            await git(
+              '-C',
+              worktreePath,
+              'commit',
+              '--no-verify',
+              '-m',
+              'tbd sync: resolved merge conflicts',
+            );
           } catch {
             // May fail if no conflicts needed resolving
             this.output.debug('No merge commit needed (conflicts already resolved)');
@@ -564,6 +833,8 @@ class SyncHandler extends BaseCommand {
     }
 
     // Push if we have commits ahead of remote
+    let pushFailed = false;
+    let pushError = '';
     if (aheadCommits > 0) {
       this.output.debug(`Pushing ${aheadCommits} commit(s) to remote`);
       const result = await this.doPushWithRetry(syncBranch, remote);
@@ -571,7 +842,9 @@ class SyncHandler extends BaseCommand {
         conflicts.push(...result.conflicts);
       }
       if (!result.success) {
-        this.output.debug(`Push failed: ${result.error}`);
+        pushFailed = true;
+        pushError = result.error ?? 'Unknown push error';
+        this.output.debug(`Push failed: ${pushError}`);
       } else {
         // Show pushed commits in debug mode
         await this.showGitLogDebug(`-${aheadCommits}`, 'Commits sent');
@@ -582,6 +855,37 @@ class SyncHandler extends BaseCommand {
 
     summary.conflicts = conflicts.length;
     spinner.stop();
+
+    // Report push failure - don't silently swallow it
+    if (pushFailed) {
+      this.output.data(
+        {
+          summary,
+          conflicts: conflicts.length,
+          pushFailed,
+          pushError,
+          unpushedCommits: aheadCommits,
+        },
+        () => {
+          // Extract meaningful error from git output (look for HTTP errors, permission issues, etc.)
+          let displayError = pushError;
+          const httpMatch = /HTTP (\d+)/.exec(pushError);
+          const curlMatch = /curl \d+ (.+?)(?:\n|$)/.exec(pushError);
+          if (httpMatch) {
+            displayError = `HTTP ${httpMatch[1]}${curlMatch ? ` - ${curlMatch[1]}` : ''}`;
+          } else {
+            // Fall back to first meaningful line (skip "Command failed: git push...")
+            const lines = pushError.split('\n').filter((l) => l && !l.startsWith('Command failed'));
+            displayError = lines[0] ?? pushError;
+          }
+          this.output.error(`Push failed: ${displayError}`);
+          console.log(`  ${aheadCommits} commit(s) not pushed to remote.`);
+          console.log(`  Run 'tbd sync' to retry or 'tbd sync --status' to check status.`);
+          console.log(`  To preserve changes locally: tbd save --outbox`);
+        },
+      );
+      return;
+    }
 
     this.output.data({ summary, conflicts: conflicts.length }, () => {
       const summaryText = formatSyncSummary(summary);
@@ -595,11 +899,14 @@ class SyncHandler extends BaseCommand {
 }
 
 export const syncCommand = new Command('sync')
-  .description('Synchronize with remote')
-  .option('--push', 'Push local changes only')
-  .option('--pull', 'Pull remote changes only')
+  .description('Synchronize issues and docs (both by default)')
+  .option('--issues', 'Sync only issues (not docs)')
+  .option('--docs', 'Sync only docs (not issues)')
+  .option('--push', 'Push local issue changes only')
+  .option('--pull', 'Pull remote issue changes only')
   .option('--status', 'Show sync status')
   .option('--force', 'Force sync (overwrite conflicts)')
+  .option('--fix', 'Attempt to repair unhealthy worktree before syncing')
   .action(async (options, command) => {
     const handler = new SyncHandler(command);
     await handler.run(options);

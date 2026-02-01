@@ -15,6 +15,7 @@ before: |
   git init --initial-branch=main
   git config user.email "test@example.com"
   git config user.name "Test User"
+  git config commit.gpgsign false
   echo "# Test repo" > README.md
   git add README.md
   git commit -m "Initial commit"
@@ -129,41 +130,17 @@ $ tbd search "nonexistentxyz123" --json
 
 ## Stats Command
 
-# Test: Stats shows summary
+Note: Full text output golden test is in cli-orientation-golden.tryscript.md.
+These tests focus on JSON output and programmatic access.
 
-```console
-$ tbd stats
-Summary:
-  Ready:       5
-  In progress: 0
-  Blocked:     0
-  Open:        5
-  Total:       5
-
-By status:
-  open           5
-
-By kind:
-  bug            2
-  feature        1
-  task           1
-  chore          1
-
-By priority:
-  P2 (Medium  ) 5
-
-Use 'tbd status' for setup info, 'tbd doctor' for health checks.
-? 0
-```
-
-# Test: Stats as JSON
+# Test: Stats JSON output structure
 
 ```console
 $ tbd stats --json
 {
   "total": 5,
-  "ready": 5,
-  "blocked": 0,
+  "active": 5,
+  "closed": 0,
   "byStatus": {
     "open": 5,
     "in_progress": 0,
@@ -171,17 +148,31 @@ $ tbd stats --json
     "deferred": 0,
     "closed": 0
   },
-  "byKind": {
+  "byKindActive": {
     "bug": 2,
     "feature": 1,
     "task": 1,
     "epic": 0,
     "chore": 1
   },
-  "byPriority": {
+  "byKindClosed": {
+    "bug": 0,
+    "feature": 0,
+    "task": 0,
+    "epic": 0,
+    "chore": 0
+  },
+  "byPriorityActive": {
     "0": 0,
     "1": 0,
     "2": 5,
+    "3": 0,
+    "4": 0
+  },
+  "byPriorityClosed": {
+    "0": 0,
+    "1": 0,
+    "2": 0,
     "3": 0,
     "4": 0
   }
@@ -197,11 +188,11 @@ total: 5
 ? 0
 ```
 
-# Test: Stats by kind
+# Test: Stats by kind (active)
 
 ```console
-$ tbd stats --json | node -e "d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log('bugs:', d.byKind.bug)"
-bugs: 2
+$ tbd stats --json | node -e "d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log('active bugs:', d.byKindActive.bug)"
+active bugs: 2
 ? 0
 ```
 
@@ -267,7 +258,8 @@ settings:
 ```console
 $ tbd config show --json
 {
-  "tbd_version": [..],
+  "tbd_format": "f03",
+  "tbd_version": "[..]",
   "sync": {
     "branch": "tbd-sync",
     "remote": "origin"
@@ -276,7 +268,9 @@ $ tbd config show --json
     "id_prefix": "test"
   },
   "settings": {
-    "auto_sync": false
+    "auto_sync": false,
+    "doc_auto_sync_hours": 24,
+    "use_gh_cli": true
   }
 }
 ? 0
@@ -367,10 +361,10 @@ $ tbd sync --status
 ? 0
 ```
 
-# Test: Sync status as JSON
+# Test: Sync status as JSON (issues only)
 
 ```console
-$ tbd sync --status --json
+$ tbd sync --status --issues --json
 {
 ...
 }
@@ -477,6 +471,16 @@ Commands:
   list                     List all labels in use
   help [command]           display help for command
 
+Getting Started:
+  npm install -g get-tbd@latest && tbd setup --auto --prefix=<name>
+
+  This initializes tbd and configures your coding agents automatically.
+  For interactive setup: tbd setup --interactive
+  For manual control: tbd init --help
+
+Orientation:
+  For workflow guidance, run: tbd prime
+
 For more on tbd, see: https://github.com/jlevy/tbd
 ? 0
 ```
@@ -513,6 +517,16 @@ Commands:
   list <id>                    List dependencies for an issue
   help [command]               display help for command
 
+Getting Started:
+  npm install -g get-tbd@latest && tbd setup --auto --prefix=<name>
+
+  This initializes tbd and configures your coding agents automatically.
+  For interactive setup: tbd setup --interactive
+  For manual control: tbd init --help
+
+Orientation:
+  For workflow guidance, run: tbd prime
+
 For more on tbd, see: https://github.com/jlevy/tbd
 ? 0
 ```
@@ -545,6 +559,16 @@ Commands:
   set <key> <value>  Set a configuration value
   get <key>          Get a configuration value
   help [command]     display help for command
+
+Getting Started:
+  npm install -g get-tbd@latest && tbd setup --auto --prefix=<name>
+
+  This initializes tbd and configures your coding agents automatically.
+  For interactive setup: tbd setup --interactive
+  For manual control: tbd init --help
+
+Orientation:
+  For workflow guidance, run: tbd prime
 
 For more on tbd, see: https://github.com/jlevy/tbd
 ? 0
@@ -579,6 +603,16 @@ Commands:
   show <id> <timestamp>     Show attic entry details
   restore <id> <timestamp>  Restore lost value from attic
   help [command]            display help for command
+
+Getting Started:
+  npm install -g get-tbd@latest && tbd setup --auto --prefix=<name>
+
+  This initializes tbd and configures your coding agents automatically.
+  For interactive setup: tbd setup --interactive
+  For manual control: tbd init --help
+
+Orientation:
+  For workflow guidance, run: tbd prime
 
 For more on tbd, see: https://github.com/jlevy/tbd
 ? 0

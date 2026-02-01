@@ -7,22 +7,29 @@
 import { Command } from 'commander';
 import { mkdir, stat } from 'node:fs/promises';
 import { join } from 'node:path';
-import { spawnSync } from 'node:child_process';
-
-import { writeFile } from 'atomically';
 
 import { BaseCommand } from '../lib/base-command.js';
+import { ensureGitignorePatterns } from '../../utils/gitignore-utils.js';
 import { CLIError, ValidationError } from '../lib/errors.js';
 import { VERSION } from '../lib/version.js';
 import { initConfig } from '../../file/config.js';
 import {
   TBD_DIR,
-  CACHE_DIR,
   WORKTREE_DIR_NAME,
   DATA_SYNC_DIR_NAME,
   SYNC_BRANCH,
+  TBD_SHORTCUTS_SYSTEM,
+  TBD_SHORTCUTS_STANDARD,
+  TBD_GUIDELINES_DIR,
+  TBD_TEMPLATES_DIR,
+  TBD_DOCS_DIR,
 } from '../../lib/paths.js';
-import { initWorktree, checkGitVersion, MIN_GIT_VERSION } from '../../file/git.js';
+import {
+  initWorktree,
+  checkGitVersion,
+  checkWorktreeHealth,
+  MIN_GIT_VERSION,
+} from '../../file/git.js';
 
 interface InitOptions {
   prefix?: string;
@@ -49,9 +56,8 @@ class InitHandler extends BaseCommand {
         'The --prefix option is required\n\n' +
           'Usage: tbd init --prefix=<name>\n\n' +
           'The prefix is used for display IDs (e.g., proj-a7k2, myapp-b3m9)\n' +
-          'Choose a short, memorable prefix for your project.\n\n' +
-          "If importing from beads, use 'tbd import --from-beads' instead\n" +
-          '(the beads prefix will be automatically detected).',
+          'Choose a short 2-4 letter prefix for your project (e.g., tbd, myp).\n\n' +
+          'For full setup with integrations: tbd setup --auto --prefix=<name>',
       );
     }
 
@@ -65,11 +71,11 @@ class InitHandler extends BaseCommand {
       await initConfig(cwd, VERSION, options.prefix!);
       this.output.debug(`Created ${TBD_DIR}/config.yml with prefix '${options.prefix}'`);
 
-      // 2. Create .tbd/.gitignore
-      // Per spec §2.3: Must ignore cache/, data-sync-worktree/, and data-sync/
-      const gitignoreContent = [
-        '# Local cache (not shared)',
-        'cache/',
+      // 2. Create .tbd/.gitignore (idempotent)
+      // Per spec: Must ignore docs/, data-sync-worktree/, and data-sync/
+      await ensureGitignorePatterns(join(cwd, TBD_DIR, '.gitignore'), [
+        '# Installed documentation (regenerated on setup)',
+        'docs/',
         '',
         '# Hidden worktree for tbd-sync branch',
         `${WORKTREE_DIR_NAME}/`,
@@ -77,16 +83,24 @@ class InitHandler extends BaseCommand {
         '# Data sync directory (only exists in worktree)',
         `${DATA_SYNC_DIR_NAME}/`,
         '',
+        '# Local state',
+        'state.yml',
+        '',
+        '# Migration backups (local only, not synced)',
+        'backups/',
+        '',
         '# Temporary files',
         '*.tmp',
-        '',
-      ].join('\n');
-      await writeFile(join(cwd, TBD_DIR, '.gitignore'), gitignoreContent);
+        '*.temp',
+      ]);
       this.output.debug(`Created ${TBD_DIR}/.gitignore`);
 
-      // 3. Create .tbd/cache/ directory
-      await mkdir(join(cwd, CACHE_DIR), { recursive: true });
-      this.output.debug(`Created ${CACHE_DIR}/`);
+      // 3. Create docs directories for shortcuts, guidelines, and templates
+      await mkdir(join(cwd, TBD_SHORTCUTS_SYSTEM), { recursive: true });
+      await mkdir(join(cwd, TBD_SHORTCUTS_STANDARD), { recursive: true });
+      await mkdir(join(cwd, TBD_GUIDELINES_DIR), { recursive: true });
+      await mkdir(join(cwd, TBD_TEMPLATES_DIR), { recursive: true });
+      this.output.debug(`Created ${TBD_DOCS_DIR}/ directories`);
 
       // 4. Initialize the hidden worktree for tbd-sync branch
       // This creates .tbd/data-sync-worktree/ with the sync branch checkout
@@ -120,6 +134,15 @@ class InitHandler extends BaseCommand {
         } else {
           this.output.debug(`Worktree already exists at ${TBD_DIR}/${WORKTREE_DIR_NAME}/`);
         }
+
+        // Verify worktree health after creation (prevents silent failures)
+        const health = await checkWorktreeHealth(cwd);
+        if (!health.valid) {
+          this.output.warn(
+            `Worktree created but failed verification (status: ${health.status}). ` +
+              `Run 'tbd doctor' to diagnose.`,
+          );
+        }
       } else {
         // Worktree creation failed - this is ok if not in a git repo
         // Log warning but don't fail init (supports non-git usage)
@@ -127,19 +150,16 @@ class InitHandler extends BaseCommand {
       }
     }, 'Failed to initialize tbd');
 
-    this.output.data({ initialized: true, version: VERSION }, () => {
-      this.output.success('Initialized tbd repository');
+    this.output.data({ initialized: true, version: VERSION, prefix: options.prefix }, () => {
+      this.output.success(`Initialized tbd repository (prefix: ${options.prefix})`);
+      // Only show next steps if not in quiet mode
+      if (!this.output.isQuiet()) {
+        console.log('');
+        console.log('Next steps:');
+        console.log('  git add .tbd/ && git commit -m "Initialize tbd"');
+        console.log('  tbd setup --auto   # Optional: configure agent integrations');
+      }
     });
-
-    // Auto-configure detected coding agents (skip in quiet mode)
-    if (!this.ctx.quiet) {
-      console.log('');
-      spawnSync('tbd', ['setup', 'auto'], { stdio: 'inherit' });
-
-      // Show status with next steps
-      console.log('');
-      spawnSync('tbd', ['status'], { stdio: 'inherit' });
-    }
   }
 }
 

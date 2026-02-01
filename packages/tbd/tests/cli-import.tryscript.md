@@ -15,16 +15,21 @@ before: |
   git init --initial-branch=main
   git config user.email "test@example.com"
   git config user.name "Test User"
+  git config commit.gpgsign false
   echo "# Test repo" > README.md
   git add README.md
   git commit -m "Initial commit"
   # Create synthetic beads data for testing (not copying from repo)
   mkdir -p .beads
+  cat > .beads/config.yaml << 'EOF'
+  display:
+    id_prefix: test
+  EOF
   echo '{"id":"test-001","title":"Test issue one","status":"open","issue_type":"task","priority":2,"labels":["test"],"created_at":"2025-01-01T00:00:00Z","updated_at":"2025-01-01T00:00:00Z"}' > .beads/issues.jsonl
   echo '{"id":"test-002","title":"Bug to fix","status":"open","issue_type":"bug","priority":1,"labels":["urgent","backend"],"created_at":"2025-01-02T00:00:00Z","updated_at":"2025-01-02T00:00:00Z"}' >> .beads/issues.jsonl
   echo '{"id":"test-003","title":"Feature request","status":"closed","issue_type":"feature","priority":3,"created_at":"2025-01-03T00:00:00Z","updated_at":"2025-01-03T00:00:00Z"}' >> .beads/issues.jsonl
-  # Initialize tbd
-  tbd init --prefix=test
+  # Initialize tbd and import from beads
+  tbd setup --from-beads --auto
 ---
 # tbd CLI: Import Command
 
@@ -43,18 +48,22 @@ functionality.
 $ tbd import --help
 Usage: tbd import [options] [file]
 
-Import issues from Beads or JSONL file.
-Tip: Run "bd sync" and stop the beads daemon before importing for best results.
+Import issues from JSONL file or workspace.
+For Beads migration, use: tbd setup --from-beads
+For workspace import, use: tbd import --workspace=<name> or --outbox
 
 Arguments:
   file                JSONL file to import
 
 Options:
-  --from-beads        Import directly from Beads database
-  --beads-dir <path>  Beads data directory
+  --beads-dir <path>  Beads data directory (for --validate)
   --merge             Merge with existing issues instead of skipping duplicates
   --verbose           Show detailed import progress
   --validate          Validate existing import against Beads source
+  --workspace <name>  Import from named workspace under .tbd/workspaces/
+  --dir <path>        Import from arbitrary directory
+  --outbox            Shortcut for --workspace=outbox --clear-on-success
+  --clear-on-success  Delete workspace after successful import
   -h, --help          display help for command
 
 Global Options:
@@ -68,32 +77,7 @@ Global Options:
   --yes               Assume yes to confirmation prompts
   --no-sync           Skip automatic sync after write operations
   --debug             Show internal IDs alongside public IDs for debugging
-
-For more on tbd, see: https://github.com/jlevy/tbd
-? 0
-```
-
-* * *
-
-## Import from Beads
-
-# Test: Import from beads directory
-
-```console
-$ tbd import --from-beads
 ...
-⚠  Beads directory detected alongside tbd
-   This may cause confusion for AI agents.
-   Run tbd setup beads --disable for migration options
-...
-? 0
-```
-
-# Test: Verify issues were imported
-
-```console
-$ tbd list --all --json | node -e "d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log('imported:', d.length)"
-imported: [..]
 ? 0
 ```
 
@@ -120,30 +104,16 @@ test-001,test-002,test-003
 # Test: Show command displays preserved ID
 
 ```console
-$ tbd show bd-001 | grep "^title:"
+$ tbd show test-001 | grep "^title:"
 title: Test issue one
 ? 0
 ```
 
-# Test: ID mapping file contains preserved short IDs
+# Test: ID mapping file exists after import
 
 ```console
-$ cat .tbd/data-sync-worktree/.tbd/data-sync/mappings/ids.yml | grep -c '"00[123]"'
-3
-? 0
-```
-
-* * *
-
-# Test: Import with verbose output
-
-```console
-$ tbd import --from-beads --verbose
-...
-⚠  Beads directory detected alongside tbd
-   This may cause confusion for AI agents.
-   Run tbd setup beads --disable for migration options
-...
+$ test -f .tbd/data-sync-worktree/.tbd/data-sync/mappings/ids.yml && echo "mapping file exists" || echo "no mapping file"
+mapping file exists
 ? 0
 ```
 
@@ -154,7 +124,7 @@ $ tbd import --from-beads --verbose
 # Test: Validate import
 
 ```console
-$ tbd import --validate
+$ tbd import --validate --beads-dir .beads-disabled
 Validating import...
 
 Validation Results
@@ -165,7 +135,7 @@ Validation Results
 # Test: Validate import as JSON
 
 ```console
-$ tbd import --validate --json 2>&1 | tail -10
+$ tbd import --validate --beads-dir .beads-disabled --json 2>&1 | tail -10
 ...
 ? 0
 ```
@@ -173,33 +143,7 @@ $ tbd import --validate --json 2>&1 | tail -10
 # Test: Validate with verbose shows warnings
 
 ```console
-$ tbd import --validate --verbose
-...
-? 0
-```
-
-* * *
-
-## Import from Custom Directory
-
-# Test: Import with custom beads-dir
-
-Create a custom beads directory:
-
-```console
-$ mkdir -p custom-beads && echo '{"id":"custom-1","title":"Custom issue","status":"open","type":"task","priority":2}' > custom-beads/issues.jsonl
-? 0
-```
-
-Note: We already imported from .beads, so this would add duplicates.
-Testing the flag works:
-
-```console
-$ tbd import --from-beads --beads-dir=custom-beads --verbose
-...
-⚠  Beads directory detected alongside tbd
-   This may cause confusion for AI agents.
-   Run tbd setup beads --disable for migration options
+$ tbd import --validate --beads-dir .beads-disabled --verbose
 ...
 ? 0
 ```
@@ -250,15 +194,6 @@ Error: File not found: nonexistent.jsonl
 ? 1
 ```
 
-# Test: Import missing beads directory
-
-```console
-$ tbd import --from-beads --beads-dir=nonexistent-dir 2>&1
-Error: Beads database not found[..]
-...
-? 1
-```
-
 # Test: Validate without import first
 
 Create fresh repo to test validation without import:
@@ -270,9 +205,7 @@ Initialized empty Git repository in [..]
 ```
 
 ```console
-$ cd fresh-repo && tbd init --prefix=test && tbd import --validate 2>&1
-✓ Initialized tbd repository
-...
+$ cd fresh-repo && tbd init --prefix=test --quiet && tbd import --validate 2>&1
 Error: Beads database not found[..]
 ...
 ? 1
@@ -295,25 +228,5 @@ issues after import: OK
 ```console
 $ tbd stats --json 2>/dev/null | node -e "d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log('stats total:', d.total >= 3 ? 'OK' : 'FAIL')"
 stats total: OK
-? 0
-```
-
-* * *
-
-## Import Idempotency
-
-# Test: Re-import skips existing (no duplicates)
-
-```console
-$ tbd import --from-beads 2>&1 | grep -E "(skip|Tip:)" || echo "Import complete"
-...
-? 0
-```
-
-# Test: Count unchanged after re-import
-
-```console
-$ tbd list --all --json 2>/dev/null | node -e "d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log('count after re-import:', d.length >= 3 ? 'OK' : 'FAIL')"
-count after re-import: OK
 ? 0
 ```

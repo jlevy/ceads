@@ -2,12 +2,24 @@
 /* global process */
 
 /**
- * Cross-platform script to copy docs for build.
- * Copies documentation files to src/docs (prebuild) and dist/docs (postbuild).
+ * Cross-platform script to copy and compose docs for build.
+ *
+ * Source files live in packages/tbd/docs/ (lowercase filenames):
+ * - docs/tbd-docs.md, docs/tbd-design.md, etc. - packaged documentation
+ * - docs/install/ - header files for composing skill files
+ * - docs/shortcuts/ - system and standard shortcuts
+ *
+ * During build:
+ * - prebuild: Copy README.md to package root for npm publishing
+ * - postbuild: Copy source docs to dist/docs/ and compose SKILL.md
+ *
+ * Note: SKILL.md is composed here for `tbd prime --full`. The full skill
+ * file with shortcuts is dynamically generated at `tbd setup` time.
+ *
  * Uses atomic writes to prevent partial/corrupted files if process crashes.
  */
 
-import { mkdirSync, readFileSync, statSync, chmodSync } from 'node:fs';
+import { mkdirSync, readFileSync, readdirSync, statSync, chmodSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { writeFile } from 'atomically';
@@ -16,17 +28,18 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, '..');
 const repoRoot = join(root, '..', '..');
 
+// Source documentation directory (packages/tbd/docs/)
+const DOCS_DIR = join(root, 'docs');
+const INSTALL_DIR = join(DOCS_DIR, 'install');
+const SHORTCUTS_DIR = join(DOCS_DIR, 'shortcuts');
+const SHORTCUTS_SYSTEM_DIR = join(SHORTCUTS_DIR, 'system');
+const GUIDELINES_DIR = join(DOCS_DIR, 'guidelines');
+const TEMPLATES_DIR = join(DOCS_DIR, 'templates');
+
 /**
- * Documentation files to copy during build.
- * Format: { src: path relative to repoRoot, dest: filename }
+ * Packaged documentation files (in packages/tbd/docs/).
  */
-const DOCS_FILES = [
-  { src: 'docs/tbd-docs.md', dest: 'tbd-docs.md' },
-  { src: 'docs/tbd-design.md', dest: 'tbd-design.md' },
-  { src: 'docs/tbd-closing.md', dest: 'tbd-closing.md' },
-  { src: 'docs/SKILL.md', dest: 'SKILL.md' },
-  { src: 'README.md', dest: 'README.md' },
-];
+const PACKAGED_DOCS = ['tbd-docs.md', 'tbd-design.md', 'tbd-closing.md', 'tbd-prime.md'];
 
 /**
  * Atomically copy a file by reading content and writing via atomically library.
@@ -43,28 +56,72 @@ async function atomicCopy(src, dest, preserveMode = false) {
   }
 }
 
+/**
+ * Recursively copy a directory using atomic writes.
+ * @param {string} srcDir - Source directory path
+ * @param {string} destDir - Destination directory path
+ */
+async function copyDir(srcDir, destDir) {
+  mkdirSync(destDir, { recursive: true });
+  const entries = readdirSync(srcDir, { withFileTypes: true });
+  for (const entry of entries) {
+    const srcPath = join(srcDir, entry.name);
+    const destPath = join(destDir, entry.name);
+    if (entry.isDirectory()) {
+      await copyDir(srcPath, destPath);
+    } else {
+      await atomicCopy(srcPath, destPath);
+    }
+  }
+}
+
 const phase = process.argv[2] || 'prebuild';
 
 if (phase === 'prebuild') {
-  const srcDocs = join(root, 'src', 'docs');
-  mkdirSync(srcDocs, { recursive: true });
-
-  // Copy docs to src/docs for TypeScript compilation (atomic writes)
-  for (const file of DOCS_FILES) {
-    await atomicCopy(join(repoRoot, file.src), join(srcDocs, file.dest));
-  }
-
-  // Copy README to package root for npm publishing (atomic write)
+  // Copy README to package root for npm publishing
   await atomicCopy(join(repoRoot, 'README.md'), join(root, 'README.md'));
 } else if (phase === 'postbuild') {
-  const srcDocs = join(root, 'src', 'docs');
   const distDocs = join(root, 'dist', 'docs');
   mkdirSync(distDocs, { recursive: true });
 
-  // Copy docs from src/docs to dist/docs for bundled CLI (atomic writes)
-  for (const file of DOCS_FILES) {
-    await atomicCopy(join(srcDocs, file.dest), join(distDocs, file.dest));
+  // Copy packaged docs from docs/ to dist/docs/
+  for (const filename of PACKAGED_DOCS) {
+    const src = join(DOCS_DIR, filename);
+    if (existsSync(src)) {
+      await atomicCopy(src, join(distDocs, filename));
+    }
   }
+
+  // Compose SKILL.md from header + skill.md (needed by tbd prime --full)
+  // Note: The full skill file with shortcuts is dynamically generated at setup time.
+  // This is a minimal version without shortcuts for prime --full output.
+  const claudeHeader = readFileSync(join(INSTALL_DIR, 'claude-header.md'), 'utf-8');
+  const skillContent = readFileSync(join(SHORTCUTS_SYSTEM_DIR, 'skill.md'), 'utf-8');
+  await writeFile(join(distDocs, 'SKILL.md'), claudeHeader + skillContent);
+
+  // Copy skill-brief.md from shortcuts/system to dist/docs
+  // (needed by `tbd skill --brief` command)
+  await atomicCopy(join(SHORTCUTS_SYSTEM_DIR, 'skill-brief.md'), join(distDocs, 'skill-brief.md'));
+
+  // Copy README.md to dist/docs
+  await atomicCopy(join(root, 'README.md'), join(distDocs, 'README.md'));
+
+  // Copy shortcuts directories to dist/docs for bundled CLI
+  // These are used by `tbd setup` to copy built-in docs to user's project
+  await copyDir(SHORTCUTS_DIR, join(distDocs, 'shortcuts'));
+
+  // Copy guidelines directory to dist/docs (top-level, not under shortcuts)
+  if (existsSync(GUIDELINES_DIR)) {
+    await copyDir(GUIDELINES_DIR, join(distDocs, 'guidelines'));
+  }
+
+  // Copy templates directory to dist/docs (top-level, not under shortcuts)
+  if (existsSync(TEMPLATES_DIR)) {
+    await copyDir(TEMPLATES_DIR, join(distDocs, 'templates'));
+  }
+
+  // Copy install directory to dist/docs (headers for composing skill files)
+  await copyDir(INSTALL_DIR, join(distDocs, 'install'));
 
   // Copy bin.mjs to tbd for shebang-based execution (atomic write, preserve execute permission)
   await atomicCopy(join(root, 'dist', 'bin.mjs'), join(root, 'dist', 'tbd'), true);

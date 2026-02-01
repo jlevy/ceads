@@ -20,6 +20,10 @@ export interface SyncSummary {
   sent: SyncTallies;
   received: SyncTallies;
   conflicts: number;
+  /** True if push to remote failed */
+  pushFailed?: boolean;
+  /** Error message if push failed */
+  pushError?: string;
 }
 
 /**

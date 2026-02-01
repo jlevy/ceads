@@ -14,6 +14,7 @@ before: |
   git init --initial-branch=main
   git config user.email "test@example.com"
   git config user.name "Test User"
+  git config commit.gpgsign false
   echo "# Test repo" > README.md
   git add README.md
   git commit -m "Initial commit"
@@ -42,7 +43,8 @@ Detected:
   ✗ tbd not initialized
 
 To get started:
-  tbd init                  # Start fresh
+  tbd setup --auto --prefix=<name>   # Full setup with prefix
+  tbd init --prefix=X       # Surgical init only
 ? 0
 ```
 
@@ -56,7 +58,7 @@ List command should fail with helpful error message when tbd is not initialized.
 
 ```console
 $ tbd list 2>&1
-Error: Not a tbd repository (run 'tbd init' or 'tbd import --from-beads' first)
+Error: Not a tbd repository (run 'tbd setup --auto --prefix=<name>' first)
 ? 1
 ```
 
@@ -70,7 +72,7 @@ Show command fails with not initialized error when tbd is not set up.
 
 ```console
 $ tbd show bd-1234 2>&1
-Error: Not a tbd repository (run 'tbd init' or 'tbd import --from-beads' first)
+Error: Not a tbd repository (run 'tbd setup --auto --prefix=<name>' first)
 ? 1
 ```
 

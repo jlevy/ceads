@@ -15,18 +15,22 @@ before: |
   git init --initial-branch=main
   git config user.email "test@example.com"
   git config user.name "Test User"
+  git config commit.gpgsign false
   echo "# Test repo" > README.md
   git add README.md
   git commit -m "Initial commit"
   # Create synthetic beads data for testing (not copying from repo)
   mkdir -p .beads
+  cat > .beads/config.yaml << 'EOF'
+  display:
+    id_prefix: test
+  EOF
   echo '{"id":"test-001","title":"Test issue one","status":"open","issue_type":"task","priority":2,"labels":["test"],"created_at":"2025-01-01T00:00:00Z","updated_at":"2025-01-01T00:00:00Z"}' > .beads/issues.jsonl
   echo '{"id":"test-002","title":"Bug to fix","status":"open","issue_type":"bug","priority":1,"labels":["urgent","backend"],"created_at":"2025-01-02T00:00:00Z","updated_at":"2025-01-02T00:00:00Z"}' >> .beads/issues.jsonl
 ---
-# tbd CLI: Auto-Init Import
+# tbd CLI: Setup from Beads Auto-Init
 
-Tests for importing issues from Beads in an uninitialized repository.
-Per the design spec, `tbd import --from-beads` should auto-initialize tbd if needed.
+Tests for `tbd setup --from-beads` which initializes tbd and imports from Beads.
 
 * * *
 
@@ -40,27 +44,25 @@ Not initialized
 ? 0
 ```
 
-# Test: List command fails before import
+# Test: List command fails before setup
 
 ```console
 $ tbd list 2>&1
-Error: Not a tbd repository (run 'tbd init' or 'tbd import --from-beads' first)
+Error: Not a tbd repository (run 'tbd setup --auto --prefix=<name>' first)
 ? 1
 ```
 
 * * *
 
-## Auto-Init Import
+## Setup from Beads
 
-# Test: Import from beads auto-initializes and imports
+# Test: Setup --from-beads initializes and imports
 
-The `--from-beads` flag should auto-initialize tbd and then import the issues.
+The `--from-beads` flag initializes tbd and imports from Beads in one command.
 
 ```console
-$ tbd import --from-beads --quiet
-  New issues:   2
-  Merged:       0
-  Skipped:      0
+$ tbd setup --from-beads 2>&1 | grep "Setup complete"
+Setup complete!
 ? 0
 ```
 
@@ -122,9 +124,29 @@ title: Test issue one
 
 * * *
 
-## Commands Work After Auto-Init
+## Beads Disabled
 
-# Test: Create works after auto-init import
+# Test: Beads directory was disabled
+
+```console
+$ test -d .beads-disabled && echo "beads disabled"
+beads disabled
+? 0
+```
+
+# Test: Original beads directory removed
+
+```console
+$ test ! -d .beads && echo "beads removed"
+beads removed
+? 0
+```
+
+* * *
+
+## Commands Work After Setup
+
+# Test: Create works after setup
 
 ```console
 $ tbd create "New issue after import"

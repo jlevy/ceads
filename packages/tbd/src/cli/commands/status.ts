@@ -13,20 +13,36 @@
 import { Command } from 'commander';
 import { access, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { homedir } from 'node:os';
 
 import { VERSION } from '../lib/version.js';
 import { BaseCommand } from '../lib/base-command.js';
-import { formatHeading } from '../lib/output.js';
+import { ICONS } from '../lib/output.js';
+import {
+  renderRepositorySection,
+  renderConfigSection,
+  renderIntegrationsSection,
+  renderBeadsWarning,
+  renderWorktreeStatus,
+  renderFooter,
+  type IntegrationCheck,
+} from '../lib/sections.js';
 import { readConfig, findTbdRoot } from '../../file/config.js';
 import { WORKTREE_DIR } from '../../lib/paths.js';
+import {
+  getClaudePaths,
+  getAgentsMdPath,
+  CLAUDE_SETTINGS_DISPLAY,
+  AGENTS_MD_DISPLAY,
+} from '../../lib/integration-paths.js';
 import {
   git,
   getCurrentBranch,
   checkWorktreeHealth,
   checkGitVersion,
+  findGitRoot,
   MIN_GIT_VERSION,
 } from '../../file/git.js';
+import { listWorkspaces } from '../../file/workspace.js';
 
 interface StatusData {
   initialized: boolean;
@@ -49,13 +65,12 @@ interface StatusData {
   display_prefix: string | null;
   worktree_path: string | null;
   worktree_healthy: boolean | null;
+  workspaces: string[];
 
   // Integrations
   integrations: {
     claude_code: boolean;
     claude_code_path: string;
-    cursor: boolean;
-    cursor_path: string;
     codex: boolean;
     codex_path: string;
   };
@@ -67,6 +82,13 @@ class StatusHandler extends BaseCommand {
 
     // Find tbd root (may be in parent directory)
     const tbdRoot = await findTbdRoot(cwd);
+
+    // Find git root for checking integrations (.claude/, .beads/ are at git root)
+    const gitRoot = await findGitRoot(cwd);
+
+    // Use tbdRoot if available, otherwise gitRoot, otherwise cwd
+    // .tbd/, .claude/, .beads/ are all at the project root (adjacent to .git/)
+    const projectRoot = tbdRoot ?? gitRoot ?? cwd;
 
     const statusData: StatusData = {
       initialized: tbdRoot !== null,
@@ -83,13 +105,12 @@ class StatusHandler extends BaseCommand {
       display_prefix: null,
       worktree_path: null,
       worktree_healthy: null,
+      workspaces: [],
       integrations: {
         claude_code: false,
-        claude_code_path: '~/.claude/settings.json',
-        cursor: false,
-        cursor_path: '.cursor/rules/tbd.mdc',
+        claude_code_path: CLAUDE_SETTINGS_DISPLAY,
         codex: false,
-        codex_path: './AGENTS.md',
+        codex_path: AGENTS_MD_DISPLAY,
       },
     };
 
@@ -109,13 +130,13 @@ class StatusHandler extends BaseCommand {
       }
     }
 
-    // Check for beads
-    const beadsInfo = await this.checkBeads(cwd);
+    // Check for beads (at project root, not cwd)
+    const beadsInfo = await this.checkBeads(projectRoot);
     statusData.beads_detected = beadsInfo.detected;
     statusData.beads_issue_count = beadsInfo.issueCount;
 
-    // Check integrations (always show)
-    statusData.integrations = await this.checkIntegrations(cwd);
+    // Check integrations at project root (not cwd)
+    statusData.integrations = await this.checkIntegrations(projectRoot);
 
     if (statusData.initialized && tbdRoot) {
       // Load config and issue info
@@ -144,8 +165,10 @@ class StatusHandler extends BaseCommand {
     }
   }
 
-  private async checkBeads(cwd: string): Promise<{ detected: boolean; issueCount: number | null }> {
-    const beadsDir = join(cwd, '.beads');
+  private async checkBeads(
+    projectRoot: string,
+  ): Promise<{ detected: boolean; issueCount: number | null }> {
+    const beadsDir = join(projectRoot, '.beads');
     try {
       await access(beadsDir);
       // Count issues in beads
@@ -165,24 +188,22 @@ class StatusHandler extends BaseCommand {
     }
   }
 
-  private async checkIntegrations(cwd: string): Promise<StatusData['integrations']> {
-    const claudeSettingsPath = join(homedir(), '.claude', 'settings.json');
-    const cursorRulesPath = join(cwd, '.cursor', 'rules', 'tbd.mdc');
-    const agentsPath = join(cwd, 'AGENTS.md');
+  private async checkIntegrations(projectRoot: string): Promise<StatusData['integrations']> {
+    // All integrations use project-local paths (relative to git/project root)
+    const claudePaths = getClaudePaths(projectRoot);
+    const agentsPath = getAgentsMdPath(projectRoot);
 
     const result: StatusData['integrations'] = {
       claude_code: false,
-      claude_code_path: claudeSettingsPath.replace(homedir(), '~'),
-      cursor: false,
-      cursor_path: '.cursor/rules/tbd.mdc',
+      claude_code_path: CLAUDE_SETTINGS_DISPLAY,
       codex: false,
-      codex_path: './AGENTS.md',
+      codex_path: AGENTS_MD_DISPLAY,
     };
 
-    // Check Claude Code hooks
+    // Check Claude Code hooks in project-local settings
     try {
-      await access(claudeSettingsPath);
-      const content = await readFile(claudeSettingsPath, 'utf-8');
+      await access(claudePaths.settings);
+      const content = await readFile(claudePaths.settings, 'utf-8');
       const settings = JSON.parse(content) as Record<string, unknown>;
       const hooks = settings.hooks as Record<string, unknown> | undefined;
       if (hooks) {
@@ -195,15 +216,7 @@ class StatusHandler extends BaseCommand {
       // Not installed
     }
 
-    // Check Cursor rules
-    try {
-      await access(cursorRulesPath);
-      result.cursor = true;
-    } catch {
-      // Not installed
-    }
-
-    // Check Codex AGENTS.md
+    // Check Codex AGENTS.md (also used by Cursor since v1.6)
     try {
       await access(agentsPath);
       const content = await readFile(agentsPath, 'utf-8');
@@ -231,134 +244,68 @@ class StatusHandler extends BaseCommand {
     const worktreeHealth = await checkWorktreeHealth(cwd);
     data.worktree_path = worktreePath;
     data.worktree_healthy = worktreeHealth.valid;
+
+    // Check workspaces
+    try {
+      data.workspaces = await listWorkspaces(cwd);
+    } catch {
+      // Workspace check failed - leave as empty
+    }
   }
 
   private renderText(data: StatusData): void {
     const colors = this.output.getColors();
 
     if (!data.initialized) {
-      // Pre-init output
-      console.log(`${colors.warn('Not a tbd repository.')}`);
-      console.log('');
-      console.log('Detected:');
-
-      // Git status
-      if (data.git_repository) {
-        const branchInfo = data.git_branch ? ` (${data.git_branch} branch)` : '';
-        console.log(`  ${colors.success('✓')} Git repository${branchInfo}`);
-        // Show git version
-        if (data.git_version) {
-          const versionStatus = data.git_version_supported ? colors.success('✓') : colors.warn('⚠');
-          const versionNote = data.git_version_supported
-            ? ''
-            : ` ${colors.dim(`(requires ${MIN_GIT_VERSION}+)`)}`;
-          console.log(`  ${versionStatus} Git ${data.git_version}${versionNote}`);
-        }
-      } else {
-        console.log(`  ${colors.error('✗')} Git repository not found`);
-      }
-
-      // Beads status
-      if (data.beads_detected) {
-        const countInfo =
-          data.beads_issue_count !== null ? ` (.beads/ with ${data.beads_issue_count} issues)` : '';
-        console.log(`  ${colors.success('✓')} Beads repository${countInfo}`);
-      } else {
-        console.log(`  ${colors.dim('✗')} Beads not detected`);
-      }
-
-      // tbd status
-      console.log(`  ${colors.error('✗')} tbd not initialized`);
-
-      console.log('');
-      console.log('To get started:');
-      if (data.beads_detected) {
-        console.log(
-          `  ${colors.bold('tbd import --from-beads')}   # Migrate from Beads (recommended)`,
-        );
-      }
-      console.log(`  ${colors.bold('tbd init')}                  # Start fresh`);
+      // Pre-init output - unique to status, not shared with doctor
+      this.renderPreInitText(data, colors);
       return;
     }
 
-    // Post-init output
-    console.log(`${colors.bold('tbd')} v${data.tbd_version}`);
-    console.log('');
-    console.log(`Repository: ${data.working_directory}`);
-    console.log(`  ${colors.success('✓')} Initialized (.tbd/)`);
-
-    if (data.git_repository) {
-      const branchInfo = data.git_branch ? ` (${data.git_branch})` : '';
-      console.log(`  ${colors.success('✓')} Git repository${branchInfo}`);
-      // Show git version
-      if (data.git_version) {
-        const versionStatus = data.git_version_supported ? colors.success('✓') : colors.warn('⚠');
-        const versionNote = data.git_version_supported
-          ? ''
-          : ` ${colors.dim(`(requires ${MIN_GIT_VERSION}+)`)}`;
-        console.log(`  ${versionStatus} Git ${data.git_version}${versionNote}`);
-      }
-    }
+    // Post-init output - uses shared section renderers
+    // REPOSITORY section (shared with doctor)
+    renderRepositorySection(
+      {
+        version: data.tbd_version,
+        workingDirectory: data.working_directory,
+        initialized: data.initialized,
+        gitRepository: data.git_repository,
+        gitBranch: data.git_branch,
+        gitVersion: data.git_version,
+        gitVersionSupported: data.git_version_supported,
+      },
+      colors,
+    );
 
     // Beads coexistence warning
     if (data.beads_detected) {
-      console.log('');
-      console.log(`${colors.warn('⚠')}  Beads directory detected alongside tbd`);
-      console.log(`   This may cause confusion for AI agents.`);
-      console.log(`   Run ${colors.bold('tbd setup beads --disable')} for migration options`);
+      renderBeadsWarning(colors);
     }
 
-    // Config info
-    if (data.sync_branch || data.remote || data.display_prefix) {
-      console.log('');
-      if (data.sync_branch) {
-        console.log(`${colors.dim('Sync branch:')} ${data.sync_branch}`);
-      }
-      if (data.remote) {
-        console.log(`${colors.dim('Remote:')} ${data.remote}`);
-      }
-      if (data.display_prefix) {
-        console.log(`${colors.dim('ID prefix:')} ${data.display_prefix}-`);
-      }
-    }
+    // CONFIG section (shared with doctor)
+    renderConfigSection(
+      {
+        syncBranch: data.sync_branch,
+        remote: data.remote,
+        displayPrefix: data.display_prefix,
+      },
+      colors,
+    );
 
-    // Integrations
-    console.log('');
-    console.log(colors.bold(formatHeading('Integrations')));
-
-    // Track if any integrations are missing
-    let hasMissingIntegrations = false;
-
-    if (data.integrations.claude_code) {
-      console.log(
-        `  ${colors.success('✓')} Claude Code hooks ${colors.dim(`(${data.integrations.claude_code_path})`)}`,
-      );
-    } else {
-      console.log(
-        `  ${colors.dim('✗')} Claude Code hooks ${colors.dim(`(${data.integrations.claude_code_path})`)}`,
-      );
-      hasMissingIntegrations = true;
-    }
-    if (data.integrations.cursor) {
-      console.log(
-        `  ${colors.success('✓')} Cursor rules ${colors.dim(`(${data.integrations.cursor_path})`)}`,
-      );
-    } else {
-      console.log(
-        `  ${colors.dim('✗')} Cursor rules ${colors.dim(`(${data.integrations.cursor_path})`)}`,
-      );
-      hasMissingIntegrations = true;
-    }
-    if (data.integrations.codex) {
-      console.log(
-        `  ${colors.success('✓')} Codex AGENTS.md ${colors.dim(`(${data.integrations.codex_path})`)}`,
-      );
-    } else {
-      console.log(
-        `  ${colors.dim('✗')} Codex AGENTS.md ${colors.dim(`(${data.integrations.codex_path})`)}`,
-      );
-      hasMissingIntegrations = true;
-    }
+    // INTEGRATIONS section (shared with doctor)
+    const integrationChecks: IntegrationCheck[] = [
+      {
+        name: 'Claude Code hooks',
+        installed: data.integrations.claude_code,
+        path: data.integrations.claude_code_path,
+      },
+      {
+        name: 'Codex AGENTS.md',
+        installed: data.integrations.codex,
+        path: data.integrations.codex_path,
+      },
+    ];
+    const hasMissingIntegrations = renderIntegrationsSection(integrationChecks, colors);
 
     if (hasMissingIntegrations) {
       console.log('');
@@ -366,22 +313,83 @@ class StatusHandler extends BaseCommand {
     }
 
     // Worktree health
-    if (data.worktree_healthy !== null) {
+    if (data.worktree_healthy !== null && data.worktree_path) {
+      renderWorktreeStatus(data.worktree_path, data.worktree_healthy, colors);
+    }
+
+    // Workspaces (only show if there are any)
+    if (data.workspaces.length > 0) {
       console.log('');
-      if (data.worktree_healthy) {
-        console.log(`${colors.dim('Worktree:')} ${data.worktree_path} (healthy)`);
-      } else {
-        console.log(
-          `${colors.warn('Worktree:')} ${data.worktree_path} (${colors.error('unhealthy')})`,
-        );
-        console.log(`  Run: tbd doctor --fix`);
+      console.log(colors.bold('WORKSPACES'));
+      for (const ws of data.workspaces) {
+        console.log(`  ${ws}`);
       }
     }
 
-    console.log('');
-    console.log(
-      `Use ${colors.bold("'tbd stats'")} for issue statistics, ${colors.bold("'tbd doctor'")} for health checks.`,
+    // Footer (shared format)
+    renderFooter(
+      [
+        { command: 'tbd stats', description: 'issue statistics' },
+        { command: 'tbd doctor', description: 'health checks' },
+      ],
+      colors,
     );
+  }
+
+  /**
+   * Render pre-init text (unique to status command).
+   * This is not shared with doctor since doctor requires initialization.
+   */
+  private renderPreInitText(
+    data: StatusData,
+    colors: ReturnType<typeof this.output.getColors>,
+  ): void {
+    console.log(`${colors.warn('Not a tbd repository.')}`);
+    console.log('');
+    console.log('Detected:');
+
+    // Git status
+    if (data.git_repository) {
+      const branchInfo = data.git_branch ? ` (${data.git_branch} branch)` : '';
+      console.log(`  ${colors.success(ICONS.SUCCESS)} Git repository${branchInfo}`);
+      // Show git version
+      if (data.git_version) {
+        const versionStatus = data.git_version_supported
+          ? colors.success(ICONS.SUCCESS)
+          : colors.warn(ICONS.WARN);
+        const versionNote = data.git_version_supported
+          ? ''
+          : ` ${colors.dim(`(requires ${MIN_GIT_VERSION}+)`)}`;
+        console.log(`  ${versionStatus} Git ${data.git_version}${versionNote}`);
+      }
+    } else {
+      console.log(`  ${colors.error(ICONS.ERROR)} Git repository not found`);
+    }
+
+    // Beads status
+    if (data.beads_detected) {
+      const countInfo =
+        data.beads_issue_count !== null ? ` (.beads/ with ${data.beads_issue_count} issues)` : '';
+      console.log(`  ${colors.success(ICONS.SUCCESS)} Beads repository${countInfo}`);
+    } else {
+      console.log(`  ${colors.dim(ICONS.ERROR)} Beads not detected`);
+    }
+
+    // tbd status
+    console.log(`  ${colors.error(ICONS.ERROR)} tbd not initialized`);
+
+    console.log('');
+    console.log('To get started:');
+    if (data.beads_detected) {
+      console.log(
+        `  ${colors.bold('tbd setup --auto')}          # Migrate from Beads (recommended)`,
+      );
+    } else {
+      console.log(
+        `  ${colors.bold('tbd setup --auto --prefix=<name>')}   # Full setup with prefix`,
+      );
+    }
+    console.log(`  ${colors.bold('tbd init --prefix=X')}       # Surgical init only`);
   }
 }
 

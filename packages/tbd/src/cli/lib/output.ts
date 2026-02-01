@@ -79,10 +79,18 @@ export function getColorOptionFromArgv(): ColorOption {
 }
 
 /**
- * Maximum width for help text. We cap at 88 characters for readability,
- * but use narrower if the terminal is smaller.
+ * Maximum width for help text and formatted output. We cap at 88 characters
+ * for readability, but use narrower if the terminal is smaller.
  */
 export const MAX_HELP_WIDTH = 88;
+
+/**
+ * Get terminal width capped at MAX_HELP_WIDTH.
+ * Use this for all formatted CLI output to ensure consistent width handling.
+ */
+export function getTerminalWidth(): number {
+  return Math.min(MAX_HELP_WIDTH, process.stdout.columns ?? 80);
+}
 
 /**
  * Create colored help configuration for Commander.js.
@@ -95,7 +103,7 @@ export function createColoredHelpConfig(colorOption: ColorOption = 'auto') {
   const colors = pc.createColors(shouldColorize(colorOption));
 
   return {
-    helpWidth: Math.min(MAX_HELP_WIDTH, process.stdout.columns || 80),
+    helpWidth: getTerminalWidth(),
     styleTitle: (str: string) => colors.bold(colors.cyan(str)),
     styleCommandText: (str: string) => colors.green(str),
     styleOptionText: (str: string) => colors.yellow(str),
@@ -105,13 +113,27 @@ export function createColoredHelpConfig(colorOption: ColorOption = 'auto') {
 
 /**
  * Create the help epilog text with color.
+ * Includes "Getting Started" section per spec.
  *
  * @param colorOption - Color option to determine if colors should be enabled
  * @returns Colored epilog string
  */
 export function createHelpEpilog(colorOption: ColorOption = 'auto'): string {
   const colors = pc.createColors(shouldColorize(colorOption));
-  return colors.blue('For more on tbd, see: https://github.com/jlevy/tbd');
+  const lines = [
+    colors.bold('Getting Started:'),
+    `  ${colors.green('npm install -g get-tbd@latest && tbd setup --auto --prefix=<name>')}`,
+    '',
+    '  This initializes tbd and configures your coding agents automatically.',
+    `  For interactive setup: ${colors.dim('tbd setup --interactive')}`,
+    `  For manual control: ${colors.dim('tbd init --help')}`,
+    '',
+    colors.bold('Orientation:'),
+    `  For workflow guidance, run: ${colors.green('tbd prime')}`,
+    '',
+    colors.blue('For more on tbd, see: https://github.com/jlevy/tbd'),
+  ];
+  return lines.join('\n');
 }
 
 /**
@@ -181,7 +203,7 @@ export function renderMarkdown(content: string, colorOption: ColorOption = 'auto
   // but types still claim it returns TerminalRenderer. Cast to work around this.
   marked.use(
     markedTerminal({
-      width: Math.min(MAX_HELP_WIDTH, process.stdout.columns || 80),
+      width: getTerminalWidth(),
       reflowText: true,
     }) as unknown as Parameters<typeof marked.use>[0],
   );
@@ -431,4 +453,126 @@ export class OutputManager {
   getColors() {
     return this.colors;
   }
+
+  /**
+   * Check if quiet mode is enabled.
+   */
+  isQuiet(): boolean {
+    return this.ctx.quiet;
+  }
+}
+
+// ============================================================================
+// Component Helper Functions
+// ============================================================================
+
+/**
+ * Format command header with version.
+ * Used at start of orientation commands (status, doctor, stats).
+ *
+ * @example formatCommandHeader('tbd', '0.1.9', colors) → "tbd v0.1.9" (bold name)
+ */
+export function formatCommandHeader(
+  name: string,
+  version: string,
+  colors: ReturnType<typeof createColors>,
+): string {
+  return `${colors.bold(name)} v${version}`;
+}
+
+/**
+ * Format key-value line with dim key.
+ * Used for configuration display.
+ *
+ * @example formatKeyValue('Sync branch', 'tbd-sync', colors) → "Sync branch: tbd-sync"
+ */
+export function formatKeyValue(
+  key: string,
+  value: string,
+  colors: ReturnType<typeof createColors>,
+): string {
+  return `${colors.dim(key + ':')} ${value}`;
+}
+
+/**
+ * Format aligned statistic block.
+ * Returns array of formatted lines with aligned values.
+ *
+ * @param stats - Array of {label, value} pairs
+ * @param colors - Color functions (unused but kept for consistency)
+ * @returns Array of formatted lines
+ *
+ * @example
+ * formatStatBlock([{label: 'Ready', value: 12}, {label: 'In progress', value: 4}], colors)
+ * → ['  Ready:       12', '  In progress: 4']
+ */
+export function formatStatBlock(
+  stats: { label: string; value: number | string }[],
+  _colors: ReturnType<typeof createColors>,
+): string[] {
+  const maxLabelLen = Math.max(...stats.map((s) => s.label.length));
+
+  return stats.map((stat) => {
+    const padding = ' '.repeat(maxLabelLen - stat.label.length + 1);
+    return `  ${stat.label}:${padding}${stat.value}`;
+  });
+}
+
+/**
+ * Format multi-line warning block.
+ * Returns array of lines for a warning with headline, details, and suggestion.
+ *
+ * @param headline - Warning headline (shown with ⚠ icon)
+ * @param details - Detail lines
+ * @param suggestion - Optional suggestion with command (bolded)
+ * @param colors - Color functions
+ * @returns Array of formatted lines
+ */
+export function formatWarningBlock(
+  headline: string,
+  details: string[],
+  suggestion: { text: string; command: string } | undefined,
+  colors: ReturnType<typeof createColors>,
+): string[] {
+  const lines: string[] = [];
+
+  // Headline with warning icon
+  lines.push(`${colors.warn(ICONS.WARN)} ${headline}`);
+
+  // Detail lines
+  for (const detail of details) {
+    lines.push(detail);
+  }
+
+  // Suggestion with bolded command
+  if (suggestion) {
+    lines.push(`${suggestion.text} ${colors.bold(suggestion.command)}`);
+  }
+
+  return lines;
+}
+
+/**
+ * Format footer with command suggestions.
+ * Returns a formatted string like "Use 'tbd stats' for statistics, 'tbd doctor' for health checks."
+ *
+ * @param suggestions - Array of {command, description} pairs
+ * @param colors - Color functions
+ * @returns Formatted footer string
+ */
+export function formatFooter(
+  suggestions: { command: string; description: string }[],
+  colors: ReturnType<typeof createColors>,
+): string {
+  if (suggestions.length === 0) {
+    return '';
+  }
+
+  const parts = suggestions.map((s) => `${colors.bold(`'${s.command}'`)} for ${s.description}`);
+
+  if (parts.length === 1) {
+    return `Use ${parts[0]}.`;
+  }
+
+  return `Use ${parts.join(', ')}.`;
 }

@@ -4,12 +4,8 @@ attic/
 # Temporary test directories
 tmp/
 
-# tbd-specific
-.tbd/cache/
-.tbd/sync-worktree/
+# tbd-specific (see .tbd/.gitignore for tbd's internal gitignores)
 *.tmp.*
-
-attic/
 
 # Build output
 dist/

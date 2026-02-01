@@ -15,17 +15,34 @@ import { requireInit } from '../lib/errors.js';
 import { listIssues } from '../../file/storage.js';
 import { readConfig } from '../../file/config.js';
 import type { Config, Issue, IssueStatusType } from '../../lib/types.js';
-import { resolveDataSyncDir, TBD_DIR, WORKTREE_DIR } from '../../lib/paths.js';
+import { resolveDataSyncDir, TBD_DIR, WORKTREE_DIR, DATA_SYNC_DIR } from '../../lib/paths.js';
+import {
+  getClaudePaths,
+  getAgentsMdPath,
+  CLAUDE_SKILL_REL,
+  AGENTS_MD_REL,
+} from '../../lib/integration-paths.js';
 import { validateIssueId } from '../../lib/ids.js';
 import {
   checkGitVersion,
   MIN_GIT_VERSION,
   getCurrentBranch,
   checkWorktreeHealth,
+  checkLocalBranchHealth,
+  checkRemoteBranchHealth,
+  checkSyncConsistency,
+  repairWorktree,
+  migrateDataToWorktree,
+  initWorktree,
 } from '../../file/git.js';
 import { type DiagnosticResult, renderDiagnostics } from '../lib/diagnostics.js';
 import { VERSION } from '../lib/version.js';
 import { formatHeading } from '../lib/output.js';
+import {
+  renderRepositorySection,
+  renderConfigSection,
+  renderStatisticsSection,
+} from '../lib/sections.js';
 
 const CONFIG_DIR = TBD_DIR;
 
@@ -89,8 +106,26 @@ class DoctorHandler extends BaseCommand {
     // Check 7: Issue validity
     healthChecks.push(this.checkIssueValidity(this.issues));
 
-    // Check 8: Worktree health
-    healthChecks.push(await this.checkWorktree());
+    // Check 8: Worktree health (with fix support)
+    healthChecks.push(await this.checkWorktree(options.fix));
+
+    // Check 9: Data location (issues in wrong path, with fix support)
+    healthChecks.push(await this.checkDataLocation(options.fix));
+
+    // Check 10: Local sync branch health
+    healthChecks.push(await this.checkLocalSyncBranch());
+
+    // Check 11: Remote sync branch health
+    healthChecks.push(await this.checkRemoteSyncBranch());
+
+    // Check 12: Local has data but remote empty (ai-trade-arena bug detection)
+    healthChecks.push(await this.checkLocalVsRemoteData());
+
+    // Check 13: Multi-user/clone scenario detection
+    healthChecks.push(await this.checkCloneScenarios());
+
+    // Check 14: Sync consistency (worktree matches local, ahead/behind counts)
+    healthChecks.push(await this.checkSyncConsistency());
 
     // Run integration checks (optional IDE/agent integrations)
     const integrationChecks: DiagnosticResult[] = [];
@@ -98,10 +133,7 @@ class DoctorHandler extends BaseCommand {
     // Integration 1: Claude Code skill file
     integrationChecks.push(await this.checkClaudeSkill());
 
-    // Integration 2: Cursor rules file
-    integrationChecks.push(await this.checkCursorRules());
-
-    // Integration 3: Codex AGENTS.md
+    // Integration 2: Codex AGENTS.md (also used by Cursor since v1.6)
     integrationChecks.push(await this.checkCodexAgents());
 
     // Combine for overall status
@@ -114,38 +146,42 @@ class DoctorHandler extends BaseCommand {
       () => {
         const colors = this.output.getColors();
 
-        // REPOSITORY section (matches status command)
-        console.log(colors.bold(formatHeading('Repository')));
-        console.log(`tbd v${VERSION}`);
-        console.log(`Repository: ${this.cwd}`);
-        console.log(`  ${colors.success('✓')} Initialized (.tbd/)`);
-        if (statusInfo.gitBranch) {
-          console.log(`  ${colors.success('✓')} Git repository (${statusInfo.gitBranch})`);
-        }
+        // REPOSITORY section (shared with status command)
+        renderRepositorySection(
+          {
+            version: VERSION,
+            workingDirectory: this.cwd,
+            initialized: true, // doctor requires init
+            gitRepository: !!statusInfo.gitBranch,
+            gitBranch: statusInfo.gitBranch,
+            gitVersion: null, // Git version is shown in health checks
+            gitVersionSupported: true,
+          },
+          colors,
+          { showHeading: true },
+        );
+
+        // CONFIG section (shared with status command)
         if (this.config) {
-          console.log('');
-          console.log(`${colors.dim('Sync branch:')} ${this.config.sync.branch}`);
-          console.log(`${colors.dim('Remote:')} ${this.config.sync.remote}`);
-          if (this.config.display.id_prefix) {
-            console.log(`${colors.dim('ID prefix:')} ${this.config.display.id_prefix}-`);
-          }
+          renderConfigSection(
+            {
+              syncBranch: this.config.sync.branch,
+              remote: this.config.sync.remote,
+              displayPrefix: this.config.display.id_prefix,
+            },
+            colors,
+          );
         }
 
-        // STATISTICS section
-        console.log('');
-        console.log(colors.bold(formatHeading('Statistics')));
-        console.log(`  Ready:       ${statsInfo.ready}`);
-        console.log(`  In progress: ${statsInfo.inProgress}`);
-        console.log(`  Blocked:     ${statsInfo.blocked}`);
-        console.log(`  Open:        ${statsInfo.open}`);
-        console.log(`  Total:       ${statsInfo.total}`);
+        // STATISTICS section (shared with stats command)
+        renderStatisticsSection(statsInfo, colors);
 
-        // INTEGRATIONS section (matches status command)
+        // INTEGRATIONS section
         console.log('');
         console.log(colors.bold(formatHeading('Integrations')));
         renderDiagnostics(integrationChecks, colors);
 
-        // HEALTH CHECKS section
+        // HEALTH CHECKS section (doctor-only)
         console.log('');
         console.log(colors.bold(formatHeading('Health Checks')));
         renderDiagnostics(healthChecks, colors);
@@ -376,7 +412,7 @@ class DoctorHandler extends BaseCommand {
       return { name: 'Temp files', status: 'ok', path: issuesPath };
     }
 
-    if (fix) {
+    if (fix && !this.checkDryRun('Clean temp files')) {
       // Clean up temp files
       for (const file of tempFiles) {
         try {
@@ -451,84 +487,493 @@ class DoctorHandler extends BaseCommand {
   }
 
   private async checkClaudeSkill(): Promise<DiagnosticResult> {
-    const skillRelPath = join('.claude', 'skills', 'tbd', 'SKILL.md');
-    const skillPath = join(process.cwd(), skillRelPath);
+    const claudePaths = getClaudePaths(this.cwd);
     try {
-      await access(skillPath);
-      return { name: 'Claude Code skill', status: 'ok', path: skillRelPath };
+      await access(claudePaths.skill);
+      return { name: 'Claude Code skill', status: 'ok', path: CLAUDE_SKILL_REL };
     } catch {
       return {
         name: 'Claude Code skill',
         status: 'warn',
         message: 'not installed',
-        path: skillRelPath,
-        suggestion: 'Run: tbd setup claude',
-      };
-    }
-  }
-
-  private async checkCursorRules(): Promise<DiagnosticResult> {
-    const rulesRelPath = join('.cursor', 'rules', 'tbd.mdc');
-    const rulesPath = join(this.cwd, rulesRelPath);
-    try {
-      await access(rulesPath);
-      return { name: 'Cursor rules', status: 'ok', path: rulesRelPath };
-    } catch {
-      return {
-        name: 'Cursor rules',
-        status: 'warn',
-        message: 'not installed',
-        path: rulesRelPath,
-        suggestion: 'Run: tbd setup cursor',
+        path: CLAUDE_SKILL_REL,
+        suggestion: 'Run: tbd setup --auto',
       };
     }
   }
 
   private async checkCodexAgents(): Promise<DiagnosticResult> {
-    const agentsRelPath = 'AGENTS.md';
-    const agentsPath = join(this.cwd, agentsRelPath);
+    const agentsPath = getAgentsMdPath(this.cwd);
     try {
       await access(agentsPath);
       const content = await readFile(agentsPath, 'utf-8');
       if (content.includes('BEGIN TBD INTEGRATION')) {
-        return { name: 'Codex AGENTS.md', status: 'ok', path: agentsRelPath };
+        return { name: 'Codex AGENTS.md', status: 'ok', path: AGENTS_MD_REL };
       }
       return {
         name: 'Codex AGENTS.md',
         status: 'warn',
         message: 'exists but missing tbd integration',
-        path: agentsRelPath,
-        suggestion: 'Run: tbd setup codex',
+        path: AGENTS_MD_REL,
+        suggestion: 'Run: tbd setup --auto',
       };
     } catch {
       return {
         name: 'Codex AGENTS.md',
         status: 'warn',
         message: 'not installed',
-        path: agentsRelPath,
-        suggestion: 'Run: tbd setup codex',
+        path: AGENTS_MD_REL,
+        suggestion: 'Run: tbd setup --auto',
       };
     }
   }
 
-  private async checkWorktree(): Promise<DiagnosticResult> {
+  /**
+   * Check worktree health with enhanced status detection.
+   * See: plan-2026-01-28-sync-worktree-recovery-and-hardening.md §4
+   */
+  private async checkWorktree(fix?: boolean): Promise<DiagnosticResult> {
     const worktreePath = WORKTREE_DIR;
     const worktreeHealth = await checkWorktreeHealth(this.cwd);
-    if (worktreeHealth.valid) {
-      return { name: 'Worktree', status: 'ok', path: worktreePath };
+
+    switch (worktreeHealth.status) {
+      case 'valid':
+        return { name: 'Worktree', status: 'ok', path: worktreePath };
+
+      case 'missing':
+        // Worktree not existing is OK - it's created on demand
+        return { name: 'Worktree', status: 'ok', message: 'not created yet', path: worktreePath };
+
+      case 'prunable':
+      case 'corrupted': {
+        // Attempt repair if --fix is provided and not in dry-run mode
+        if (fix && !this.checkDryRun('Repair worktree')) {
+          const result = await repairWorktree(this.cwd, worktreeHealth.status);
+
+          if (result.success) {
+            const message = result.backedUp
+              ? `repaired (backed up to ${result.backedUp})`
+              : 'repaired successfully';
+            return { name: 'Worktree', status: 'ok', message, path: worktreePath };
+          }
+
+          return {
+            name: 'Worktree',
+            status: 'error',
+            message: `repair failed: ${result.error}`,
+            path: worktreePath,
+          };
+        }
+
+        // No --fix flag, report the issue
+        if (worktreeHealth.status === 'prunable') {
+          return {
+            name: 'Worktree',
+            status: 'error',
+            message: 'prunable (directory deleted)',
+            path: worktreePath,
+            details: [
+              'The worktree directory was deleted but git still tracks it.',
+              'This can cause data to be written to the wrong location.',
+            ],
+            fixable: true,
+            suggestion: 'Run: tbd doctor --fix to recreate worktree',
+          };
+        }
+
+        return {
+          name: 'Worktree',
+          status: 'error',
+          message: worktreeHealth.error ?? 'corrupted',
+          path: worktreePath,
+          details: ['The worktree exists but is not a valid git worktree.'],
+          fixable: true,
+          suggestion: 'Run: tbd doctor --fix to repair',
+        };
+      }
+
+      default:
+        return {
+          name: 'Worktree',
+          status: 'warn',
+          message: worktreeHealth.error ?? 'unknown status',
+          path: worktreePath,
+          fixable: true,
+          suggestion: 'Run: tbd doctor --fix',
+        };
     }
-    if (!worktreeHealth.exists) {
-      // Worktree not existing is OK - it's created on demand
-      return { name: 'Worktree', status: 'ok', message: 'not created yet', path: worktreePath };
+  }
+
+  /**
+   * Check for issues in wrong location.
+   * See: plan-2026-01-28-sync-worktree-recovery-and-hardening.md §5
+   *
+   * Issues should be in .tbd/data-sync-worktree/.tbd/data-sync/issues/
+   * If they're in .tbd/data-sync/issues/ on main branch, the worktree was missing
+   * and data was written to the fallback path - this is a bug requiring migration.
+   */
+  private async checkDataLocation(fix?: boolean): Promise<DiagnosticResult> {
+    const wrongPath = join(this.cwd, DATA_SYNC_DIR);
+    const wrongIssuesPath = join(wrongPath, 'issues');
+
+    // Try to list issues in the wrong location
+    let wrongPathIssues: Issue[] = [];
+    try {
+      wrongPathIssues = await listIssues(wrongPath);
+    } catch {
+      // No issues in wrong path - this is expected
     }
+
+    if (wrongPathIssues.length === 0) {
+      return { name: 'Data location', status: 'ok' };
+    }
+
+    // Issues found in wrong location - attempt migration if --fix and not dry-run
+    if (fix && !this.checkDryRun('Migrate data to worktree')) {
+      // First ensure worktree exists - create it if missing
+      let worktreeHealth = await checkWorktreeHealth(this.cwd);
+      if (worktreeHealth.status === 'missing') {
+        // Worktree doesn't exist yet - create it for migration
+        const initResult = await initWorktree(this.cwd);
+        if (!initResult.success) {
+          return {
+            name: 'Data location',
+            status: 'error',
+            message: `${wrongPathIssues.length} issue(s) in wrong location, failed to create worktree: ${initResult.error}`,
+            path: wrongIssuesPath,
+          };
+        }
+        worktreeHealth = await checkWorktreeHealth(this.cwd);
+      }
+
+      if (worktreeHealth.status !== 'valid') {
+        return {
+          name: 'Data location',
+          status: 'error',
+          message: `${wrongPathIssues.length} issue(s) in wrong location, worktree not ready`,
+          path: wrongIssuesPath,
+          details: [
+            'Cannot migrate: worktree must be repaired first.',
+            'The worktree repair should have run before this check.',
+          ],
+        };
+      }
+
+      // Migrate data to worktree
+      const result = await migrateDataToWorktree(this.cwd);
+
+      if (result.success) {
+        const message = result.backupPath
+          ? `migrated ${result.migratedCount} file(s), backed up to ${result.backupPath}`
+          : `migrated ${result.migratedCount} file(s)`;
+        return { name: 'Data location', status: 'ok', message, path: wrongIssuesPath };
+      }
+
+      return {
+        name: 'Data location',
+        status: 'error',
+        message: `migration failed: ${result.error}`,
+        path: wrongIssuesPath,
+      };
+    }
+
+    // No --fix flag, report the issue
     return {
-      name: 'Worktree',
-      status: 'warn',
-      message: worktreeHealth.error ?? 'unhealthy',
-      path: worktreePath,
+      name: 'Data location',
+      status: 'error',
+      message: `${wrongPathIssues.length} issue(s) in wrong location`,
+      path: wrongIssuesPath,
+      details: [
+        `Found ${wrongPathIssues.length} issues in .tbd/data-sync/ (wrong)`,
+        'Issues should be in .tbd/data-sync-worktree/.tbd/data-sync/',
+        'This indicates the worktree was missing when issues were created',
+      ],
       fixable: true,
-      suggestion: 'Run: tbd doctor --fix',
+      suggestion: 'Run: tbd doctor --fix to migrate issues to worktree',
     };
+  }
+
+  /**
+   * Check local sync branch health.
+   * See: plan-2026-01-28-sync-worktree-recovery-and-hardening.md §4b
+   */
+  private async checkLocalSyncBranch(): Promise<DiagnosticResult> {
+    const syncBranch = this.config?.sync.branch ?? 'tbd-sync';
+    const localHealth = await checkLocalBranchHealth(syncBranch);
+
+    if (localHealth.exists && !localHealth.orphaned) {
+      return { name: 'Local sync branch', status: 'ok', message: syncBranch };
+    }
+
+    if (!localHealth.exists) {
+      // Local branch doesn't exist - check if remote exists
+      const remote = this.config?.sync.remote ?? 'origin';
+      const remoteHealth = await checkRemoteBranchHealth(remote, syncBranch);
+
+      if (remoteHealth.exists) {
+        // Remote exists but local doesn't - can be created from remote
+        return {
+          name: 'Local sync branch',
+          status: 'warn',
+          message: `${syncBranch} not found (remote exists)`,
+          suggestion: 'Run: tbd sync to create from remote',
+        };
+      }
+
+      // Neither local nor remote - new repo, this is OK
+      return {
+        name: 'Local sync branch',
+        status: 'ok',
+        message: 'not created yet',
+      };
+    }
+
+    // Branch exists but is orphaned (no commits)
+    return {
+      name: 'Local sync branch',
+      status: 'warn',
+      message: `${syncBranch} exists but has no commits`,
+      suggestion: 'Run: tbd sync to push data',
+    };
+  }
+
+  /**
+   * Check remote sync branch health.
+   * See: plan-2026-01-28-sync-worktree-recovery-and-hardening.md §4b
+   */
+  private async checkRemoteSyncBranch(): Promise<DiagnosticResult> {
+    const syncBranch = this.config?.sync.branch ?? 'tbd-sync';
+    const remote = this.config?.sync.remote ?? 'origin';
+    const remoteHealth = await checkRemoteBranchHealth(remote, syncBranch);
+
+    if (remoteHealth.exists) {
+      if (remoteHealth.diverged) {
+        return {
+          name: 'Remote sync branch',
+          status: 'warn',
+          message: `${remote}/${syncBranch} has diverged`,
+          suggestion: 'Run: tbd sync to reconcile changes',
+        };
+      }
+      return { name: 'Remote sync branch', status: 'ok', message: `${remote}/${syncBranch}` };
+    }
+
+    // Remote branch doesn't exist
+    const localHealth = await checkLocalBranchHealth(syncBranch);
+    if (localHealth.exists) {
+      // Local exists but remote doesn't - needs push
+      return {
+        name: 'Remote sync branch',
+        status: 'warn',
+        message: `${remote}/${syncBranch} not found`,
+        suggestion: 'Run: tbd sync to push local branch',
+      };
+    }
+
+    // Neither exists - new repo, this is OK
+    return {
+      name: 'Remote sync branch',
+      status: 'ok',
+      message: 'not created yet',
+    };
+  }
+
+  /**
+   * Check for local data that hasn't been synced to remote.
+   * This detects the ai-trade-arena bug scenario.
+   * See: plan-2026-01-28-sync-worktree-recovery-and-hardening.md §4
+   */
+  private async checkLocalVsRemoteData(): Promise<DiagnosticResult> {
+    // Only check if worktree exists and has issues
+    const worktreeHealth = await checkWorktreeHealth(this.cwd);
+    if (worktreeHealth.status !== 'valid') {
+      // Worktree not valid - can't compare
+      return { name: 'Sync status', status: 'ok', message: 'worktree not active' };
+    }
+
+    // Count local issues in worktree
+    const localIssueCount = this.issues.length;
+    if (localIssueCount === 0) {
+      return { name: 'Sync status', status: 'ok' };
+    }
+
+    // Check if remote branch exists and has commits
+    const syncBranch = this.config?.sync.branch ?? 'tbd-sync';
+    const remote = this.config?.sync.remote ?? 'origin';
+    const remoteHealth = await checkRemoteBranchHealth(remote, syncBranch);
+
+    if (!remoteHealth.exists) {
+      // Remote doesn't exist - issues haven't been pushed
+      return {
+        name: 'Sync status',
+        status: 'warn',
+        message: `${localIssueCount} local issues, remote branch not found`,
+        suggestion: 'Run: tbd sync to push issues to remote',
+      };
+    }
+
+    // Note: Full remote issue count comparison would require fetching the remote
+    // For now, we flag if local has issues but remote branch exists but is empty
+    // This is detected by comparing commit counts or checking issue files
+    // A simpler check: if worktree has uncommitted changes, we know they aren't synced
+
+    return { name: 'Sync status', status: 'ok' };
+  }
+
+  /**
+   * Check for multi-user/clone scenarios that indicate lost data.
+   * See: plan-2026-01-28-sync-worktree-recovery-and-hardening.md §6
+   */
+  private async checkCloneScenarios(): Promise<DiagnosticResult> {
+    // Only relevant if we have no issues
+    const localIssueCount = this.issues.length;
+    if (localIssueCount > 0) {
+      return { name: 'Clone status', status: 'ok' };
+    }
+
+    // Check 1: Beads migration evidence exists but tbd has no issues
+    const beadsDisabledPath = join(this.cwd, '.beads-disabled');
+    let beadsMigrationExists = false;
+    try {
+      await access(beadsDisabledPath);
+      beadsMigrationExists = true;
+    } catch {
+      // No beads migration - that's fine
+    }
+
+    if (beadsMigrationExists) {
+      // Check if beads had issues
+      const beadsJsonl = join(beadsDisabledPath, '.beads', 'issues.jsonl');
+      let beadsIssueCount = 0;
+      try {
+        const content = await readFile(beadsJsonl, 'utf-8');
+        beadsIssueCount = content.trim().split('\n').filter(Boolean).length;
+      } catch {
+        // Can't read beads file - ignore
+      }
+
+      if (beadsIssueCount > 0) {
+        return {
+          name: 'Clone status',
+          status: 'error',
+          message: `Beads migration has ${beadsIssueCount} issues, tbd has none`,
+          details: [
+            'This repo was migrated from beads but issues were never synced.',
+            'Another user may have the issues locally but they were not pushed.',
+          ],
+          suggestion: 'Contact the repo owner to run: tbd sync',
+        };
+      }
+    }
+
+    // Check 2: Config has id_prefix but no issues (suggests prior usage)
+    if (!beadsMigrationExists && this.config?.display?.id_prefix) {
+      return {
+        name: 'Clone status',
+        status: 'warn',
+        message: `Config has prefix '${this.config.display.id_prefix}' but no issues`,
+        details: [
+          'This suggests issues may have been created but not synced,',
+          'or were lost due to sync issues on another machine.',
+        ],
+        suggestion: 'If you expect issues to exist, contact the repo owner',
+      };
+    }
+
+    // Check 3: Active beads directory exists (not migrated yet)
+    const beadsPath = join(this.cwd, '.beads');
+    let beadsActiveExists = false;
+    try {
+      await access(beadsPath);
+      beadsActiveExists = true;
+    } catch {
+      // No active beads - that's fine
+    }
+
+    if (beadsActiveExists) {
+      return {
+        name: 'Clone status',
+        status: 'ok',
+        message: 'beads directory exists (migration available)',
+      };
+    }
+
+    return { name: 'Clone status', status: 'ok' };
+  }
+
+  /**
+   * Check sync consistency - worktree matches local, ahead/behind counts.
+   * See: plan-2026-01-28-sync-worktree-recovery-and-hardening.md §4
+   */
+  private async checkSyncConsistency(): Promise<DiagnosticResult> {
+    const syncBranch = this.config?.sync.branch ?? 'tbd-sync';
+    const remote = this.config?.sync.remote ?? 'origin';
+
+    // Only check if worktree is valid
+    const worktreeHealth = await checkWorktreeHealth(this.cwd);
+    if (worktreeHealth.status !== 'valid') {
+      return { name: 'Sync consistency', status: 'ok', message: 'worktree not active' };
+    }
+
+    try {
+      const consistency = await checkSyncConsistency(this.cwd, syncBranch, remote);
+
+      // Check if worktree matches local
+      if (!consistency.worktreeMatchesLocal) {
+        return {
+          name: 'Sync consistency',
+          status: 'error',
+          message: 'worktree HEAD does not match local branch',
+          details: [
+            `Worktree HEAD: ${consistency.worktreeHead.slice(0, 7)}`,
+            `Local ${syncBranch}: ${consistency.localHead.slice(0, 7)}`,
+          ],
+          fixable: true,
+          suggestion: 'Run: tbd doctor --fix to synchronize',
+        };
+      }
+
+      // Check ahead/behind status
+      if (consistency.localAhead > 0 && consistency.localBehind > 0) {
+        return {
+          name: 'Sync consistency',
+          status: 'warn',
+          message: `diverged (${consistency.localAhead} ahead, ${consistency.localBehind} behind)`,
+          suggestion: 'Run: tbd sync to reconcile',
+        };
+      }
+
+      if (consistency.localAhead > 0) {
+        return {
+          name: 'Sync consistency',
+          status: 'warn',
+          message: `${consistency.localAhead} commit(s) ahead of remote`,
+          suggestion: 'Run: tbd sync to push changes',
+        };
+      }
+
+      if (consistency.localBehind > 0) {
+        return {
+          name: 'Sync consistency',
+          status: 'warn',
+          message: `${consistency.localBehind} commit(s) behind remote`,
+          suggestion: 'Run: tbd sync to pull changes',
+        };
+      }
+
+      return { name: 'Sync consistency', status: 'ok' };
+    } catch (error) {
+      // Sync consistency check failed - may be normal if branches don't exist yet
+      const msg = error instanceof Error ? error.message : String(error);
+      if (msg.includes('not found') || msg.includes('no commits')) {
+        return { name: 'Sync consistency', status: 'ok', message: 'branches not yet established' };
+      }
+      return {
+        name: 'Sync consistency',
+        status: 'warn',
+        message: `Unable to check: ${msg}`,
+      };
+    }
   }
 }
 

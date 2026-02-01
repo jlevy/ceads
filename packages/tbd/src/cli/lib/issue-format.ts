@@ -241,3 +241,42 @@ export function wrapDescription(
 
   return lines.map((line) => indentStr + line).join('\n');
 }
+
+/**
+ * Format a spec path with the filename portion bolded.
+ *
+ * e.g. "docs/project/specs/active/plan-2026-01-27-my-feature.md"
+ * → "docs/project/specs/active/" + bold("plan-2026-01-27-my-feature.md")
+ */
+export function formatSpecName(specPath: string, colors: ReturnType<typeof createColors>): string {
+  const lastSlash = specPath.lastIndexOf('/');
+  if (lastSlash === -1) {
+    return colors.bold(specPath);
+  }
+  const dir = specPath.slice(0, lastSlash + 1);
+  const filename = specPath.slice(lastSlash + 1);
+  return dir + colors.bold(filename);
+}
+
+/**
+ * Format a spec group header for --specs output.
+ *
+ * Renders "Spec: path/to/bold-filename.md (count)".
+ */
+export function formatSpecGroupHeader(
+  specPath: string,
+  count: number,
+  colors: ReturnType<typeof createColors>,
+): string {
+  return 'Spec: ' + formatSpecName(specPath, colors) + colors.dim(` (${count})`);
+}
+
+/**
+ * Format the "No spec" group header for beads without a linked spec.
+ */
+export function formatNoSpecGroupHeader(
+  count: number,
+  colors: ReturnType<typeof createColors>,
+): string {
+  return colors.bold('(No spec)') + colors.dim(` (${count})`);
+}

@@ -45,6 +45,8 @@ export default defineConfig([
       'github-slugger',
       'zod',
     ],
+    // Acknowledge intentional dependency bundling (suppresses tsdown 0.20+ warning)
+    inlineOnly: false,
   },
   // CLI bootstrap - CJS entry that enables compile cache before loading ESM
   {

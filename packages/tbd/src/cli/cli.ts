@@ -39,7 +39,13 @@ import { designCommand } from './commands/design.js';
 import { readmeCommand } from './commands/readme.js';
 import { uninstallCommand } from './commands/uninstall.js';
 import { primeCommand } from './commands/prime.js';
+import { skillCommand } from './commands/skill.js';
+import { shortcutCommand } from './commands/shortcut.js';
+import { guidelinesCommand } from './commands/guidelines.js';
+import { templateCommand } from './commands/template.js';
 import { setupCommand } from './commands/setup.js';
+import { saveCommand } from './commands/save.js';
+import { workspaceCommand } from './commands/workspace.js';
 import { CLIError } from './lib/errors.js';
 
 /**
@@ -74,6 +80,10 @@ function createProgram(): Command {
   program.commandsGroup('Documentation:');
   program.addCommand(readmeCommand);
   program.addCommand(primeCommand);
+  program.addCommand(skillCommand);
+  program.addCommand(shortcutCommand);
+  program.addCommand(guidelinesCommand);
+  program.addCommand(templateCommand);
   program.addCommand(closeProtocolCommand);
   program.addCommand(docsCommand);
   program.addCommand(designCommand);
@@ -104,12 +114,14 @@ function createProgram(): Command {
 
   program.commandsGroup('Sync and Status:');
   program.addCommand(syncCommand);
+  program.addCommand(saveCommand);
   program.addCommand(statusCommand);
   program.addCommand(statsCommand);
 
   program.commandsGroup('Maintenance:');
   program.addCommand(doctorCommand);
   program.addCommand(atticCommand);
+  program.addCommand(workspaceCommand);
   program.addCommand(importCommand);
   program.addCommand(uninstallCommand);
 
@@ -154,21 +166,79 @@ function isJsonMode(): boolean {
 }
 
 /**
+ * Check if --debug flag is present in argv.
+ */
+function isDebugMode(): boolean {
+  return process.argv.includes('--debug');
+}
+
+/**
  * Output error in the appropriate format (JSON or text).
+ * In debug mode, shows full error details and stack trace.
  */
 function outputError(message: string, error?: Error): void {
+  const debugMode = isDebugMode();
+
   if (isJsonMode()) {
-    const errorObj: { error: string; type?: string; details?: string } = { error: message };
+    const errorObj: { error: string; type?: string; details?: string; stack?: string } = {
+      error: message,
+    };
     if (error instanceof CLIError) {
       errorObj.type = error.name;
     }
     if (error && error.message !== message) {
       errorObj.details = error.message;
     }
+    if (debugMode && error?.stack) {
+      errorObj.stack = error.stack;
+    }
     console.error(JSON.stringify(errorObj));
   } else {
     console.error(`Error: ${message}`);
+    if (debugMode && error?.stack) {
+      console.error('');
+      console.error('Stack trace:');
+      console.error(error.stack);
+    }
   }
+}
+
+/**
+ * Check if running with no command (just options or nothing).
+ * Returns true if: `tbd`, `tbd --help`, `tbd --version`, `tbd --color never`
+ * Returns false if there's a command: `tbd list`, `tbd show foo`
+ */
+function hasNoCommand(): boolean {
+  // process.argv is: [node, script, ...args]
+  const rawArgs = process.argv.slice(2);
+
+  // Global options that take a value (space-separated form)
+  const optionsWithValues = new Set(['--color']);
+
+  const nonOptionArgs: string[] = [];
+  let skipNext = false;
+
+  for (const arg of rawArgs) {
+    if (skipNext) {
+      // This arg is a value for the previous option, skip it
+      skipNext = false;
+      continue;
+    }
+
+    if (arg.startsWith('-')) {
+      // Check if this option takes a value (and doesn't use = syntax)
+      const optionName = arg.includes('=') ? arg.split('=')[0] : arg;
+      if (optionsWithValues.has(optionName!) && !arg.includes('=')) {
+        skipNext = true;
+      }
+      continue;
+    }
+
+    // This is a non-option argument (potential command)
+    nonOptionArgs.push(arg);
+  }
+
+  return nonOptionArgs.length === 0;
 }
 
 /**
@@ -176,6 +246,19 @@ function outputError(message: string, error?: Error): void {
  */
 export async function runCli(): Promise<void> {
   const program = createProgram();
+
+  // If no command specified (and not help/version), run prime by default
+  // But only if no --help or --version flags
+  const isHelpOrVersion =
+    process.argv.includes('--help') ||
+    process.argv.includes('-h') ||
+    process.argv.includes('--version') ||
+    process.argv.includes('-V');
+
+  if (hasNoCommand() && !isHelpOrVersion) {
+    // Insert 'prime' as the command
+    process.argv.splice(2, 0, 'prime');
+  }
 
   try {
     await program.parseAsync(process.argv);
