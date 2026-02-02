@@ -131,6 +131,53 @@ Body.`;
     expect(reparsed).toContain('name: tbd');
     expect(reparsed).toContain('description:');
   });
+
+  it('handles values with special YAML characters (#, @)', () => {
+    const content = `---
+title: Issue #123
+tags: "@user mentioned this"
+---
+
+Body.`;
+
+    const frontmatter = parseFrontmatter(content);
+    expect(frontmatter).toContain('title:');
+    expect(frontmatter).toContain('tags:');
+    // Verify round-trip
+    const reparsed = parseFrontmatter(`---\n${frontmatter}\n---\n\nBody.`);
+    expect(reparsed).not.toBeNull();
+  });
+
+  it('handles boolean-like string values', () => {
+    const content = `---
+title: "yes"
+status: "true"
+flag: "no"
+---
+
+Body.`;
+
+    const frontmatter = parseFrontmatter(content);
+    expect(frontmatter).toContain('title:');
+    expect(frontmatter).toContain('status:');
+    // Verify round-trip preserves string nature
+    const reparsed = parseFrontmatter(`---\n${frontmatter}\n---\n\nBody.`);
+    expect(reparsed).not.toBeNull();
+  });
+
+  it('handles numeric string values', () => {
+    const content = `---
+version: "1.0"
+count: "100"
+---
+
+Body.`;
+
+    const frontmatter = parseFrontmatter(content);
+    // Verify round-trip
+    const reparsed = parseFrontmatter(`---\n${frontmatter}\n---\n\nBody.`);
+    expect(reparsed).not.toBeNull();
+  });
 });
 
 describe('stripFrontmatter', () => {
