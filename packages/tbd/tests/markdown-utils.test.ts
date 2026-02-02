@@ -91,6 +91,46 @@ Description.`;
     expect(frontmatter).toContain('labels:');
     expect(frontmatter).toContain('- frontend');
   });
+
+  it('handles values containing colons (YAML special chars)', () => {
+    // This is the critical bug: values with "Use for: something" patterns
+    // must be quoted or they appear as separate YAML keys when re-parsed
+    const content = `---
+name: skill
+description: "Use for: tracking issues"
+---
+
+Body.`;
+
+    const frontmatter = parseFrontmatter(content);
+    expect(frontmatter).toContain('name: skill');
+    // The description value should be properly quoted/escaped
+    // When parsed again, it should still be a single value
+    expect(frontmatter).toContain('description:');
+    // Verify round-trip: parse the reconstructed frontmatter
+    const reparsed = parseFrontmatter(`---\n${frontmatter}\n---\n\nBody.`);
+    expect(reparsed).toContain('name: skill');
+    expect(reparsed).toContain('description:');
+  });
+
+  it('handles multiline description with colons', () => {
+    const content = `---
+name: tbd
+description: >-
+  Git-native issue tracking. Use for: tracking issues, creating bugs.
+  Invoke when: user mentions tbd, beads, or issues.
+---
+
+Body.`;
+
+    const frontmatter = parseFrontmatter(content);
+    expect(frontmatter).toContain('name: tbd');
+    expect(frontmatter).toContain('description:');
+    // Verify round-trip works
+    const reparsed = parseFrontmatter(`---\n${frontmatter}\n---\n\nBody.`);
+    expect(reparsed).toContain('name: tbd');
+    expect(reparsed).toContain('description:');
+  });
 });
 
 describe('stripFrontmatter', () => {

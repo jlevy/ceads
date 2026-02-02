@@ -1,10 +1,12 @@
 /**
  * Markdown utilities for processing markdown content.
  *
- * Uses gray-matter for consistent frontmatter parsing across the codebase.
+ * Uses gray-matter for parsing and yaml package for stringify to ensure
+ * proper handling of special YAML characters (colons, quotes, etc.).
  */
 
 import matter from 'gray-matter';
+import { stringify as stringifyYaml } from 'yaml';
 
 export interface ParsedMarkdown {
   /** Raw frontmatter string (without --- delimiters), or null if no frontmatter */
@@ -42,24 +44,9 @@ export function parseMarkdown(content: string): ParsedMarkdown {
     let frontmatter: string | null = null;
 
     if (data && Object.keys(data).length > 0) {
-      // Reconstruct frontmatter as YAML lines
-      const lines: string[] = [];
-      for (const [key, value] of Object.entries(data)) {
-        if (Array.isArray(value)) {
-          lines.push(`${key}:`);
-          for (const item of value) {
-            lines.push(`  - ${String(item)}`);
-          }
-        } else if (typeof value === 'object' && value !== null) {
-          lines.push(`${key}:`);
-          for (const [subKey, subValue] of Object.entries(value as Record<string, unknown>)) {
-            lines.push(`  ${subKey}: ${String(subValue)}`);
-          }
-        } else {
-          lines.push(`${key}: ${String(value)}`);
-        }
-      }
-      frontmatter = lines.join('\n');
+      // Use yaml package stringify for proper handling of special characters
+      // (colons, quotes, multiline strings, etc.)
+      frontmatter = stringifyYaml(data, { lineWidth: 0 }).trimEnd();
     } else {
       // Empty frontmatter (just --- followed by ---)
       frontmatter = '';
