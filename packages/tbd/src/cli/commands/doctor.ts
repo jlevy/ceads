@@ -34,6 +34,7 @@ import {
   repairWorktree,
   migrateDataToWorktree,
   initWorktree,
+  countRemoteIssues,
 } from '../../file/git.js';
 import { type DiagnosticResult, renderDiagnostics } from '../lib/diagnostics.js';
 import { VERSION } from '../lib/version.js';
@@ -79,8 +80,8 @@ class DoctorHandler extends BaseCommand {
     // Gather status info
     const statusInfo = await this.gatherStatusInfo();
 
-    // Gather stats info
-    const statsInfo = this.gatherStatsInfo();
+    // Gather stats info (async to check remote when local is empty)
+    const statsInfo = await this.gatherStatsInfo();
 
     // Run health checks (core system checks)
     const healthChecks: DiagnosticResult[] = [];
@@ -218,13 +219,14 @@ class DoctorHandler extends BaseCommand {
     };
   }
 
-  private gatherStatsInfo(): {
+  private async gatherStatsInfo(): Promise<{
     total: number;
     ready: number;
     inProgress: number;
     blocked: number;
     open: number;
-  } {
+    remoteTotal: number | null;
+  }> {
     // Count by status
     const byStatus: Record<IssueStatusType, number> = {
       open: 0,
@@ -257,12 +259,22 @@ class DoctorHandler extends BaseCommand {
       }
     }
 
+    // Check remote issue count when local is empty
+    // This helps users on fresh clones understand that data exists
+    let remoteTotal: number | null = null;
+    if (this.issues.length === 0 && this.config) {
+      const remote = this.config.sync.remote ?? 'origin';
+      const syncBranch = this.config.sync.branch ?? 'tbd-sync';
+      remoteTotal = await countRemoteIssues(remote, syncBranch);
+    }
+
     return {
       total: this.issues.length,
       ready: readyCount,
       inProgress: byStatus.in_progress,
       blocked: blockedIds.size,
       open: byStatus.open,
+      remoteTotal,
     };
   }
 

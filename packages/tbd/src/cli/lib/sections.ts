@@ -52,6 +52,8 @@ export interface StatisticsSectionData {
   blocked: number;
   open: number;
   total: number;
+  /** Number of issues on remote branch (when local is empty but remote has data) */
+  remoteTotal?: number | null;
 }
 
 /**
@@ -183,6 +185,7 @@ export function renderIntegrationsSection(
  * Used by: stats, doctor
  *
  * Shows aligned statistic block with labels and values.
+ * When local is 0 but remote has data, shows a hint to run tbd sync.
  *
  * @param data - Statistics data to render
  * @param colors - Color functions
@@ -202,16 +205,25 @@ export function renderStatisticsSection(
   const labels = ['Ready', 'In progress', 'Blocked', 'Open', 'Total'];
   const maxLabelLen = Math.max(...labels.map((l) => l.length));
 
-  const formatLine = (label: string, value: number): string => {
+  const formatLine = (label: string, value: number, suffix?: string): string => {
     const padding = ' '.repeat(maxLabelLen - label.length + 1);
-    return `  ${label}:${padding}${value}`;
+    const suffixStr = suffix ? ` ${colors.dim(suffix)}` : '';
+    return `  ${label}:${padding}${value}${suffixStr}`;
   };
 
   console.log(formatLine('Ready', data.ready));
   console.log(formatLine('In progress', data.inProgress));
   console.log(formatLine('Blocked', data.blocked));
   console.log(formatLine('Open', data.open));
-  console.log(formatLine('Total', data.total));
+
+  // Show remote count hint when local is 0 but remote has data
+  if (data.total === 0 && data.remoteTotal && data.remoteTotal > 0) {
+    console.log(
+      formatLine('Total', data.total, `(${data.remoteTotal} on remote - run 'tbd sync')`),
+    );
+  } else {
+    console.log(formatLine('Total', data.total));
+  }
 }
 
 /**
