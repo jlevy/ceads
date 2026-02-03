@@ -3,7 +3,7 @@ display:
 # Documentation cache configuration.
 # files: Maps destination paths (relative to .tbd/docs/) to source locations.
 #   Sources can be:
-#   - internal: prefix for bundled docs (e.g., "internal:shortcuts/standard/code-review-and-commit.md")
+#   - internal: prefix for bundled docs (e.g., "internal:shortcuts/standard/commit-code.md")
 #   - Full URL for external docs (e.g., "https://raw.githubusercontent.com/org/repo/main/file.md")
 # lookup_path: Search paths for doc lookup (like shell $PATH). Earlier paths take precedence.
 #
@@ -30,19 +30,16 @@ docs_cache:
     guidelines/python-cli-patterns.md: internal:guidelines/python-cli-patterns.md
     guidelines/python-modern-guidelines.md: internal:guidelines/python-modern-guidelines.md
     guidelines/python-rules.md: internal:guidelines/python-rules.md
-    guidelines/release-notes-guidelines.md: internal:guidelines/release-notes-guidelines.md
     guidelines/sync-troubleshooting.md: internal:guidelines/sync-troubleshooting.md
     guidelines/typescript-cli-tool-rules.md: internal:guidelines/typescript-cli-tool-rules.md
     guidelines/typescript-code-coverage.md: internal:guidelines/typescript-code-coverage.md
     guidelines/typescript-monorepo-patterns.md: internal:guidelines/typescript-monorepo-patterns.md
     guidelines/typescript-rules.md: internal:guidelines/typescript-rules.md
-    guidelines/typescript-yaml-handling-rules.md: internal:guidelines/typescript-yaml-handling-rules.md
     shortcuts/standard/agent-handoff.md: internal:shortcuts/standard/agent-handoff.md
-    shortcuts/standard/checkout-third-party-repo.md: internal:shortcuts/standard/checkout-third-party-repo.md
-    shortcuts/standard/code-cleanup-all.md: internal:shortcuts/standard/code-cleanup-all.md
-    shortcuts/standard/code-cleanup-docstrings.md: internal:shortcuts/standard/code-cleanup-docstrings.md
-    shortcuts/standard/code-cleanup-tests.md: internal:shortcuts/standard/code-cleanup-tests.md
-    shortcuts/standard/code-review-and-commit.md: internal:shortcuts/standard/code-review-and-commit.md
+    shortcuts/standard/cleanup-all.md: internal:shortcuts/standard/cleanup-all.md
+    shortcuts/standard/cleanup-remove-trivial-tests.md: internal:shortcuts/standard/cleanup-remove-trivial-tests.md
+    shortcuts/standard/cleanup-update-docstrings.md: internal:shortcuts/standard/cleanup-update-docstrings.md
+    shortcuts/standard/commit-code.md: internal:shortcuts/standard/commit-code.md
     shortcuts/standard/create-or-update-pr-simple.md: internal:shortcuts/standard/create-or-update-pr-simple.md
     shortcuts/standard/create-or-update-pr-with-validation-plan.md: internal:shortcuts/standard/create-or-update-pr-with-validation-plan.md
     shortcuts/standard/implement-beads.md: internal:shortcuts/standard/implement-beads.md

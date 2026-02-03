@@ -1,5 +1,12 @@
 # get-tbd
 
+## 0.1.14
+
+### Patch Changes
+
+- 65b691f: Two-tier prefix validation with --force override, YAML handling improvements
+  with Zod validation, and various bug fixes.
+
 ## 0.1.13
 
 ### Patch Changes
