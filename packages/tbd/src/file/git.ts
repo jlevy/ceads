@@ -404,43 +404,54 @@ function createConflictEntry(
 export function mergeIssues(base: Issue | null, local: Issue, remote: Issue): MergeResult {
   const conflicts: ConflictEntry[] = [];
 
-  // If no base, one was created independently - LWW based on created_at
+  // If no base, check if these are versions of the same issue or independent creations
   if (!base) {
     const localTime = new Date(local.created_at).getTime();
     const remoteTime = new Date(remote.created_at).getTime();
 
-    if (localTime <= remoteTime) {
-      // Local was created first - it wins
-      if (!deepEqual(local, remote)) {
-        conflicts.push(
-          createConflictEntry(
-            remote.id,
-            'whole_issue',
-            remote,
-            local,
-            remote.version,
-            local.version,
-            'lww',
-          ),
-        );
-      }
-      return { merged: local, conflicts };
+    // Same created_at means same original creation - these are versions of the same issue
+    // Use field-by-field merge instead of whole_issue conflict
+    if (localTime === remoteTime) {
+      // Use the one with the lower version as a synthetic base
+      // This forces field-by-field comparison
+      base = local.version <= remote.version ? local : remote;
+      // Fall through to field-by-field merge below
     } else {
-      // Remote was created first - it wins
-      if (!deepEqual(local, remote)) {
-        conflicts.push(
-          createConflictEntry(
-            local.id,
-            'whole_issue',
-            local,
-            remote,
-            local.version,
-            remote.version,
-            'lww',
-          ),
-        );
+      // Different creation times - truly independent issues
+      // Use whole_issue conflict (original behavior)
+      if (localTime < remoteTime) {
+        // Local was created first - it wins
+        if (!deepEqual(local, remote)) {
+          conflicts.push(
+            createConflictEntry(
+              remote.id,
+              'whole_issue',
+              remote,
+              local,
+              remote.version,
+              local.version,
+              'lww',
+            ),
+          );
+        }
+        return { merged: local, conflicts };
+      } else {
+        // Remote was created first - it wins
+        if (!deepEqual(local, remote)) {
+          conflicts.push(
+            createConflictEntry(
+              local.id,
+              'whole_issue',
+              local,
+              remote,
+              local.version,
+              remote.version,
+              'lww',
+            ),
+          );
+        }
+        return { merged: remote, conflicts };
       }
-      return { merged: remote, conflicts };
     }
   }
 
@@ -475,7 +486,15 @@ export function mergeIssues(base: Issue | null, local: Issue, remote: Issue): Me
         break;
 
       case 'lww': {
-        // Compare updated_at timestamps
+        // Only create conflicts when values actually differ (data is discarded)
+        // See: tbd-design.md §3.5 "Attic entries are created only when a merge strategy discards data"
+        if (deepEqual(localVal, remoteVal)) {
+          // Values are identical - no conflict, use either one
+          (merged as Record<string, unknown>)[key] = localVal;
+          break;
+        }
+
+        // Values differ - apply LWW based on updated_at timestamps
         const localTime = new Date(local.updated_at).getTime();
         const remoteTime = new Date(remote.updated_at).getTime();
 

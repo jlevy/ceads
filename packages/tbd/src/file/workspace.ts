@@ -304,22 +304,30 @@ export async function saveToWorkspace(
     }
 
     if (targetIssue) {
-      // Issue exists in both - merge
-      // Use null base since we don't track common ancestor
-      // mergeIssues uses created_at as tiebreaker, so put newer version as "local" to win
+      // Issue exists in both - merge using field-level LWW
+      // Pass older version as "base" to trigger field-by-field merge instead of whole_issue conflict
       const sourceTime = new Date(sourceIssue.updated_at).getTime();
       const targetTime = new Date(targetIssue.updated_at).getTime();
 
+      // Use older version as base for field-by-field merge
       let result;
       let winnerSource: 'local' | 'remote';
-      if (sourceTime >= targetTime) {
-        // Source (worktree) is newer - put as local so it wins
-        result = mergeIssues(null, sourceIssue, targetIssue);
-        winnerSource = 'local';
+
+      if (sourceTime !== targetTime) {
+        // Different timestamps - clear ordering, use older as base
+        const older = sourceTime > targetTime ? targetIssue : sourceIssue;
+        winnerSource = sourceTime > targetTime ? 'local' : 'remote';
+        result = mergeIssues(older, sourceIssue, targetIssue);
       } else {
-        // Target (workspace) is newer - put as local so it wins
-        result = mergeIssues(null, targetIssue, sourceIssue);
-        winnerSource = 'remote';
+        // Equal timestamps - concurrent edits
+        // Create synthetic base to force field-by-field comparison
+        const syntheticBase = {
+          ...sourceIssue,
+          version: 0,
+          updated_at: '1970-01-01T00:00:00.000Z',
+        } as Issue;
+        winnerSource = 'local'; // Arbitrary since timestamps are equal
+        result = mergeIssues(syntheticBase, sourceIssue, targetIssue);
       }
 
       // Save merged issue
@@ -407,22 +415,30 @@ export async function importFromWorkspace(
     }
 
     if (targetIssue) {
-      // Issue exists in both - merge
-      // Use null base since we don't track common ancestor
-      // mergeIssues uses created_at as tiebreaker, so put newer version as "local" to win
+      // Issue exists in both - merge using field-level LWW
+      // Pass older version as "base" to trigger field-by-field merge instead of whole_issue conflict
       const sourceTime = new Date(sourceIssue.updated_at).getTime();
       const targetTime = new Date(targetIssue.updated_at).getTime();
 
+      // Use older version as base for field-by-field merge
       let result;
       let winnerSource: 'local' | 'remote';
-      if (sourceTime >= targetTime) {
-        // Source (workspace) is newer - put as local so it wins
-        result = mergeIssues(null, sourceIssue, targetIssue);
-        winnerSource = 'local';
+
+      if (sourceTime !== targetTime) {
+        // Different timestamps - clear ordering, use older as base
+        const older = sourceTime > targetTime ? targetIssue : sourceIssue;
+        winnerSource = sourceTime > targetTime ? 'local' : 'remote';
+        result = mergeIssues(older, sourceIssue, targetIssue);
       } else {
-        // Target (worktree) is newer - put as local so it wins
-        result = mergeIssues(null, targetIssue, sourceIssue);
-        winnerSource = 'remote';
+        // Equal timestamps - concurrent edits
+        // Create synthetic base to force field-by-field comparison
+        const syntheticBase = {
+          ...sourceIssue,
+          version: 0,
+          updated_at: '1970-01-01T00:00:00.000Z',
+        } as Issue;
+        winnerSource = 'local'; // Arbitrary since timestamps are equal
+        result = mergeIssues(syntheticBase, sourceIssue, targetIssue);
       }
 
       // Save merged issue
