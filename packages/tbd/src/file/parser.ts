@@ -18,9 +18,10 @@
  */
 
 import matter from 'gray-matter';
-import { normalizeLineEndings } from '../utils/markdown-utils.js';
-import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
+import { parse as parseYaml } from 'yaml';
 
+import { normalizeLineEndings } from '../utils/markdown-utils.js';
+import { stringifyYaml } from '../utils/yaml-utils.js';
 import type { Issue } from '../lib/types.js';
 import { IssueSchema } from '../lib/schemas.js';
 
@@ -128,9 +129,8 @@ export function serializeIssue(issue: Issue): string {
     sortedMetadata[key] = metadata[key as keyof typeof metadata];
   }
 
-  // Serialize YAML with specific options for canonical output
+  // Serialize YAML with compact output for frontmatter (sortMapEntries is in defaults)
   const yaml = stringifyYaml(sortedMetadata, {
-    sortMapEntries: true,
     lineWidth: 0, // No wrapping
     nullStr: 'null',
   });

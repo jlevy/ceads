@@ -13,8 +13,9 @@
 
 import { mkdir, readdir, rm, stat } from 'node:fs/promises';
 import { join } from 'node:path';
-import { stringify as stringifyYaml } from 'yaml';
 import { writeFile } from 'atomically';
+
+import { stringifyYaml } from '../utils/yaml-utils.js';
 
 import { listIssues, writeIssue, readIssue } from './storage.js';
 import { parseIssue } from './parser.js';
@@ -208,7 +209,8 @@ async function saveConflictToAttic(
   const filename = `${conflict.issue_id}_${safeTimestamp}_${conflict.field}.yml`;
   const filepath = join(atticDir, filename);
 
-  const content = stringifyYaml(entry, { sortMapEntries: true });
+  // Uses default options which include sortMapEntries: true
+  const content = stringifyYaml(entry);
   await writeFile(filepath, content);
 }
 

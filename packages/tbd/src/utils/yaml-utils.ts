@@ -1,11 +1,58 @@
 /**
  * YAML utility functions.
  *
- * Provides helpers for parsing YAML with better error detection,
- * particularly for merge conflict markers.
+ * Provides centralized YAML parsing and serialization with:
+ * - Merge conflict detection for user-editable files
+ * - Consistent, readable formatting defaults
+ * - Proper handling of special characters (colons, quotes, etc.)
+ *
+ * IMPORTANT: Always use these utilities instead of raw yaml package functions.
+ * This ensures consistent formatting and proper error handling across the codebase.
  */
 
-import { parse as parseYaml } from 'yaml';
+import { parse as parseYaml, stringify } from 'yaml';
+
+import {
+  YAML_LINE_WIDTH,
+  YAML_STRINGIFY_OPTIONS,
+  YAML_STRINGIFY_OPTIONS_COMPACT,
+  type YamlStringifyOptions,
+} from '../lib/settings.js';
+
+// Re-export for convenience
+export { YAML_LINE_WIDTH, YAML_STRINGIFY_OPTIONS, YAML_STRINGIFY_OPTIONS_COMPACT };
+
+// =============================================================================
+// Serialization Functions
+// =============================================================================
+
+/**
+ * Serialize data to YAML with readable formatting.
+ *
+ * Uses consistent defaults:
+ * - No forced quoting (YAML only quotes when necessary)
+ * - lineWidth of 88 provides reasonable wrapping for long strings
+ * - Plain keys without quotes
+ * - Sorted keys for deterministic output
+ *
+ * @param data - Data to serialize
+ * @param options - Optional overrides for default options
+ * @returns YAML string
+ */
+export function stringifyYaml(data: unknown, options?: Partial<YamlStringifyOptions>): string {
+  return stringify(data, { ...YAML_STRINGIFY_OPTIONS, ...options });
+}
+
+/**
+ * Serialize data to YAML without line wrapping (compact mode).
+ * Useful for frontmatter where values should stay on single lines.
+ *
+ * @param data - Data to serialize
+ * @returns YAML string with no line wrapping
+ */
+export function stringifyYamlCompact(data: unknown): string {
+  return stringify(data, YAML_STRINGIFY_OPTIONS_COMPACT);
+}
 
 /**
  * Error thrown when YAML content contains unresolved merge conflict markers.

@@ -43,7 +43,7 @@ describe('ShortId', () => {
   it('rejects invalid short IDs', () => {
     expect(ShortId.safeParse('').success).toBe(false); // empty
     expect(ShortId.safeParse('ABC1').success).toBe(false); // uppercase
-    expect(ShortId.safeParse('a-b').success).toBe(false); // contains hyphen
+    expect(ShortId.safeParse('a b').success).toBe(false); // contains space
   });
 
   it('accepts short IDs of various lengths for import preservation', () => {
@@ -52,6 +52,15 @@ describe('ShortId', () => {
     expect(ShortId.safeParse('100').success).toBe(true);
     expect(ShortId.safeParse('abc').success).toBe(true);
     expect(ShortId.safeParse('abcdef').success).toBe(true);
+  });
+
+  it('accepts short IDs with special characters from imports', () => {
+    // Imports may have dots (legacy hierarchical), dashes, or underscores
+    expect(ShortId.safeParse('208.1').success).toBe(true); // legacy dotted
+    expect(ShortId.safeParse('stat-open').success).toBe(true); // dash
+    expect(ShortId.safeParse('stat-in_progress').success).toBe(true); // dash and underscore
+    expect(ShortId.safeParse('a-b').success).toBe(true); // simple dash
+    expect(ShortId.safeParse('a_b').success).toBe(true); // simple underscore
   });
 });
 

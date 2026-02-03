@@ -10,8 +10,8 @@
 import { readFile, mkdir } from 'node:fs/promises';
 import { join, dirname } from 'node:path';
 import { writeFile } from 'atomically';
-import { stringify as stringifyYaml } from 'yaml';
-import { parseYamlWithConflictDetection } from '../utils/yaml-utils.js';
+
+import { parseYamlWithConflictDetection, stringifyYaml } from '../utils/yaml-utils.js';
 
 import {
   generateShortId,
@@ -23,6 +23,7 @@ import {
   type InternalIssueId,
 } from '../lib/ids.js';
 import { naturalSort } from '../lib/sort.js';
+import { IdMappingYamlSchema } from '../lib/schemas.js';
 
 /**
  * ID mapping from short ID to ULID.
@@ -61,7 +62,14 @@ export async function loadIdMapping(baseDir: string): Promise<IdMapping> {
   }
 
   // Parse with conflict detection - provides helpful error if file has merge markers
-  const data = parseYamlWithConflictDetection<Record<string, string>>(content, filePath) || {};
+  const rawData = parseYamlWithConflictDetection<unknown>(content, filePath) ?? {};
+
+  // Validate with Zod schema - ensures all keys are valid short IDs and values are ULIDs
+  const parseResult = IdMappingYamlSchema.safeParse(rawData);
+  if (!parseResult.success) {
+    throw new Error(`Invalid ID mapping format in ${filePath}: ${parseResult.error.message}`);
+  }
+  const data = parseResult.data;
 
   const shortToUlid = new Map<string, string>();
   const ulidToShort = new Map<string, string>();
@@ -245,7 +253,14 @@ export function resolveToInternalId(input: string, mapping: IdMapping): Internal
  */
 export function parseIdMappingFromYaml(content: string): IdMapping {
   // Parse with conflict detection - throws MergeConflictError if markers found
-  const data = parseYamlWithConflictDetection<Record<string, string>>(content) || {};
+  const rawData = parseYamlWithConflictDetection<unknown>(content) ?? {};
+
+  // Validate with Zod schema
+  const parseResult = IdMappingYamlSchema.safeParse(rawData);
+  if (!parseResult.success) {
+    throw new Error(`Invalid ID mapping format: ${parseResult.error.message}`);
+  }
+  const data = parseResult.data;
 
   const shortToUlid = new Map<string, string>();
   const ulidToShort = new Map<string, string>();

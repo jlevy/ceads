@@ -6,9 +6,10 @@
 
 import { Command } from 'commander';
 import { readFile } from 'node:fs/promises';
-import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
-
+import { parse as parseYaml } from 'yaml';
 import { writeFile } from 'atomically';
+
+import { stringifyYaml } from '../../utils/yaml-utils.js';
 
 import { BaseCommand } from '../lib/base-command.js';
 import { applyLimit } from '../lib/limit-utils.js';

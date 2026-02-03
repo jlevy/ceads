@@ -11,8 +11,9 @@
 import { readFile, mkdir, access } from 'node:fs/promises';
 import { join, dirname, parse as parsePath } from 'node:path';
 import { writeFile } from 'atomically';
-import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
+import { parse as parseYaml } from 'yaml';
 
+import { stringifyYaml } from '../utils/yaml-utils.js';
 import type { Config, LocalState } from '../lib/types.js';
 import { ConfigSchema, LocalStateSchema } from '../lib/schemas.js';
 import { CONFIG_FILE, STATE_FILE, SYNC_BRANCH } from '../lib/paths.js';
@@ -159,10 +160,8 @@ export async function readConfigWithMigration(
 export async function writeConfig(baseDir: string, config: Config): Promise<void> {
   const configPath = join(baseDir, CONFIG_FILE);
 
-  const yaml = stringifyYaml(config, {
-    sortMapEntries: true,
-    lineWidth: 0,
-  });
+  // Use lineWidth: 0 for compact config output (sortMapEntries is in defaults)
+  const yaml = stringifyYaml(config, { lineWidth: 0 });
 
   // Add explanatory comments for docs_cache section
   let content = yaml;
@@ -264,10 +263,8 @@ export async function writeLocalState(baseDir: string, state: LocalState): Promi
   // Ensure .tbd directory exists
   await mkdir(join(baseDir, '.tbd'), { recursive: true });
 
-  const yaml = stringifyYaml(state, {
-    sortMapEntries: true,
-    lineWidth: 0,
-  });
+  // Use lineWidth: 0 for compact state output (sortMapEntries is in defaults)
+  const yaml = stringifyYaml(state, { lineWidth: 0 });
 
   await writeFile(statePath, yaml);
 }

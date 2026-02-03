@@ -7,7 +7,8 @@
 import { Command } from 'commander';
 import { readdir, readFile, mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
-import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
+
+import { parseYamlWithConflictDetection, stringifyYaml } from '../../utils/yaml-utils.js';
 
 import { writeFile } from 'atomically';
 
@@ -21,6 +22,7 @@ import { now } from '../../utils/time-utils.js';
 import { loadIdMapping } from '../../file/id-mapping.js';
 import { readConfig } from '../../file/config.js';
 import type { AtticEntry } from '../../lib/types.js';
+import { AtticEntrySchema } from '../../lib/schemas.js';
 
 /**
  * Get attic entry filename from components.
@@ -72,11 +74,13 @@ async function listAtticEntries(filterById?: string): Promise<AtticEntry[]> {
     if (filterById && parsed.entityId !== filterById) continue;
 
     try {
-      const content = await readFile(join(atticPath, file), 'utf-8');
-      const entry = parseYaml(content) as AtticEntry;
+      const filePath = join(atticPath, file);
+      const content = await readFile(filePath, 'utf-8');
+      const rawData = parseYamlWithConflictDetection<unknown>(content, filePath);
+      const entry = AtticEntrySchema.parse(rawData);
       entries.push(entry);
     } catch {
-      // Skip invalid files
+      // Skip invalid files (including those with merge conflicts or schema errors)
     }
   }
 
@@ -95,7 +99,8 @@ export async function saveAtticEntry(entry: AtticEntry): Promise<void> {
 
   const filename = getAtticFilename(entry.entity_id, entry.timestamp, entry.field);
   const filepath = join(atticPath, filename);
-  const content = stringifyYaml(entry, { sortMapEntries: true });
+  // Uses default options which include sortMapEntries: true
+  const content = stringifyYaml(entry);
 
   await writeFile(filepath, content);
 }

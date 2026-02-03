@@ -27,8 +27,17 @@ export const IssueId = z.string().regex(/^is-[0-9a-z]{26}$/);
  * Short ID: 1+ base36 characters used for external/display IDs.
  * Typically 4 chars for new IDs (e.g., a7k2, b3m9).
  * Imports may preserve longer numeric IDs (e.g., "100" from "tbd-100").
+ * Legacy imports may include dots (e.g., "208.1" from hierarchical numbering).
+ * Imports may include dashes/underscores (e.g., "stat-in_progress" from JSONL).
  */
-export const ShortId = z.string().regex(/^[0-9a-z]+$/);
+export const ShortId = z.string().regex(/^[0-9a-z._-]+$/);
+
+/**
+ * ULID: 26 lowercase alphanumeric characters.
+ * Used in internal IDs and ID mappings.
+ * Example: 01hx5zzkbkactav9wevgemmvrz
+ */
+export const Ulid = z.string().regex(/^[0-9a-z]{26}$/);
 
 /**
  * External Issue ID input: accepts {prefix}-{short} or just {short}.
@@ -329,3 +338,14 @@ export const AtticEntrySchema = z.object({
     remote_updated_at: Timestamp,
   }),
 });
+
+// =============================================================================
+// ID Mapping Schema (§2.6.8)
+// =============================================================================
+
+/**
+ * ID mapping YAML file schema for ids.yml.
+ * Maps short IDs to ULIDs.
+ * Format: { "a7k2": "01hx5zzkbkactav9wevgemmvrz", ... }
+ */
+export const IdMappingYamlSchema = z.record(ShortId, Ulid);

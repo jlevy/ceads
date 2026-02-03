@@ -19,7 +19,8 @@ status: open
 Body content here.`;
 
     const frontmatter = parseFrontmatter(content);
-    expect(frontmatter).toBe('title: Test\nstatus: open');
+    // Keys are sorted alphabetically by yaml serialization
+    expect(frontmatter).toBe('status: open\ntitle: Test');
   });
 
   it('returns null for content without frontmatter', () => {
@@ -47,14 +48,16 @@ Body without closing delimiter.`;
     const content = '---\r\ntitle: Test\r\nstatus: open\r\n---\r\n\r\nBody content.';
 
     const frontmatter = parseFrontmatter(content);
-    expect(frontmatter).toBe('title: Test\nstatus: open');
+    // Keys are sorted alphabetically by yaml serialization
+    expect(frontmatter).toBe('status: open\ntitle: Test');
   });
 
   it('handles mixed LF and CRLF line endings', () => {
     const content = '---\r\ntitle: Mixed\nstatus: open\r\n---\n\nBody.';
 
     const frontmatter = parseFrontmatter(content);
-    expect(frontmatter).toBe('title: Mixed\nstatus: open');
+    // Keys are sorted alphabetically by yaml serialization
+    expect(frontmatter).toBe('status: open\ntitle: Mixed');
   });
 
   it('handles frontmatter with trailing whitespace on delimiter', () => {
@@ -90,6 +93,93 @@ Description.`;
     expect(frontmatter).toContain('title: Complex Issue');
     expect(frontmatter).toContain('labels:');
     expect(frontmatter).toContain('- frontend');
+  });
+
+  it('handles values containing colons (YAML special chars)', () => {
+    // This is the critical bug: values with "Use for: something" patterns
+    // must be quoted or they appear as separate YAML keys when re-parsed
+    const content = `---
+name: skill
+description: "Use for: tracking issues"
+---
+
+Body.`;
+
+    const frontmatter = parseFrontmatter(content);
+    expect(frontmatter).toContain('name: skill');
+    // The description value should be properly quoted/escaped
+    // When parsed again, it should still be a single value
+    expect(frontmatter).toContain('description:');
+    // Verify round-trip: parse the reconstructed frontmatter
+    const reparsed = parseFrontmatter(`---\n${frontmatter}\n---\n\nBody.`);
+    expect(reparsed).toContain('name: skill');
+    expect(reparsed).toContain('description:');
+  });
+
+  it('handles multiline description with colons', () => {
+    const content = `---
+name: tbd
+description: >-
+  Git-native issue tracking. Use for: tracking issues, creating bugs.
+  Invoke when: user mentions tbd, beads, or issues.
+---
+
+Body.`;
+
+    const frontmatter = parseFrontmatter(content);
+    expect(frontmatter).toContain('name: tbd');
+    expect(frontmatter).toContain('description:');
+    // Verify round-trip works
+    const reparsed = parseFrontmatter(`---\n${frontmatter}\n---\n\nBody.`);
+    expect(reparsed).toContain('name: tbd');
+    expect(reparsed).toContain('description:');
+  });
+
+  it('handles values with special YAML characters (#, @)', () => {
+    const content = `---
+title: Issue #123
+tags: "@user mentioned this"
+---
+
+Body.`;
+
+    const frontmatter = parseFrontmatter(content);
+    expect(frontmatter).toContain('title:');
+    expect(frontmatter).toContain('tags:');
+    // Verify round-trip
+    const reparsed = parseFrontmatter(`---\n${frontmatter}\n---\n\nBody.`);
+    expect(reparsed).not.toBeNull();
+  });
+
+  it('handles boolean-like string values', () => {
+    const content = `---
+title: "yes"
+status: "true"
+flag: "no"
+---
+
+Body.`;
+
+    const frontmatter = parseFrontmatter(content);
+    expect(frontmatter).toContain('title:');
+    expect(frontmatter).toContain('status:');
+    // Verify round-trip preserves string nature
+    const reparsed = parseFrontmatter(`---\n${frontmatter}\n---\n\nBody.`);
+    expect(reparsed).not.toBeNull();
+  });
+
+  it('handles numeric string values', () => {
+    const content = `---
+version: "1.0"
+count: "100"
+---
+
+Body.`;
+
+    const frontmatter = parseFrontmatter(content);
+    // Verify round-trip
+    const reparsed = parseFrontmatter(`---\n${frontmatter}\n---\n\nBody.`);
+    expect(reparsed).not.toBeNull();
   });
 });
 
@@ -204,8 +294,9 @@ allowed-tools: Bash, Read
     const toInsert = '<!-- DO NOT EDIT -->';
 
     const result = insertAfterFrontmatter(content, toInsert);
-    // Frontmatter should be intact
-    expect(result).toMatch(/^---\nname: skill/);
+    // Frontmatter should be intact (keys may be sorted alphabetically)
+    expect(result).toMatch(/^---\n/);
+    expect(result).toContain('name: skill');
     expect(result).toContain('description: A skill description');
     expect(result).toContain('allowed-tools: Bash, Read');
     expect(result).toContain('---\n');

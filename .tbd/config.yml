@@ -36,6 +36,7 @@ docs_cache:
     guidelines/typescript-code-coverage.md: internal:guidelines/typescript-code-coverage.md
     guidelines/typescript-monorepo-patterns.md: internal:guidelines/typescript-monorepo-patterns.md
     guidelines/typescript-rules.md: internal:guidelines/typescript-rules.md
+    guidelines/typescript-yaml-handling-rules.md: internal:guidelines/typescript-yaml-handling-rules.md
     shortcuts/standard/agent-handoff.md: internal:shortcuts/standard/agent-handoff.md
     shortcuts/standard/checkout-third-party-repo.md: internal:shortcuts/standard/checkout-third-party-repo.md
     shortcuts/standard/code-cleanup-all.md: internal:shortcuts/standard/code-cleanup-all.md
