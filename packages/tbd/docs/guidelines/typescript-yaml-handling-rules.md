@@ -25,49 +25,61 @@ and lack of validation cause subtle bugs.
 
 ## Centralize Serialization Options
 
-- **Create a central settings file** with YAML options instead of scattering
-  `stringify()` calls with ad-hoc options throughout the codebase.
+- **Externalize settings to a central file** instead of scattering `stringify()` calls
+  with ad-hoc options throughout the codebase.
 
   ```ts
   // lib/settings.ts
-  import type { DocumentOptions, SchemaOptions, ToStringOptions } from 'yaml';
+  export const DEFAULT_YAML_LINE_WIDTH = 88;
   
-  export const YAML_LINE_WIDTH = 88;
-  export const YAML_DEFAULT_STRING_TYPE = 'PLAIN' as const;
-  export const YAML_DEFAULT_KEY_TYPE = 'PLAIN' as const;
-  
-  export type YamlStringifyOptions = DocumentOptions & SchemaOptions & ToStringOptions;
-  
-  export const YAML_STRINGIFY_OPTIONS: YamlStringifyOptions = {
-    lineWidth: YAML_LINE_WIDTH,
-    defaultStringType: YAML_DEFAULT_STRING_TYPE,
-    defaultKeyType: YAML_DEFAULT_KEY_TYPE,
+  // Readable YAML output:
+  // - No forced quoting (YAML only quotes when necessary)
+  // - Line wrapping at 88 chars for readability
+  // - Sorted keys for deterministic diffs
+  export const YAML_STRINGIFY_OPTIONS = {
+    lineWidth: DEFAULT_YAML_LINE_WIDTH,
+    defaultStringType: 'PLAIN',
+    defaultKeyType: 'PLAIN',
     sortMapEntries: true,
-  };
+  } as const;
   ```
 
-- **Create wrapper functions** that apply defaults consistently:
+- **Use the centralized options** wherever you serialize YAML:
+
+  ```ts
+  // serialize.ts
+  import { stringify } from 'yaml';
+  import { YAML_STRINGIFY_OPTIONS } from '../lib/settings.js';
+  
+  const yamlStr = stringify(frontmatterObj, YAML_STRINGIFY_OPTIONS);
+  ```
+
+- **Optionally create wrapper functions** for additional convenience:
 
   ```ts
   // utils/yaml-utils.ts
   import { stringify } from 'yaml';
-  import { YAML_STRINGIFY_OPTIONS, type YamlStringifyOptions } from '../lib/settings.js';
+  import { YAML_STRINGIFY_OPTIONS } from '../lib/settings.js';
   
-  export function stringifyYaml(data: unknown, options?: Partial<YamlStringifyOptions>): string {
+  export function stringifyYaml(data: unknown, options?: object): string {
     return stringify(data, { ...YAML_STRINGIFY_OPTIONS, ...options });
   }
   ```
 
 ## Recommended Defaults
 
-These defaults produce clean, readable YAML:
+These defaults produce clean, readable YAML without unnecessary quoting:
 
 | Option | Value | Rationale |
 | --- | --- | --- |
-| `lineWidth` | 88 | Matches Python's Black formatter; good balance of readability |
-| `defaultStringType` | `'PLAIN'` | No forced quoting—YAML quotes only when necessary |
-| `defaultKeyType` | `'PLAIN'` | Unquoted keys unless required |
-| `sortMapEntries` | `true` | Deterministic output for diffs and version control |
+| `lineWidth` | 88 | Line wrapping for readability (matches Black formatter) |
+| `defaultStringType` | `'PLAIN'` | No quotes unless necessary (e.g., special chars, colons) |
+| `defaultKeyType` | `'PLAIN'` | Unquoted keys: `name:` not `"name":` |
+| `sortMapEntries` | `true` | Deterministic output for clean diffs |
+
+The key insight: YAML is designed to be human-readable.
+Forcing quotes everywhere (e.g., `"value"` instead of `value`) defeats this purpose.
+Use `PLAIN` types to let YAML quote only when semantically required.
 
 ## Validate with Zod
 
