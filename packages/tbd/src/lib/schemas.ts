@@ -28,8 +28,9 @@ export const IssueId = z.string().regex(/^is-[0-9a-z]{26}$/);
  * Typically 4 chars for new IDs (e.g., a7k2, b3m9).
  * Imports may preserve longer numeric IDs (e.g., "100" from "tbd-100").
  * Legacy imports may include dots (e.g., "208.1" from hierarchical numbering).
+ * Imports may include dashes/underscores (e.g., "stat-in_progress" from JSONL).
  */
-export const ShortId = z.string().regex(/^[0-9a-z.]+$/);
+export const ShortId = z.string().regex(/^[0-9a-z._-]+$/);
 
 /**
  * ULID: 26 lowercase alphanumeric characters.
