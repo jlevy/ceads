@@ -37,7 +37,8 @@ description: Full tbd workflow guide for agents
 **`tbd` helps humans and agents ship code with greater speed, quality, and discipline.**
 
 1. **Beads**: Git-native issue tracking (tasks, bugs, features).
-   Never lose work across sessions. Drop-in replacement for `bd`.
+   Never lose work across sessions.
+   Drop-in replacement for `bd`.
 2. **Spec-Driven Workflows**: Plan features → break into beads → implement
    systematically.
 3. **Knowledge Injection**: 17+ engineering guidelines (TypeScript, Python, TDD,
@@ -82,7 +83,7 @@ or want help → run `tbd shortcut welcome-user`
 
 | User Says | You (the Agent) Run |
 | --- | --- |
-| **Issues/Beads** | |
+| **Issues/Beads** |  |
 | "There's a bug where ..." | `tbd create "..." --type=bug` |
 | "Create a task/feature for ..." | `tbd create "..." --type=task` or `--type=feature` |
 | "Let's work on issues/beads" | `tbd ready` |
@@ -91,17 +92,17 @@ or want help → run `tbd shortcut welcome-user`
 | "Search issues for X" | `tbd search "X"` |
 | "Add label X to issue" | `tbd label add <id> <label>` |
 | "What issues are stale?" | `tbd stale` |
-| **Planning & Specs** | |
+| **Planning & Specs** |  |
 | "Plan a new feature" / "Create a spec" | `tbd shortcut new-plan-spec` |
 | "Break spec into beads" | `tbd shortcut plan-implementation-with-beads` |
 | "Implement these beads" | `tbd shortcut implement-beads` |
-| **Code Review & Commits** | |
+| **Code Review & Commits** |  |
 | "Review this code" / "Code review" | `tbd shortcut review-code` |
 | "Review this PR" | `tbd shortcut review-github-pr` |
 | "Commit this" / "Use the commit shortcut" | `tbd shortcut code-review-and-commit` |
 | "Create a PR" / "File a PR" | `tbd shortcut create-or-update-pr-simple` |
 | "Merge main into my branch" | `tbd shortcut merge-upstream` |
-| **Guidelines & Knowledge** | |
+| **Guidelines & Knowledge** |  |
 | "Use TypeScript best practices" | `tbd guidelines typescript-rules` |
 | "Use Python best practices" | `tbd guidelines python-rules` |
 | "Build a TypeScript CLI" | `tbd guidelines typescript-cli-tool-rules` |
@@ -109,13 +110,13 @@ or want help → run `tbd shortcut welcome-user`
 | "Add golden/e2e testing" | `tbd guidelines golden-testing-guidelines` |
 | "Use TDD" / "Test-driven development" | `tbd guidelines general-tdd-guidelines` |
 | "Convex best practices" | `tbd guidelines convex-rules` |
-| **Documentation** | |
+| **Documentation** |  |
 | "Research this topic" | `tbd shortcut new-research-brief` |
 | "Document architecture" | `tbd shortcut new-architecture-doc` |
-| **Cleanup & Maintenance** | |
+| **Cleanup & Maintenance** |  |
 | "Clean up this code" / "Remove dead code" | `tbd shortcut code-cleanup-all` |
 | "Fix repository problems" | `tbd doctor --fix` |
-| **Sessions & Handoffs** | |
+| **Sessions & Handoffs** |  |
 | "Hand off to another agent" | `tbd shortcut agent-handoff` |
 | "Check out this library's source" | `tbd shortcut checkout-third-party-repo` |
 | *(your choice whenever appropriate)* | `tbd list`, `tbd dep add`, `tbd close`, `tbd sync`, etc. |
@@ -264,6 +265,7 @@ Run `tbd guidelines <name>` to apply any of these guidelines:
 | typescript-code-coverage | Best practices for code coverage in TypeScript with Vitest and v8 provider |
 | typescript-monorepo-patterns | Modern patterns for TypeScript monorepo architecture |
 | typescript-rules | TypeScript coding rules and best practices |
+| typescript-yaml-handling-rules | Best practices for parsing and serializing YAML in TypeScript |
 
 <!-- END SHORTCUT DIRECTORY -->
 <!-- END TBD INTEGRATION -->
