@@ -1,5 +1,13 @@
 # get-tbd
 
+## 0.1.15
+
+### Patch Changes
+
+- 6062050: Documentation consolidation: new shortcuts directory, comprehensive
+  TypeScript monorepo and CLI guidelines, and updated README with new shortcuts and
+  guidelines.
+
 ## 0.1.14
 
 ### Patch Changes
