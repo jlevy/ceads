@@ -1,5 +1,5 @@
 ---
-title: Sync and Workspace Troubleshooting
+title: tbd Sync and Workspace Troubleshooting
 description: Common issues and solutions for tbd sync and workspace operations
 author: Joshua Levy (github.com/jlevy) with LLM assistance
 ---

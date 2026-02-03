@@ -15,6 +15,7 @@ display:
 docs_cache:
   files:
     guidelines/backward-compatibility-rules.md: internal:guidelines/backward-compatibility-rules.md
+    guidelines/bun-monorepo-patterns.md: internal:guidelines/bun-monorepo-patterns.md
     guidelines/cli-agent-skill-patterns.md: internal:guidelines/cli-agent-skill-patterns.md
     guidelines/commit-conventions.md: internal:guidelines/commit-conventions.md
     guidelines/convex-limits-best-practices.md: internal:guidelines/convex-limits-best-practices.md
@@ -27,15 +28,16 @@ docs_cache:
     guidelines/general-tdd-guidelines.md: internal:guidelines/general-tdd-guidelines.md
     guidelines/general-testing-rules.md: internal:guidelines/general-testing-rules.md
     guidelines/golden-testing-guidelines.md: internal:guidelines/golden-testing-guidelines.md
+    guidelines/pnpm-monorepo-patterns.md: internal:guidelines/pnpm-monorepo-patterns.md
     guidelines/python-cli-patterns.md: internal:guidelines/python-cli-patterns.md
     guidelines/python-modern-guidelines.md: internal:guidelines/python-modern-guidelines.md
     guidelines/python-rules.md: internal:guidelines/python-rules.md
     guidelines/release-notes-guidelines.md: internal:guidelines/release-notes-guidelines.md
-    guidelines/sync-troubleshooting.md: internal:guidelines/sync-troubleshooting.md
+    guidelines/tbd-sync-troubleshooting.md: internal:guidelines/tbd-sync-troubleshooting.md
     guidelines/typescript-cli-tool-rules.md: internal:guidelines/typescript-cli-tool-rules.md
     guidelines/typescript-code-coverage.md: internal:guidelines/typescript-code-coverage.md
-    guidelines/typescript-monorepo-patterns.md: internal:guidelines/typescript-monorepo-patterns.md
     guidelines/typescript-rules.md: internal:guidelines/typescript-rules.md
+    guidelines/typescript-sorting-patterns.md: internal:guidelines/typescript-sorting-patterns.md
     guidelines/typescript-yaml-handling-rules.md: internal:guidelines/typescript-yaml-handling-rules.md
     shortcuts/standard/agent-handoff.md: internal:shortcuts/standard/agent-handoff.md
     shortcuts/standard/checkout-third-party-repo.md: internal:shortcuts/standard/checkout-third-party-repo.md
@@ -43,6 +45,7 @@ docs_cache:
     shortcuts/standard/code-cleanup-docstrings.md: internal:shortcuts/standard/code-cleanup-docstrings.md
     shortcuts/standard/code-cleanup-tests.md: internal:shortcuts/standard/code-cleanup-tests.md
     shortcuts/standard/code-review-and-commit.md: internal:shortcuts/standard/code-review-and-commit.md
+    shortcuts/standard/coding-spike.md: internal:shortcuts/standard/coding-spike.md
     shortcuts/standard/create-or-update-pr-simple.md: internal:shortcuts/standard/create-or-update-pr-simple.md
     shortcuts/standard/create-or-update-pr-with-validation-plan.md: internal:shortcuts/standard/create-or-update-pr-with-validation-plan.md
     shortcuts/standard/implement-beads.md: internal:shortcuts/standard/implement-beads.md

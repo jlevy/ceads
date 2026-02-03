@@ -194,6 +194,7 @@ Run `tbd shortcut <name>` to use any of these shortcuts:
 | code-cleanup-docstrings | Review and add concise docstrings to major functions and types |
 | code-cleanup-tests | Review and remove tests that do not add meaningful coverage |
 | code-review-and-commit | Run pre-commit checks, review changes, and commit code |
+| coding-spike | Prototype to validate a spec through hands-on implementation |
 | create-or-update-pr-simple | Create or update a pull request with a concise summary |
 | create-or-update-pr-with-validation-plan | Create or update a pull request with a detailed test/validation plan |
 | implement-beads | Implement beads from a spec, following TDD and project rules |
@@ -242,10 +243,11 @@ Run `tbd guidelines <name>` to apply any of these guidelines:
 | python-modern-guidelines | Guidelines for modern Python projects using uv, with a few more opinionated practices |
 | python-rules | General Python coding rules and best practices |
 | release-notes-guidelines | Guidelines for writing clear, accurate release notes |
-| sync-troubleshooting | Common issues and solutions for tbd sync and workspace operations |
+| tbd-sync-troubleshooting | Common issues and solutions for tbd sync and workspace operations |
 | typescript-cli-tool-rules | Rules for building CLI tools with Commander.js, picocolors, and TypeScript |
 | typescript-code-coverage | Best practices for code coverage in TypeScript with Vitest and v8 provider |
 | typescript-rules | TypeScript coding rules and best practices |
+| typescript-sorting-patterns | Deterministic sorting patterns and comparison chains for TypeScript |
 | typescript-yaml-handling-rules | Best practices for parsing and serializing YAML in TypeScript |
 
 <!-- END SHORTCUT DIRECTORY -->
