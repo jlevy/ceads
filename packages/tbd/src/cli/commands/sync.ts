@@ -906,22 +906,25 @@ class SyncHandler extends BaseCommand {
       );
 
       // Handle recovery based on error type (after output.data to avoid async callback)
+      // Only show options in non-JSON mode
       if (errorType === 'permanent' && !options.noAutoSave) {
         // Auto-save to outbox on permanent failure
         await this.handlePermanentFailure();
-      } else if (errorType === 'transient') {
-        // Suggest retry for transient failures
-        console.log('');
-        console.log('  This appears to be a temporary issue. Options:');
-        console.log('    • Retry:  tbd sync');
-        console.log('    • Save for later:  tbd save --outbox');
-      } else {
-        // Unknown error - suggest both options
-        console.log('');
-        console.log('  Options:');
-        console.log('    • Retry:  tbd sync');
-        console.log("    • Run 'tbd sync --status' to check status");
-        console.log('    • Save for later:  tbd save --outbox');
+      } else if (!this.ctx.json) {
+        if (errorType === 'transient') {
+          // Suggest retry for transient failures
+          console.log('');
+          console.log('  This appears to be a temporary issue. Options:');
+          console.log('    • Retry:  tbd sync');
+          console.log('    • Save for later:  tbd save --outbox');
+        } else {
+          // Unknown error - suggest both options
+          console.log('');
+          console.log('  Options:');
+          console.log('    • Retry:  tbd sync');
+          console.log("    • Run 'tbd sync --status' to check status");
+          console.log('    • Save for later:  tbd save --outbox');
+        }
       }
       return;
     }
