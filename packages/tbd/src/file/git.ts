@@ -1176,10 +1176,12 @@ export async function countRemoteIssues(
     const output = await git('ls-tree', '-r', '--name-only', remoteBranch);
 
     // Count issue files in the issues directory
-    // Path pattern: .tbd/data-sync/issues/*.md (issues are stored as markdown)
-    const issuePattern = /\.tbd\/data-sync\/issues\/[^/]+\.md$/;
+    // Uses path constants to avoid hardcoded paths
+    const issuesDir = `${TBD_DIR}/${DATA_SYNC_DIR_NAME}/issues/`;
     const lines = output.split('\n').filter(Boolean);
-    const issueCount = lines.filter((line) => issuePattern.test(line)).length;
+    const issueCount = lines.filter(
+      (line) => line.startsWith(issuesDir) && line.endsWith('.md'),
+    ).length;
 
     return issueCount;
   } catch {
