@@ -20,6 +20,7 @@ docs_cache:
     guidelines/commit-conventions.md: internal:guidelines/commit-conventions.md
     guidelines/convex-limits-best-practices.md: internal:guidelines/convex-limits-best-practices.md
     guidelines/convex-rules.md: internal:guidelines/convex-rules.md
+    guidelines/electron-app-development-patterns.md: internal:guidelines/electron-app-development-patterns.md
     guidelines/error-handling-rules.md: internal:guidelines/error-handling-rules.md
     guidelines/general-coding-rules.md: internal:guidelines/general-coding-rules.md
     guidelines/general-comment-rules.md: internal:guidelines/general-comment-rules.md

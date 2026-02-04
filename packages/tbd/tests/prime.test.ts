@@ -85,12 +85,13 @@ describe('prime command', () => {
       expect(result.stdout).toContain('tbd prime');
     });
 
-    it('tbd (no args) is equivalent to tbd prime', () => {
+    it('tbd (no args) shows help with agent guidance', () => {
       const noArgsResult = runTbd([]);
 
-      // Default command (no args) should show full orientation
-      expect(noArgsResult.stdout).toContain('INSTALLATION');
-      expect(noArgsResult.stdout).toContain('Session Closing Protocol');
+      // Default command (no args) should show help with prominent agent guidance
+      expect(noArgsResult.stdout).toContain('IMPORTANT:');
+      expect(noArgsResult.stdout).toContain('tbd prime');
+      expect(noArgsResult.stdout).toContain('Getting Started:');
     });
   });
 

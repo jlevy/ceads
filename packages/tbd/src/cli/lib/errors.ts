@@ -117,3 +117,71 @@ export class SyncBranchError extends CLIError {
     this.name = 'SyncBranchError';
   }
 }
+
+/**
+ * Classification of sync errors for auto-save/retry decisions.
+ * - 'permanent': Error indicates push is blocked (e.g., 403, protected branch).
+ *   Auto-save to outbox is appropriate.
+ * - 'transient': Error is likely temporary (e.g., network timeout).
+ *   User should retry.
+ * - 'unknown': Cannot determine error type.
+ *   Treat conservatively (suggest retry, mention save option).
+ */
+export type SyncErrorType = 'permanent' | 'transient' | 'unknown';
+
+/**
+ * Classify a sync error to determine appropriate recovery action.
+ *
+ * Used by `tbd sync` to decide whether to:
+ * - Auto-save to outbox (permanent failure - push is blocked)
+ * - Suggest retry (transient failure - might work next time)
+ * - Offer both options (unknown - let user decide)
+ *
+ * @param error - Error message or Error object from git push
+ * @returns Classification of the error type
+ */
+export function classifySyncError(error: Error | string): SyncErrorType {
+  const msg = typeof error === 'string' ? error : error.message;
+  const lower = msg.toLowerCase();
+
+  // Permanent indicators - push is blocked by policy/permissions
+  const permanentPatterns = [
+    /403/, // HTTP 403 Forbidden
+    /forbidden/,
+    /permission denied/,
+    /401/, // HTTP 401 Unauthorized
+    /unauthorized/,
+    /protected branch/,
+    /remote rejected/,
+    /pre-receive hook declined/,
+    /push declined/,
+    /not allowed to push/,
+  ];
+
+  for (const pattern of permanentPatterns) {
+    if (pattern.test(lower)) return 'permanent';
+  }
+
+  // Transient indicators - likely temporary, should retry
+  const transientPatterns = [
+    /timeout/,
+    /timed out/,
+    /connection refused/,
+    /connection reset/,
+    /network/,
+    /dns/,
+    /5\d\d/, // HTTP 5xx server errors
+    /server error/,
+    /temporarily/,
+    /try again/,
+    /could not resolve/,
+    /no route to host/,
+    /connection closed/,
+  ];
+
+  for (const pattern of transientPatterns) {
+    if (pattern.test(lower)) return 'transient';
+  }
+
+  return 'unknown';
+}

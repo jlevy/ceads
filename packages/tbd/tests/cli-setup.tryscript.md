@@ -53,7 +53,6 @@ Options:
 Documentation:
   readme                        Display the README (same as GitHub landing page)
   prime [options]               Show full orientation with workflow context
-                                (default when running `tbd`)
   skill [options]               Output AI agent skill file content
   shortcut [options] [query]    Find and output documentation shortcuts
   guidelines [options] [query]  Find and output coding guidelines
@@ -107,15 +106,15 @@ Maintenance:
 Commands:
   help [command]                display help for command
 
+IMPORTANT:
+  Agents unfamiliar with tbd should run `tbd prime` for full workflow context.
+
 Getting Started:
   npm install -g get-tbd@latest && tbd setup --auto --prefix=<name>
 
   This initializes tbd and configures your coding agents automatically.
-  For interactive setup: tbd setup --interactive
-  For manual control: tbd init --help
-
-Orientation:
-  For workflow guidance, run: tbd prime
+  To refresh setup (idempotent, safe anytime): `tbd setup --auto`
+  For interactive setup: `tbd setup --interactive`
 
 For more on tbd, see: https://github.com/jlevy/tbd
 ? 0
@@ -157,15 +156,15 @@ Global Options:
   --no-sync             Skip automatic sync after write operations
   --debug               Show internal IDs alongside public IDs for debugging
 
+IMPORTANT:
+  Agents unfamiliar with tbd should run `tbd prime` for full workflow context.
+
 Getting Started:
   npm install -g get-tbd@latest && tbd setup --auto --prefix=<name>
 
   This initializes tbd and configures your coding agents automatically.
-  For interactive setup: tbd setup --interactive
-  For manual control: tbd init --help
-
-Orientation:
-  For workflow guidance, run: tbd prime
+  To refresh setup (idempotent, safe anytime): `tbd setup --auto`
+  For interactive setup: `tbd setup --interactive`
 
 For more on tbd, see: https://github.com/jlevy/tbd
 ? 0

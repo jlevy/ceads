@@ -113,7 +113,7 @@ export function createColoredHelpConfig(colorOption: ColorOption = 'auto') {
 
 /**
  * Create the help epilog text with color.
- * Includes "Getting Started" section per spec.
+ * Includes "Getting Started" section and prominent agent guidance per spec.
  *
  * @param colorOption - Color option to determine if colors should be enabled
  * @returns Colored epilog string
@@ -121,15 +121,15 @@ export function createColoredHelpConfig(colorOption: ColorOption = 'auto') {
 export function createHelpEpilog(colorOption: ColorOption = 'auto'): string {
   const colors = pc.createColors(shouldColorize(colorOption));
   const lines = [
+    colors.bold(colors.yellow('IMPORTANT:')),
+    `  Agents unfamiliar with tbd should run ${colors.green('`tbd prime`')} for full workflow context.`,
+    '',
     colors.bold('Getting Started:'),
     `  ${colors.green('npm install -g get-tbd@latest && tbd setup --auto --prefix=<name>')}`,
     '',
     '  This initializes tbd and configures your coding agents automatically.',
-    `  For interactive setup: ${colors.dim('tbd setup --interactive')}`,
-    `  For manual control: ${colors.dim('tbd init --help')}`,
-    '',
-    colors.bold('Orientation:'),
-    `  For workflow guidance, run: ${colors.green('tbd prime')}`,
+    `  To refresh setup (idempotent, safe anytime): ${colors.green('`tbd setup --auto`')}`,
+    `  For interactive setup: ${colors.dim('`tbd setup --interactive`')}`,
     '',
     colors.blue('For more on tbd, see: https://github.com/jlevy/tbd'),
   ];

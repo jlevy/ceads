@@ -76,8 +76,11 @@ $ tbd sync
 ✓ Synced docs: [..]
 ✗ Push failed: fatal: 'origin' does not appear to be a git repository
   2 commit(s) not pushed to remote.
-  Run 'tbd sync' to retry or 'tbd sync --status' to check status.
-  To preserve changes locally: tbd save --outbox
+
+  Options:
+    • Retry:  tbd sync
+    • Run 'tbd sync --status' to check status
+    • Save for later:  tbd save --outbox
 ? 0
 ```
 
@@ -143,8 +146,11 @@ $ tbd sync
 ✓ Docs up to date
 ✗ Push failed: fatal: 'origin' does not appear to be a git repository
   3 commit(s) not pushed to remote.
-  Run 'tbd sync' to retry or 'tbd sync --status' to check status.
-  To preserve changes locally: tbd save --outbox
+
+  Options:
+    • Retry:  tbd sync
+    • Run 'tbd sync --status' to check status
+    • Save for later:  tbd save --outbox
 ? 0
 ```
 
@@ -232,8 +238,11 @@ $ tbd sync
 ✓ Docs up to date
 ✗ Push failed: fatal: 'origin' does not appear to be a git repository
   4 commit(s) not pushed to remote.
-  Run 'tbd sync' to retry or 'tbd sync --status' to check status.
-  To preserve changes locally: tbd save --outbox
+
+  Options:
+    • Retry:  tbd sync
+    • Run 'tbd sync --status' to check status
+    • Save for later:  tbd save --outbox
 ? 0
 ```
 
@@ -250,8 +259,11 @@ $ tbd sync
 ✓ Docs up to date
 ✗ Push failed: fatal: 'origin' does not appear to be a git repository
   4 commit(s) not pushed to remote.
-  Run 'tbd sync' to retry or 'tbd sync --status' to check status.
-  To preserve changes locally: tbd save --outbox
+
+  Options:
+    • Retry:  tbd sync
+    • Run 'tbd sync --status' to check status
+    • Save for later:  tbd save --outbox
 ? 0
 ```
 
@@ -260,8 +272,11 @@ $ tbd sync
 ✓ Docs up to date
 ✗ Push failed: fatal: 'origin' does not appear to be a git repository
   4 commit(s) not pushed to remote.
-  Run 'tbd sync' to retry or 'tbd sync --status' to check status.
-  To preserve changes locally: tbd save --outbox
+
+  Options:
+    • Retry:  tbd sync
+    • Run 'tbd sync --status' to check status
+    • Save for later:  tbd save --outbox
 ? 0
 ```
 
@@ -299,7 +314,8 @@ $ tbd sync --json
   "conflicts": 0,
   "pushFailed": true,
   "pushError": [..],
-  "unpushedCommits": 4
+  "unpushedCommits": 4,
+  "errorType": "unknown"
 }
 ? 0
 ```

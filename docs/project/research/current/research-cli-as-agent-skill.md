@@ -197,7 +197,7 @@ It outputs contextual information appropriate to the current state:
 - `--brief` flag for constrained contexts (~200 tokens)
 - `--full` flag for complete skill documentation
 - Custom override via `.tbd/PRIME.md` file
-- Default when running CLI with no command (`tbd` runs `tbd prime`)
+- CLI with no args shows help with prominent prompt to run `tbd prime` for full context
 
 **Dashboard Output Structure**:
 ```

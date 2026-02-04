@@ -209,7 +209,7 @@ tbd v[..]
 $ tbd prime --help
 Usage: tbd prime [options]
 
-Show full orientation with workflow context (default when running `tbd`)
+Show full orientation with workflow context
 
 Options:
   --export           Output default content (ignores PRIME.md override)
@@ -229,15 +229,15 @@ Global Options:
   --no-sync          Skip automatic sync after write operations
   --debug            Show internal IDs alongside public IDs for debugging
 
+IMPORTANT:
+  Agents unfamiliar with tbd should run `tbd prime` for full workflow context.
+
 Getting Started:
   npm install -g get-tbd@latest && tbd setup --auto --prefix=<name>
 
   This initializes tbd and configures your coding agents automatically.
-  For interactive setup: tbd setup --interactive
-  For manual control: tbd init --help
-
-Orientation:
-  For workflow guidance, run: tbd prime
+  To refresh setup (idempotent, safe anytime): `tbd setup --auto`
+  For interactive setup: `tbd setup --interactive`
 
 For more on tbd, see: https://github.com/jlevy/tbd
 ? 0

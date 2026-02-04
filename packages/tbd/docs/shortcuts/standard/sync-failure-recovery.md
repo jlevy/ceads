@@ -4,14 +4,26 @@ description: Handle tbd sync failures by saving to workspace and recovering late
 category: session
 author: Joshua Levy (github.com/jlevy) with LLM assistance
 ---
-When `tbd sync` fails to push (e.g., network errors, permission issues, branch
-restrictions), use this workflow to preserve and recover issue data.
+When `tbd sync` fails to push (e.g., permission issues, branch restrictions), tbd
+automatically handles recovery in most cases.
 
-## When Sync Fails
+## Automatic Recovery (Default Behavior)
+
+**On permanent failure (HTTP 403, permission denied, etc.):**
+- tbd automatically saves unsynced issues to the outbox
+- You just need to commit and push your working branch
+
+**On successful sync:**
+- tbd automatically imports any pending issues from the outbox
+- The outbox is cleared after successful sync
+
+## When Sync Fails (Typical Workflow)
 
 ```bash
-# Save unsynced changes to the outbox
-tbd save --outbox
+# Run sync - auto-saves to outbox on permanent failure
+tbd sync
+# ⚠️  Push failed: HTTP 403
+# ✓ Saved 2 issue(s) to outbox (automatic backup)
 
 # Commit the outbox to your working branch
 git add .tbd/workspaces
@@ -24,10 +36,24 @@ git push
 In a new session or environment where sync works:
 
 ```bash
-# Import from outbox (clears outbox on success)
-tbd import --outbox
+# Just run sync - outbox is imported automatically on success
+tbd sync
+# ✓ Synced: sent 0 new
+# ✓ Imported 2 issue(s) from outbox (also synced)
+```
 
-# Sync to push changes
+## Manual Recovery (Optional)
+
+If you need explicit control over the workflow:
+
+```bash
+# Manually save to outbox (skip auto-save)
+tbd sync --no-auto-save
+tbd save --outbox
+
+# Manually import from outbox (skip auto-import)
+tbd sync --no-outbox
+tbd import --outbox
 tbd sync
 ```
 
@@ -36,5 +62,5 @@ tbd sync
 For detailed troubleshooting, workspace usage, and diagnostic commands, see:
 
 ```bash
-tbd guidelines sync-troubleshooting
+tbd guidelines tbd-sync-troubleshooting
 ```

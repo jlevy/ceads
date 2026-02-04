@@ -10,6 +10,9 @@ just lightweight issues managed from the CLI.
 
 > **Context Recovery**: Run `tbd prime` after compaction, clear, or new session.
 > Hooks auto-call this in Claude Code when .tbd/ detected.
+> 
+> **Setup/Refresh**: Run `tbd setup --auto` to set up or refresh tbd configuration.
+> This is idempotent and safe to run anytime.
 
 # SESSION CLOSING PROTOCOL
 

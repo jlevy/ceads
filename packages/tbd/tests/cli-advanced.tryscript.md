@@ -471,15 +471,15 @@ Commands:
   list                     List all labels in use
   help [command]           display help for command
 
+IMPORTANT:
+  Agents unfamiliar with tbd should run `tbd prime` for full workflow context.
+
 Getting Started:
   npm install -g get-tbd@latest && tbd setup --auto --prefix=<name>
 
   This initializes tbd and configures your coding agents automatically.
-  For interactive setup: tbd setup --interactive
-  For manual control: tbd init --help
-
-Orientation:
-  For workflow guidance, run: tbd prime
+  To refresh setup (idempotent, safe anytime): `tbd setup --auto`
+  For interactive setup: `tbd setup --interactive`
 
 For more on tbd, see: https://github.com/jlevy/tbd
 ? 0
@@ -517,15 +517,15 @@ Commands:
   list <id>                    List dependencies for an issue
   help [command]               display help for command
 
+IMPORTANT:
+  Agents unfamiliar with tbd should run `tbd prime` for full workflow context.
+
 Getting Started:
   npm install -g get-tbd@latest && tbd setup --auto --prefix=<name>
 
   This initializes tbd and configures your coding agents automatically.
-  For interactive setup: tbd setup --interactive
-  For manual control: tbd init --help
-
-Orientation:
-  For workflow guidance, run: tbd prime
+  To refresh setup (idempotent, safe anytime): `tbd setup --auto`
+  For interactive setup: `tbd setup --interactive`
 
 For more on tbd, see: https://github.com/jlevy/tbd
 ? 0
@@ -560,15 +560,15 @@ Commands:
   get <key>          Get a configuration value
   help [command]     display help for command
 
+IMPORTANT:
+  Agents unfamiliar with tbd should run `tbd prime` for full workflow context.
+
 Getting Started:
   npm install -g get-tbd@latest && tbd setup --auto --prefix=<name>
 
   This initializes tbd and configures your coding agents automatically.
-  For interactive setup: tbd setup --interactive
-  For manual control: tbd init --help
-
-Orientation:
-  For workflow guidance, run: tbd prime
+  To refresh setup (idempotent, safe anytime): `tbd setup --auto`
+  For interactive setup: `tbd setup --interactive`
 
 For more on tbd, see: https://github.com/jlevy/tbd
 ? 0
@@ -604,15 +604,15 @@ Commands:
   restore <id> <timestamp>  Restore lost value from attic
   help [command]            display help for command
 
+IMPORTANT:
+  Agents unfamiliar with tbd should run `tbd prime` for full workflow context.
+
 Getting Started:
   npm install -g get-tbd@latest && tbd setup --auto --prefix=<name>
 
   This initializes tbd and configures your coding agents automatically.
-  For interactive setup: tbd setup --interactive
-  For manual control: tbd init --help
-
-Orientation:
-  For workflow guidance, run: tbd prime
+  To refresh setup (idempotent, safe anytime): `tbd setup --auto`
+  For interactive setup: `tbd setup --interactive`
 
 For more on tbd, see: https://github.com/jlevy/tbd
 ? 0

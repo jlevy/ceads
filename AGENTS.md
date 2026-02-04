@@ -250,6 +250,7 @@ Run `tbd guidelines <name>` to apply any of these guidelines:
 | commit-conventions | Conventional Commits format with extensions for agentic workflows |
 | convex-limits-best-practices | Comprehensive reference for Convex platform limits, workarounds, and performance best practices |
 | convex-rules | Guidelines and best practices for building Convex projects, including database schema design, queries, mutations, and real-world examples |
+| electron-app-development-patterns | Guidelines for Electron development ecosystems including npm, pnpm, and Bun, with security baselines and framework comparisons |
 | error-handling-rules | Rules for handling errors, failures, and exceptional conditions |
 | general-coding-rules | Rules for constants, magic numbers, and general coding practices |
 | general-comment-rules | Language-agnostic rules for writing clean, maintainable comments |

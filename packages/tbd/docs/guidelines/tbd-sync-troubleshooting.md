@@ -15,11 +15,21 @@ author: Joshua Levy (github.com/jlevy) with LLM assistance
 - Branch restrictions (e.g., Claude Code session branch requirements)
 - Push permissions not granted for tbd-sync branch
 
+**Automatic Recovery (Default):** tbd now automatically saves to outbox on permanent
+failures like HTTP 403:
+```bash
+tbd sync
+# ⚠️  Push failed: HTTP 403
+# ✓ Saved 2 issue(s) to outbox (automatic backup)
+```
+
 **Solutions:**
-1. Save unsynced work: `tbd save --outbox`
-2. Commit outbox to working branch
+1. ~~Save unsynced work: `tbd save --outbox`~~ (now automatic)
+2. Commit outbox to working branch:
+   `git add .tbd/workspaces && git commit -m "tbd: save outbox"`
 3. Push working branch (which typically succeeds)
-4. Import later when in an environment that can push
+4. Import happens automatically when you later run `tbd sync` in an environment that can
+   push
 
 ### “Already in sync” but data not on remote
 
@@ -43,11 +53,14 @@ author: Joshua Levy (github.com/jlevy) with LLM assistance
 - `tbd sync` hangs or times out
 - “Connection refused” or timeout errors
 
+**Note:** Network errors are classified as “transient” - tbd suggests retry instead of
+auto-saving, since the issue is likely temporary.
+
 **Solutions:**
 1. Check network connectivity
 2. Verify remote URL: `git remote -v`
-3. Save work locally: `tbd save --workspace=offline-backup`
-4. Retry when network is available
+3. Retry: `tbd sync`
+4. If persistent, manually save: `tbd save --workspace=offline-backup`
 
 ## Workspace Issues
 
@@ -150,19 +163,25 @@ git log origin/tbd-sync..tbd-sync --oneline
 
 ## Recovery Workflow Summary
 
-When sync fails:
+When sync fails with a permanent error (HTTP 403, permission denied, etc.):
 
 ```bash
-# 1. Save current state
-tbd save --outbox
+# 1. Run sync - auto-saves to outbox on permanent failure
+tbd sync
+# ⚠️  Push failed: HTTP 403
+# ✓ Saved 2 issue(s) to outbox (automatic backup)
 
-# 2. Commit to working branch
+# 2. Commit outbox to working branch
 git add .tbd/workspaces && git commit -m "tbd: save outbox"
 git push
 
-# 3. Later, import and sync
-tbd import --outbox
+# 3. Later (in environment where sync works), just run sync
 tbd sync
+# ✓ Imported 2 issue(s) from outbox (also synced)
 ```
+
+**CLI Options:**
+- `--no-auto-save`: Skip automatic save to outbox on failure
+- `--no-outbox`: Skip automatic import from outbox on success
 
 See `tbd shortcut sync-failure-recovery` for the full workflow.

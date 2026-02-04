@@ -13,6 +13,7 @@ import {
   SyncError,
   WorktreeMissingError,
   WorktreeCorruptedError,
+  classifySyncError,
 } from '../lib/errors.js';
 import { readConfig } from '../../file/config.js';
 import { listIssues, readIssue, writeIssue } from '../../file/storage.js';
@@ -47,6 +48,12 @@ import {
   mergeIdMappings,
   parseIdMappingFromYaml,
 } from '../../file/id-mapping.js';
+import {
+  saveToWorkspace,
+  workspaceExists,
+  importFromWorkspace,
+  deleteWorkspace,
+} from '../../file/workspace.js';
 
 interface SyncOptions {
   push?: boolean;
@@ -56,6 +63,8 @@ interface SyncOptions {
   fix?: boolean;
   issues?: boolean;
   docs?: boolean;
+  noAutoSave?: boolean;
+  noOutbox?: boolean;
 }
 
 interface SyncStatus {
@@ -173,7 +182,11 @@ class SyncHandler extends BaseCommand {
       await this.pushChanges(syncBranch, remote);
     } else {
       // Full sync: pull then push
-      await this.fullSync(syncBranch, remote, options.force);
+      await this.fullSync(syncBranch, remote, {
+        force: options.force,
+        noAutoSave: options.noAutoSave,
+        noOutbox: options.noOutbox,
+      });
     }
   }
 
@@ -638,7 +651,11 @@ class SyncHandler extends BaseCommand {
     }
   }
 
-  private async fullSync(syncBranch: string, remote: string, _force?: boolean): Promise<void> {
+  private async fullSync(
+    syncBranch: string,
+    remote: string,
+    options: { force?: boolean; noAutoSave?: boolean; noOutbox?: boolean } = {},
+  ): Promise<void> {
     const spinner = this.output.spinner('Syncing with remote...');
     const summary: SyncSummary = emptySummary();
     const conflicts: ConflictEntry[] = [];
@@ -856,8 +873,23 @@ class SyncHandler extends BaseCommand {
     summary.conflicts = conflicts.length;
     spinner.stop();
 
-    // Report push failure - don't silently swallow it
+    // Report push failure - classify error and take appropriate action
     if (pushFailed) {
+      // Extract meaningful error display string
+      let displayError = pushError;
+      const httpMatch = /HTTP (\d+)/.exec(pushError);
+      const curlMatch = /curl \d+ (.+?)(?:\n|$)/.exec(pushError);
+      if (httpMatch) {
+        displayError = `HTTP ${httpMatch[1]}${curlMatch ? ` - ${curlMatch[1]}` : ''}`;
+      } else {
+        // Fall back to first meaningful line (skip "Command failed: git push...")
+        const lines = pushError.split('\n').filter((l) => l && !l.startsWith('Command failed'));
+        displayError = lines[0] ?? pushError;
+      }
+
+      // Classify the error to determine recovery action
+      const errorType = classifySyncError(pushError);
+
       this.output.data(
         {
           summary,
@@ -865,26 +897,41 @@ class SyncHandler extends BaseCommand {
           pushFailed,
           pushError,
           unpushedCommits: aheadCommits,
+          errorType,
         },
         () => {
-          // Extract meaningful error from git output (look for HTTP errors, permission issues, etc.)
-          let displayError = pushError;
-          const httpMatch = /HTTP (\d+)/.exec(pushError);
-          const curlMatch = /curl \d+ (.+?)(?:\n|$)/.exec(pushError);
-          if (httpMatch) {
-            displayError = `HTTP ${httpMatch[1]}${curlMatch ? ` - ${curlMatch[1]}` : ''}`;
-          } else {
-            // Fall back to first meaningful line (skip "Command failed: git push...")
-            const lines = pushError.split('\n').filter((l) => l && !l.startsWith('Command failed'));
-            displayError = lines[0] ?? pushError;
-          }
           this.output.error(`Push failed: ${displayError}`);
           console.log(`  ${aheadCommits} commit(s) not pushed to remote.`);
-          console.log(`  Run 'tbd sync' to retry or 'tbd sync --status' to check status.`);
-          console.log(`  To preserve changes locally: tbd save --outbox`);
         },
       );
+
+      // Handle recovery based on error type (after output.data to avoid async callback)
+      // Only show options in non-JSON mode
+      if (errorType === 'permanent' && !options.noAutoSave) {
+        // Auto-save to outbox on permanent failure
+        await this.handlePermanentFailure();
+      } else if (!this.ctx.json) {
+        if (errorType === 'transient') {
+          // Suggest retry for transient failures
+          console.log('');
+          console.log('  This appears to be a temporary issue. Options:');
+          console.log('    • Retry:  tbd sync');
+          console.log('    • Save for later:  tbd save --outbox');
+        } else {
+          // Unknown error - suggest both options
+          console.log('');
+          console.log('  Options:');
+          console.log('    • Retry:  tbd sync');
+          console.log("    • Run 'tbd sync --status' to check status");
+          console.log('    • Save for later:  tbd save --outbox');
+        }
+      }
       return;
+    }
+
+    // After successful push, import from outbox if it has data
+    if (!options.noOutbox) {
+      await this.maybeImportOutbox(syncBranch, remote);
     }
 
     this.output.data({ summary, conflicts: conflicts.length }, () => {
@@ -895,6 +942,144 @@ class SyncHandler extends BaseCommand {
         this.output.success(`Synced: ${summaryText}`);
       }
     });
+  }
+
+  /**
+   * Handle permanent push failure by auto-saving to outbox.
+   * Called when push fails with a permanent error (e.g., HTTP 403).
+   */
+  private async handlePermanentFailure(): Promise<void> {
+    // Count issues in worktree to see if there's anything to save
+    const worktreeIssues = await listIssues(this.dataSyncDir);
+    if (worktreeIssues.length === 0) {
+      console.log('');
+      console.log('  No unsynced issues to save (already in sync with remote).');
+      return;
+    }
+
+    // Check existing outbox count before save
+    let existingOutboxCount = 0;
+    if (await workspaceExists(this.tbdRoot, 'outbox')) {
+      const outboxPath = join(this.tbdRoot, '.tbd', 'workspaces', 'outbox');
+      try {
+        const existingIssues = await listIssues(outboxPath);
+        existingOutboxCount = existingIssues.length;
+      } catch {
+        // Outbox exists but couldn't read - will be handled by saveToWorkspace
+      }
+    }
+
+    try {
+      // Auto-save to outbox (merges with existing outbox data via updatesOnly)
+      const result = await saveToWorkspace(this.tbdRoot, this.dataSyncDir, { outbox: true });
+
+      if (result.saved === 0) {
+        // Nothing new to save - issues already in outbox from previous failure
+        console.log('');
+        console.log('  Issues already saved to outbox from previous sync attempt.');
+        console.log('');
+        console.log('  Your issues are safe. To recover later:');
+        console.log("    1. Commit:  git add .tbd/workspaces && git commit -m 'tbd: save outbox'");
+        console.log('    2. Push your working branch:  git push');
+        console.log("    3. Run 'tbd sync' when push access is available");
+      } else {
+        // Show saved count and total in outbox
+        const totalInOutbox = existingOutboxCount + result.saved;
+        if (existingOutboxCount > 0) {
+          console.log('');
+          this.output.success(
+            `Saved ${result.saved} issue(s) to outbox (${totalInOutbox} total in outbox)`,
+          );
+        } else {
+          console.log('');
+          this.output.success(`Saved ${result.saved} issue(s) to outbox (automatic backup)`);
+        }
+        console.log('');
+        console.log('  Your issues are safe. To recover later:');
+        console.log("    1. Commit:  git add .tbd/workspaces && git commit -m 'tbd: save outbox'");
+        console.log('    2. Push your working branch:  git push');
+        console.log("    3. Run 'tbd sync' when push access is available");
+        console.log('       (outbox will be imported automatically on successful sync)');
+      }
+    } catch (saveError) {
+      // Auto-save failed - report both errors
+      const saveErrorMsg = saveError instanceof Error ? saveError.message : String(saveError);
+      console.log('');
+      this.output.error(`Auto-save to outbox also failed: ${saveErrorMsg}`);
+      console.log('');
+      console.log("  Run 'tbd save --outbox' manually, or 'tbd doctor' to diagnose.");
+    }
+  }
+
+  /**
+   * Import pending issues from outbox after a successful push.
+   * Uses two-phase sync: import → commit → push → clear.
+   * Only clears the outbox if all steps succeed.
+   *
+   * @param syncBranch - The sync branch name
+   * @param remote - The remote name
+   */
+  private async maybeImportOutbox(syncBranch: string, remote: string): Promise<void> {
+    // Check if outbox exists and has issues
+    if (!(await workspaceExists(this.tbdRoot, 'outbox'))) {
+      return; // No outbox - nothing to import
+    }
+
+    const outboxPath = join(this.tbdRoot, '.tbd', 'workspaces', 'outbox');
+    let outboxIssues: Awaited<ReturnType<typeof listIssues>> = [];
+    try {
+      outboxIssues = await listIssues(outboxPath);
+    } catch {
+      return; // Can't read outbox - skip silently
+    }
+
+    if (outboxIssues.length === 0) {
+      return; // Outbox is empty - nothing to import
+    }
+
+    try {
+      // Step 1: Import from outbox (don't clear yet)
+      const importResult = await importFromWorkspace(this.tbdRoot, this.dataSyncDir, {
+        outbox: true,
+        clearOnSuccess: false, // We'll clear manually after push succeeds
+      });
+
+      if (importResult.imported === 0) {
+        return; // Nothing was actually imported
+      }
+
+      // Step 2: Commit the imported issues
+      const committedTallies = await this.commitWorktreeChanges();
+      if (committedTallies.new + committedTallies.updated + committedTallies.deleted === 0) {
+        // Nothing to commit - issues were already in worktree
+        // This can happen if outbox data was identical to worktree
+        // Still clear the outbox since the data is already synced
+        await deleteWorkspace(this.tbdRoot, 'outbox');
+        return;
+      }
+
+      // Step 3: Push the imported issues
+      const pushResult = await this.doPushWithRetry(syncBranch, remote);
+      if (!pushResult.success) {
+        // Secondary push failed - DON'T clear outbox
+        // The issues are now in the worktree, so they'll be synced next time
+        this.output.warn(
+          `Could not push imported outbox issues: ${pushResult.error ?? 'unknown error'}`,
+        );
+        console.log('  Outbox preserved. Issues are in worktree and will sync next time.');
+        return;
+      }
+
+      // Step 4: All succeeded - now clear the outbox
+      await deleteWorkspace(this.tbdRoot, 'outbox');
+
+      this.output.success(`Imported ${importResult.imported} issue(s) from outbox (also synced)`);
+    } catch (err) {
+      // Don't fail the whole sync - primary sync already succeeded
+      const errMsg = err instanceof Error ? err.message : String(err);
+      this.output.warn(`Could not sync outbox: ${errMsg}`);
+      console.log('  Outbox preserved. Will retry on next sync.');
+    }
   }
 }
 
@@ -907,6 +1092,8 @@ export const syncCommand = new Command('sync')
   .option('--status', 'Show sync status')
   .option('--force', 'Force sync (overwrite conflicts)')
   .option('--fix', 'Attempt to repair unhealthy worktree before syncing')
+  .option('--no-auto-save', 'Skip auto-save to outbox on permanent failure')
+  .option('--no-outbox', 'Skip auto-import from outbox on success')
   .action(async (options, command) => {
     const handler = new SyncHandler(command);
     await handler.run(options);

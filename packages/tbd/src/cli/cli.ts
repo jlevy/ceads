@@ -255,9 +255,11 @@ export async function runCli(): Promise<void> {
     process.argv.includes('--version') ||
     process.argv.includes('-V');
 
+  // Show help by default when no command given (changed from prime)
+  // The help epilog guides agents to run `tbd prime` for full context
   if (hasNoCommand() && !isHelpOrVersion) {
-    // Insert 'prime' as the command
-    process.argv.splice(2, 0, 'prime');
+    // Show help instead of defaulting to prime
+    process.argv.splice(2, 0, '--help');
   }
 
   try {

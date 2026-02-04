@@ -44,13 +44,17 @@ will work in Cursor, Codex, or any agent environment that can use the `tbd` CLI.
 > 
 > If running on a fresh cloud instance (like Claude Code Cloud), tell the agent:
 > 
-> ***“install tbd (npm install -g get-tbd@latest) and run tbd for instructions to set up
-> this project”***
+> ***“install tbd (npm install -g get-tbd@latest) and run tbd prime for instructions to
+> set up this project”***
 
-That’s it. Running `tbd` with no arguments “primes” the agent with how to use `tbd` and
-how to help you. It will then bootstraps a SKILL.md into your project by running
+That’s it.
+Running `tbd prime` gives agents full workflow context on how to use `tbd` and
+how to help you. It will then bootstrap a SKILL.md into your project by running
 `tbd setup --auto` (which will add a `.tbd` directory and add itself to your `.claude`
 skills and hooks). And then it will use shortcuts to welcome you and get you started.
+
+Running `tbd` with no arguments shows help with a prominent reminder for agents to run
+`tbd prime`.
 
 You can then always ask questions like: “what can I do with tbd?”
 
@@ -239,6 +243,7 @@ opinionated rules with concrete examples, built from months of heavy agentic cod
 | [bun-monorepo-patterns](packages/tbd/docs/guidelines/bun-monorepo-patterns.md) | Bun workspaces, Bunup, Biome, bun test, standalone executables |
 | [typescript-cli-tool-rules](packages/tbd/docs/guidelines/typescript-cli-tool-rules.md) | Commander.js patterns, picocolors, terminal formatting |
 | [cli-agent-skill-patterns](packages/tbd/docs/guidelines/cli-agent-skill-patterns.md) | Building CLIs that function as agent skills in Claude Code |
+| [electron-app-development-patterns](packages/tbd/docs/guidelines/electron-app-development-patterns.md) | Electron ecosystems (npm, pnpm, Bun), security baselines, Electrobun comparison |
 | [typescript-yaml-handling-rules](packages/tbd/docs/guidelines/typescript-yaml-handling-rules.md) | YAML parsing/serialization with the `yaml` package, Zod validation, consistent formatting |
 | [python-rules](packages/tbd/docs/guidelines/python-rules.md) | Type hints, docstrings, exception handling, resource management |
 | [python-cli-patterns](packages/tbd/docs/guidelines/python-cli-patterns.md) | Modern Python CLI stack: uv, Typer, Rich, Ruff, BasedPyright |
@@ -491,9 +496,10 @@ Or read online:
   during `tbd setup --auto`. Your agent reads them on demand via `tbd shortcut`,
   `tbd guidelines`, and `tbd template`. Re-run `tbd setup --auto` anytime to refresh
   with the latest bundled docs, or add your own via `--add`.
-- **Everything is self-documented via the CLI.** Running `tbd` with no arguments gives
-  full orientation. `tbd setup --auto` writes a skill file (SKILL.md/AGENTS.md) that
-  teaches the agent all available commands, shortcuts, and guidelines.
+- **Everything is self-documented via the CLI.** Running `tbd` shows help with quick
+  command reference; `tbd prime` gives full workflow orientation.
+  `tbd setup --auto` (idempotent, safe anytime) writes a skill file (SKILL.md/AGENTS.md)
+  that teaches the agent all available commands, shortcuts, and guidelines.
   This means agents can inject context—specs, engineering guidelines, workflow
   instructions—at any point in a session, not just at startup.
 

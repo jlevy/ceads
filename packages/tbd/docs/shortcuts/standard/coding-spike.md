@@ -5,7 +5,7 @@ category: planning
 author: Kam Leung with LLM assistance
 ---
 We track work as beads using tbd.
-Run `tbd` for more on using tbd and current status.
+Run `tbd prime` for more on using tbd and current status.
 
 A **coding spike** is time-boxed exploration to validate technical assumptions through
 implementation.

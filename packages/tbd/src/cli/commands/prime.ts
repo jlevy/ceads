@@ -410,7 +410,7 @@ class PrimeHandler extends BaseCommand {
 }
 
 export const primeCommand = new Command('prime')
-  .description('Show full orientation with workflow context (default when running `tbd`)')
+  .description('Show full orientation with workflow context')
   .option('--export', 'Output default content (ignores PRIME.md override)')
   .option('--brief', 'Output abbreviated orientation (~35 lines) for constrained contexts')
   .action(async (options: PrimeOptions, command) => {

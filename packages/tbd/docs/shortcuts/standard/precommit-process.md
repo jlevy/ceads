@@ -5,7 +5,7 @@ category: git
 author: Joshua Levy (github.com/jlevy) with LLM assistance
 ---
 We track work as beads using tbd.
-Run `tbd` for more on using tbd and current status.
+Run `tbd prime` for more on using tbd and current status.
 
 Instructions:
 
