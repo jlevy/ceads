@@ -171,6 +171,7 @@ function convertIssue(beads: BeadsIssue, tbdId: string, depMapping: BeadsTotbdMa
 
 class ImportHandler extends BaseCommand {
   private dataSyncDir = '';
+  private tbdRoot = '';
 
   async run(file: string | undefined, options: ImportOptions): Promise<void> {
     // Check if this is a workspace import
@@ -193,16 +194,16 @@ class ImportHandler extends BaseCommand {
 
     // Handle validation mode - requires init
     if (options.validate) {
-      await requireInit();
-      this.dataSyncDir = await resolveDataSyncDir();
+      this.tbdRoot = await requireInit();
+      this.dataSyncDir = await resolveDataSyncDir(this.tbdRoot);
       await this.validateImport(options);
       return;
     }
 
     // File import requires initialization
     if (file) {
-      await requireInit();
-      this.dataSyncDir = await resolveDataSyncDir();
+      this.tbdRoot = await requireInit();
+      this.dataSyncDir = await resolveDataSyncDir(this.tbdRoot);
       await this.importFromFile(file, options);
     }
   }
@@ -211,8 +212,8 @@ class ImportHandler extends BaseCommand {
    * Import issues from a workspace.
    */
   private async importFromWorkspaceCmd(options: ImportOptions): Promise<void> {
-    const tbdRoot = await requireInit();
-    this.dataSyncDir = await resolveDataSyncDir(tbdRoot);
+    this.tbdRoot = await requireInit();
+    this.dataSyncDir = await resolveDataSyncDir(this.tbdRoot);
 
     const wsOptions: WorkspaceImportOptions = {
       workspace: options.workspace,
@@ -228,7 +229,7 @@ class ImportHandler extends BaseCommand {
     const spinner = this.output.spinner('Importing from workspace...');
 
     const result = await this.execute(async () => {
-      return await importFromWorkspace(tbdRoot, this.dataSyncDir, wsOptions);
+      return await importFromWorkspace(this.tbdRoot, this.dataSyncDir, wsOptions);
     }, 'Failed to import from workspace');
 
     spinner.stop();
@@ -699,13 +700,12 @@ class ImportHandler extends BaseCommand {
    * Returns true if prefix was updated.
    */
   private async updateConfigPrefixIfNeeded(detectedPrefix: string): Promise<boolean> {
-    const cwd = process.cwd();
     try {
-      const config = await readConfig(cwd);
+      const config = await readConfig(this.tbdRoot);
       if (config.display.id_prefix !== detectedPrefix) {
         const oldPrefix = config.display.id_prefix;
         config.display.id_prefix = detectedPrefix;
-        await writeConfig(cwd, config);
+        await writeConfig(this.tbdRoot, config);
         this.output.info(`Updated ID prefix: ${oldPrefix} → ${detectedPrefix}`);
         return true;
       }

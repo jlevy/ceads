@@ -29,6 +29,8 @@ import {
   initWorktree,
   checkGitVersion,
   checkWorktreeHealth,
+  findGitRoot,
+  isInGitRepo,
   MIN_GIT_VERSION,
 } from '../../file/git.js';
 
@@ -41,7 +43,19 @@ interface InitOptions {
 
 class InitHandler extends BaseCommand {
   async run(options: InitOptions): Promise<void> {
-    const cwd = process.cwd();
+    // Require git repository and resolve to git root
+    const inGitRepo = await isInGitRepo();
+    if (!inGitRepo) {
+      throw new CLIError('Not a git repository. Run `git init` first.');
+    }
+
+    const gitRoot = await findGitRoot();
+    if (!gitRoot) {
+      throw new CLIError('Could not determine git repository root.');
+    }
+
+    // Use git root as the working directory (ensures .tbd/ is always at repo root)
+    const cwd = gitRoot;
 
     // Check if already initialized
     try {
