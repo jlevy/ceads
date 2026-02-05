@@ -1,5 +1,13 @@
 # get-tbd
 
+## 0.1.16
+
+### Patch Changes
+
+- 78d4671: Bug fixes and improvements including doctor remote count fix, init git root
+  resolution, JSON mode options suppression, streamlined sync outbox workflow, and
+  updated default no-args behavior.
+
 ## 0.1.15
 
 ### Patch Changes
