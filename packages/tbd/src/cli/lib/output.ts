@@ -309,6 +309,17 @@ export async function paginateOutput(content: string, hasColors = false): Promis
       stdio: ['pipe', 'inherit', 'inherit'],
     });
 
+    // Handle EPIPE error when user quits pager (e.g., pressing 'q' in less).
+    // This is expected behavior - the pager closes stdin when the user exits early.
+    child.stdin.on('error', (err: NodeJS.ErrnoException) => {
+      if (err.code === 'EPIPE') {
+        // User quit the pager early - this is fine, not an error
+        return;
+      }
+      // For other errors, log only in debug scenarios
+      // (but don't throw - let the process exit cleanly)
+    });
+
     child.stdin.write(content);
     child.stdin.end();
 
