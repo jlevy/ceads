@@ -1036,3 +1036,169 @@ This could auto-add dependencies when a source is added.
 
 4. **Speculate migration is a large scope** - Phase 4 essentially restructures an entire
    external project. Consider treating it as a separate spec with its own timeline.
+
+---
+
+## Appendix: Relationship to Agent Skills Ecosystem (skills.sh, SKILL.md, agentskills.io)
+
+### Overview of the Agent Skills Ecosystem (as of Feb 2026)
+
+The agent skills ecosystem has three key components:
+
+1. **Agent Skills Open Standard** ([agentskills.io](https://agentskills.io)) - Originally
+   developed by Anthropic and released as an open standard. Defines the SKILL.md format:
+   YAML frontmatter (`name`, `description`, `license`, `compatibility`, `metadata`,
+   `allowed-tools`) + markdown body. Adopted by 27+ agent products including Claude Code,
+   Cursor, GitHub Copilot, Codex, Gemini CLI, Windsurf, Goose, and others.
+
+2. **skills.sh** ([skills.sh](https://skills.sh)) - Vercel's open ecosystem for
+   discovering and installing skills. Functions as "npm for agents." CLI:
+   `npx skills add <owner/repo>`. Installs SKILL.md files to `.agents/skills/` and
+   symlinks to agent-specific directories (`.claude/skills/`, `.cursor/skills/`, etc.).
+   Hosts a leaderboard with 47K+ total installations tracked.
+
+3. **Anthropic Skills Repo** ([github.com/anthropics/skills](https://github.com/anthropics/skills)) -
+   Reference implementations of Agent Skills (65K+ stars). Skills for document creation
+   (docx, pdf, pptx, xlsx), creative workflows, and technical tasks.
+
+### How tbd Relates to This Ecosystem
+
+tbd and the Agent Skills ecosystem operate at **different levels of the progressive
+disclosure hierarchy** defined by the Agent Skills spec:
+
+| Level | What | Token Budget | Example |
+| --- | --- | --- | --- |
+| Level 1 | Metadata (name + description) | ~100 tokens | tbd's skill description in system prompt |
+| Level 2 | Skill body (SKILL.md) | <5K tokens | tbd's SKILL.md with workflow docs |
+| **Level 3** | **Resources (loaded on demand)** | **Unlimited** | **tbd's guidelines, shortcuts, templates** |
+
+**Key insight:** tbd itself is already an Agent Skill (Level 1-2). It has a SKILL.md
+installed in `.claude/skills/tbd/`. The external docs repos feature adds **Level 3
+resources** — the domain knowledge that tbd's meta-skill references via CLI commands like
+`tbd guidelines X`.
+
+The Agent Skills spec explicitly supports this pattern:
+
+> "Skills should be structured for efficient use of context... Files (e.g. those in
+> `scripts/`, `references/`, or `assets/`) are loaded only when required."
+
+tbd's `tbd guidelines X` and `tbd shortcut X` commands are exactly this — on-demand
+Level 3 resource loading.
+
+### Comparison: skills.sh vs tbd source add
+
+| Aspect | skills.sh (`npx skills add`) | tbd (`tbd source add`) |
+| --- | --- | --- |
+| **Content type** | SKILL.md files (agent capabilities) | Guidelines, shortcuts, templates (domain knowledge) |
+| **Disclosure level** | Level 1-2 (metadata + instructions) | Level 3 (on-demand resources) |
+| **Install model** | One-time file copy to `.agents/skills/` | Ongoing git sync to `.tbd/docs/` |
+| **Updates** | `npx skills update` (manual) | `tbd sync` (auto or manual) |
+| **Discovery** | Browse skills.sh leaderboard | `tbd guidelines --list`, `tbd shortcut --list` |
+| **Cross-agent** | Installs to multiple agent directories | Agent-agnostic (CLI-based access) |
+| **Namespace** | By owner/repo (`vercel-labs/skills`) | Optional `namespace:` field |
+| **Path mapping** | Not needed (fixed SKILL.md format) | Required (repos have varied structures) |
+| **Manifest** | SKILL.md frontmatter IS the manifest | `tbd-docs.yml` (optional) |
+| **Source** | GitHub repos | GitHub repos (same) |
+
+### What tbd Should Learn from skills.sh
+
+1. **The `npx skills add` UX is excellent** — single command, interactive selection,
+   works across agents. tbd's `tbd source add` should match this level of polish.
+   The interactive flow (clone → discover → prompt to confirm → install) is the right
+   pattern, and our spec already describes this.
+
+2. **GitHub repos as distribution** — Both systems use GitHub repos as the primary
+   distribution mechanism. This is the right choice for documentation and skill content.
+   No need for a separate registry or package manager.
+
+3. **The leaderboard/discovery model** — skills.sh tracks install counts and provides
+   trending/popular lists. tbd could eventually have a curated index of doc repos
+   ("awesome-tbd-docs" or similar), but this isn't needed for Phase 1.
+
+4. **Cross-agent output directories** — skills.sh installs to multiple agent-specific
+   directories. tbd's approach is inherently more portable since it uses CLI-based access
+   rather than file-based skill loading. Any agent that can run `tbd guidelines X` gets
+   the knowledge, regardless of its skill directory conventions.
+
+5. **Frontmatter compatibility** — The Agent Skills spec standardizes `name`,
+   `description`, `license`, `metadata`. tbd's doc frontmatter (`title`, `description`,
+   `author`, `category`) is similar but not identical. Consider aligning where possible:
+   - `title` ↔ `name` (same concept, different field name)
+   - `description` ↔ `description` (identical)
+   - `author` ↔ `metadata.author`
+   - `category` → `metadata.category`
+
+### What's Different and Why tbd Needs Its Own Approach
+
+1. **Ongoing sync vs one-time install** — skills.sh copies files once; tbd needs ongoing
+   sync because doc repos evolve (new guidelines added, existing ones refined). This is
+   the fundamental architectural difference: skills are static capabilities, while tbd
+   docs are living knowledge.
+
+2. **Path mapping complexity** — SKILL.md files have a fixed structure (one directory,
+   one file). tbd doc repos have varied structures (guidelines/, reference/,
+   case-studies/) that need mapping to tbd's categories. skills.sh doesn't need this.
+
+3. **Namespace granularity** — skills.sh namespaces by owner/repo at the repository
+   level. tbd needs namespace control at the individual doc level because multiple repos
+   may provide docs with the same filename.
+
+4. **CLI-based access model** — skills.sh files are loaded directly by agents from the
+   filesystem. tbd docs are accessed via CLI commands (`tbd guidelines X`), which provides
+   better context management (agents get exactly the doc they need, not all docs at once).
+   This is the "meta-skill" pattern documented in our
+   `research-skills-vs-meta-skill-architecture.md`.
+
+### Are They Complementary or Competing?
+
+**Complementary.** They solve different problems:
+
+- **skills.sh** answers: "How do I give my agent the *ability* to do X?"
+  (e.g., create PDFs, run data analysis, follow design patterns)
+- **tbd source add** answers: "How do I give my agent *knowledge* about X?"
+  (e.g., Rust porting rules, TypeScript best practices, project-specific conventions)
+
+A project could use both:
+
+```bash
+# Install agent capabilities via skills.sh
+npx skills add anthropics/skills          # PDF creation, etc.
+npx skills add vercel-labs/agent-skills   # Design patterns, etc.
+
+# Install domain knowledge via tbd
+tbd source add github.com/jlevy/rust-porting-playbook   # Rust porting expertise
+tbd source add github.com/jlevy/speculate               # General coding guidelines
+```
+
+The skills give agents new capabilities; tbd's docs give agents domain expertise to use
+those capabilities well.
+
+### Future Integration Considerations
+
+1. **tbd as a skills.sh-listed skill** — tbd itself (the meta-skill) could be listed on
+   skills.sh for discovery. Users would find tbd via skills.sh, install it with
+   `npx skills add`, and then use `tbd source add` for domain knowledge repos.
+
+2. **Doc repos as skills.sh entries** — Individual doc repos (like rust-porting-playbook)
+   could potentially be listed on skills.sh as "knowledge skills." This would require
+   each doc repo to have a SKILL.md that describes its contents and instructs agents to
+   use `tbd guidelines X` to access them. This is a natural evolution but not a Phase 1
+   concern.
+
+3. **Shared frontmatter standard** — If the Agent Skills spec evolves to support
+   "resource-type" skills (not just capability skills), tbd could adopt the standard
+   frontmatter format directly. Monitor the agentskills.io spec for evolution.
+
+4. **Registry/index for doc repos** — skills.sh has a centralized leaderboard. tbd could
+   eventually maintain a similar index of doc repos, or simply piggyback on skills.sh's
+   discovery mechanism. A simple GitHub-based "awesome list" is sufficient to start.
+
+### References
+
+- Agent Skills Specification: https://agentskills.io/specification
+- skills.sh CLI: https://github.com/vercel-labs/skills
+- skills.sh Directory: https://skills.sh
+- Anthropic Skills Repo: https://github.com/anthropics/skills
+- Vercel announcement: https://vercel.com/changelog/introducing-skills-the-open-agent-skills-ecosystem
+- tbd CLI-as-skill research: [research-cli-as-agent-skill.md](../../research/current/research-cli-as-agent-skill.md)
+- tbd skills architecture research: [research-skills-vs-meta-skill-architecture.md](../../research/current/research-skills-vs-meta-skill-architecture.md)

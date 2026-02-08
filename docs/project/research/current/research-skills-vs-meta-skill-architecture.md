@@ -1,8 +1,8 @@
 # Research Brief: Skills vs Meta-Skill Architecture for Agent-Integrated CLIs
 
-**Last Updated**: 2026-02-02
+**Last Updated**: 2026-02-08
 
-**Status**: Complete (updated with activation reliability data)
+**Status**: Complete (updated with skills.sh ecosystem and activation reliability data)
 
 **Related**:
 
@@ -566,6 +566,41 @@ Too many drawbacks:
 
 * * *
 
+## Skills Distribution Ecosystem (2026-02 Update)
+
+### skills.sh and the Broader Ecosystem
+
+Since the original research, Vercel launched [skills.sh](https://skills.sh) as an open
+ecosystem for skill discovery and installation (`npx skills add <owner/repo>`). This has
+become the primary distribution channel for Agent Skills, with 47K+ total installations
+across 27+ compatible agent products.
+
+**Impact on tbd's architecture decision**: skills.sh validates the meta-skill approach.
+skills.sh distributes SKILL.md files (Level 1-2 content), while tbd's CLI serves as an
+on-demand Level 3 resource server. These are complementary layers:
+
+- **skills.sh**: "How do I give my agent the ability to do X?" (capabilities)
+- **tbd CLI**: "How do I give my agent knowledge about X?" (domain expertise)
+
+tbd itself could be listed as a skill on skills.sh (for discovery), while `tbd source
+add` handles the separate problem of distributing domain knowledge repos.
+
+### External Docs Repos Feature
+
+The new [external docs repos spec](../../specs/active/plan-2026-02-02-external-docs-repos.md)
+extends the meta-skill architecture to support external knowledge sources:
+
+```bash
+tbd source add github.com/jlevy/rust-porting-playbook
+# Adds domain expertise accessible via tbd guidelines X
+```
+
+This is distinct from skills.sh distribution: skills.sh copies SKILL.md files once, while
+`tbd source add` establishes ongoing git sync for evolving knowledge repos. See the spec
+appendix for detailed comparison.
+
+* * *
+
 ## Open Questions
 
 1. **Usage telemetry**: Which shortcuts are most frequently used?
@@ -587,6 +622,14 @@ Too many drawbacks:
 5. **Router/Hidden skill proposal**: GitHub Issue #11045 proposes `hidden: true` and
    `router: true` frontmatter fields to enable meta-skill patterns natively.
    If implemented, this could provide official support for the pattern tbd already uses.
+
+6. **skills.sh as distribution channel for tbd**: Should tbd be listed on skills.sh for
+   discovery? This would make tbd discoverable via `npx skills add` while the actual
+   functionality remains CLI-based.
+
+7. **Doc repos as "knowledge skills"**: Could domain knowledge repos (like
+   rust-porting-playbook) be listed on skills.sh with a SKILL.md that references
+   `tbd guidelines X` commands? This would bridge the two distribution models.
 
 * * *
 
@@ -622,6 +665,12 @@ This pattern should be documented as a best practice for similar tools.
 - GitHub Issue #18192 (Recursive Skill Discovery):
   https://github.com/anthropics/claude-code/issues/18192
 - Agent Skills Standard: https://agentskills.io
+- Agent Skills Specification: https://agentskills.io/specification
+- skills.sh (Vercel): https://skills.sh
+- skills.sh CLI: https://github.com/vercel-labs/skills
+- Anthropic Skills Repo: https://github.com/anthropics/skills
+- Vercel skills.sh announcement:
+  https://vercel.com/changelog/introducing-skills-the-open-agent-skills-ecosystem
 - Skill Activation Reliability Testing:
   https://scottspence.com/posts/how-to-make-claude-code-skills-activate-reliably
 - Claude Code Skills Guide (Gist):
