@@ -585,16 +585,23 @@ export interface PushResult {
  * @param syncBranch - The sync branch name
  * @param remote - The remote name
  * @param onMergeNeeded - Callback to merge remote changes
+ * @param baseDir - Repository root directory (uses process.cwd() if not provided)
  */
 export async function pushWithRetry(
   syncBranch: string,
   remote: string,
   onMergeNeeded: () => Promise<ConflictEntry[]>,
+  baseDir?: string,
 ): Promise<PushResult> {
+  // Use explicit refspec to avoid ambiguity with tags or other refs
+  const refspec = `refs/heads/${syncBranch}:refs/heads/${syncBranch}`;
+  // Build -C prefix args when baseDir is provided
+  const dirArgs = baseDir ? ['-C', baseDir] : [];
+
   for (let attempt = 1; attempt <= MAX_PUSH_RETRIES; attempt++) {
     try {
       // Try to push
-      await git('push', remote, syncBranch);
+      await git(...dirArgs, 'push', remote, refspec);
       return { success: true, attempt };
     } catch (error) {
       if (!isNonFastForward(error)) {
@@ -615,7 +622,7 @@ export async function pushWithRetry(
       }
 
       // Fetch and merge remote changes
-      await git('fetch', remote, syncBranch);
+      await git(...dirArgs, 'fetch', remote, syncBranch);
       const conflicts = await onMergeNeeded();
 
       if (conflicts.length > 0) {

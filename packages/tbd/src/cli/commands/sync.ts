@@ -599,47 +599,56 @@ class SyncHandler extends BaseCommand {
   }
 
   private async doPushWithRetry(syncBranch: string, remote: string): Promise<PushResult> {
-    return pushWithRetry(syncBranch, remote, async () => {
-      // Merge callback - called when we need to merge remote changes
-      const conflicts: ConflictEntry[] = [];
+    return pushWithRetry(
+      syncBranch,
+      remote,
+      async () => {
+        // Merge callback - called when we need to merge remote changes
+        const conflicts: ConflictEntry[] = [];
 
-      // Get list of issues that need merging
-      const localIssues = await listIssues(this.dataSyncDir);
+        // Get list of issues that need merging
+        const localIssues = await listIssues(this.dataSyncDir);
 
-      for (const localIssue of localIssues) {
-        try {
-          // Try to get the remote version (use relative path for git show)
-          const remoteContent = await git(
-            'show',
-            `${remote}/${syncBranch}:${DATA_SYNC_DIR}/issues/${localIssue.id}.md`,
-          );
+        for (const localIssue of localIssues) {
+          try {
+            // Try to get the remote version (use relative path for git show)
+            const remoteContent = await git(
+              'show',
+              `${remote}/${syncBranch}:${DATA_SYNC_DIR}/issues/${localIssue.id}.md`,
+            );
 
-          if (remoteContent) {
-            // Parse remote issue and merge
-            const remoteIssue = await readIssue(this.dataSyncDir, localIssue.id);
-            const result = mergeIssues(null, localIssue, remoteIssue);
+            if (remoteContent) {
+              // Parse remote issue and merge
+              const remoteIssue = await readIssue(this.dataSyncDir, localIssue.id);
+              const result = mergeIssues(null, localIssue, remoteIssue);
 
-            // Write merged result
-            await writeIssue(this.dataSyncDir, result.merged);
-            conflicts.push(...result.conflicts);
+              // Write merged result
+              await writeIssue(this.dataSyncDir, result.merged);
+              conflicts.push(...result.conflicts);
+            }
+          } catch {
+            // Issue doesn't exist remotely - no merge needed
+            this.output.debug(`Issue ${localIssue.id} not on remote, no merge needed`);
           }
-        } catch {
-          // Issue doesn't exist remotely - no merge needed
-          this.output.debug(`Issue ${localIssue.id} not on remote, no merge needed`);
         }
-      }
 
-      return conflicts;
-    });
+        return conflicts;
+      },
+      this.tbdRoot,
+    );
   }
 
   /**
    * Show git log --stat output in debug mode.
    * Used to display commits that were synced.
+   *
+   * @param label - Label for the debug output (e.g., "Commits sent")
+   * @param args - Arguments to pass to `git log` after `--stat --oneline`
+   *   Must include explicit branch/ref to avoid showing commits from the wrong branch.
    */
-  private async showGitLogDebug(range: string, label: string): Promise<void> {
+  private async showGitLogDebug(label: string, ...args: string[]): Promise<void> {
     try {
-      const logOutput = await git('log', '--stat', '--oneline', range);
+      const logOutput = await git('log', '--stat', '--oneline', ...args);
       if (logOutput.trim()) {
         this.output.debug(`${label}:`);
         for (const line of logOutput.split('\n')) {
@@ -735,8 +744,10 @@ class SyncHandler extends BaseCommand {
           this.output.debug(`Merged ${behindCommits} commit(s) from remote`);
 
           // Show received commits in debug mode
+          // Use syncBranch explicitly — bare `HEAD` would resolve to the user's
+          // current working branch, not the tbd-sync branch in the worktree.
           if (headBeforeMerge) {
-            await this.showGitLogDebug(`${headBeforeMerge}..HEAD`, 'Commits received');
+            await this.showGitLogDebug('Commits received', `${headBeforeMerge}..${syncBranch}`);
           }
         } catch {
           // Merge conflict - try to resolve at file level
@@ -864,7 +875,9 @@ class SyncHandler extends BaseCommand {
         this.output.debug(`Push failed: ${pushError}`);
       } else {
         // Show pushed commits in debug mode
-        await this.showGitLogDebug(`-${aheadCommits}`, 'Commits sent');
+        // Use syncBranch explicitly — bare `-N` would resolve against the user's
+        // current working branch (HEAD), not the tbd-sync branch.
+        await this.showGitLogDebug('Commits sent', syncBranch, `-${aheadCommits}`);
       }
     } else {
       this.output.debug('No commits to push');
