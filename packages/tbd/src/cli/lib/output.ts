@@ -343,7 +343,8 @@ export interface Spinner {
   stop(msg?: string): void;
 }
 
-// Re-export OperationLogger so CLI consumers can import from output.ts
+// Re-export OperationLogger and noopLogger so CLI consumers can import from output.ts
+export { noopLogger } from '../../lib/types.js';
 export type { OperationLogger } from '../../lib/types.js';
 
 /**
@@ -581,10 +582,18 @@ export class OutputManager {
    */
   logger(spinner: Spinner): OperationLogger {
     return {
-      progress: (msg) => { spinner.message(msg); },
-      info: (msg) => { this.info(msg); },
-      warn: (msg) => { this.warn(msg); },
-      debug: (msg) => { this.debug(msg); },
+      progress: (msg) => {
+        spinner.message(msg);
+      },
+      info: (msg) => {
+        this.info(msg);
+      },
+      warn: (msg) => {
+        this.warn(msg);
+      },
+      debug: (msg) => {
+        this.debug(msg);
+      },
     };
   }
 

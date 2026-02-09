@@ -152,16 +152,28 @@ export interface DocSection {
  * the CLI output layer. CLI commands create an OperationLogger via
  * `OutputManager.logger(spinner)` and pass it to core functions.
  *
- * All methods are optional so callers can provide only what they need,
- * and core code can safely use `log.info?.("...")` without null checks.
+ * All methods are required. Use `noopLogger` when no logging is needed.
  */
 export interface OperationLogger {
   /** Key milestones — drives the spinner in CLI context */
-  progress?: (message: string) => void;
+  progress: (message: string) => void;
   /** Operational detail (shown with --verbose or --debug) */
-  info?: (message: string) => void;
+  info: (message: string) => void;
   /** Non-fatal warnings */
-  warn?: (message: string) => void;
+  warn: (message: string) => void;
   /** Internal state for troubleshooting (shown with --debug only) */
-  debug?: (message: string) => void;
+  debug: (message: string) => void;
 }
+
+/**
+ * No-op logger for when no logging is needed.
+ * Analogous to noopSpinner in the CLI layer.
+ */
+// eslint-disable-next-line @typescript-eslint/no-empty-function
+const noop = () => {};
+export const noopLogger: OperationLogger = {
+  progress: noop,
+  info: noop,
+  warn: noop,
+  debug: noop,
+};
