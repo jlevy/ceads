@@ -1,8 +1,8 @@
 /**
- * `tbd template` - Find and output document templates.
+ * `tbd reference` - Find and output reference documents.
  *
- * Templates are reusable document templates for specs, research briefs, etc.
- * Give a name or description and tbd will find the matching template.
+ * References are API docs, data model docs, and other reference material.
+ * Give a name or description and tbd will find the matching reference.
  */
 
 import { Command } from 'commander';
@@ -11,13 +11,13 @@ import { DocCommandHandler, type DocCommandOptions } from '../lib/doc-command-ha
 import { CLIError } from '../lib/errors.js';
 import { getDefaultDocPaths } from '../../lib/paths.js';
 
-class TemplateHandler extends DocCommandHandler {
+class ReferenceHandler extends DocCommandHandler {
   constructor(command: Command) {
     super(command, {
-      typeName: 'template',
-      typeNamePlural: 'templates',
-      paths: getDefaultDocPaths('template'),
-      docType: 'template',
+      typeName: 'reference',
+      typeNamePlural: 'references',
+      paths: getDefaultDocPaths('reference'),
+      docType: 'reference',
     });
   }
 
@@ -48,18 +48,18 @@ class TemplateHandler extends DocCommandHandler {
 
       // Query provided: try exact match first, then fuzzy
       await this.handleQuery(query);
-    }, 'Failed to find template');
+    }, 'Failed to find reference');
   }
 }
 
-export const templateCommand = new Command('template')
-  .description('Find and output document templates')
-  .argument('[query]', 'Template name or description to search for')
-  .option('--list', 'List all available templates')
-  .option('--all', 'Include shadowed templates (use with --list)')
-  .option('--add <url>', 'Add a template from a URL')
-  .option('--name <name>', 'Name for the added template (required with --add)')
+export const referenceCommand = new Command('reference')
+  .description('Find and output reference documents')
+  .argument('[query]', 'Reference name or description to search for')
+  .option('--list', 'List all available references')
+  .option('--all', 'Include shadowed references (use with --list)')
+  .option('--add <url>', 'Add a reference from a URL')
+  .option('--name <name>', 'Name for the added reference (required with --add)')
   .action(async (query: string | undefined, options: DocCommandOptions, command) => {
-    const handler = new TemplateHandler(command);
+    const handler = new ReferenceHandler(command);
     await handler.run(query, options);
   });

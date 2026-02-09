@@ -127,7 +127,7 @@ describe('doc --add end-to-end', () => {
   });
 
   describe('tbd shortcut --add', () => {
-    it('adds a shortcut to shortcuts/custom/', async () => {
+    it('adds a shortcut to shortcuts/', async () => {
       initGitAndTbd();
 
       const addResult = runTbd([
@@ -142,10 +142,10 @@ describe('doc --add end-to-end', () => {
       }
 
       expect(addResult.status).toBe(0);
-      expect(addResult.stdout).toContain('Added to shortcuts/custom/my-custom-shortcut.md');
+      expect(addResult.stdout).toContain('Added to shortcuts/my-custom-shortcut.md');
 
-      // Verify the file went to shortcuts/custom/ (not shortcuts/standard/)
-      const docPath = join(tempDir, '.tbd', 'docs', 'shortcuts', 'custom', 'my-custom-shortcut.md');
+      // Verify the file went to shortcuts/
+      const docPath = join(tempDir, '.tbd', 'docs', 'shortcuts', 'my-custom-shortcut.md');
       await access(docPath);
     });
   });

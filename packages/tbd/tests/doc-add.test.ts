@@ -122,8 +122,12 @@ describe('getDocTypeSubdir', () => {
     expect(getDocTypeSubdir('guideline')).toBe('guidelines');
   });
 
-  it('returns shortcuts/custom for shortcut type', () => {
-    expect(getDocTypeSubdir('shortcut')).toBe('shortcuts/custom');
+  it('returns shortcuts for shortcut type', () => {
+    expect(getDocTypeSubdir('shortcut')).toBe('shortcuts');
+  });
+
+  it('returns references for reference type', () => {
+    expect(getDocTypeSubdir('reference')).toBe('references');
   });
 
   it('returns templates for template type', () => {
@@ -148,7 +152,7 @@ describe('addDoc', () => {
     tempDir = join(tmpdir(), `tbd-doc-add-test-${randomBytes(4).toString('hex')}`);
     await mkdir(tempDir, { recursive: true });
     await mkdir(join(tempDir, '.tbd', 'docs', 'guidelines'), { recursive: true });
-    await mkdir(join(tempDir, '.tbd', 'docs', 'shortcuts', 'custom'), { recursive: true });
+    await mkdir(join(tempDir, '.tbd', 'docs', 'shortcuts'), { recursive: true });
     await mkdir(join(tempDir, '.tbd', 'docs', 'templates'), { recursive: true });
 
     // Create a minimal config.yml
@@ -221,18 +225,18 @@ describe('addDoc', () => {
     expect(result.destPath).toBe('guidelines/modern-bun-monorepo-patterns.md');
   });
 
-  it('uses shortcuts/custom subdir for shortcut type', async () => {
+  it('uses shortcuts subdir for shortcut type', async () => {
     const result = await addDoc(tempDir, {
       url: 'https://raw.githubusercontent.com/org/repo/main/docs/file.md',
       name: 'test-shortcut',
       docType: 'shortcut',
     });
 
-    expect(result.destPath).toBe('shortcuts/custom/test-shortcut.md');
+    expect(result.destPath).toBe('shortcuts/test-shortcut.md');
 
     // Verify file went to the right place
     const content = await readFile(
-      join(tempDir, '.tbd', 'docs', 'shortcuts', 'custom', 'test-shortcut.md'),
+      join(tempDir, '.tbd', 'docs', 'shortcuts', 'test-shortcut.md'),
       'utf-8',
     );
     expect(content).toBe('# Mocked Document\n\nThis is mocked content for testing.\n');
@@ -256,7 +260,7 @@ describe('addDoc', () => {
     });
 
     const configContent = await readFile(join(tempDir, '.tbd', 'config.yml'), 'utf-8');
-    expect(configContent).toContain('.tbd/docs/shortcuts/custom');
+    expect(configContent).toContain('.tbd/docs/shortcuts');
   });
 
   it('does not duplicate lookup_path entry on second add', async () => {

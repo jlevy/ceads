@@ -16,7 +16,7 @@ import { requireInit, CLIError } from '../lib/errors.js';
 import { DocCache, SCORE_PREFIX_MATCH } from '../../file/doc-cache.js';
 import { addDoc } from '../../file/doc-add.js';
 import { readConfig } from '../../file/config.js';
-import { DEFAULT_SHORTCUT_PATHS } from '../../lib/paths.js';
+import { getDefaultDocPaths } from '../../lib/paths.js';
 import { truncate } from '../../lib/truncate.js';
 import { formatDocSize } from '../../lib/format-utils.js';
 import { getTerminalWidth } from '../lib/output.js';
@@ -75,7 +75,7 @@ class ShortcutHandler extends BaseCommand {
 
       // Read config to get lookup paths (fall back to defaults)
       const config = await readConfig(tbdRoot);
-      const lookupPaths = config.docs_cache?.lookup_path ?? DEFAULT_SHORTCUT_PATHS;
+      const lookupPaths = config.docs_cache?.lookup_path ?? getDefaultDocPaths('shortcut');
 
       // Create and load the doc cache with proper base directory
       const cache = new DocCache(lookupPaths, tbdRoot);

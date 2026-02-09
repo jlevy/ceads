@@ -44,8 +44,7 @@ import {
   TBD_DOCS_DIR,
   WORKTREE_DIR_NAME,
   DATA_SYNC_DIR_NAME,
-  DEFAULT_SHORTCUT_PATHS,
-  DEFAULT_GUIDELINES_PATHS,
+  getDefaultDocPaths,
   TBD_SHORTCUTS_SYSTEM,
   TBD_SHORTCUTS_STANDARD,
   TBD_GUIDELINES_DIR,
@@ -71,12 +70,12 @@ async function getShortcutDirectory(quiet = false): Promise<string | null> {
   }
 
   // Load shortcuts
-  const shortcutCache = new DocCache(DEFAULT_SHORTCUT_PATHS, tbdRoot);
+  const shortcutCache = new DocCache(getDefaultDocPaths('shortcut'), tbdRoot);
   await shortcutCache.load({ quiet });
   const shortcuts = shortcutCache.list();
 
   // Load guidelines
-  const guidelinesCache = new DocCache(DEFAULT_GUIDELINES_PATHS, tbdRoot);
+  const guidelinesCache = new DocCache(getDefaultDocPaths('guideline'), tbdRoot);
   await guidelinesCache.load({ quiet });
   const guidelines = guidelinesCache.list();
 

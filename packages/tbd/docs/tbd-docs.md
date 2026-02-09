@@ -696,8 +696,7 @@ Options:
 
 GitHub blob URLs are automatically converted to raw.githubusercontent.com URLs.
 On HTTP 403, fetching falls back to `gh api` for authenticated access.
-User-added shortcuts go to `shortcuts/custom/` (separate from bundled
-`shortcuts/standard/`).
+User-added shortcuts go to `.tbd/docs/shortcuts/` alongside bundled shortcuts.
 
 ### uninstall
 

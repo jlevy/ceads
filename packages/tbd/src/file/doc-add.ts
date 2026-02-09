@@ -21,7 +21,7 @@ import { TBD_DOCS_DIR } from '../lib/paths.js';
 /**
  * The type of document being added.
  */
-export type DocType = 'guideline' | 'shortcut' | 'template';
+export type DocType = 'guideline' | 'shortcut' | 'template' | 'reference';
 
 /**
  * Options for adding a document.
@@ -94,9 +94,11 @@ export function getDocTypeSubdir(docType: DocType): string {
     case 'guideline':
       return 'guidelines';
     case 'shortcut':
-      return 'shortcuts/custom';
+      return 'shortcuts';
     case 'template':
       return 'templates';
+    case 'reference':
+      return 'references';
   }
 }
 

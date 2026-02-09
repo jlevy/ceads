@@ -37,8 +37,8 @@ Agent:
 
 Shortcuts are loaded from directories in the doc path (searched in order):
 
-- `.tbd/docs/shortcuts/system/` - Core system docs (skill.md, etc.)
-- `.tbd/docs/shortcuts/standard/` - Standard workflow shortcuts
+- `.tbd/docs/sys/shortcuts/` - Core system docs (skill.md, etc.)
+- `.tbd/docs/tbd/shortcuts/` - Standard workflow shortcuts
 
 Directories earlier in the doc path take precedence.
 If you add a shortcut with the same name in an earlier directory, it will take
@@ -46,7 +46,7 @@ precedence over a same-named shortcut in a later directory.
 
 ## Creating Custom Shortcuts
 
-1. Create a markdown file in `.tbd/docs/shortcuts/standard/` or a custom directory
+1. Create a markdown file in `.tbd/docs/tbd/shortcuts/` or a custom directory
 2. Add YAML frontmatter with `title` and `description` for searchability
 3. Write your instructions in the body
 

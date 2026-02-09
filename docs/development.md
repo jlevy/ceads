@@ -51,7 +51,7 @@ The globally installed `tbd` has its own bundled docs from the published npm pac
 Running `tbd setup --auto` with the global installation won’t include your new files.
 
 ```bash
-# 1. Add your new file to packages/tbd/docs/shortcuts/standard/my-shortcut.md
+# 1. Add your new file to packages/tbd/docs/tbd/shortcuts/my-shortcut.md
 
 # 2. Build to bundle the new file into dist/docs/
 pnpm build
@@ -60,7 +60,7 @@ pnpm build
 node packages/tbd/dist/bin.mjs setup --auto
 
 # 4. Verify the file was copied to .tbd/docs/
-ls .tbd/docs/shortcuts/standard/my-shortcut.md
+ls .tbd/docs/tbd/shortcuts/my-shortcut.md
 
 # 5. Test the shortcut with the local build
 node packages/tbd/dist/bin.mjs shortcut my-shortcut

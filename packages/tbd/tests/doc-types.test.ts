@@ -10,6 +10,8 @@ import {
   getAllDocTypeNames,
   getAllDocTypeDirectories,
 } from '../src/lib/doc-types.js';
+import { getDefaultDocPaths, TBD_DOCS_DIR } from '../src/lib/paths.js';
+import { join } from 'node:path';
 
 describe('doc-types', () => {
   describe('DOC_TYPES registry', () => {
@@ -115,6 +117,43 @@ describe('doc-types', () => {
       expect(dirs).toContain('templates');
       expect(dirs).toContain('references');
       expect(dirs).toHaveLength(4);
+    });
+  });
+
+  describe('getDefaultDocPaths', () => {
+    it('returns sys + tbd prefixed paths for shortcuts', () => {
+      const paths = getDefaultDocPaths('shortcut');
+      expect(paths).toEqual([
+        join(TBD_DOCS_DIR, 'sys', 'shortcuts'),
+        join(TBD_DOCS_DIR, 'tbd', 'shortcuts'),
+      ]);
+    });
+
+    it('returns tbd-prefixed path for guidelines', () => {
+      const paths = getDefaultDocPaths('guideline');
+      expect(paths).toEqual([join(TBD_DOCS_DIR, 'tbd', 'guidelines')]);
+    });
+
+    it('returns tbd-prefixed path for templates', () => {
+      const paths = getDefaultDocPaths('template');
+      expect(paths).toEqual([join(TBD_DOCS_DIR, 'tbd', 'templates')]);
+    });
+
+    it('returns tbd-prefixed path for references', () => {
+      const paths = getDefaultDocPaths('reference');
+      expect(paths).toEqual([join(TBD_DOCS_DIR, 'tbd', 'references')]);
+    });
+
+    it('uses directory names from DOC_TYPES registry', () => {
+      // Verify the function derives paths from the registry, not hardcoded
+      for (const typeName of getAllDocTypeNames()) {
+        const paths = getDefaultDocPaths(typeName);
+        const dir = DOC_TYPES[typeName].directory;
+        // Every path should contain the doc type's directory
+        for (const p of paths) {
+          expect(p).toContain(dir);
+        }
+      }
     });
   });
 });

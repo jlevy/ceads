@@ -27,6 +27,7 @@
  */
 
 import { join } from 'node:path';
+import { type DocTypeName, getDocTypeDirectory } from './doc-types.js';
 
 /** The tbd configuration directory on main branch */
 export const TBD_DIR = '.tbd';
@@ -227,27 +228,21 @@ export const INSTALL_DIR = 'install';
 export const BUILTIN_INSTALL_DIR = INSTALL_DIR;
 
 /**
- * Default shortcut lookup paths (searched in order, relative to tbd root).
- * Earlier paths take precedence over later paths.
+ * Get default lookup paths for a doc type, derived from the doc-types registry.
+ *
+ * Shortcuts get two lookup directories (sys + tbd prefixes).
+ * All other types get a single tbd-prefixed directory.
+ *
+ * @param typeName - The doc type name from the registry
+ * @returns Array of paths relative to tbd root (e.g., '.tbd/docs/tbd/guidelines')
  */
-export const DEFAULT_SHORTCUT_PATHS = [
-  TBD_SHORTCUTS_SYSTEM, // .tbd/docs/sys/shortcuts/
-  TBD_SHORTCUTS_STANDARD, // .tbd/docs/tbd/shortcuts/
-];
-
-/**
- * Default guidelines lookup paths (relative to tbd root).
- */
-export const DEFAULT_GUIDELINES_PATHS = [
-  TBD_GUIDELINES_DIR, // .tbd/docs/tbd/guidelines/
-];
-
-/**
- * Default template lookup paths (relative to tbd root).
- */
-export const DEFAULT_TEMPLATE_PATHS = [
-  TBD_TEMPLATES_DIR, // .tbd/docs/tbd/templates/
-];
+export function getDefaultDocPaths(typeName: DocTypeName): string[] {
+  const dir = getDocTypeDirectory(typeName);
+  if (typeName === 'shortcut') {
+    return [join(TBD_DOCS_DIR, SYS_PREFIX, dir), join(TBD_DOCS_DIR, TBD_PREFIX, dir)];
+  }
+  return [join(TBD_DOCS_DIR, TBD_PREFIX, dir)];
+}
 
 /**
  * Get the full path to an issue file.

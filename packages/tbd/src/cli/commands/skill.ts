@@ -14,7 +14,7 @@ import { shouldUseInteractiveOutput } from '../lib/context.js';
 import { renderMarkdownWithFrontmatter, paginateOutput } from '../lib/output.js';
 import { findTbdRoot } from '../../file/config.js';
 import { DocCache, generateShortcutDirectory } from '../../file/doc-cache.js';
-import { DEFAULT_SHORTCUT_PATHS, DEFAULT_GUIDELINES_PATHS } from '../../lib/paths.js';
+import { getDefaultDocPaths } from '../../lib/paths.js';
 
 interface SkillOptions {
   brief?: boolean;
@@ -112,12 +112,12 @@ class SkillHandler extends BaseCommand {
     }
 
     // Load shortcuts
-    const shortcutCache = new DocCache(DEFAULT_SHORTCUT_PATHS, tbdRoot);
+    const shortcutCache = new DocCache(getDefaultDocPaths('shortcut'), tbdRoot);
     await shortcutCache.load({ quiet: this.ctx.quiet });
     const shortcuts = shortcutCache.list();
 
     // Load guidelines
-    const guidelinesCache = new DocCache(DEFAULT_GUIDELINES_PATHS, tbdRoot);
+    const guidelinesCache = new DocCache(getDefaultDocPaths('guideline'), tbdRoot);
     await guidelinesCache.load({ quiet: this.ctx.quiet });
     const guidelines = guidelinesCache.list();
 

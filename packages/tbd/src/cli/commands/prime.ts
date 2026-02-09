@@ -19,11 +19,7 @@ import { findTbdRoot, readConfig, hasSeenWelcome, markWelcomeSeen } from '../../
 import { stripFrontmatter } from '../../utils/markdown-utils.js';
 import { VERSION } from '../lib/version.js';
 import { listIssues } from '../../file/storage.js';
-import {
-  resolveDataSyncDir,
-  DEFAULT_SHORTCUT_PATHS,
-  DEFAULT_GUIDELINES_PATHS,
-} from '../../lib/paths.js';
+import { resolveDataSyncDir, getDefaultDocPaths } from '../../lib/paths.js';
 import { getClaudePaths } from '../../lib/integration-paths.js';
 import type { Issue } from '../../lib/types.js';
 import { DocCache, generateShortcutDirectory } from '../../file/doc-cache.js';
@@ -409,12 +405,12 @@ class PrimeHandler extends BaseCommand {
    */
   private async getShortcutDirectory(tbdRoot: string): Promise<string | null> {
     // Load shortcuts
-    const shortcutCache = new DocCache(DEFAULT_SHORTCUT_PATHS, tbdRoot);
+    const shortcutCache = new DocCache(getDefaultDocPaths('shortcut'), tbdRoot);
     await shortcutCache.load({ quiet: this.ctx.quiet });
     const shortcuts = shortcutCache.list();
 
     // Load guidelines
-    const guidelinesCache = new DocCache(DEFAULT_GUIDELINES_PATHS, tbdRoot);
+    const guidelinesCache = new DocCache(getDefaultDocPaths('guideline'), tbdRoot);
     await guidelinesCache.load({ quiet: this.ctx.quiet });
     const guidelines = guidelinesCache.list();
 
