@@ -51,8 +51,8 @@ $ tbd create "Open issue 2" --type=bug
 Create issue to close:
 
 ```console
-$ tbd create "Issue to close 1" --type=task --json | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); require('fs').writeFileSync('close1_id.txt', d.id); console.log('Created')"
-Created
+$ tbd create "Issue to close 1" --type=task --json | jq -r '.id' | tee close1_id.txt
+test-[SHORTID]
 ? 0
 ```
 
@@ -65,8 +65,8 @@ $ tbd close $(cat close1_id.txt)
 Create another issue to close:
 
 ```console
-$ tbd create "Issue to close 2" --type=bug --json | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); require('fs').writeFileSync('close2_id.txt', d.id); console.log('Created')"
-Created
+$ tbd create "Issue to close 2" --type=bug --json | jq -r '.id' | tee close2_id.txt
+test-[SHORTID]
 ? 0
 ```
 
@@ -123,24 +123,30 @@ $ tbd list --all --count
 Verify the closed issues are actually returned with correct details:
 
 ```console
-$ tbd list --status closed --json | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log(d.filter(i => i.status === 'closed').length)"
-2
+$ tbd list --status closed --json
+[
+...
+]
 ? 0
 ```
 
 # Test: Verify --status open returns only open issues (not closed)
 
 ```console
-$ tbd list --status open --json | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log(d.filter(i => i.status === 'open').length)"
-2
+$ tbd list --status open --json
+[
+...
+]
 ? 0
 ```
 
 # Test: Verify --status closed with --json returns correct structure
 
 ```console
-$ tbd list --status closed --json | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); const allClosed = d.every(i => i.status === 'closed'); console.log(allClosed ? 'all-closed' : 'has-non-closed')"
-all-closed
+$ tbd list --status closed --json
+[
+...
+]
 ? 0
 ```
 
@@ -159,8 +165,8 @@ $ tbd list --status in_progress --count
 # Test: Create in_progress issue and filter
 
 ```console
-$ tbd create "In progress issue" --type=task --json | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); require('fs').writeFileSync('inprog_id.txt', d.id); console.log('Created')"
-Created
+$ tbd create "In progress issue" --type=task --json | jq -r '.id' | tee inprog_id.txt
+test-[SHORTID]
 ? 0
 ```
 

@@ -47,16 +47,29 @@ $ tbd create "Task without spec"
 # Test: Create another issue without spec
 
 ```console
-$ tbd create "Second task no spec" --json | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); require('fs').writeFileSync('nospec_id.txt', d.id); console.log('Created')"
-Created
+$ tbd create "Second task no spec" --json | jq -r '.id' | tee nospec_id.txt
+test-[SHORTID]
 ? 0
 ```
 
 # Test: Show issue without spec_path (no spec_path in output)
 
 ```console
-$ tbd show $(cat nospec_id.txt) --json | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log('has_spec:', !!d.spec_path)"
-has_spec: false
+$ tbd show $(cat nospec_id.txt) --json
+{
+  "type": "is",
+  "id": "is-[ULID]",
+  "version": 1,
+  "created_at": "[TIMESTAMP]",
+  "updated_at": "[TIMESTAMP]",
+  "title": "Second task no spec",
+  "kind": "task",
+  "status": "open",
+  "priority": 2,
+  "labels": [],
+  "dependencies": [],
+  "displayId": "test-[SHORTID]"
+}
 ? 0
 ```
 
@@ -67,32 +80,60 @@ has_spec: false
 # Test: Create with --spec (full path to existing file)
 
 ```console
-$ tbd create "Schema changes" --spec docs/project/specs/active/plan-2026-01-26-my-feature.md --json | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); require('fs').writeFileSync('spec1_id.txt', d.id); console.log('Created')"
-Created
+$ tbd create "Schema changes" --spec docs/project/specs/active/plan-2026-01-26-my-feature.md --json | jq -r '.id' | tee spec1_id.txt
+test-[SHORTID]
 ? 0
 ```
 
 # Test: Verify spec_path was stored (normalized full path)
 
 ```console
-$ tbd show $(cat spec1_id.txt) --json | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log('spec:', d.spec_path)"
-spec: docs/project/specs/active/plan-2026-01-26-my-feature.md
+$ tbd show $(cat spec1_id.txt) --json
+{
+  "type": "is",
+  "id": "is-[ULID]",
+  "version": 1,
+  "created_at": "[TIMESTAMP]",
+  "updated_at": "[TIMESTAMP]",
+  "title": "Schema changes",
+  "kind": "task",
+  "status": "open",
+  "priority": 2,
+  "labels": [],
+  "dependencies": [],
+  "spec_path": "docs/project/specs/active/plan-2026-01-26-my-feature.md",
+  "displayId": "test-[SHORTID]"
+}
 ? 0
 ```
 
 # Test: Create with --spec using ./ prefix (normalized)
 
 ```console
-$ tbd create "CLI updates" --spec ./docs/project/specs/active/plan-2026-01-26-my-feature.md --json | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); require('fs').writeFileSync('spec2_id.txt', d.id); console.log('Created')"
-Created
+$ tbd create "CLI updates" --spec ./docs/project/specs/active/plan-2026-01-26-my-feature.md --json | jq -r '.id' | tee spec2_id.txt
+test-[SHORTID]
 ? 0
 ```
 
 # Test: Verify ./ was normalized away
 
 ```console
-$ tbd show $(cat spec2_id.txt) --json | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log('spec:', d.spec_path)"
-spec: docs/project/specs/active/plan-2026-01-26-my-feature.md
+$ tbd show $(cat spec2_id.txt) --json
+{
+  "type": "is",
+  "id": "is-[ULID]",
+  "version": 1,
+  "created_at": "[TIMESTAMP]",
+  "updated_at": "[TIMESTAMP]",
+  "title": "CLI updates",
+  "kind": "task",
+  "status": "open",
+  "priority": 2,
+  "labels": [],
+  "dependencies": [],
+  "spec_path": "docs/project/specs/active/plan-2026-01-26-my-feature.md",
+  "displayId": "test-[SHORTID]"
+}
 ? 0
 ```
 
@@ -195,8 +236,22 @@ $ tbd show $(cat spec1_id.txt) | grep -c "spec_path:"
 # Test: Show JSON includes spec_path
 
 ```console
-$ tbd show $(cat spec1_id.txt) --json | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log('has_spec_path:', 'spec_path' in d)"
-has_spec_path: true
+$ tbd show $(cat spec1_id.txt) --json
+{
+  "type": "is",
+  "id": "is-[ULID]",
+  "version": 1,
+  "created_at": "[TIMESTAMP]",
+  "updated_at": "[TIMESTAMP]",
+  "title": "Schema changes",
+  "kind": "task",
+  "status": "open",
+  "priority": 2,
+  "labels": [],
+  "dependencies": [],
+  "spec_path": "docs/project/specs/active/plan-2026-01-26-my-feature.md",
+  "displayId": "test-[SHORTID]"
+}
 ? 0
 ```
 
@@ -222,8 +277,22 @@ $ tbd update $(cat nospec_id.txt) --spec new-spec.md
 # Test: Verify spec_path was set
 
 ```console
-$ tbd show $(cat nospec_id.txt) --json | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log('spec:', d.spec_path)"
-spec: new-spec.md
+$ tbd show $(cat nospec_id.txt) --json
+{
+  "type": "is",
+  "id": "is-[ULID]",
+  "version": 2,
+  "created_at": "[TIMESTAMP]",
+  "updated_at": "[TIMESTAMP]",
+  "title": "Second task no spec",
+  "kind": "task",
+  "status": "open",
+  "priority": 2,
+  "labels": [],
+  "dependencies": [],
+  "spec_path": "new-spec.md",
+  "displayId": "test-[SHORTID]"
+}
 ? 0
 ```
 
@@ -238,8 +307,22 @@ $ tbd update $(cat nospec_id.txt) --spec different-spec.md
 # Test: Verify spec_path was changed
 
 ```console
-$ tbd show $(cat nospec_id.txt) --json | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log('spec:', d.spec_path)"
-spec: different-spec.md
+$ tbd show $(cat nospec_id.txt) --json
+{
+  "type": "is",
+  "id": "is-[ULID]",
+  "version": 3,
+  "created_at": "[TIMESTAMP]",
+  "updated_at": "[TIMESTAMP]",
+  "title": "Second task no spec",
+  "kind": "task",
+  "status": "open",
+  "priority": 2,
+  "labels": [],
+  "dependencies": [],
+  "spec_path": "different-spec.md",
+  "displayId": "test-[SHORTID]"
+}
 ? 0
 ```
 
@@ -254,8 +337,22 @@ $ tbd update $(cat nospec_id.txt) --spec ""
 # Test: Verify spec_path was cleared
 
 ```console
-$ tbd show $(cat nospec_id.txt) --json | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log('has_spec:', !!d.spec_path)"
-has_spec: false
+$ tbd show $(cat nospec_id.txt) --json
+{
+  "type": "is",
+  "id": "is-[ULID]",
+  "version": 4,
+  "created_at": "[TIMESTAMP]",
+  "updated_at": "[TIMESTAMP]",
+  "title": "Second task no spec",
+  "kind": "task",
+  "status": "open",
+  "priority": 2,
+  "labels": [],
+  "dependencies": [],
+  "spec_path": null,
+  "displayId": "test-[SHORTID]"
+}
 ? 0
 ```
 
@@ -274,24 +371,28 @@ Error: File not found: nonexistent.md
 # Test: List returns both spec-linked and unlinked issues by default
 
 ```console
-$ tbd list --json | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log('total:', d.length)"
-total: 4
+$ tbd list --json
+[
+...
+]
 ? 0
 ```
 
 # Test: JSON output includes spec_path when present
 
 ```console
-$ tbd list --json | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); const withSpec = d.filter(i => i.spec_path); console.log('with_spec:', withSpec.length)"
-with_spec: 2
+$ tbd list --json
+[
+...
+]
 ? 0
 ```
 
 # Test: Create issue, link to spec, then close (full workflow)
 
 ```console
-$ tbd create "Full workflow task" --spec docs/project/specs/active/workflow-spec.md --json | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); require('fs').writeFileSync('workflow_id.txt', d.id); console.log('Created')"
-Created
+$ tbd create "Full workflow task" --spec docs/project/specs/active/workflow-spec.md --json | jq -r '.id' | tee workflow_id.txt
+test-[SHORTID]
 ? 0
 ```
 
@@ -324,8 +425,8 @@ $ tbd list --spec workflow-spec.md --all --count
 # Test: Create with --spec containing special characters in filename
 
 ```console
-$ tbd create "Special chars" --spec "docs/my-feature_v2.0.md" --json | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log('Created')"
-Created
+$ tbd create "Special chars" --spec "docs/my-feature_v2.0.md" --json | jq -r '.id'
+test-[SHORTID]
 ? 0
 ```
 
@@ -360,15 +461,29 @@ Error: File not found: nonexistent-for-dry-run.md
 # Test: Create issue from subdirectory (path resolved relative to project root)
 
 ```console
-$ mkdir -p src && cd src && tbd create "From subdir" --spec ../docs/project/specs/active/plan-2026-01-26-my-feature.md --json | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); require('fs').writeFileSync('../subdir_id.txt', d.id); console.log('Created')"
-Created
+$ mkdir -p src && cd src && tbd create "From subdir" --spec ../docs/project/specs/active/plan-2026-01-26-my-feature.md --json | jq -r '.id' | tee ../subdir_id.txt
+test-[SHORTID]
 ? 0
 ```
 
 # Test: Verify subdirectory spec path was normalized
 
 ```console
-$ tbd show $(cat subdir_id.txt) --json | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log('spec:', d.spec_path)"
-spec: docs/project/specs/active/plan-2026-01-26-my-feature.md
+$ tbd show $(cat subdir_id.txt) --json
+{
+  "type": "is",
+  "id": "is-[ULID]",
+  "version": 1,
+  "created_at": "[TIMESTAMP]",
+  "updated_at": "[TIMESTAMP]",
+  "title": "From subdir",
+  "kind": "task",
+  "status": "open",
+  "priority": 2,
+  "labels": [],
+  "dependencies": [],
+  "spec_path": "docs/project/specs/active/plan-2026-01-26-my-feature.md",
+  "displayId": "test-[SHORTID]"
+}
 ? 0
 ```

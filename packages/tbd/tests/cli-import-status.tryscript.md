@@ -55,16 +55,36 @@ $ tbd import test-status.jsonl
 # Test: Open status preserved
 
 ```console
-$ tbd list --status=open --json | node -e "d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log(d.filter(i => i.title.includes('open status')).length > 0 ? 'found' : 'not found')"
-found
+$ tbd list --status=open --json
+[
+  {
+    "id": "stat-open",
+    "internalId": "is-[ULID]",
+    "priority": 2,
+    "status": "open",
+    "kind": "task",
+    "title": "Issue with open status",
+    "labels": []
+  }
+]
 ? 0
 ```
 
 # Test: In_progress status preserved
 
 ```console
-$ tbd list --status=in_progress --json | node -e "d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log(d.filter(i => i.title.includes('in_progress')).length > 0 ? 'found' : 'not found')"
-found
+$ tbd list --status=in_progress --json
+[
+  {
+    "id": "stat-in_progress",
+    "internalId": "is-[ULID]",
+    "priority": 2,
+    "status": "in_progress",
+    "kind": "task",
+    "title": "Issue with in_progress status",
+    "labels": []
+  }
+]
 ? 0
 ```
 
@@ -73,16 +93,126 @@ found
 The “done” status should be mapped to “closed” during import.
 
 ```console
-$ tbd list --all --json | node -e "d=JSON.parse(require('fs').readFileSync(0,'utf8')); const done=d.find(i => i.title.includes('done status')); console.log(done ? 'status:'+done.status : 'not found')"
-status:closed
+$ tbd list --all --json
+[
+  {
+    "id": "stat-blocked",
+    "internalId": "is-[ULID]",
+    "priority": 2,
+    "status": "blocked",
+    "kind": "task",
+    "title": "Issue with blocked status",
+    "labels": []
+  },
+  {
+    "id": "stat-closed",
+    "internalId": "is-[ULID]",
+    "priority": 2,
+    "status": "closed",
+    "kind": "task",
+    "title": "Issue with closed status",
+    "labels": []
+  },
+  {
+    "id": "stat-done",
+    "internalId": "is-[ULID]",
+    "priority": 2,
+    "status": "closed",
+    "kind": "task",
+    "title": "Issue with done status should map to closed",
+    "labels": []
+  },
+  {
+    "id": "stat-in_progress",
+    "internalId": "is-[ULID]",
+    "priority": 2,
+    "status": "in_progress",
+    "kind": "task",
+    "title": "Issue with in_progress status",
+    "labels": []
+  },
+  {
+    "id": "stat-open",
+    "internalId": "is-[ULID]",
+    "priority": 2,
+    "status": "open",
+    "kind": "task",
+    "title": "Issue with open status",
+    "labels": []
+  },
+  {
+    "id": "stat-deferred",
+    "internalId": "is-[ULID]",
+    "priority": 3,
+    "status": "deferred",
+    "kind": "task",
+    "title": "Issue with deferred status",
+    "labels": []
+  }
+]
 ? 0
 ```
 
 # Test: Closed status preserved
 
 ```console
-$ tbd list --all --json | node -e "d=JSON.parse(require('fs').readFileSync(0,'utf8')); const closed=d.find(i => i.title.includes('closed status')); console.log(closed ? 'status:'+closed.status : 'not found')"
-status:closed
+$ tbd list --all --json
+[
+  {
+    "id": "stat-blocked",
+    "internalId": "is-[ULID]",
+    "priority": 2,
+    "status": "blocked",
+    "kind": "task",
+    "title": "Issue with blocked status",
+    "labels": []
+  },
+  {
+    "id": "stat-closed",
+    "internalId": "is-[ULID]",
+    "priority": 2,
+    "status": "closed",
+    "kind": "task",
+    "title": "Issue with closed status",
+    "labels": []
+  },
+  {
+    "id": "stat-done",
+    "internalId": "is-[ULID]",
+    "priority": 2,
+    "status": "closed",
+    "kind": "task",
+    "title": "Issue with done status should map to closed",
+    "labels": []
+  },
+  {
+    "id": "stat-in_progress",
+    "internalId": "is-[ULID]",
+    "priority": 2,
+    "status": "in_progress",
+    "kind": "task",
+    "title": "Issue with in_progress status",
+    "labels": []
+  },
+  {
+    "id": "stat-open",
+    "internalId": "is-[ULID]",
+    "priority": 2,
+    "status": "open",
+    "kind": "task",
+    "title": "Issue with open status",
+    "labels": []
+  },
+  {
+    "id": "stat-deferred",
+    "internalId": "is-[ULID]",
+    "priority": 3,
+    "status": "deferred",
+    "kind": "task",
+    "title": "Issue with deferred status",
+    "labels": []
+  }
+]
 ? 0
 ```
 
@@ -95,16 +225,126 @@ status:closed
 Non-standard status values should map to ‘open’ as the safe default.
 
 ```console
-$ tbd list --all --json | node -e "d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log(d.filter(i => i.title.includes('blocked status')).length > 0 ? 'imported' : 'not imported')"
-imported
+$ tbd list --all --json
+[
+  {
+    "id": "stat-blocked",
+    "internalId": "is-[ULID]",
+    "priority": 2,
+    "status": "blocked",
+    "kind": "task",
+    "title": "Issue with blocked status",
+    "labels": []
+  },
+  {
+    "id": "stat-closed",
+    "internalId": "is-[ULID]",
+    "priority": 2,
+    "status": "closed",
+    "kind": "task",
+    "title": "Issue with closed status",
+    "labels": []
+  },
+  {
+    "id": "stat-done",
+    "internalId": "is-[ULID]",
+    "priority": 2,
+    "status": "closed",
+    "kind": "task",
+    "title": "Issue with done status should map to closed",
+    "labels": []
+  },
+  {
+    "id": "stat-in_progress",
+    "internalId": "is-[ULID]",
+    "priority": 2,
+    "status": "in_progress",
+    "kind": "task",
+    "title": "Issue with in_progress status",
+    "labels": []
+  },
+  {
+    "id": "stat-open",
+    "internalId": "is-[ULID]",
+    "priority": 2,
+    "status": "open",
+    "kind": "task",
+    "title": "Issue with open status",
+    "labels": []
+  },
+  {
+    "id": "stat-deferred",
+    "internalId": "is-[ULID]",
+    "priority": 3,
+    "status": "deferred",
+    "kind": "task",
+    "title": "Issue with deferred status",
+    "labels": []
+  }
+]
 ? 0
 ```
 
 # Test: Deferred status maps to open (default for unknown)
 
 ```console
-$ tbd list --all --json | node -e "d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log(d.filter(i => i.title.includes('deferred status')).length > 0 ? 'imported' : 'not imported')"
-imported
+$ tbd list --all --json
+[
+  {
+    "id": "stat-blocked",
+    "internalId": "is-[ULID]",
+    "priority": 2,
+    "status": "blocked",
+    "kind": "task",
+    "title": "Issue with blocked status",
+    "labels": []
+  },
+  {
+    "id": "stat-closed",
+    "internalId": "is-[ULID]",
+    "priority": 2,
+    "status": "closed",
+    "kind": "task",
+    "title": "Issue with closed status",
+    "labels": []
+  },
+  {
+    "id": "stat-done",
+    "internalId": "is-[ULID]",
+    "priority": 2,
+    "status": "closed",
+    "kind": "task",
+    "title": "Issue with done status should map to closed",
+    "labels": []
+  },
+  {
+    "id": "stat-in_progress",
+    "internalId": "is-[ULID]",
+    "priority": 2,
+    "status": "in_progress",
+    "kind": "task",
+    "title": "Issue with in_progress status",
+    "labels": []
+  },
+  {
+    "id": "stat-open",
+    "internalId": "is-[ULID]",
+    "priority": 2,
+    "status": "open",
+    "kind": "task",
+    "title": "Issue with open status",
+    "labels": []
+  },
+  {
+    "id": "stat-deferred",
+    "internalId": "is-[ULID]",
+    "priority": 3,
+    "status": "deferred",
+    "kind": "task",
+    "title": "Issue with deferred status",
+    "labels": []
+  }
+]
 ? 0
 ```
 

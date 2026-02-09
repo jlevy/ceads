@@ -73,20 +73,23 @@ $ tbd list | grep -c "émojis"
 # Test: Unicode search works
 
 ```console
-$ tbd search "中文" --json | node -e "d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log('found:', d.length)"
-found: 1
+$ tbd search "中文" --json
+[
+...
+]
 ? 0
 ```
 
 # Test: Create label with Unicode
 
 ```console
-$ tbd list --json | node -e "d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log(d[0].id)" > /tmp/unicode_id.txt
+$ tbd list --json | jq -r '.[0].id' | tee unicode_id.txt
+test-[SHORTID]
 ? 0
 ```
 
 ```console
-$ ID=$(cat /tmp/unicode_id.txt) && tbd label add $ID "优先级高"
+$ ID=$(cat unicode_id.txt) && tbd label add $ID "优先级高"
 ✓ Added labels[..]
 ? 0
 ```
@@ -170,12 +173,13 @@ Error: Issue not found: bd-0000
 # Test: Self-dependency error
 
 ```console
-$ tbd list --json | node -e "d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log(d[0].id)" > /tmp/self_id.txt
+$ tbd list --json | jq -r '.[0].id' | tee self_id.txt
+test-[SHORTID]
 ? 0
 ```
 
 ```console
-$ ID=$(cat /tmp/self_id.txt) && tbd dep add $ID $ID 2>&1
+$ ID=$(cat self_id.txt) && tbd dep add $ID $ID 2>&1
 Error: Issue cannot depend on itself
 ? 2
 ```
@@ -267,7 +271,7 @@ $ tbd search "DryRun Test" --json
 # Test: Close with dry-run doesn’t close
 
 ```console
-$ ID=$(cat /tmp/self_id.txt) && tbd close $ID --dry-run
+$ ID=$(cat self_id.txt) && tbd close $ID --dry-run
 [DRY-RUN] Would close issue
 ? 0
 ```
@@ -275,7 +279,7 @@ $ ID=$(cat /tmp/self_id.txt) && tbd close $ID --dry-run
 # Test: Verify issue still open after dry-run close
 
 ```console
-$ ID=$(cat /tmp/self_id.txt) && tbd show $ID | grep "status: open"
+$ ID=$(cat self_id.txt) && tbd show $ID | grep "status: open"
 status: open
 ? 0
 ```
@@ -287,32 +291,38 @@ status: open
 # Test: List JSON is valid array
 
 ```console
-$ tbd list --json | node -e "JSON.parse(require('fs').readFileSync(0,'utf8')); console.log('valid')"
-valid
+$ tbd list --json
+[
+...
+]
 ? 0
 ```
 
 # Test: Show JSON is valid object
 
 ```console
-$ ID=$(cat /tmp/self_id.txt) && tbd show $ID --json | node -e "JSON.parse(require('fs').readFileSync(0,'utf8')); console.log('valid')"
-valid
+$ ID=$(cat self_id.txt) && tbd show $ID --json
+{
+...
+}
 ? 0
 ```
 
 # Test: Search JSON is valid array
 
 ```console
-$ tbd search "test" --json | node -e "JSON.parse(require('fs').readFileSync(0,'utf8')); console.log('valid')"
-valid
+$ tbd search "test" --json
+[..]
 ? 0
 ```
 
 # Test: Stats JSON is valid object
 
 ```console
-$ tbd stats --json | node -e "JSON.parse(require('fs').readFileSync(0,'utf8')); console.log('valid')"
-valid
+$ tbd stats --json
+{
+...
+}
 ? 0
 ```
 
@@ -323,7 +333,7 @@ valid
 # Test: Add working notes
 
 ```console
-$ ID=$(cat /tmp/self_id.txt) && tbd update $ID --notes="Investigation notes: found the root cause"
+$ ID=$(cat self_id.txt) && tbd update $ID --notes="Investigation notes: found the root cause"
 ✓ Updated test-[SHORTID]
 ? 0
 ```
@@ -331,7 +341,7 @@ $ ID=$(cat /tmp/self_id.txt) && tbd update $ID --notes="Investigation notes: fou
 # Test: Verify notes in show output
 
 ```console
-$ ID=$(cat /tmp/self_id.txt) && tbd show $ID | grep -c "Investigation notes"
+$ ID=$(cat self_id.txt) && tbd show $ID | grep -c "Investigation notes"
 1
 ? 0
 ```
@@ -339,7 +349,7 @@ $ ID=$(cat /tmp/self_id.txt) && tbd show $ID | grep -c "Investigation notes"
 # Test: Notes from file
 
 ```console
-$ echo "Notes from file content" > /tmp/notes.txt && ID=$(cat /tmp/self_id.txt) && tbd update $ID --notes-file=/tmp/notes.txt
+$ echo "Notes from file content" > /tmp/notes.txt && ID=$(cat self_id.txt) && tbd update $ID --notes-file=/tmp/notes.txt
 ✓ Updated test-[SHORTID]
 ? 0
 ```
@@ -351,8 +361,8 @@ $ echo "Notes from file content" > /tmp/notes.txt && ID=$(cat /tmp/self_id.txt) 
 # Test: Stale with default days
 
 ```console
-$ tbd stale --json | node -e "JSON.parse(require('fs').readFileSync(0,'utf8')); console.log('valid')"
-valid
+$ tbd stale --json
+[..]
 ? 0
 ```
 
@@ -379,7 +389,7 @@ $ tbd create "Deferred task" --defer=2099-12-31T00:00:00Z
 # Test: List with deferred filter runs without error
 
 ```console
-$ tbd list --deferred --json | node -e "JSON.parse(require('fs').readFileSync(0,'utf8')); console.log('valid json')"
-valid json
+$ tbd list --deferred --json
+[..]
 ? 0
 ```

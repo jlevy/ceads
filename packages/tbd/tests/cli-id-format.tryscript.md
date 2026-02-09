@@ -39,7 +39,7 @@ Validates ID format behavior across commands.
 # Test: Create shows short display ID in success message
 
 ```console
-$ tbd create "Test issue"
+$ tbd create "Test issue" --priority=3
 ✓ Created test-[SHORTID]: Test issue
 ? 0
 ```
@@ -47,9 +47,12 @@ $ tbd create "Test issue"
 # Test: Create JSON output has both id and internalId
 
 ```console
-$ tbd create "Test JSON" --json | node -e "d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log('id starts with test-:', d.id.startsWith('test-')); console.log('internalId starts with is-:', d.internalId.startsWith('is-'))"
-id starts with test-: true
-internalId starts with is-: true
+$ tbd create "Test JSON" --json
+{
+  "id": "test-[SHORTID]",
+  "internalId": "is-[ULID]",
+  "title": "Test JSON"
+}
 ? 0
 ```
 
@@ -84,9 +87,45 @@ $ tbd list | grep -c "^test-"
 # Test: List JSON has short id and full internalId
 
 ```console
-$ tbd list --json | node -e "d=JSON.parse(require('fs').readFileSync(0,'utf8')); first=d[0]; console.log('id format ok:', first.id.startsWith('test-') && first.id.length <= 10); console.log('internalId format ok:', first.internalId.startsWith('is-') && first.internalId.length === 29)"
-id format ok: true
-internalId format ok: true
+$ tbd list --json
+[
+  {
+    "id": "test-[SHORTID]",
+    "internalId": "is-[ULID]",
+    "priority": 0,
+    "status": "open",
+    "kind": "task",
+    "title": "High priority",
+    "labels": []
+  },
+  {
+    "id": "test-[SHORTID]",
+    "internalId": "is-[ULID]",
+    "priority": 1,
+    "status": "open",
+    "kind": "task",
+    "title": "Medium priority",
+    "labels": []
+  },
+  {
+    "id": "test-[SHORTID]",
+    "internalId": "is-[ULID]",
+    "priority": 2,
+    "status": "open",
+    "kind": "task",
+    "title": "Test JSON",
+    "labels": []
+  },
+  {
+    "id": "test-[SHORTID]",
+    "internalId": "is-[ULID]",
+    "priority": 3,
+    "status": "open",
+    "kind": "task",
+    "title": "Test issue",
+    "labels": []
+  }
+]
 ? 0
 ```
 
@@ -97,7 +136,7 @@ internalId format ok: true
 # Test: Capture internal ID for show tests
 
 ```console
-$ tbd list --json | node -e "d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log(d[0].internalId)" > /tmp/test_id.txt && cat /tmp/test_id.txt
+$ tbd list --json | jq -r '.[0].internalId' | tee test_id.txt
 is-[ULID]
 ? 0
 ```
@@ -105,7 +144,7 @@ is-[ULID]
 # Test: Show command accepts internal ID
 
 ```console
-$ ID=$(cat /tmp/test_id.txt) && tbd show $ID | grep "^title:"
+$ ID=$(cat test_id.txt) && tbd show $ID | grep "^title:"
 title: High priority
 ? 0
 ```
@@ -113,7 +152,7 @@ title: High priority
 # Test: Show YAML output contains internal ID
 
 ```console
-$ ID=$(cat /tmp/test_id.txt) && tbd show $ID | grep "^id:"
+$ ID=$(cat test_id.txt) && tbd show $ID | grep "^id:"
 id: is-[ULID]
 ? 0
 ```
@@ -125,7 +164,7 @@ id: is-[ULID]
 # Test: Update accepts internal ID and shows display ID
 
 ```console
-$ ID=$(cat /tmp/test_id.txt) && tbd update $ID --priority=3
+$ ID=$(cat test_id.txt) && tbd update $ID --priority=3
 ✓ Updated test-[SHORTID]
 ? 0
 ```
@@ -137,7 +176,7 @@ $ ID=$(cat /tmp/test_id.txt) && tbd update $ID --priority=3
 # Test: Close accepts internal ID and shows short display ID
 
 ```console
-$ ID=$(cat /tmp/test_id.txt) && tbd close $ID
+$ ID=$(cat test_id.txt) && tbd close $ID
 ✓ Closed test-[SHORTID]
 ? 0
 ```
@@ -145,7 +184,7 @@ $ ID=$(cat /tmp/test_id.txt) && tbd close $ID
 # Test: Reopen accepts internal ID and shows short display ID
 
 ```console
-$ ID=$(cat /tmp/test_id.txt) && tbd reopen $ID
+$ ID=$(cat test_id.txt) && tbd reopen $ID
 ✓ Reopened test-[SHORTID]
 ? 0
 ```

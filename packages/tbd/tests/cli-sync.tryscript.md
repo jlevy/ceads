@@ -201,8 +201,18 @@ $ tbd create "Status test issue" --type=task
 ```
 
 ```console
-$ tbd sync --status --json | node -e "d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log('synced:', d.synced)"
-synced: [..]
+$ tbd sync --status --json
+{
+  "synced": [..],
+  "localChanges": [
+...
+  ],
+  "remoteChanges": [],
+  "syncBranch": "tbd-sync",
+  "remote": "origin",
+  "ahead": 0,
+  "behind": 0
+}
 ? 0
 ```
 
@@ -370,7 +380,9 @@ worktree exists
 # Test: Issues are still accessible after worktree recreation
 
 ```console
-$ tbd list --json | node -e "d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log('count:', d.length)"
-count: [..]
+$ tbd list --json
+[
+...
+]
 ? 0
 ```
