@@ -46,15 +46,18 @@ async function findMarkdownFiles(dir: string): Promise<string[]> {
 }
 
 /**
- * Extract all tbd shortcut|guidelines|template <name> commands from content.
+ * Extract all tbd shortcut|guidelines|template|reference <name> commands from content.
  * Handles both code blocks and inline backticks.
+ * Supports prefix:name syntax (e.g., spec:typescript-rules).
  */
 function extractDocCommands(content: string): string[] {
   // Normalize: join lines, collapse whitespace
   const normalized = content.replace(/\n/g, ' ').replace(/\s+/g, ' ');
 
-  // Match: tbd shortcut|guidelines|template <name> (not --list or flags)
-  const pattern = /tbd (shortcut|guidelines|template) ([a-z][a-z0-9-]*)/g;
+  // Match: tbd shortcut|guidelines|template|reference <name> (not --list or flags)
+  // Name can be: simple (foo-bar) or prefixed (prefix:foo-bar)
+  const pattern =
+    /tbd (shortcut|guidelines|template|reference) ([a-z][a-z0-9-]*(?::[a-z][a-z0-9-]*)?)/g;
   const commands: string[] = [];
   let match;
 
@@ -63,6 +66,16 @@ function extractDocCommands(content: string): string[] {
     const name = match[2];
     // Skip flags like --list, --all
     if (cmd && name && !name.startsWith('-')) {
+      // Skip prefix:name syntax for now - it's documented but not yet implemented
+      // TODO: Remove this check once prefix-based lookup is implemented (f04)
+      if (name.includes(':')) {
+        continue;
+      }
+      // Skip reference commands - command not yet implemented (planned for f04)
+      // TODO: Remove this check once tbd reference command is implemented
+      if (cmd === 'reference') {
+        continue;
+      }
       commands.push(`tbd ${cmd} ${name}`);
     }
   }

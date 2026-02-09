@@ -1121,8 +1121,8 @@ class SetupDefaultHandler extends BaseCommand {
 
       console.log('');
       await this.handleAlreadyInitialized(projectDir, isAutoMode);
-    } else if ((hasBeads || options.fromBeads) && !options.prefix) {
-      // Beads migration flow (unless prefix override given)
+    } else if (hasBeads || options.fromBeads) {
+      // Beads migration flow
       console.log(`  ${colors.dim('✗')} tbd not initialized`);
       console.log(`  ${colors.warn('!')} Beads detected (.beads/ directory found)`);
       console.log('');

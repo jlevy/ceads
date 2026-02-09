@@ -1,5 +1,7 @@
 # Plan Spec: Beads Migration and Integration Setup
 
+**Status:** Done
+
 ## Purpose
 
 This is a technical design doc for improving the migration path from Beads to tbd and

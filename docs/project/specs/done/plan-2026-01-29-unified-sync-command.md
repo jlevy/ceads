@@ -1,5 +1,7 @@
 # Plan Spec: Unified Sync Command
 
+**Status:** Done
+
 ## Purpose
 
 Unify `tbd sync` to sync both issues (to git remote) and docs (locally from bundled
