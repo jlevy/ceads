@@ -27,6 +27,7 @@ export abstract class BaseCommand {
   /**
    * Execute an async action with error handling.
    * Catches errors and formats them consistently.
+   * Preserves original error as `cause` for debugging.
    */
   protected async execute<T>(action: () => Promise<T>, errorMessage: string): Promise<T> {
     try {
@@ -36,8 +37,16 @@ export abstract class BaseCommand {
         this.output.error(error.message);
         throw error;
       }
-      this.output.error(errorMessage, error instanceof Error ? error : undefined);
-      throw new CLIError(errorMessage);
+      const originalError = error instanceof Error ? error : undefined;
+      const detail = originalError?.message;
+      const fullMessage =
+        detail && detail !== errorMessage ? `${errorMessage}: ${detail}` : errorMessage;
+      this.output.error(fullMessage, originalError);
+      const wrapped = new CLIError(fullMessage);
+      if (originalError) {
+        wrapped.cause = originalError;
+      }
+      throw wrapped;
     }
   }
 

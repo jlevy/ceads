@@ -32,6 +32,19 @@ import { now } from '../utils/time-utils.js';
 import type { AtticEntry, Issue } from '../lib/types.js';
 
 /**
+ * Logger interface for workspace operations.
+ * Allows callers to receive progress information at different verbosity levels.
+ */
+export interface WorkspaceLogger {
+  /** Key milestones visible in normal output (e.g., spinner updates) */
+  progress?: (message: string) => void;
+  /** Detailed operational info (shown with --verbose) */
+  info?: (message: string) => void;
+  /** Internal debug details (shown with --debug) */
+  debug?: (message: string) => void;
+}
+
+/**
  * Options for saveToWorkspace.
  * One of workspace, dir, or outbox must be specified.
  */
@@ -44,6 +57,8 @@ export interface SaveOptions {
   outbox?: boolean;
   /** Only save issues modified since last sync */
   updatesOnly?: boolean;
+  /** Optional logger for progress reporting */
+  logger?: WorkspaceLogger;
 }
 
 /**
@@ -75,6 +90,8 @@ export interface ImportOptions {
   outbox?: boolean;
   /** Delete workspace after successful import */
   clearOnSuccess?: boolean;
+  /** Optional logger for progress reporting */
+  logger?: WorkspaceLogger;
 }
 
 /**
@@ -262,7 +279,10 @@ export async function saveToWorkspace(
   dataSyncDir: string,
   options: SaveOptions,
 ): Promise<SaveResult> {
+  const log = options.logger ?? {};
   const targetDir = getTargetDir(tbdRoot, options);
+  log.debug?.(`Target directory: ${targetDir}`);
+  log.debug?.(`Source directory: ${dataSyncDir}`);
 
   // Create target directory structure
   const atticDir = join(targetDir, 'attic');
@@ -272,8 +292,10 @@ export async function saveToWorkspace(
   await ensureDir(atticDir);
 
   // List all issues in source (worktree)
+  log.progress?.('Loading issues from worktree...');
   const allSourceIssues = await listIssues(dataSyncDir);
   const totalSource = allSourceIssues.length;
+  log.info?.(`Loaded ${totalSource} issue(s) from worktree`);
   let sourceIssues = allSourceIssues;
 
   // Filter to only updated issues if requested
@@ -281,18 +303,25 @@ export async function saveToWorkspace(
   if (isUpdatesOnly) {
     try {
       // Fetch and compare with remote tbd-sync
+      log.progress?.('Fetching remote for comparison...');
       await git('-C', tbdRoot, 'fetch', 'origin', 'tbd-sync');
+      log.debug?.('Fetch succeeded, reading remote issues...');
       const remoteIssues = await readRemoteIssues(tbdRoot, 'origin', 'tbd-sync');
+      log.info?.(`Loaded ${remoteIssues.length} remote issue(s) for comparison`);
       sourceIssues = getUpdatedIssues(allSourceIssues, remoteIssues);
-    } catch {
+      log.info?.(`Filtered to ${sourceIssues.length} updated issue(s) (of ${totalSource} total)`);
+    } catch (fetchError) {
       // If fetch fails (offline, remote doesn't exist, etc.), save all issues
       // This is the fallback behavior mentioned in the spec
+      const fetchMsg = fetchError instanceof Error ? fetchError.message : String(fetchError);
+      log.info?.(`Fetch failed (${fetchMsg}), falling back to saving all ${totalSource} issues`);
     }
   }
 
   let saved = 0;
   let conflicts = 0;
 
+  log.progress?.(`Saving ${sourceIssues.length} issue(s)...`);
   // Save each issue to target, merging if needed
   for (const sourceIssue of sourceIssues) {
     // Check if issue already exists in workspace
@@ -333,6 +362,7 @@ export async function saveToWorkspace(
       // Save merged issue
       await writeIssue(targetDir, result.merged);
       saved++;
+      log.debug?.(`Merged issue ${sourceIssue.id} (${result.conflicts.length} field conflict(s))`);
 
       // Save any conflicts to workspace attic
       for (const conflict of result.conflicts) {
@@ -344,10 +374,18 @@ export async function saveToWorkspace(
       await writeIssue(targetDir, sourceIssue);
       saved++;
     }
+
+    // Log progress periodically for large saves
+    if (saved % 100 === 0 && saved > 0) {
+      log.progress?.(`Saving issues... (${saved}/${sourceIssues.length})`);
+    }
   }
+
+  log.info?.(`Saved ${saved} issue(s), ${conflicts} conflict(s)`);
 
   // Copy ID mappings from source to target (only for saved issues)
   // Build set of saved issue ULIDs (without prefix) to filter mappings
+  log.debug?.('Merging ID mappings...');
   const savedIssueUlids = new Set(sourceIssues.map((issue) => extractUlidFromInternalId(issue.id)));
 
   const sourceMapping = await loadIdMapping(dataSyncDir);
@@ -388,7 +426,10 @@ export async function importFromWorkspace(
   dataSyncDir: string,
   options: ImportOptions,
 ): Promise<ImportResult> {
+  const log = options.logger ?? {};
   const sourceDir = resolveWorkspaceDir(tbdRoot, options);
+  log.debug?.(`Source directory: ${sourceDir}`);
+  log.debug?.(`Target directory: ${dataSyncDir}`);
 
   // Determine if we should clear on success
   // --outbox implies --clear-on-success
@@ -399,11 +440,14 @@ export async function importFromWorkspace(
   await ensureDir(atticDir);
 
   // List all issues in source workspace
+  log.progress?.('Loading issues from workspace...');
   const sourceIssues = await listIssues(sourceDir);
+  log.info?.(`Loaded ${sourceIssues.length} issue(s) from workspace`);
 
   let imported = 0;
   let conflicts = 0;
 
+  log.progress?.(`Importing ${sourceIssues.length} issue(s)...`);
   // Import each issue to data-sync, merging if needed
   for (const sourceIssue of sourceIssues) {
     // Check if issue already exists in worktree
@@ -444,6 +488,7 @@ export async function importFromWorkspace(
       // Save merged issue
       await writeIssue(dataSyncDir, result.merged);
       imported++;
+      log.debug?.(`Merged issue ${sourceIssue.id} (${result.conflicts.length} field conflict(s))`);
 
       // Save any conflicts to worktree attic
       for (const conflict of result.conflicts) {
@@ -455,9 +500,17 @@ export async function importFromWorkspace(
       await writeIssue(dataSyncDir, sourceIssue);
       imported++;
     }
+
+    // Log progress periodically for large imports
+    if (imported % 100 === 0 && imported > 0) {
+      log.progress?.(`Importing issues... (${imported}/${sourceIssues.length})`);
+    }
   }
 
+  log.info?.(`Imported ${imported} issue(s), ${conflicts} conflict(s)`);
+
   // Merge ID mappings from source (workspace) to target (worktree) - union operation
+  log.debug?.('Merging ID mappings...');
   const sourceMapping = await loadIdMapping(sourceDir);
   const targetMapping = await loadIdMapping(dataSyncDir);
 
