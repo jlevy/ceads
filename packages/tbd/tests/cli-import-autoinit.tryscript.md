@@ -101,16 +101,64 @@ worktree exists
 # Test: Issues were imported
 
 ```console
-$ tbd list --all --json | node -e "d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log('imported:', d.length)"
-imported: 2
+$ tbd list --all --json
+[
+  {
+    "id": "test-002",
+    "internalId": "is-[ULID]",
+    "priority": 1,
+    "status": "open",
+    "kind": "bug",
+    "title": "Bug to fix",
+    "labels": [
+      "urgent",
+      "backend"
+    ]
+  },
+  {
+    "id": "test-001",
+    "internalId": "is-[ULID]",
+    "priority": 2,
+    "status": "open",
+    "kind": "task",
+    "title": "Test issue one",
+    "labels": [
+      "test"
+    ]
+  }
+]
 ? 0
 ```
 
 # Test: IDs are preserved from beads
 
 ```console
-$ tbd list --all --json | node -e "d=JSON.parse(require('fs').readFileSync(0,'utf8')); ids=d.map(i=>i.id).sort(); console.log(ids.join(','))"
-test-001,test-002
+$ tbd list --all --json
+[
+  {
+    "id": "test-002",
+    "internalId": "is-[ULID]",
+    "priority": 1,
+    "status": "open",
+    "kind": "bug",
+    "title": "Bug to fix",
+    "labels": [
+      "urgent",
+      "backend"
+    ]
+  },
+  {
+    "id": "test-001",
+    "internalId": "is-[ULID]",
+    "priority": 2,
+    "status": "open",
+    "kind": "task",
+    "title": "Test issue one",
+    "labels": [
+      "test"
+    ]
+  }
+]
 ? 0
 ```
 
@@ -157,7 +205,40 @@ $ tbd create "New issue after import"
 # Test: List shows all issues
 
 ```console
-$ tbd list --all --json | node -e "d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log('total:', d.length)"
-total: 3
+$ tbd list --all --json
+[
+  {
+    "id": "test-002",
+    "internalId": "is-[ULID]",
+    "priority": 1,
+    "status": "open",
+    "kind": "bug",
+    "title": "Bug to fix",
+    "labels": [
+      "urgent",
+      "backend"
+    ]
+  },
+  {
+    "id": "test-001",
+    "internalId": "is-[ULID]",
+    "priority": 2,
+    "status": "open",
+    "kind": "task",
+    "title": "Test issue one",
+    "labels": [
+      "test"
+    ]
+  },
+  {
+    "id": "test-[SHORTID]",
+    "internalId": "is-[ULID]",
+    "priority": 2,
+    "status": "open",
+    "kind": "task",
+    "title": "New issue after import",
+    "labels": []
+  }
+]
 ? 0
 ```

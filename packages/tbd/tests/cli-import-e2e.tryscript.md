@@ -138,7 +138,46 @@ Idempotent: YES
 # Test: Stats total matches list count
 
 ```console
-$ tbd stats --json | node -e "d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log('total:', d.total)"
-total: [..]
+$ tbd stats --json
+{
+  "total": 265,
+  "active": 1,
+  "closed": 264,
+  "byStatus": {
+    "open": 0,
+    "in_progress": 1,
+    "blocked": 0,
+    "deferred": 0,
+    "closed": 264
+  },
+  "byKindActive": {
+    "bug": 0,
+    "feature": 0,
+    "task": 0,
+    "epic": 1,
+    "chore": 0
+  },
+  "byKindClosed": {
+    "bug": 11,
+    "feature": 4,
+    "task": 219,
+    "epic": 25,
+    "chore": 5
+  },
+  "byPriorityActive": {
+    "0": 1,
+    "1": 0,
+    "2": 0,
+    "3": 0,
+    "4": 0
+  },
+  "byPriorityClosed": {
+    "0": 7,
+    "1": 154,
+    "2": 74,
+    "3": 28,
+    "4": 1
+  }
+}
 ? 0
 ```

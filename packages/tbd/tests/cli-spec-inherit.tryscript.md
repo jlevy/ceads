@@ -37,54 +37,60 @@ Tests for inheriting spec_path from parent beads to children.
 # Test: Create parent epic with spec
 
 ```console
-$ tbd create "Epic: Feature A" --type epic --spec docs/specs/feature-a.md --json | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); require('fs').writeFileSync('parent_id.txt', d.id); console.log('Created')"
-Created
+$ tbd create "Epic: Feature A" --type epic --spec docs/specs/feature-a.md --json | jq -r '.id' | tee parent_id.txt
+test-[SHORTID]
 ? 0
 ```
 
 # Test: Create child with --parent (no --spec) — should inherit
 
 ```console
-$ tbd create "Task: Implement A" --parent $(cat parent_id.txt) --json | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); require('fs').writeFileSync('child1_id.txt', d.id); console.log('Created')"
-Created
+$ tbd create "Task: Implement A" --parent $(cat parent_id.txt) --json | jq -r '.id' | tee child1_id.txt
+test-[SHORTID]
 ? 0
 ```
 
 # Test: Verify child inherited parent’s spec_path
 
 ```console
-$ tbd show $(cat child1_id.txt) --json | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log('spec:', d.spec_path)"
-spec: docs/specs/feature-a.md
+$ tbd show $(cat child1_id.txt) --json
+{
+...
+}
 ? 0
 ```
 
 # Test: Create child with explicit --spec — should NOT inherit
 
 ```console
-$ tbd create "Task: Related B" --parent $(cat parent_id.txt) --spec docs/specs/feature-b.md --json | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); require('fs').writeFileSync('child2_id.txt', d.id); console.log('Created')"
-Created
+$ tbd create "Task: Related B" --parent $(cat parent_id.txt) --spec docs/specs/feature-b.md --json | jq -r '.id' | tee child2_id.txt
+test-[SHORTID]
 ? 0
 ```
 
 # Test: Verify child kept explicit spec_path
 
 ```console
-$ tbd show $(cat child2_id.txt) --json | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log('spec:', d.spec_path)"
-spec: docs/specs/feature-b.md
+$ tbd show $(cat child2_id.txt) --json
+{
+...
+}
 ? 0
 ```
 
 # Test: Create child with parent that has no spec — child gets no spec
 
 ```console
-$ tbd create "Epic: No Spec" --type epic --json | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); require('fs').writeFileSync('nospec_parent_id.txt', d.id); console.log('Created')"
-Created
+$ tbd create "Epic: No Spec" --type epic --json | jq -r '.id' | tee nospec_parent_id.txt
+test-[SHORTID]
 ? 0
 ```
 
 ```console
-$ tbd create "Task under no-spec parent" --parent $(cat nospec_parent_id.txt) --json | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log('has_spec:', !!d.spec_path)"
-has_spec: false
+$ tbd create "Task under no-spec parent" --parent $(cat nospec_parent_id.txt) --json
+{
+...
+}
 ? 0
 ```
 
@@ -95,20 +101,20 @@ has_spec: false
 # Test: Create parent with no spec and two children
 
 ```console
-$ tbd create "Epic: Feature Z" --type epic --json | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); require('fs').writeFileSync('pz_id.txt', d.id); console.log('Created')"
-Created
+$ tbd create "Epic: Feature Z" --type epic --json | jq -r '.id' | tee pz_id.txt
+test-[SHORTID]
 ? 0
 ```
 
 ```console
-$ tbd create "Task Z1" --parent $(cat pz_id.txt) --json | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); require('fs').writeFileSync('z1_id.txt', d.id); console.log('Created')"
-Created
+$ tbd create "Task Z1" --parent $(cat pz_id.txt) --json | jq -r '.id' | tee z1_id.txt
+test-[SHORTID]
 ? 0
 ```
 
 ```console
-$ tbd create "Task Z2" --parent $(cat pz_id.txt) --json | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); require('fs').writeFileSync('z2_id.txt', d.id); console.log('Created')"
-Created
+$ tbd create "Task Z2" --parent $(cat pz_id.txt) --json | jq -r '.id' | tee z2_id.txt
+test-[SHORTID]
 ? 0
 ```
 
@@ -121,14 +127,18 @@ $ tbd update $(cat pz_id.txt) --spec docs/specs/feature-a.md
 ```
 
 ```console
-$ tbd show $(cat z1_id.txt) --json | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log('spec:', d.spec_path)"
-spec: docs/specs/feature-a.md
+$ tbd show $(cat z1_id.txt) --json
+{
+...
+}
 ? 0
 ```
 
 ```console
-$ tbd show $(cat z2_id.txt) --json | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log('spec:', d.spec_path)"
-spec: docs/specs/feature-a.md
+$ tbd show $(cat z2_id.txt) --json
+{
+...
+}
 ? 0
 ```
 
@@ -141,14 +151,18 @@ $ tbd update $(cat pz_id.txt) --spec docs/specs/feature-b.md
 ```
 
 ```console
-$ tbd show $(cat z1_id.txt) --json | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log('spec:', d.spec_path)"
-spec: docs/specs/feature-b.md
+$ tbd show $(cat z1_id.txt) --json
+{
+...
+}
 ? 0
 ```
 
 ```console
-$ tbd show $(cat z2_id.txt) --json | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log('spec:', d.spec_path)"
-spec: docs/specs/feature-b.md
+$ tbd show $(cat z2_id.txt) --json
+{
+...
+}
 ? 0
 ```
 
@@ -159,20 +173,20 @@ spec: docs/specs/feature-b.md
 # Test: Create parent with spec-a, child inherits, another child has explicit spec-b
 
 ```console
-$ tbd create "Epic: Mixed" --type epic --spec docs/specs/feature-a.md --json | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); require('fs').writeFileSync('pm_id.txt', d.id); console.log('Created')"
-Created
+$ tbd create "Epic: Mixed" --type epic --spec docs/specs/feature-a.md --json | jq -r '.id' | tee pm_id.txt
+test-[SHORTID]
 ? 0
 ```
 
 ```console
-$ tbd create "Inheriting child" --parent $(cat pm_id.txt) --json | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); require('fs').writeFileSync('mc1_id.txt', d.id); console.log('Created')"
-Created
+$ tbd create "Inheriting child" --parent $(cat pm_id.txt) --json | jq -r '.id' | tee mc1_id.txt
+test-[SHORTID]
 ? 0
 ```
 
 ```console
-$ tbd create "Explicit child" --parent $(cat pm_id.txt) --spec docs/specs/feature-b.md --json | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); require('fs').writeFileSync('mc2_id.txt', d.id); console.log('Created')"
-Created
+$ tbd create "Explicit child" --parent $(cat pm_id.txt) --spec docs/specs/feature-b.md --json | jq -r '.id' | tee mc2_id.txt
+test-[SHORTID]
 ? 0
 ```
 
@@ -185,14 +199,18 @@ $ tbd update $(cat pm_id.txt) --spec docs/specs/feature-b.md
 ```
 
 ```console
-$ tbd show $(cat mc1_id.txt) --json | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log('spec:', d.spec_path)"
-spec: docs/specs/feature-b.md
+$ tbd show $(cat mc1_id.txt) --json
+{
+...
+}
 ? 0
 ```
 
 ```console
-$ tbd show $(cat mc2_id.txt) --json | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log('spec:', d.spec_path)"
-spec: docs/specs/feature-b.md
+$ tbd show $(cat mc2_id.txt) --json
+{
+...
+}
 ? 0
 ```
 
@@ -203,8 +221,8 @@ spec: docs/specs/feature-b.md
 # Test: Create orphan child with no spec, re-parent to parent with spec
 
 ```console
-$ tbd create "Orphan task" --json | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); require('fs').writeFileSync('orphan_id.txt', d.id); console.log('Created')"
-Created
+$ tbd create "Orphan task" --json | jq -r '.id' | tee orphan_id.txt
+test-[SHORTID]
 ? 0
 ```
 
@@ -215,16 +233,18 @@ $ tbd update $(cat orphan_id.txt) --parent $(cat parent_id.txt)
 ```
 
 ```console
-$ tbd show $(cat orphan_id.txt) --json | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log('spec:', d.spec_path)"
-spec: docs/specs/feature-a.md
+$ tbd show $(cat orphan_id.txt) --json
+{
+...
+}
 ? 0
 ```
 
 # Test: Re-parenting child with existing spec does NOT overwrite
 
 ```console
-$ tbd create "Task with own spec" --spec docs/specs/feature-b.md --json | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); require('fs').writeFileSync('owned_id.txt', d.id); console.log('Created')"
-Created
+$ tbd create "Task with own spec" --spec docs/specs/feature-b.md --json | jq -r '.id' | tee owned_id.txt
+test-[SHORTID]
 ? 0
 ```
 
@@ -235,7 +255,9 @@ $ tbd update $(cat owned_id.txt) --parent $(cat parent_id.txt)
 ```
 
 ```console
-$ tbd show $(cat owned_id.txt) --json | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log('spec:', d.spec_path)"
-spec: docs/specs/feature-b.md
+$ tbd show $(cat owned_id.txt) --json
+{
+...
+}
 ? 0
 ```

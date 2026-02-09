@@ -41,30 +41,30 @@ All issues use unique priorities to ensure fully deterministic sort order.
 Create issues linked to the auth spec:
 
 ```console
-$ tbd create "Implement login flow" --priority=0 --spec docs/specs/plan-auth.md --json | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); require('fs').writeFileSync('auth1_id.txt', d.id); console.log('Created auth1')"
-Created auth1
+$ tbd create "Implement login flow" --priority=0 --spec docs/specs/plan-auth.md --json | jq -r '.id' | tee auth1_id.txt
+test-[SHORTID]
 ? 0
 ```
 
 ```console
-$ tbd create "Add password reset" --priority=2 --spec docs/specs/plan-auth.md --json | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); require('fs').writeFileSync('auth2_id.txt', d.id); console.log('Created auth2')"
-Created auth2
+$ tbd create "Add password reset" --priority=2 --spec docs/specs/plan-auth.md --json | jq -r '.id' | tee auth2_id.txt
+test-[SHORTID]
 ? 0
 ```
 
 Create an issue linked to the search spec:
 
 ```console
-$ tbd create "Build search index" --priority=3 --spec docs/specs/plan-search.md --json | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); require('fs').writeFileSync('search1_id.txt', d.id); console.log('Created search1')"
-Created search1
+$ tbd create "Build search index" --priority=3 --spec docs/specs/plan-search.md --json | jq -r '.id' | tee search1_id.txt
+test-[SHORTID]
 ? 0
 ```
 
 Create an issue with no spec:
 
 ```console
-$ tbd create "Fix typo in README" --priority=4 --json | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); require('fs').writeFileSync('nospec1_id.txt', d.id); console.log('Created nospec1')"
-Created nospec1
+$ tbd create "Fix typo in README" --priority=4 --json | jq -r '.id' | tee nospec1_id.txt
+test-[SHORTID]
 ? 0
 ```
 
@@ -209,14 +209,14 @@ $ tbd update $(cat auth2_id.txt) --status=open
 Create a parent epic with a child under the auth spec (P1 for epic, child inherits):
 
 ```console
-$ tbd create "Auth epic" --type=epic --priority=1 --spec docs/specs/plan-auth.md --json | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); require('fs').writeFileSync('epic_id.txt', d.id); console.log('Created epic')"
-Created epic
+$ tbd create "Auth epic" --type=epic --priority=1 --spec docs/specs/plan-auth.md --json | jq -r '.id' | tee epic_id.txt
+test-[SHORTID]
 ? 0
 ```
 
 ```console
-$ tbd create "Login page" --priority=1 --parent=$(cat epic_id.txt) --json | node -e "console.log('Created child')"
-Created child
+$ tbd create "Login page" --priority=1 --parent=$(cat epic_id.txt) --json | jq -r '.id'
+test-[SHORTID]
 ? 0
 ```
 

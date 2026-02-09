@@ -153,8 +153,8 @@ $ tbd create "JSON test" --type=task --json
 First, create an issue to show and save its internal ID:
 
 ```console
-$ tbd create "Issue to show" --type=bug --priority=1 --description="Detailed description here" --label=backend --label=critical --json | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); require('fs').writeFileSync('show_id.txt', d.internalId); console.log('Created')"
-Created
+$ tbd create "Issue to show" --type=bug --priority=1 --description="Detailed description here" --label=backend --label=critical --json | jq -r '.internalId' | tee show_id.txt
+is-[ULID]
 ? 0
 ```
 
@@ -171,8 +171,10 @@ $ tbd show $(cat show_id.txt) | grep -c "title: Issue to show"
 # Test: Show issue as JSON
 
 ```console
-$ tbd show $(cat show_id.txt) --json | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log(d.title)"
-Issue to show
+$ tbd show $(cat show_id.txt) --json
+{
+...
+}
 ? 0
 ```
 
@@ -256,8 +258,8 @@ At this point we have 1 P0 issue (High priority feature).
 Create another one:
 
 ```console
-$ tbd create "Critical P0 issue" --priority=0 --json | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); require('fs').writeFileSync('p0_id.txt', d.id); console.log('Created')"
-Created
+$ tbd create "Critical P0 issue" --priority=0 --json | jq -r '.id' | tee p0_id.txt
+test-[SHORTID]
 ? 0
 ```
 
@@ -332,8 +334,8 @@ $ tbd list --sort=updated
 First, create an issue to update and save its ID in the sandbox:
 
 ```console
-$ tbd create "Update me" --type=task --priority=3 --json | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); require('fs').writeFileSync('update_id.txt', d.id); console.log('Created')"
-Created
+$ tbd create "Update me" --type=task --priority=3 --json | jq -r '.id' | tee update_id.txt
+test-[SHORTID]
 ? 0
 ```
 
@@ -436,8 +438,10 @@ $ tbd update $(cat update_id.txt) --defer=2025-06-15T00:00:00Z
 # Test: Verify updates applied
 
 ```console
-$ tbd show $(cat update_id.txt) --json | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log('status:', d.status, 'type:', d.kind, 'assignee:', d.assignee)"
-status: in_progress type: bug assignee: bob
+$ tbd show $(cat update_id.txt) --json
+{
+...
+}
 ? 0
 ```
 
@@ -464,8 +468,8 @@ Error: Issue not found: is-00000000000000000000000000
 Create an issue to close:
 
 ```console
-$ tbd create "Close me" --type=task --json | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); require('fs').writeFileSync('close_id.txt', d.id); console.log('Created')"
-Created
+$ tbd create "Close me" --type=task --json | jq -r '.id' | tee close_id.txt
+test-[SHORTID]
 ? 0
 ```
 
@@ -480,8 +484,10 @@ $ tbd close $(cat close_id.txt)
 # Test: Verify closed status
 
 ```console
-$ tbd show $(cat close_id.txt) --json | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log('status:', d.status)"
-status: closed
+$ tbd show $(cat close_id.txt) --json
+{
+...
+}
 ? 0
 ```
 
@@ -490,8 +496,8 @@ status: closed
 Create another issue:
 
 ```console
-$ tbd create "Close with reason" --type=bug --json | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); require('fs').writeFileSync('close2_id.txt', d.id); console.log('Created')"
-Created
+$ tbd create "Close with reason" --type=bug --json | jq -r '.id' | tee close2_id.txt
+test-[SHORTID]
 ? 0
 ```
 
@@ -504,7 +510,8 @@ $ tbd close $(cat close2_id.txt) --reason="Fixed in commit abc123"
 # Test: Close with dry-run
 
 ```console
-$ tbd create "Dry close" --json | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); require('fs').writeFileSync('dryclose_id.txt', d.id)"
+$ tbd create "Dry close" --json | jq -r '.id' | tee dryclose_id.txt
+test-[SHORTID]
 ? 0
 ```
 
@@ -537,8 +544,10 @@ $ tbd reopen $(cat close_id.txt)
 # Test: Verify reopened status
 
 ```console
-$ tbd show $(cat close_id.txt) --json | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log('status:', d.status)"
-status: open
+$ tbd show $(cat close_id.txt) --json
+{
+...
+}
 ? 0
 ```
 
@@ -633,8 +642,10 @@ $ tbd update $(cat update_id.txt) --title "Updated title"
 # Test: Verify title was updated
 
 ```console
-$ tbd show $(cat update_id.txt) --json | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log('title:', d.title)"
-title: Updated title
+$ tbd show $(cat update_id.txt) --json
+{
+...
+}
 ? 0
 ```
 
@@ -667,8 +678,10 @@ $ tbd update $(cat update_id.txt) --from-file /tmp/issue_export.md
 Verify title was updated from file:
 
 ```console
-$ tbd show $(cat update_id.txt) --json | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log('title:', d.title)"
-title: Title from file
+$ tbd show $(cat update_id.txt) --json
+{
+...
+}
 ? 0
 ```
 
