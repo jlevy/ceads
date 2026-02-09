@@ -65,7 +65,7 @@ interface BeadsIssue {
   type?: string;
   issue_type?: string;
   status: string;
-  priority?: number;
+  priority?: number | string;
   assignee?: string;
   labels?: string[];
   dependencies?: { type: string; target: string }[];
@@ -118,6 +118,29 @@ function mapKind(beadsType?: string): IssueKindType {
 }
 
 /**
+ * Map Beads priority to tbd priority (0-4 integer).
+ * Handles numeric values, "P0"-"P4" strings, and fallback to default P2.
+ */
+function mapPriority(priority: unknown): number {
+  if (
+    typeof priority === 'number' &&
+    Number.isInteger(priority) &&
+    priority >= 0 &&
+    priority <= 4
+  ) {
+    return priority;
+  }
+  if (typeof priority === 'string') {
+    const match = /^[Pp]?(\d)$/.exec(priority.trim());
+    if (match) {
+      const num = parseInt(match[1]!, 10);
+      if (num >= 0 && num <= 4) return num;
+    }
+  }
+  return 2; // Default P2
+}
+
+/**
  * Convert Beads issue to tbd issue.
  */
 function convertIssue(beads: BeadsIssue, tbdId: string, depMapping: BeadsTotbdMapping): Issue {
@@ -149,7 +172,7 @@ function convertIssue(beads: BeadsIssue, tbdId: string, depMapping: BeadsTotbdMa
     description: beads.description,
     notes: beads.notes,
     status: mapStatus(beads.status),
-    priority: beads.priority ?? 2,
+    priority: mapPriority(beads.priority),
     assignee: beads.assignee,
     labels: beads.labels ?? [],
     dependencies,
@@ -370,8 +393,10 @@ class ImportHandler extends BaseCommand {
         fieldIssues.push(`kind mismatch: "${tbdIssue.kind}" vs expected "${expectedKind}"`);
       }
 
-      if ((beads.priority ?? 2) !== tbdIssue.priority) {
-        fieldIssues.push(`priority mismatch: ${tbdIssue.priority} vs ${beads.priority ?? 2}`);
+      if (mapPriority(beads.priority) !== tbdIssue.priority) {
+        fieldIssues.push(
+          `priority mismatch: ${tbdIssue.priority} vs ${mapPriority(beads.priority)}`,
+        );
       }
 
       // Check labels

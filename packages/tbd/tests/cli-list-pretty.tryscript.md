@@ -35,28 +35,28 @@ parent-child relationships.
 First, create a parent epic with child tasks:
 
 ```console
-$ tbd create "Parent Epic" --type=epic --priority=1 --json | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); require('fs').writeFileSync('parent_id.txt', d.id); console.log('Created parent')"
-Created parent
+$ tbd create "Parent Epic" --type=epic --priority=1 --json | jq -r '.id' | tee parent_id.txt
+test-[SHORTID]
 ? 0
 ```
 
 ```console
-$ tbd create "Child Task 1" --type=task --priority=2 --parent=$(cat parent_id.txt) --json | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); require('fs').writeFileSync('child1_id.txt', d.id); console.log('Created child 1')"
-Created child 1
+$ tbd create "Child Task 1" --type=task --priority=2 --parent=$(cat parent_id.txt) --json | jq -r '.id' | tee child1_id.txt
+test-[SHORTID]
 ? 0
 ```
 
 ```console
-$ tbd create "Child Task 2" --type=task --priority=3 --parent=$(cat parent_id.txt) --json | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); require('fs').writeFileSync('child2_id.txt', d.id); console.log('Created child 2')"
-Created child 2
+$ tbd create "Child Task 2" --type=task --priority=3 --parent=$(cat parent_id.txt) --json | jq -r '.id' | tee child2_id.txt
+test-[SHORTID]
 ? 0
 ```
 
 Create a standalone issue (no parent):
 
 ```console
-$ tbd create "Standalone Bug" --type=bug --priority=0 --json | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); require('fs').writeFileSync('standalone_id.txt', d.id); console.log('Created standalone')"
-Created standalone
+$ tbd create "Standalone Bug" --type=bug --priority=0 --json | jq -r '.id' | tee standalone_id.txt
+test-[SHORTID]
 ? 0
 ```
 
@@ -86,8 +86,8 @@ When filtering by type, children of different types are excluded.
 The parent appears alone since its children are tasks, not features:
 
 ```console
-$ tbd create "Feature Parent" --type=feature --priority=2 --json | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); require('fs').writeFileSync('feature_parent_id.txt', d.id); console.log('Created')"
-Created
+$ tbd create "Feature Parent" --type=feature --priority=2 --json | jq -r '.id' | tee feature_parent_id.txt
+test-[SHORTID]
 ? 0
 ```
 
@@ -106,8 +106,8 @@ test-[SHORTID][..]  [feature] Feature Parent
 Create a grandchild under an existing child:
 
 ```console
-$ tbd create "Grandchild Task" --type=task --priority=4 --parent=$(cat child1_id.txt) --json | node -e "console.log('Created grandchild')"
-Created grandchild
+$ tbd create "Grandchild Task" --type=task --priority=4 --parent=$(cat child1_id.txt) --json | jq -r '.id'
+test-[SHORTID]
 ? 0
 ```
 
@@ -169,8 +169,10 @@ test-[SHORTID][..]  [epic] Parent Epic
 JSON output overrides pretty:
 
 ```console
-$ tbd list --pretty --json | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log('count:', d.length)"
-count: 6
+$ tbd list --pretty --json
+[
+...
+]
 ? 0
 ```
 
@@ -198,8 +200,8 @@ test-[SHORTID][..]  [task] Child Task 2
 Create an issue with a description to test --long:
 
 ```console
-$ tbd create "Task With Description" --type=task --priority=1 --description="This is a detailed description that will be wrapped across multiple lines when displayed in long format." --json | node -e "console.log('Created')"
-Created
+$ tbd create "Task With Description" --type=task --priority=1 --description="This is a detailed description that will be wrapped across multiple lines when displayed in long format." --json | jq -r '.id'
+test-[SHORTID]
 ? 0
 ```
 

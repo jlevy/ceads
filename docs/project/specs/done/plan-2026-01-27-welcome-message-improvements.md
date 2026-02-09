@@ -1,6 +1,6 @@
 # Plan Spec: Welcome Message Improvements
 
-**Date:** 2026-01-27 **Author:** Claude **Status:** Draft
+**Date:** 2026-01-27 **Author:** Claude **Status:** Done
 
 ## Overview
 

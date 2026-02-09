@@ -270,8 +270,77 @@ Error: Section not found: "ID System" (use --list to see available sections)
 # Test: docs --list --json outputs array with slugs
 
 ```console
-$ tbd docs --list --json | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log(d.some(s=>s.slug==='id-system') ? 'ok' : 'fail')"
-fail
+$ tbd docs --list --json
+[
+  {
+    "title": "Key Design Features",
+    "slug": "key-design-features"
+  },
+  {
+    "title": "File format",
+    "slug": "file-format"
+  },
+  {
+    "title": "Requirements and Installation",
+    "slug": "requirements-and-installation"
+  },
+  {
+    "title": "Quick Reference",
+    "slug": "quick-reference"
+  },
+  {
+    "title": "Commands",
+    "slug": "commands"
+  },
+  {
+    "title": "Global Options",
+    "slug": "global-options"
+  },
+  {
+    "title": "For AI Agents",
+    "slug": "for-ai-agents"
+  },
+  {
+    "title": "Common Workflows",
+    "slug": "common-workflows"
+  },
+  {
+    "title": "File Structure",
+    "slug": "file-structure"
+  },
+  {
+    "title": "Notes",
+    "slug": "notes"
+  },
+  {
+    "title": "Configuration Reference",
+    "slug": "configuration-reference"
+  },
+  {
+    "title": "Priority Scale",
+    "slug": "priority-scale"
+  },
+  {
+    "title": "Date Formats",
+    "slug": "date-formats"
+  },
+  {
+    "title": "How Sync Works",
+    "slug": "how-sync-works"
+  },
+  {
+    "title": "Troubleshooting",
+    "slug": "troubleshooting"
+  },
+  {
+    "title": "Tips",
+    "slug": "tips"
+  },
+  {
+    "title": "Getting Help",
+    "slug": "getting-help"
+  }
+]
 ? 0
 ```
 

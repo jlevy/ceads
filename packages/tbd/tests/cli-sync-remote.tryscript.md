@@ -146,7 +146,15 @@ $ tbd sync --status
 # Test: Status JSON shows synced state
 
 ```console
-$ tbd sync --status --json | node -e "d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log('synced:', d.synced)"
-synced: true
+$ tbd sync --status --json
+{
+  "synced": true,
+  "localChanges": [],
+  "remoteChanges": [],
+  "syncBranch": "tbd-sync",
+  "remote": "origin",
+  "ahead": 0,
+  "behind": 0
+}
 ? 0
 ```

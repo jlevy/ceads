@@ -1,6 +1,6 @@
 # Feature: Document Size and Token Counts
 
-**Date:** 2026-01-29 **Author:** Joshua Levy **Status:** Draft
+**Date:** 2026-01-29 **Author:** Joshua Levy **Status:** Done
 
 ## Overview
 
