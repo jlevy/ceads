@@ -1,5 +1,14 @@
 # get-tbd
 
+## 0.1.18
+
+### Patch Changes
+
+- 0feb918: Bug fixes and stability improvements: YAML duplicate key handling after merge
+  conflicts, sync debug log branch fix, beads import priority mapping, EPIPE pager
+  handling, improved error cause chains, workspace save/import progress logging, and
+  test stability fixes.
+
 ## 0.1.17
 
 ### Patch Changes
