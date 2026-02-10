@@ -1,49 +1,55 @@
 ## What’s Changed
 
-### Features
-
-- **Workspace sync feature**: New commands for managing local workspace backups:
-  - `tbd save` to export issues to workspace directories (supports `--updates-only` and
-    `--outbox`); correctly filters ID mappings to saved issues only
-  - `tbd workspace list` to show saved workspaces with issue counts
-    (open/in_progress/closed/total)
-  - `tbd import --workspace` to restore from workspace backups
-  - Workspace save suggested on sync push failures as safety net
-- **Child bead ordering hints**: New `child_order` field allows explicit ordering of
-  child beads; priority-based ordering preserved in tree views
-- **Unified review-code shortcut**: Single shortcut supporting three scopes (uncommitted
-  changes, branch work, GitHub PR) with language-specific guideline loading
-- **Review-github-pr shortcut**: Dedicated shortcut for GitHub PR reviews with follow-up
-  actions (commenting, CI checks, fix bead creation)
-- **Forward compatibility check**: Added config format version validation - tbd now
-  errors clearly when encountering configs from newer versions instead of silently
-  stripping unknown fields
-
 ### Fixes
 
-- **Git maxBuffer overflow**: Increased buffer from 1MB to 50MB to prevent sync failures
-  on large repos
-- **Priority ordering in tree view**: Child beads maintain priority-based ordering when
-  no explicit hints provided
-- **Tryscript test output formatting**: Updated help output column widths and test
-  expectations
+- **YAML duplicate key handling after merge conflicts**: `ids.yml` files that end up
+  with duplicate keys after git merge conflict resolution (e.g., both sides of a merge
+  keeping the same entries) no longer crash with “Map keys must be unique”.
+  tbd now detects duplicate keys, warns about them, and auto-resolves on the next save.
+  `tbd doctor` reports duplicate keys and `tbd doctor --fix` cleans them up.
 
-### Refactoring
+- **Sync debug log showed wrong branch commits**: `tbd sync --debug` was resolving
+  `HEAD` against the user’s working branch instead of the `tbd-sync` branch, causing the
+  “Commits sent” and “Commits received” debug output to show commits from the wrong
+  branch. Now uses explicit branch references.
 
-- **Branded types for IDs**: Added InternalId and DisplayId branded types for type-safe
-  ID handling
-- **Standardized gh CLI setup**: Consistent GitHub CLI configuration pattern across all
-  shortcuts
-- **Removed redundant re-exports**: Cleaned up backward compatibility aliases that were
-  no longer needed
+- **Beads import priority mapping**: `tbd import --beads` now correctly handles priority
+  values in all formats (numeric `0`-`4`, string `"P0"`-`"P4"`, or missing) instead of
+  only accepting integers.
+  Previously, string-format priorities from Beads would silently default to P2.
+
+- **EPIPE handling when quitting pager**: Pressing `q` in the pager (e.g., `less`) while
+  viewing long output no longer prints unhandled EPIPE errors.
+  Both stdout and stderr EPIPE signals are now caught gracefully.
+
+- **Improved error messages and cause chains**: Error messages from `tbd save` and
+  `tbd import` now include the underlying cause (e.g., the actual filesystem or git
+  error) instead of a generic wrapper message.
+  Debug mode (`--debug`) shows the full cause chain for easier troubleshooting.
+
+### Improvements
+
+- **Workspace save/import progress logging**: `tbd save` and `tbd import --workspace`
+  now show progress via spinner updates during long operations, with detailed logging
+  available via `--verbose` and `--debug` flags.
+  New `OperationLogger` interface enables core logic to report progress without
+  depending on the CLI output layer.
+
+- **Test stability**: Fixed flaky `setup-hooks` tests with a `globalSetup` build step
+  and increased timeouts.
+  Fixed non-deterministic `cli-id-format` test.
+  Removed fragile `node -e` JSON-parsing pattern from all 18 tryscript golden tests in
+  favor of direct CLI assertions.
+  Added explicit timeouts to test files that spawn subprocesses.
+  Added new golden tests for sync debug output, verbose logging, and duplicate key
+  detection.
 
 ### Documentation
 
-- **Golden testing guidelines**: Improved clarity with “Two Implementation Strategies”
-  section and tryscript quick reference
-- **README cleanup**: Removed duplicate sections, fixed typos, improved quick start
-- **Editorial rules**: Expanded from 4 to 6 rules with consistent formatting
-- **Code review shortcuts**: Documented three review scopes and auto-loaded guidelines
-  in README
+- **External docs repos spec**: Finalized the design for prefix-based external
+  documentation repositories and skills.sh integration.
 
-**Full commit history**: https://github.com/jlevy/tbd/compare/v0.1.12...v0.1.13
+- **Skill file restructuring**: Renamed `skill.md` to `skill-baseline.md` and added
+  `skill-minimal.md` for lighter-weight agent skill integration.
+
+**Full commit history**: https://github.com/jlevy/tbd/compare/v0.1.17...v0.1.18

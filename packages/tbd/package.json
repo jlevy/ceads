@@ -1,6 +1,6 @@
 {
   "name": "get-tbd",
-  "version": "0.1.17",
+  "version": "0.1.18",
   "description": "Git-native issue tracking for AI agents and humans",
   "license": "MIT",
   "author": "Joshua Levy <joshua@cal.berkeley.edu> (https://github.com/jlevy)",
