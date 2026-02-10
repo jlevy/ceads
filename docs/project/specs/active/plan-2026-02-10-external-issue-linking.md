@@ -136,6 +136,16 @@ Labels sync bidirectionally:
 - Label sync is additive for union merges: if both sides add different labels, both
   end up with the union.
 
+**Label auto-creation on GitHub**: The GitHub API does NOT auto-create labels
+when adding them to an issue. If a tbd bead has a label that doesn't exist as a
+GitHub repo label, we must create it first. The implementation should:
+
+1. Attempt `POST /repos/{owner}/{repo}/labels` with the label name (use a default
+   color). If the label already exists, GitHub returns 422 — ignore that error.
+2. Then `POST /repos/{owner}/{repo}/issues/{number}/labels` to add it to the issue.
+
+This two-step approach is idempotent and handles both new and existing labels.
+
 ## Design
 
 ### Approach
@@ -358,13 +368,7 @@ or label sync yet.
 - [ ] Write unit tests for `github-issues.ts` (URL parsing, format detection)
 - [ ] Write unit tests for schema changes
 - [ ] Verify existing `spec_path` tryscript tests still pass after refactor
-- [ ] Create golden tryscript tests for:
-  - [ ] Create with `--external-issue`
-  - [ ] Show displaying external issue URL
-  - [ ] List filtering by external issue
-  - [ ] Update to set/clear external issue
-  - [ ] Parent-to-child inheritance (both `spec_path` and `external_issue_url`)
-  - [ ] Propagation on parent update
+- [ ] Create golden tryscript tests (see Testing Strategy for detailed scenarios)
 
 ### Phase 2: `gh` CLI Health Check and Setup Validation
 
@@ -433,12 +437,19 @@ and can be deferred.
 
 ### Unit Tests
 
-1. **GitHub Issue URL Parsing** (`github-issues.test.ts`)
-   - Valid GitHub issue URLs (http and https)
-   - URLs with trailing slashes or query params (reject)
-   - Non-issue GitHub URLs (PRs, repos, blob URLs)
-   - Non-GitHub URLs (Jira, Linear, arbitrary)
-   - Edge cases: no issue number, non-numeric issue number
+1. **GitHub Issue URL Parsing and Validation** (`github-issues.test.ts`)
+   - Valid GitHub issue URLs: `https://github.com/owner/repo/issues/123` → parses
+   - Valid with http: `http://github.com/owner/repo/issues/456` → parses
+   - Trailing slash rejected: `https://github.com/owner/repo/issues/123/` → null
+   - Query params rejected: `https://github.com/owner/repo/issues/123?foo=bar` → null
+   - PR URL rejected: `https://github.com/owner/repo/pull/123` → null
+   - Repo URL rejected: `https://github.com/owner/repo` → null
+   - Blob URL rejected: `https://github.com/owner/repo/blob/main/file.ts` → null
+   - Non-GitHub URL rejected: `https://jira.example.com/PROJ-123` → null
+   - Malformed: `not-a-url` → null
+   - No issue number: `https://github.com/owner/repo/issues/` → null
+   - Non-numeric issue number: `https://github.com/owner/repo/issues/abc` → null
+   - Extracts correct owner, repo, number from valid URLs
 
 2. **Schema Validation** (add to `schemas.test.ts`)
    - `external_issue_url` accepts valid URLs
@@ -455,23 +466,96 @@ and can be deferred.
    - Union behavior
    - Empty label lists
 
-5. **Merge Rules** (add to `git.test.ts`)
+5. **Inheritable Fields** (`inheritable-fields.test.ts`)
+   - `inheritFromParent()` copies all registered fields from parent when not
+     explicitly set on child
+   - `inheritFromParent()` does NOT overwrite fields the user explicitly set
+   - `propagateToChildren()` updates children with null or old-matching values
+   - `propagateToChildren()` skips children with explicitly different values
+   - Adding a new field to `INHERITABLE_FIELDS` automatically includes it in
+     inherit and propagate operations (no other code changes)
+
+6. **Merge Rules** (add to `git.test.ts`)
    - `external_issue_url` uses LWW correctly
    - Concurrent edits to `external_issue_url` resolved by timestamp
 
 ### Golden Tryscript Tests
 
-New tryscript file: `tests/cli-external-issue-linking.tryscript.md`
+New tryscript files covering the full range of inheritance and linking scenarios.
 
-Covers:
+#### `tests/cli-external-issue-linking.tryscript.md`
+
+Basic external issue linking operations:
 - Create with and without `--external-issue` (backward compatibility)
 - Show displays external issue URL
 - List filtering by external issue
 - Update to set/change/clear external issue URL
-- Parent-to-child inheritance
-- Propagation on parent update
 - Close bead → status message about GitHub sync
-- Error cases: invalid URL, inaccessible issue
+
+**URL parsing and validation error scenarios** (must be golden-tested):
+- Valid GitHub issue URL → succeeds
+  (`https://github.com/owner/repo/issues/123`)
+- GitHub PR URL → error: "not a GitHub issue URL" (must reject PRs)
+  (`https://github.com/owner/repo/pull/123`)
+- GitHub repo URL (no issue number) → error
+  (`https://github.com/owner/repo`)
+- GitHub blob URL → error
+  (`https://github.com/owner/repo/blob/main/file.ts`)
+- Non-GitHub URL → error: "only GitHub issue URLs are supported"
+  (`https://jira.example.com/browse/PROJ-123`)
+- Malformed URL → error
+  (`not-a-url`, `github.com/owner/repo/issues/123` without scheme)
+- Inaccessible issue (valid URL format but 404) → error: "issue not found
+  or not accessible"
+
+#### `tests/cli-inheritable-fields.tryscript.md`
+
+Comprehensive tests for the generic inheritable field system. These tests
+must exercise both `spec_path` and `external_issue_url` to prove the
+shared logic works for any registered field.
+
+**Scenario 1: Parent-to-child inheritance on create**
+1. Create parent epic with `--spec` and `--external-issue`
+2. Create child under parent (no explicit `--spec` or `--external-issue`)
+3. Verify child inherited both `spec_path` and `external_issue_url` from parent
+4. Create another child with explicit `--spec` (different from parent)
+5. Verify that child has the explicit `spec_path` but inherited `external_issue_url`
+
+**Scenario 2: Propagation from parent to children on update**
+1. Create parent epic with `--spec` and `--external-issue`
+2. Create 3 children under parent (all inherit both fields)
+3. Manually set child-3's `external_issue_url` to a different value
+4. Update parent's `--external-issue` to a new URL
+5. Verify child-1 and child-2 got the new `external_issue_url` (they had
+   the inherited value)
+6. Verify child-3 was NOT updated (it had an explicitly different value)
+7. Update parent's `--spec` to a new path
+8. Verify same propagation logic applies to `spec_path`
+
+**Scenario 3: Re-parenting inherits from new parent**
+1. Create parent-A with `--external-issue URL-A`
+2. Create parent-B with `--external-issue URL-B`
+3. Create orphan child (no parent, no external issue)
+4. Re-parent child under parent-A
+5. Verify child inherited `external_issue_url` from parent-A
+6. Re-parent child under parent-B (child still has URL-A from first parent)
+7. Verify child kept URL-A (not overwritten — only inherits if null)
+
+**Scenario 4: Clearing and re-inheriting**
+1. Create parent with `--external-issue`
+2. Create child (inherits from parent)
+3. Clear child's `external_issue_url` with `--external-issue ""`
+4. Verify child's `external_issue_url` is now null
+5. Update parent's `--external-issue` to a new URL
+6. Verify child gets the new URL (its value was null, so it's eligible
+   for propagation)
+
+**Scenario 5: Mixed inheritance — some fields set, some inherited**
+1. Create parent with `--spec` only (no `--external-issue`)
+2. Create child — inherits `spec_path`, no `external_issue_url`
+3. Update parent to add `--external-issue`
+4. Verify child now has `external_issue_url` propagated (was null)
+5. Verify child still has original `spec_path` (unchanged)
 
 ### Integration Tests
 
