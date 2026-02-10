@@ -257,7 +257,7 @@ class ListHandler extends BaseCommand {
         if (!issue.external_issue_url) return false;
         // If a specific URL is given (not just the flag), match it exactly
         if (
-          options.externalIssue !== 'true' &&
+          typeof options.externalIssue === 'string' &&
           issue.external_issue_url !== options.externalIssue
         ) {
           return false;
