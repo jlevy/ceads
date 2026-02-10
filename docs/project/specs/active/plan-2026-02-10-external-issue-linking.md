@@ -111,7 +111,7 @@ providers in the future.
 
 ### Status Mapping: GitHub → tbd
 
-When syncing from GitHub (on next bead update or explicit sync), the reverse mapping:
+When pulling from GitHub during `tbd sync --external`, the reverse mapping:
 
 | GitHub State | GitHub `state_reason` | tbd Status |
 | --- | --- | --- |
@@ -128,10 +128,10 @@ that was `blocked`, the bead moves to `closed`.
 
 Labels sync bidirectionally:
 
-- **tbd → GitHub**: When a label is added/removed on a bead, the same label is
-  added/removed on the linked GitHub issue.
-- **GitHub → tbd**: When a label is added/removed on the GitHub issue, the same
-  label is added/removed on the bead during the next sync.
+- **tbd → GitHub**: At sync time, labels added/removed on a bead since last sync
+  are pushed to the linked GitHub issue.
+- **GitHub → tbd**: At sync time, labels added/removed on the GitHub issue since
+  last sync are pulled into the bead.
 - Labels are matched by exact string equality.
 - Label sync is additive for union merges: if both sides add different labels, both
   end up with the union.
@@ -162,11 +162,16 @@ This two-step approach is idempotent and handles both new and existing labels.
    into. Both `spec_path` and `external_issue_url` use this shared logic — no
    copy-pasting of inheritance code.
 
-4. **Status sync on close/update**: When a bead's status changes, if it has a linked
-   external issue, sync the status to GitHub using the mapping table.
+4. **Sync-at-sync-time**: External issue sync happens only when `tbd sync` is
+   called, not on individual bead operations. This makes local operations a
+   staging area — you can create, update, close, and label beads freely, then
+   sync everything in one batch. This mirrors how `--issues` syncs to the git
+   sync branch and `--docs` syncs doc caches: `--external` syncs to linked
+   external issues.
 
-5. **Label sync**: On label add/remove operations, sync to the linked GitHub issue.
-   On explicit sync or bead update, pull label changes from GitHub.
+5. **Bidirectional status and label sync**: At sync time, push local status/label
+   changes to GitHub and pull GitHub status/label changes to local beads, using
+   the mapping tables.
 
 6. **Doctor check**: Add a `gh` CLI availability check to the `doctor` command.
 
@@ -179,11 +184,9 @@ This two-step approach is idempotent and handles both new and existing labels.
 | URL Parser | `github-issues.ts` (new) | Parse, validate, and operate on GitHub issues |
 | Create | `create.ts` | `--external-issue` flag, uses inheritable fields |
 | Update | `update.ts` | `--external-issue` flag, uses inheritable fields |
-| Close | `close.ts` | Sync status to GitHub on close |
-| Reopen | `reopen.ts` | Sync status to GitHub on reopen |
 | Show | `show.ts` | Display external issue URL with highlighting |
 | List | `list.ts` | `--external-issue` filter option |
-| Label | `label.ts` | Sync label changes to GitHub |
+| Sync | `sync.ts` | Add `--external` scope for external issue sync |
 | Doctor | `doctor.ts` | Add `gh` CLI health check |
 | Merge rules | `git.ts` | Add `external_issue_url: 'lww'` |
 | Status mapping | `github-issues.ts` | Hardcoded mapping table |
@@ -321,14 +324,64 @@ In `git.ts` `FIELD_STRATEGIES`:
 external_issue_url: 'lww',
 ```
 
+### Sync Architecture: Scoped Sync with Staging
+
+**Key principle**: Individual bead operations (`create`, `update`, `close`,
+`label add`, etc.) only modify the local data. No external side effects.
+External sync happens only when `tbd sync` is called.
+
+This means the local worktree acts as a **staging area**. You can make a
+batch of changes — close several beads, add labels, update statuses — and
+none of it touches GitHub until you explicitly sync. This also means you
+can abort changes (e.g., via workspace operations) before they're pushed
+externally.
+
+**Existing sync scopes** (`sync.ts`):
+
+| Flag | Scope | What it syncs |
+| --- | --- | --- |
+| `--issues` | Git sync branch | Push/pull bead data via `tbd-sync` branch |
+| `--docs` | Doc cache | Sync docs from configured sources |
+
+**New sync scope**:
+
+| Flag | Scope | What it syncs |
+| --- | --- | --- |
+| `--external` | External issues | Push/pull status and labels to/from linked GitHub issues |
+
+**Default behavior**: `tbd sync` (no flags) syncs all scopes: issues, docs,
+and external. Selective flags (`--issues`, `--docs`, `--external`) let you
+choose which scopes to sync.
+
+**External sync flow** (what `--external` does):
+
+1. Find all beads with a non-null `external_issue_url`
+2. For each linked bead:
+   a. Fetch current GitHub issue state (status, labels) via `gh api`
+   b. **Push local → GitHub**: If bead status or labels differ from what
+      GitHub has, push local changes to GitHub using the mapping tables
+   c. **Pull GitHub → local**: If GitHub state or labels differ from bead,
+      pull changes into the bead
+3. Conflict resolution: If both sides changed since last sync, local wins
+   (consistent with LWW merge strategy). The losing value is logged.
+4. Report a summary of synced issues (like the existing issue sync summary)
+
+**Ordering**: External sync runs after issue sync and doc sync. This ensures
+that any local bead changes are committed to the sync branch first, then
+pushed to external trackers.
+
 ### Error Handling
 
-- If `gh` CLI is not available when attempting to sync, log a warning and return
-  a non-zero exit code. The bead update itself still succeeds.
-- If the GitHub API call fails (network error, auth error, permission error),
-  log the error, return non-zero exit code, but the bead update still succeeds.
-- At link time (`--external-issue`), validate the issue exists and is readable.
-  If not accessible, fail the command with a clear error message.
+- At link time (`--external-issue` on `create`/`update`), validate the issue
+  exists and is readable. If not accessible, fail the command with a clear
+  error message.
+- During `tbd sync --external`:
+  - If `gh` CLI is not available, log a warning and skip external sync.
+    Return non-zero exit code.
+  - If a GitHub API call fails for a specific issue (network error, auth error,
+    permission error), log the error for that issue, continue syncing other
+    issues, and return non-zero exit code at the end.
+  - Individual issue sync failures do not block other issues from syncing.
 - All errors are surfaced to the user, never silently swallowed.
 
 ## Implementation Plan
@@ -383,46 +436,54 @@ properly validates GitHub access.
   running `tbd setup --auto`
 - [ ] Write tests for the new doctor check
 
-### Phase 3: Status Sync (tbd → GitHub)
+### Phase 3: External Sync Scope and Status Sync
 
-When bead status changes, propagate to the linked GitHub issue.
+Add `--external` scope to `tbd sync` and implement bidirectional status sync.
 
+- [ ] Add `--external` flag to `tbd sync` command:
+  - [ ] Default behavior: `tbd sync` (no flags) syncs issues + docs + external
+  - [ ] `tbd sync --external` syncs only external issues
+  - [ ] `tbd sync --issues` and `tbd sync --docs` continue to work as before
+    (no external sync unless `--external` also given or no flags at all)
+  - [ ] External sync runs after issue sync and doc sync
+- [ ] Implement external sync loop in `sync.ts`:
+  - [ ] Find all beads with non-null `external_issue_url`
+  - [ ] For each: fetch GitHub state, compute diff, push/pull changes
+  - [ ] Continue on per-issue failures, report summary at end
 - [ ] Add status mapping table to `github-issues.ts`:
   - [ ] `tbd closed` → GitHub `closed` (`completed`)
   - [ ] `tbd deferred` → GitHub `closed` (`not_planned`)
   - [ ] `tbd open` / `in_progress` → GitHub `open` (reopen if closed)
   - [ ] `tbd blocked` → no change
-- [ ] Add `closeGitHubIssue()` function using `gh api`
-- [ ] Add `reopenGitHubIssue()` function using `gh api`
-- [ ] Hook into `close` command: after closing bead, sync to GitHub
-- [ ] Hook into `reopen` command: after reopening bead, sync to GitHub
-- [ ] Hook into `update` command: when status changes, sync to GitHub
-- [ ] Error handling: log warning on failure, non-zero exit code, but bead
-  update still succeeds
+- [ ] Add GitHub API functions using `gh api`:
+  - [ ] `getGitHubIssueState()` - fetch current state, state_reason, labels
+  - [ ] `closeGitHubIssue()` - close with reason
+  - [ ] `reopenGitHubIssue()` - reopen
+- [ ] Implement GitHub → tbd status mapping (reverse direction)
+- [ ] Add sync summary output (e.g., "Synced 3 external issues: 2 updated, 1 unchanged")
+- [ ] Error handling: per-issue failures logged, non-zero exit code, other
+  issues still sync
 - [ ] Write tests for status sync (mock `gh` CLI calls)
-- [ ] Create golden tryscript tests for close/reopen sync behavior
+- [ ] Write tests for sync scope selection logic
+- [ ] Create golden tryscript tests for sync behavior
 
-### Phase 4: Status Sync (GitHub → tbd) and Label Sync
+### Phase 4: Label Sync (bidirectional, optional)
 
-Pull status and label changes from GitHub into tbd beads. This phase is optional
-and can be deferred.
+Add bidirectional label sync as part of the external sync scope. This phase
+is optional and can be deferred.
 
-- [ ] Add `getGitHubIssueState()` function to fetch current state and labels
-- [ ] Add GitHub → tbd status mapping logic
-- [ ] Add label sync functions:
-  - [ ] `addGitHubLabel()` - add label on GitHub
+- [ ] Add label sync functions to `github-issues.ts`:
+  - [ ] `addGitHubLabel()` - add label on GitHub (with auto-creation)
   - [ ] `removeGitHubLabel()` - remove label on GitHub
-  - [ ] `syncLabelsToGitHub()` - push local label diff to GitHub
-  - [ ] `syncLabelsFromGitHub()` - pull GitHub label diff to local
-- [ ] Hook into `label add` / `label remove`: sync to GitHub
-- [ ] Add pull-from-GitHub logic that runs on bead update or explicit sync:
-  - [ ] Fetch GitHub issue state
-  - [ ] Apply reverse status mapping if state changed
-  - [ ] Apply label diff (union/remove)
-- [ ] Error handling: log warning on failure, non-zero exit code
+- [ ] Extend the external sync loop to also sync labels:
+  - [ ] Compute label diff between bead and GitHub issue
+  - [ ] Push local label additions/removals to GitHub
+  - [ ] Pull GitHub label additions/removals to local bead
+  - [ ] Union semantics: if both sides added different labels, both get the union
+- [ ] Handle label auto-creation on GitHub (two-step POST, ignore 422)
 - [ ] Write tests for label sync (mock `gh` CLI calls)
-- [ ] Write tests for reverse status mapping
-- [ ] Create golden tryscript tests for bidirectional sync
+- [ ] Write tests for label diff computation
+- [ ] Create golden tryscript tests for bidirectional label sync
 
 ### Design Doc Updates
 
@@ -431,6 +492,8 @@ and can be deferred.
 - [ ] Update `tbd-design.md` §8.7 to reflect the implemented design
 - [ ] Add status mapping table to design doc
 - [ ] Add label sync design to design doc
+- [ ] Document the scoped sync architecture (`--external` as third sync scope)
+- [ ] Document the staging model (local operations don't touch external systems)
 - [ ] Document the inheritance and propagation rules alongside `spec_path`
 
 ## Testing Strategy
@@ -490,7 +553,10 @@ Basic external issue linking operations:
 - Show displays external issue URL
 - List filtering by external issue
 - Update to set/change/clear external issue URL
-- Close bead → status message about GitHub sync
+- Close bead locally → verify no GitHub API call happens (staging only)
+- `tbd sync --external` → verify GitHub API calls happen for linked beads
+- `tbd sync --issues` → verify no external sync happens (scope isolation)
+- `tbd sync` (no flags) → verify all three scopes run (issues + docs + external)
 
 **URL parsing and validation error scenarios** (must be golden-tested):
 - Valid GitHub issue URL → succeeds
@@ -587,11 +653,12 @@ via LWW).
    Recommendation: Default to enabled when `use_gh_cli` is true. No additional
    config needed for v1.
 
-3. **Should we sync on every bead operation or only on explicit `tbd sync`?**
-   Recommendation: Sync to GitHub on status-changing operations (close, reopen,
-   update status) and label operations. Pull from GitHub on explicit `tbd sync`
-   or when showing/updating a bead with a linked issue. This avoids excessive
-   API calls.
+3. ~~**Should we sync on every bead operation or only on explicit `tbd sync`?**~~
+   **RESOLVED**: Sync only at `tbd sync` time, never on individual operations.
+   Local operations are a staging area. This is consistent with how issue sync
+   (git) and doc sync already work, and allows batching changes before pushing
+   them externally. The `--external` scope flag selects this sync, and it's
+   included by default when no scope flags are given.
 
 4. **How should we handle GitHub rate limits?**
    Recommendation: Rely on `gh` CLI's built-in rate limit handling for v1. If
