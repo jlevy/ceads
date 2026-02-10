@@ -147,8 +147,10 @@ Labels sync bidirectionally:
    parse GitHub issue URLs, extract `{owner, repo, number}`, validate via `gh` CLI,
    and perform status/label operations.
 
-3. **Inheritance and propagation**: Reuse the exact same parent-to-child inheritance
-   pattern as `spec_path` in `create.ts` and `update.ts`.
+3. **Generic inheritable field system**: Extract the existing `spec_path`
+   parent-to-child inheritance logic into a reusable module that any field can opt
+   into. Both `spec_path` and `external_issue_url` use this shared logic — no
+   copy-pasting of inheritance code.
 
 4. **Status sync on close/update**: When a bead's status changes, if it has a linked
    external issue, sync the status to GitHub using the mapping table.
@@ -163,9 +165,10 @@ Labels sync bidirectionally:
 | Component | File(s) | Purpose |
 | --- | --- | --- |
 | Schema | `schemas.ts` | Add `external_issue_url` field |
+| Inheritable fields | `inheritable-fields.ts` (new) | Generic parent→child field inheritance/propagation |
 | URL Parser | `github-issues.ts` (new) | Parse, validate, and operate on GitHub issues |
-| Create | `create.ts` | `--external-issue` flag, parent inheritance |
-| Update | `update.ts` | `--external-issue` flag, propagation to children |
+| Create | `create.ts` | `--external-issue` flag, uses inheritable fields |
+| Update | `update.ts` | `--external-issue` flag, uses inheritable fields |
 | Close | `close.ts` | Sync status to GitHub on close |
 | Reopen | `reopen.ts` | Sync status to GitHub on reopen |
 | Show | `show.ts` | Display external issue URL with highlighting |
@@ -212,19 +215,83 @@ async function getGitHubIssueState(ref: GitHubIssueRef): Promise<{state: string,
 All GitHub API operations use `gh api` via child process, leveraging the existing
 `gh` CLI that `ensure-gh-cli.sh` installs.
 
-### Inheritance Logic (Reuse from `spec_path`)
+### Generic Inheritable Field System
 
-**On create with `--parent`** (in `create.ts`):
-- If `--external-issue` is not provided but parent has `external_issue_url`,
-  inherit from parent.
+Currently, `spec_path` inheritance is implemented with inline logic in `create.ts`
+(lines 113-119) and `update.ts` (lines 94-104, 151-164). Rather than copy-pasting
+this logic for `external_issue_url`, we extract it into a generic system.
 
-**On update** (in `update.ts`):
-- If `external_issue_url` changes on a parent, propagate to children whose
-  `external_issue_url` is null or matches the old value.
-- On re-parenting without explicit `--external-issue`, inherit from new parent
-  if the bead has no `external_issue_url`.
+New module `packages/tbd/src/lib/inheritable-fields.ts`:
 
-This is the exact same logic as `spec_path` inheritance and propagation.
+```typescript
+import type { Issue } from './types.js';
+
+/**
+ * Configuration for a field that inherits from parent to child beads.
+ * All inheritable fields follow the same three rules:
+ *
+ * 1. On create with --parent: if the field is not explicitly set, inherit
+ *    from parent.
+ * 2. On re-parenting: if the field is not explicitly set and the child has
+ *    no value, inherit from new parent.
+ * 3. On parent update: if the field changes on the parent, propagate to
+ *    children whose field is null or matches the old value.
+ */
+interface InheritableFieldConfig {
+  /** The field name on the Issue type */
+  field: keyof Issue;
+}
+
+/** Registry of all inheritable fields */
+const INHERITABLE_FIELDS: InheritableFieldConfig[] = [
+  { field: 'spec_path' },
+  { field: 'external_issue_url' },
+];
+
+/**
+ * Inherit fields from a parent issue to a child issue being created.
+ * For each inheritable field: if the child has no explicit value,
+ * copy from parent.
+ */
+function inheritFromParent(
+  child: Partial<Issue>,
+  parent: Issue,
+  explicitlySet: Set<keyof Issue>,
+): void;
+
+/**
+ * Propagate field changes from a parent to its children.
+ * For each inheritable field that changed on the parent:
+ * update children whose value is null or matches the old value.
+ */
+async function propagateToChildren(
+  parent: Issue,
+  oldValues: Partial<Issue>,
+  children: Issue[],
+  writeIssueFn: (issue: Issue) => Promise<void>,
+): Promise<void>;
+```
+
+**Key design points:**
+
+- `INHERITABLE_FIELDS` is the single registry. Adding a new inheritable field
+  means adding one entry here — no other code changes needed for inheritance.
+- The `create` and `update` commands call these shared functions instead of
+  inline field-specific logic.
+- The existing `spec_path` inline logic is refactored to use this system as
+  part of this feature (not just `external_issue_url`).
+- `explicitlySet` tracks which fields the user provided via CLI flags, so we
+  only inherit fields the user didn't explicitly set.
+
+**Three inheritance rules (same for all fields):**
+
+1. **On create with `--parent`**: If the field was not explicitly provided via
+   a CLI flag but the parent has a value, the child inherits it.
+2. **On re-parenting** (via `update --parent`): If the field was not explicitly
+   provided and the child's current value is null, inherit from the new parent.
+3. **On parent field update**: When a parent's inheritable field changes,
+   propagate to all children whose field is null or still matches the old
+   (inherited) value. Children with explicitly different values are untouched.
 
 ### API Changes
 
@@ -256,13 +323,23 @@ external_issue_url: 'lww',
 
 ## Implementation Plan
 
-### Phase 1: Schema, URL Parsing, and Core Linking
+### Phase 1: Schema, URL Parsing, Inheritable Fields, and Core Linking
 
-Add the field, parse GitHub URLs, validate issues, and wire up the basic
-create/update/show/list functionality. No status or label sync yet.
+Add the field, extract inheritable field logic, parse GitHub URLs, validate
+issues, and wire up the basic create/update/show/list functionality. No status
+or label sync yet.
 
 - [ ] Add `external_issue_url` field to `IssueSchema` in `schemas.ts`
 - [ ] Add `external_issue_url: 'lww'` to merge rules in `git.ts`
+- [ ] Create `inheritable-fields.ts` module:
+  - [ ] Define `INHERITABLE_FIELDS` registry (`spec_path`, `external_issue_url`)
+  - [ ] Implement `inheritFromParent()` - inherit on create with `--parent`
+  - [ ] Implement `propagateToChildren()` - propagate on parent field update
+  - [ ] Write unit tests for inheritable field logic
+- [ ] Refactor `create.ts` to use `inheritFromParent()` instead of inline
+  `spec_path` logic (existing behavior preserved, now generic)
+- [ ] Refactor `update.ts` to use `propagateToChildren()` instead of inline
+  `spec_path` logic (existing behavior preserved, now generic)
 - [ ] Create `github-issues.ts` module with:
   - [ ] `parseGitHubIssueUrl()` - regex-based URL parsing
   - [ ] `isGitHubIssueUrl()` - URL type detection
@@ -271,21 +348,22 @@ create/update/show/list functionality. No status or label sync yet.
 - [ ] Add `--external-issue <url>` flag to `create` command with:
   - [ ] URL validation (must be a valid GitHub issue URL)
   - [ ] Issue accessibility check via `gh api`
-  - [ ] Parent inheritance (same pattern as `spec_path`)
+  - [ ] Parent inheritance (via generic `inheritFromParent()`)
 - [ ] Add `--external-issue <url>` flag to `update` command with:
   - [ ] URL validation and accessibility check
-  - [ ] Propagation to children (same pattern as `spec_path`)
+  - [ ] Propagation to children (via generic `propagateToChildren()`)
   - [ ] Clear with `--external-issue ""`
 - [ ] Update `show` command to display `external_issue_url` with color highlighting
 - [ ] Add `--external-issue` filter to `list` command
 - [ ] Write unit tests for `github-issues.ts` (URL parsing, format detection)
 - [ ] Write unit tests for schema changes
+- [ ] Verify existing `spec_path` tryscript tests still pass after refactor
 - [ ] Create golden tryscript tests for:
   - [ ] Create with `--external-issue`
   - [ ] Show displaying external issue URL
   - [ ] List filtering by external issue
   - [ ] Update to set/clear external issue
-  - [ ] Parent-to-child inheritance
+  - [ ] Parent-to-child inheritance (both `spec_path` and `external_issue_url`)
   - [ ] Propagation on parent update
 
 ### Phase 2: `gh` CLI Health Check and Setup Validation
