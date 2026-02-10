@@ -70,8 +70,9 @@ docs_cache:
     shortcuts/standard/update-specs-status.md: internal:shortcuts/standard/update-specs-status.md
     shortcuts/standard/welcome-user.md: internal:shortcuts/standard/welcome-user.md
     shortcuts/system/shortcut-explanation.md: internal:shortcuts/system/shortcut-explanation.md
+    shortcuts/system/skill-baseline.md: internal:shortcuts/system/skill-baseline.md
     shortcuts/system/skill-brief.md: internal:shortcuts/system/skill-brief.md
-    shortcuts/system/skill.md: internal:shortcuts/system/skill.md
+    shortcuts/system/skill-minimal.md: internal:shortcuts/system/skill-minimal.md
     templates/architecture-doc.md: internal:templates/architecture-doc.md
     templates/plan-spec.md: internal:templates/plan-spec.md
     templates/research-brief.md: internal:templates/research-brief.md
