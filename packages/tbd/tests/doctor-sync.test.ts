@@ -3,14 +3,16 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mkdir, rm } from 'node:fs/promises';
+import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { randomBytes } from 'node:crypto';
 
 import { writeIssue, listIssues } from '../src/file/storage.js';
+import { loadIdMapping, saveIdMapping } from '../src/file/id-mapping.js';
 import type { Issue } from '../src/lib/types.js';
 import { DATA_SYNC_DIR, TBD_DIR } from '../src/lib/paths.js';
+import { detectDuplicateYamlKeys } from '../src/utils/yaml-utils.js';
 import { TEST_ULIDS, testId } from './test-helpers.js';
 
 describe('doctor command logic', () => {
@@ -148,6 +150,41 @@ describe('doctor command logic', () => {
     }
 
     expect(invalid.length).toBe(0);
+  });
+
+  it('detects duplicate keys in ids.yml (merge conflict resolution bug)', async () => {
+    // Simulate the exact bug: after resolving a merge conflict in ids.yml,
+    // both sides' entries are kept, creating duplicate YAML keys.
+    const mappingsDir = join(testDir, issuesDir, 'mappings');
+    await mkdir(mappingsDir, { recursive: true });
+
+    const idsYmlWithDuplicates = `5j0r: 01aaaaaaaaaaaaaaaaaaaaaa01
+a1b2: 01aaaaaaaaaaaaaaaaaaaaaa02
+c3d4: 01aaaaaaaaaaaaaaaaaaaaaa03
+5j0r: 01aaaaaaaaaaaaaaaaaaaaaa01
+vb4g: 01aaaaaaaaaaaaaaaaaaaaaa04
+vb4g: 01aaaaaaaaaaaaaaaaaaaaaa04`;
+
+    await writeFile(join(mappingsDir, 'ids.yml'), idsYmlWithDuplicates);
+
+    // detectDuplicateYamlKeys should find the duplicates
+    const duplicates = detectDuplicateYamlKeys(idsYmlWithDuplicates);
+    expect(duplicates).toContain('5j0r');
+    expect(duplicates).toContain('vb4g');
+    expect(duplicates).toHaveLength(2);
+
+    // loadIdMapping should NOT throw (the fix)
+    const mapping = await loadIdMapping(join(testDir, issuesDir));
+    expect(mapping.shortToUlid.size).toBe(4); // 5j0r, a1b2, c3d4, vb4g
+
+    // Re-saving should deduplicate the file
+    await saveIdMapping(join(testDir, issuesDir), mapping);
+
+    // Read back and verify no more duplicates
+    const { readFile: rf } = await import('node:fs/promises');
+    const fixedContent = await rf(join(mappingsDir, 'ids.yml'), 'utf-8');
+    const fixedDuplicates = detectDuplicateYamlKeys(fixedContent);
+    expect(fixedDuplicates).toEqual([]);
   });
 });
 

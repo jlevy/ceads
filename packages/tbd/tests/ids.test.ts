@@ -21,6 +21,11 @@ import {
 } from '../src/lib/ids.js';
 import { IssueId } from '../src/lib/schemas.js';
 import { mergeIdMappings, parseIdMappingFromYaml } from '../src/file/id-mapping.js';
+import {
+  detectDuplicateYamlKeys,
+  parseYamlToleratingDuplicateKeys,
+  MergeConflictError,
+} from '../src/utils/yaml-utils.js';
 
 // Sample valid ULID for testing (26 lowercase alphanumeric chars)
 const VALID_ULID = '01hx5zzkbkactav9wevgemmvrz';
@@ -610,5 +615,164 @@ c3d4: 01hx5zzkbkbctav9wevgemmvrw
 >>>>>>> origin/tbd-sync`;
 
     expect(() => parseIdMappingFromYaml(yamlWithConflict)).toThrow();
+  });
+
+  it('handles duplicate keys from merge conflict resolution (the bug)', () => {
+    // This reproduces the exact scenario from the bug report:
+    // After resolving a merge conflict in ids.yml, both sides' entries are kept,
+    // resulting in duplicate YAML keys. Previously this threw "Map keys must be unique".
+    const yamlWithDuplicates = `5j0r: 01hx5zzkbkactav9wevgemmvrz
+a1b2: 01hx5zzkbkbctav9wevgemmvrw
+c3d4: 01hx5zzkbkcctav9wevgemmvrx
+5j0r: 01hx5zzkbkactav9wevgemmvrz
+vb4g: 01hx5zzkbkdctav9wevgemmvry
+vb4g: 01hx5zzkbkdctav9wevgemmvry`;
+
+    // Should NOT throw — this is the fix
+    const mapping = parseIdMappingFromYaml(yamlWithDuplicates);
+
+    // All unique entries should be present
+    expect(mapping.shortToUlid.size).toBe(4); // 5j0r, a1b2, c3d4, vb4g
+    expect(mapping.shortToUlid.get('5j0r')).toBe('01hx5zzkbkactav9wevgemmvrz');
+    expect(mapping.shortToUlid.get('a1b2')).toBe('01hx5zzkbkbctav9wevgemmvrw');
+    expect(mapping.shortToUlid.get('c3d4')).toBe('01hx5zzkbkcctav9wevgemmvrx');
+    expect(mapping.shortToUlid.get('vb4g')).toBe('01hx5zzkbkdctav9wevgemmvry');
+  });
+
+  it('handles duplicate keys mapping to different ULIDs', () => {
+    // Edge case: same short ID maps to different ULIDs after merge
+    const yamlWithConflictingDuplicates = `a1b2: 01hx5zzkbkactav9wevgemmvrz
+c3d4: 01hx5zzkbkbctav9wevgemmvrw
+a1b2: 01hx5zzkbkxctav9wevgemmabc`;
+
+    // Should NOT throw
+    const mapping = parseIdMappingFromYaml(yamlWithConflictingDuplicates);
+
+    expect(mapping.shortToUlid.size).toBe(2);
+    // Last occurrence wins (yaml parser behavior with uniqueKeys: false)
+    expect(mapping.shortToUlid.get('a1b2')).toBe('01hx5zzkbkxctav9wevgemmabc');
+    expect(mapping.shortToUlid.get('c3d4')).toBe('01hx5zzkbkbctav9wevgemmvrw');
+  });
+});
+
+// =============================================================================
+// YAML duplicate key handling tests (bug: merge conflict resolution duplicates)
+// =============================================================================
+
+describe('detectDuplicateYamlKeys', () => {
+  it('returns empty array when no duplicates', () => {
+    const content = `a1b2: value1
+c3d4: value2
+e5f6: value3`;
+    expect(detectDuplicateYamlKeys(content)).toEqual([]);
+  });
+
+  it('detects duplicate keys', () => {
+    const content = `a1b2: value1
+c3d4: value2
+a1b2: value3`;
+    expect(detectDuplicateYamlKeys(content)).toEqual(['a1b2']);
+  });
+
+  it('detects multiple duplicate keys', () => {
+    const content = `5j0r: ulid1
+a1b2: ulid2
+c3d4: ulid3
+5j0r: ulid1
+vb4g: ulid4
+vb4g: ulid4
+zm4q: ulid5
+zm4q: ulid6`;
+    const duplicates = detectDuplicateYamlKeys(content);
+    expect(duplicates).toContain('5j0r');
+    expect(duplicates).toContain('vb4g');
+    expect(duplicates).toContain('zm4q');
+    expect(duplicates).toHaveLength(3);
+  });
+
+  it('handles empty content', () => {
+    expect(detectDuplicateYamlKeys('')).toEqual([]);
+  });
+
+  it('ignores comments and blank lines', () => {
+    const content = `# comment
+a1b2: value1
+
+# another comment
+a1b2: value2`;
+    expect(detectDuplicateYamlKeys(content)).toEqual(['a1b2']);
+  });
+
+  it('does not false-positive on indented keys (nested YAML)', () => {
+    const content = `parent1:
+  child: value1
+parent2:
+  child: value2`;
+    // 'child' is indented, so not a top-level key — should not be detected
+    expect(detectDuplicateYamlKeys(content)).toEqual([]);
+  });
+});
+
+describe('parseYamlToleratingDuplicateKeys', () => {
+  it('parses normal YAML without duplicates', () => {
+    const content = `a1b2: value1
+c3d4: value2`;
+    const result = parseYamlToleratingDuplicateKeys(content);
+    expect(result.duplicateKeys).toEqual([]);
+    expect(result.data).toEqual({ a1b2: 'value1', c3d4: 'value2' });
+  });
+
+  it('parses YAML with duplicate keys without throwing', () => {
+    const content = `a1b2: value1
+c3d4: value2
+a1b2: value3`;
+    const result = parseYamlToleratingDuplicateKeys(content);
+    expect(result.duplicateKeys).toEqual(['a1b2']);
+    // Last occurrence wins with uniqueKeys: false
+    expect(result.data).toEqual({ a1b2: 'value3', c3d4: 'value2' });
+  });
+
+  it('throws MergeConflictError when content has conflict markers', () => {
+    const content = `<<<<<<< HEAD
+a1b2: value1
+=======
+c3d4: value2
+>>>>>>> branch`;
+    expect(() => parseYamlToleratingDuplicateKeys(content)).toThrow(MergeConflictError);
+  });
+
+  it('simulates the exact bug scenario: merge conflict resolution kept both sides', () => {
+    // This is the golden test for the reported bug.
+    // After resolving a merge conflict by removing markers but keeping both sides,
+    // ids.yml ends up with duplicate keys. Previously, any tbd command that loaded
+    // ids.yml would crash with "Map keys must be unique".
+    const idsYmlAfterBadMerge = `5j0r: 01aaaaaaaaaaaaaaaaaaaaaa01
+a1b2: 01aaaaaaaaaaaaaaaaaaaaaa02
+c3d4: 01aaaaaaaaaaaaaaaaaaaaaa03
+e5f6: 01aaaaaaaaaaaaaaaaaaaaaa04
+5j0r: 01aaaaaaaaaaaaaaaaaaaaaa01
+vb4g: 01aaaaaaaaaaaaaaaaaaaaaa05
+g7h8: 01aaaaaaaaaaaaaaaaaaaaaa06
+vb4g: 01aaaaaaaaaaaaaaaaaaaaaa05
+zm4q: 01aaaaaaaaaaaaaaaaaaaaaa07
+zm4q: 01aaaaaaaaaaaaaaaaaaaaaa07`;
+
+    // Must NOT throw
+    const result = parseYamlToleratingDuplicateKeys<Record<string, string>>(idsYmlAfterBadMerge);
+
+    // Reports duplicate keys
+    expect(result.duplicateKeys).toContain('5j0r');
+    expect(result.duplicateKeys).toContain('vb4g');
+    expect(result.duplicateKeys).toContain('zm4q');
+
+    // All unique keys are present in parsed data
+    expect(Object.keys(result.data)).toHaveLength(7);
+    expect(result.data['5j0r']).toBe('01aaaaaaaaaaaaaaaaaaaaaa01');
+    expect(result.data.a1b2).toBe('01aaaaaaaaaaaaaaaaaaaaaa02');
+    expect(result.data.c3d4).toBe('01aaaaaaaaaaaaaaaaaaaaaa03');
+    expect(result.data.e5f6).toBe('01aaaaaaaaaaaaaaaaaaaaaa04');
+    expect(result.data.vb4g).toBe('01aaaaaaaaaaaaaaaaaaaaaa05');
+    expect(result.data.g7h8).toBe('01aaaaaaaaaaaaaaaaaaaaaa06');
+    expect(result.data.zm4q).toBe('01aaaaaaaaaaaaaaaaaaaaaa07');
   });
 });
