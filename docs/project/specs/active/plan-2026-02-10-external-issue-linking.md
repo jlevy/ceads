@@ -473,111 +473,439 @@ This gating behavior must be clearly documented in:
 
 ## Implementation Plan
 
+Each phase lists the exact source files, line numbers, and nature of changes.
+Line numbers are approximate (based on current state) and may shift as earlier
+phases are implemented.
+
+---
+
 ### Phase 1: Schema, URL Parsing, Inheritable Fields, and Core Linking
 
 Add the field, extract inheritable field logic, parse GitHub URLs, validate
 issues, and wire up the basic create/update/show/list functionality. No status
 or label sync yet.
 
-- [ ] Add `external_issue_url` field to `IssueSchema` in `schemas.ts`
-- [ ] Add `external_issue_url: 'lww'` to merge rules in `git.ts`
-- [ ] Create `inheritable-fields.ts` module:
-  - [ ] Define `INHERITABLE_FIELDS` registry (`spec_path`, `external_issue_url`)
-  - [ ] Implement `inheritFromParent()` - inherit on create with `--parent`
-  - [ ] Implement `propagateToChildren()` - propagate on parent field update
-  - [ ] Write unit tests for inheritable field logic
-- [ ] Refactor `create.ts` to use `inheritFromParent()` instead of inline
-  `spec_path` logic (existing behavior preserved, now generic)
-- [ ] Refactor `update.ts` to use `propagateToChildren()` instead of inline
-  `spec_path` logic (existing behavior preserved, now generic)
-- [ ] Create `github-issues.ts` module with:
-  - [ ] `parseGitHubIssueUrl()` - regex-based URL parsing
-  - [ ] `isGitHubIssueUrl()` - URL type detection
-  - [ ] `validateGitHubIssue()` - verify issue exists via `gh api`
-  - [ ] `formatGitHubIssueRef()` - format as `owner/repo#number` for display
-- [ ] Add `--external-issue <url>` flag to `create` command with:
-  - [ ] URL validation (must be a valid GitHub issue URL)
-  - [ ] Issue accessibility check via `gh api`
-  - [ ] Parent inheritance (via generic `inheritFromParent()`)
-- [ ] Add `--external-issue <url>` flag to `update` command with:
-  - [ ] URL validation and accessibility check
-  - [ ] Propagation to children (via generic `propagateToChildren()`)
-  - [ ] Clear with `--external-issue ""`
-- [ ] Update `show` command to display `external_issue_url` with color highlighting
-- [ ] Add `--external-issue` filter to `list` command
-- [ ] Write unit tests for `github-issues.ts` (URL parsing, format detection)
-- [ ] Write unit tests for schema changes
-- [ ] Verify existing `spec_path` tryscript tests still pass after refactor
-- [ ] Create golden tryscript tests (see Testing Strategy for detailed scenarios)
+#### 1a. Schema and Merge Rules
+
+**`packages/tbd/src/lib/schemas.ts`** (line 149, after `spec_path`):
+- [ ] Add field to `IssueSchema`:
+  ```typescript
+  external_issue_url: z.string().url().nullable().optional(),
+  ```
+- [ ] This auto-propagates to the `Issue` type via `types.ts:28`
+  (`type Issue = z.infer<typeof IssueSchema>`)
+
+**`packages/tbd/src/file/git.ts`** (line 300, after `spec_path: 'lww'`):
+- [ ] Add merge rule:
+  ```typescript
+  external_issue_url: 'lww',
+  ```
+
+**`packages/tbd/src/lib/types.ts`** (lines 81-91, 96-109):
+- [ ] Add `external_issue_url?: string | null` to `CreateIssueOptions`
+- [ ] Add `external_issue_url?: string | null` to `UpdateIssueOptions`
+
+**Tests:**
+- [ ] Add `external_issue_url` validation cases to `schemas.test.ts`
+- [ ] Add LWW merge test for `external_issue_url` in `git.test.ts`
+
+#### 1b. GitHub Issue URL Parser
+
+**`packages/tbd/src/file/github-issues.ts`** (NEW FILE):
+
+Place alongside `github-fetch.ts` (existing GitHub URL utilities).
+
+```typescript
+// Regex: https://github.com/{owner}/{repo}/issues/{number}
+const GITHUB_ISSUE_RE = /^https?:\/\/github\.com\/([^/]+)\/([^/]+)\/issues\/(\d+)$/;
+
+// Also need a PR detection regex for better error messages
+const GITHUB_PR_RE = /^https?:\/\/github\.com\/([^/]+)\/([^/]+)\/pull\/(\d+)$/;
+
+interface GitHubIssueRef { owner: string; repo: string; number: number; url: string; }
+
+export function parseGitHubIssueUrl(url: string): GitHubIssueRef | null;
+export function isGitHubIssueUrl(url: string): boolean;
+export function isGitHubPrUrl(url: string): boolean;
+export function formatGitHubIssueRef(ref: GitHubIssueRef): string; // → "owner/repo#123"
+
+// gh api operations (all use execFile('gh', [...]) like github-fetch.ts:16)
+export async function validateGitHubIssue(ref: GitHubIssueRef): Promise<boolean>;
+export async function getGitHubIssueState(ref: GitHubIssueRef): Promise<{
+  state: string; state_reason: string | null; labels: string[];
+}>;
+export async function closeGitHubIssue(
+  ref: GitHubIssueRef, reason: 'completed' | 'not_planned'
+): Promise<void>;
+export async function reopenGitHubIssue(ref: GitHubIssueRef): Promise<void>;
+export async function addGitHubLabel(ref: GitHubIssueRef, label: string): Promise<void>;
+export async function removeGitHubLabel(ref: GitHubIssueRef, label: string): Promise<void>;
+```
+
+**Pattern reference:** `github-fetch.ts:12-16` uses `execFile` + `promisify`
+for `gh api` calls. Follow same pattern.
+
+**`packages/tbd/src/file/github-issues.test.ts`** (NEW FILE):
+- [ ] URL parsing: valid URLs, trailing slash, query params, PR URLs, blob
+  URLs, non-GitHub, malformed, no issue number, non-numeric
+- [ ] Format: `parseGitHubIssueUrl` → correct owner/repo/number
+- [ ] Detection: `isGitHubIssueUrl()`, `isGitHubPrUrl()`
+
+#### 1c. Generic Inheritable Field System
+
+**`packages/tbd/src/lib/inheritable-fields.ts`** (NEW FILE):
+
+```typescript
+import type { Issue } from './types.js';
+
+interface InheritableFieldConfig {
+  field: keyof Issue;
+}
+
+export const INHERITABLE_FIELDS: InheritableFieldConfig[] = [
+  { field: 'spec_path' },
+  { field: 'external_issue_url' },
+];
+
+export function inheritFromParent(
+  child: Partial<Issue>,
+  parent: Issue,
+  explicitlySet: Set<keyof Issue>,
+): void;
+
+export async function propagateToChildren(
+  parent: Issue,
+  oldValues: Partial<Record<keyof Issue, unknown>>,
+  children: Issue[],
+  writeIssueFn: (issue: Issue) => Promise<void>,
+): Promise<number>; // returns count of updated children
+```
+
+**`packages/tbd/src/lib/inheritable-fields.test.ts`** (NEW FILE):
+- [ ] `inheritFromParent()` copies registered fields from parent when not
+  explicitly set
+- [ ] `inheritFromParent()` does NOT overwrite explicitly set fields
+- [ ] `propagateToChildren()` updates children with null or old-matching values
+- [ ] `propagateToChildren()` skips children with different values
+- [ ] Both `spec_path` and `external_issue_url` are exercised
+
+#### 1d. Refactor `create.ts` to Use Inheritable Fields
+
+**`packages/tbd/src/cli/commands/create.ts`**:
+
+Current inline `spec_path` inheritance (lines 113-119):
+```typescript
+// Inherit spec_path from parent if not explicitly provided
+if (!specPath && parentId) {
+  const parentIssue = await readIssue(dataSyncDir, parentId);
+  if (parentIssue.spec_path) {
+    specPath = parentIssue.spec_path;
+  }
+}
+```
+
+Changes needed:
+- [ ] **Line 29-41** (`CreateOptions` interface): Add `externalIssue?: string`
+- [ ] **Lines 67-76** (spec validation block): Add parallel validation block
+  for `--external-issue`:
+  - Read config to check `use_gh_cli` (`readConfig` already imported, line 26)
+  - If `use_gh_cli` is false, throw `ValidationError` with clear message
+  - Parse URL via `parseGitHubIssueUrl()`
+  - Validate issue exists via `validateGitHubIssue()`
+- [ ] **Lines 113-119** (spec_path inheritance): Replace with call to
+  `inheritFromParent()` from `inheritable-fields.ts`. Pass a
+  `Set<keyof Issue>` tracking which fields the user explicitly provided
+  (`spec_path` if `--spec` was given, `external_issue_url` if
+  `--external-issue` was given).
+- [ ] **Line 138** (`spec_path: specPath`): Add `external_issue_url` to the
+  issue data object
+- [ ] **Line 201** (Commander `.option('--spec ...')`): Add:
+  ```typescript
+  .option('--external-issue <url>',
+    'Link to GitHub issue (e.g., https://github.com/owner/repo/issues/123). Requires use_gh_cli: true')
+  ```
+
+#### 1e. Refactor `update.ts` to Use Inheritable Fields
+
+**`packages/tbd/src/cli/commands/update.ts`**:
+
+Current inline logic:
+- `spec_path` re-parenting inheritance (lines 94-104)
+- `spec_path` propagation to children (lines 151-164)
+
+Changes needed:
+- [ ] **Line 30-41** (`UpdateOptions` interface): Add `externalIssue?: string`
+- [ ] **Lines 76-77** (`oldSpecPath` capture): Generalize to capture old
+  values for all inheritable fields:
+  ```typescript
+  const oldInheritableValues: Partial<Record<keyof Issue, unknown>> = {};
+  for (const config of INHERITABLE_FIELDS) {
+    oldInheritableValues[config.field] = issue[config.field];
+  }
+  ```
+- [ ] **Line 90** (`spec_path` update): Add `external_issue_url` update
+  alongside:
+  ```typescript
+  if (updates.external_issue_url !== undefined)
+    issue.external_issue_url = updates.external_issue_url;
+  ```
+- [ ] **Lines 94-104** (re-parenting inheritance): Replace inline
+  `spec_path`-specific logic with `inheritFromParent()` call. Track
+  `explicitlySet` from CLI flags.
+- [ ] **Lines 151-164** (propagation to children): Replace inline
+  `spec_path`-specific logic with `propagateToChildren()` call. Pass
+  `oldInheritableValues` and write function.
+- [ ] **Lines 371-383** (spec CLI option handling in `buildUpdates`):
+  Add parallel block for `--external-issue`:
+  - If non-empty: validate URL format, check `use_gh_cli`, validate via
+    `gh api`, set `updates.external_issue_url`
+  - If empty string: set `updates.external_issue_url = null` (clear)
+- [ ] **Line 437** (Commander `.option('--spec ...')`): Add:
+  ```typescript
+  .option('--external-issue <url>',
+    'Set or clear external issue (empty clears). Requires use_gh_cli: true')
+  ```
+
+#### 1f. Update `show.ts` Display
+
+**`packages/tbd/src/cli/commands/show.ts`** (lines 69-70):
+
+Current `spec_path` highlighting:
+```typescript
+} else if (line.startsWith('spec_path:')) {
+  console.log(`${colors.dim('spec_path:')} ${colors.id(line.slice(11))}`);
+```
+
+- [ ] Add after line 70:
+  ```typescript
+  } else if (line.startsWith('external_issue_url:')) {
+    console.log(`${colors.dim('external_issue_url:')} ${colors.id(line.slice(20))}`);
+  ```
+
+#### 1g. Add `--external-issue` Filter to `list.ts`
+
+**`packages/tbd/src/cli/commands/list.ts`**:
+
+- [ ] **Line 33-50** (`ListOptions` interface): Add `externalIssue?: string`
+- [ ] **Lines 192-260** (`filterIssues` method): Add filter block after
+  the `spec` filter (lines 247-251):
+  ```typescript
+  // External issue filter
+  if (options.externalIssue) {
+    if (!issue.external_issue_url) return false;
+    // If a specific URL is given, match it; otherwise just filter for
+    // any linked issue
+    if (options.externalIssue !== 'true' &&
+        issue.external_issue_url !== options.externalIssue) {
+      return false;
+    }
+  }
+  ```
+- [ ] **Line 96** (`displayIssues` mapping): Add
+  `external_issue_url: i.external_issue_url ?? undefined` after `spec_path`
+- [ ] **Lines 289-316** (Commander options): Add after `--spec`:
+  ```typescript
+  .option('--external-issue [url]',
+    'Filter by external issue (URL optional, shows all linked if no URL given)')
+  ```
+
+#### 1h. Golden Tests
+
+**`packages/tbd/tests/cli-external-issue-linking.tryscript.md`** (NEW FILE):
+- [ ] Basic CRUD with `--external-issue`
+- [ ] URL validation error scenarios (PR URL, non-GitHub, malformed, etc.)
+- [ ] Show displays URL, list filters by URL
+
+**`packages/tbd/tests/cli-inheritable-fields.tryscript.md`** (NEW FILE):
+- [ ] 5 scenarios from Testing Strategy section (parent-to-child, propagation,
+  re-parenting, clearing, mixed inheritance)
+- [ ] Both `spec_path` and `external_issue_url` exercised in each scenario
+
+#### 1i. Verification
+
+- [ ] All existing `spec_path` tryscript tests pass (the refactor to
+  `inheritable-fields.ts` must be behavior-preserving)
+- [ ] `pnpm test` passes
+- [ ] `pnpm build` passes
+
+---
 
 ### Phase 2: `gh` CLI Health Check and Setup Validation
 
 Ensure `gh` CLI availability is verified in `doctor` and that the setup flow
 properly validates GitHub access.
 
-- [ ] Add `gh` CLI availability check to `doctor` command:
-  - [ ] Check if `gh` is in PATH
-  - [ ] Check if `gh auth status` succeeds
-  - [ ] Report as integration check (not blocking, but informational)
-- [ ] Add `--fix` support: if `gh` missing and `use_gh_cli` is true, suggest
-  running `tbd setup --auto`
-- [ ] Write tests for the new doctor check
+**`packages/tbd/src/cli/commands/doctor.ts`**:
+
+- [ ] **Lines 136-142** (integration checks): Add a third integration check:
+  ```typescript
+  // Integration 3: GitHub CLI (gh)
+  integrationChecks.push(await this.checkGhCli());
+  ```
+- [ ] Add new method `checkGhCli()` (after `checkCodexAgents()`, line ~602):
+  ```typescript
+  private async checkGhCli(): Promise<DiagnosticResult> {
+    // If use_gh_cli is false, report as skipped
+    if (this.config?.settings?.use_gh_cli === false) {
+      return {
+        name: 'GitHub CLI (gh)',
+        status: 'ok',
+        message: 'disabled (use_gh_cli: false)',
+      };
+    }
+    // Check if gh is available
+    try {
+      await execFileAsync('gh', ['--version']);
+    } catch {
+      return {
+        name: 'GitHub CLI (gh)',
+        status: 'warn',
+        message: 'not found in PATH',
+        suggestion: 'Run: tbd setup --auto, or set use_gh_cli: false',
+      };
+    }
+    // Check auth
+    try {
+      await execFileAsync('gh', ['auth', 'status']);
+      return { name: 'GitHub CLI (gh)', status: 'ok' };
+    } catch {
+      return {
+        name: 'GitHub CLI (gh)',
+        status: 'warn',
+        message: 'not authenticated',
+        suggestion: 'Run: gh auth login, or set GH_TOKEN env var',
+      };
+    }
+  }
+  ```
+- [ ] **Line 10** (imports): Add `execFile` from `node:child_process` and
+  `promisify` from `node:util` (or reuse from git.ts)
+
+**Tests:**
+- [ ] Add `checkGhCli` test cases to doctor tests: gh missing, gh
+  unauthenticated, gh available, use_gh_cli=false
+- [ ] Verify existing doctor tests still pass
+
+---
 
 ### Phase 3: External Sync Scope and Status Sync
 
 Add `--external` scope to `tbd sync` and implement bidirectional status sync
 with the correct two-phase ordering (pull before git commit, push after).
 
-- [ ] Add `--external` flag to `tbd sync` command:
-  - [ ] Default behavior: `tbd sync` (no flags) syncs all scopes
-  - [ ] `tbd sync --external` syncs only external issues
-  - [ ] `tbd sync --issues` and `tbd sync --docs` continue to work as before
-    (no external sync unless `--external` also given or no flags at all)
-- [ ] Implement two-phase external sync in `sync.ts`:
-  - [ ] **External-pull phase** (before issue git sync):
-    - [ ] Find all beads with non-null `external_issue_url`
-    - [ ] For each: fetch GitHub state, apply reverse status mapping, pull labels
-    - [ ] Write updated beads to local storage
-  - [ ] **External-push phase** (after issue git sync succeeds):
-    - [ ] For each linked bead: compare local state to fetched GitHub state
-    - [ ] Push status changes and label diffs to GitHub
-    - [ ] Continue on per-issue failures, report summary at end
-  - [ ] Integrate phases into existing sync ordering:
-    external-pull → docs → issues (git) → external-push
-- [ ] Add status mapping table to `github-issues.ts`:
-  - [ ] `tbd closed` → GitHub `closed` (`completed`)
-  - [ ] `tbd deferred` → GitHub `closed` (`not_planned`)
-  - [ ] `tbd open` / `in_progress` → GitHub `open` (reopen if closed)
-  - [ ] `tbd blocked` → no change
-- [ ] Add GitHub API functions using `gh api`:
-  - [ ] `getGitHubIssueState()` - fetch current state, state_reason, labels
-  - [ ] `closeGitHubIssue()` - close with reason
-  - [ ] `reopenGitHubIssue()` - reopen
-- [ ] Implement GitHub → tbd status mapping (reverse direction)
-- [ ] Add sync summary output (e.g., "Synced 3 external issues: 2 updated, 1 unchanged")
-- [ ] Error handling: per-issue failures logged, non-zero exit code, other
-  issues still sync
-- [ ] Write tests for status sync (mock `gh` CLI calls)
-- [ ] Write tests for sync scope selection logic
-- [ ] Create golden tryscript tests for sync behavior
+#### 3a. Sync Scope Changes
+
+**`packages/tbd/src/cli/commands/sync.ts`**:
+
+- [ ] **Lines 58-65** (`SyncOptions` interface): Add `external?: boolean`:
+  ```typescript
+  interface SyncOptions {
+    push?: boolean;
+    pull?: boolean;
+    local?: boolean;
+    issues?: boolean;
+    docs?: boolean;
+    external?: boolean;  // NEW
+  }
+  ```
+- [ ] **Lines 89-103** (scope selection logic): Extend to handle `--external`:
+  ```typescript
+  const hasSelectiveFlag = Boolean(options.issues) || Boolean(options.docs)
+    || Boolean(options.external);
+  // ...
+  const syncExternal = Boolean(options.external)
+    || (!hasSelectiveFlag && !hasExclusiveIssueFlag);
+  ```
+  Also: `--push`/`--pull` should be rejected with `--external` (like `--docs`).
+- [ ] **Lines 105-116** (sync steps): Reorder to 4 phases:
+  ```
+  // Phase 1: External-pull (if syncExternal && use_gh_cli)
+  // Phase 2: Docs sync (if syncDocs)
+  // Phase 3: Issues git sync (if syncIssues)
+  // Phase 4: External-push (if syncExternal && use_gh_cli)
+  ```
+  The `use_gh_cli` gate check: read config, check
+  `config.settings.use_gh_cli`. If false:
+  - `--external` explicitly → warn "External sync skipped: use_gh_cli is false"
+  - default (no flags) → silently skip phases 1/4
+- [ ] **Lines 1100-1113** (Commander definition): Add option:
+  ```typescript
+  .option('--external', 'Sync only external issues (not issues or docs)')
+  ```
+
+#### 3b. External Sync Implementation
+
+**`packages/tbd/src/cli/commands/sync.ts`** (new methods):
+
+- [ ] Add `syncExternalPull()` method:
+  - Load all beads via `listIssues(dataSyncDir)`
+  - Filter to beads with non-null `external_issue_url`
+  - For each: parse URL, call `getGitHubIssueState()`, apply reverse mapping
+  - Write updated beads via `writeIssue()`
+  - Return count of updated beads
+- [ ] Add `syncExternalPush()` method:
+  - For each linked bead: compare local state to fetched state (from pull)
+  - Push status via `closeGitHubIssue()` / `reopenGitHubIssue()`
+  - Return count of pushed changes
+- [ ] Add summary output: "Synced N external issues: X pulled, Y pushed,
+  Z unchanged"
+
+**`packages/tbd/src/file/github-issues.ts`** (status mapping tables):
+
+- [ ] Add status mapping constants:
+  ```typescript
+  // tbd → GitHub mapping
+  const TBD_TO_GITHUB_STATUS: Record<string, { state: string; state_reason?: string } | null> = {
+    open: { state: 'open' },
+    in_progress: { state: 'open' },
+    blocked: null, // no change
+    deferred: { state: 'closed', state_reason: 'not_planned' },
+    closed: { state: 'closed', state_reason: 'completed' },
+  };
+
+  // GitHub → tbd mapping
+  function githubToTbdStatus(
+    state: string, stateReason: string | null, currentTbdStatus: string
+  ): string | null;
+  ```
+
+**Tests:**
+- [ ] Status mapping unit tests in `github-issues.test.ts`
+- [ ] Sync scope selection unit tests in `sync.test.ts`
+- [ ] Mock `gh api` calls to test sync flow end-to-end
+- [ ] Golden tryscript tests for sync behavior
+
+---
 
 ### Phase 4: Label Sync (bidirectional, optional)
 
 Add bidirectional label sync as part of the external sync scope. This phase
 is optional and can be deferred.
 
-- [ ] Add label sync functions to `github-issues.ts`:
-  - [ ] `addGitHubLabel()` - add label on GitHub (with auto-creation)
-  - [ ] `removeGitHubLabel()` - remove label on GitHub
-- [ ] Extend the external sync loop to also sync labels:
-  - [ ] Compute label diff between bead and GitHub issue
-  - [ ] Push local label additions/removals to GitHub
-  - [ ] Pull GitHub label additions/removals to local bead
-  - [ ] Union semantics: if both sides added different labels, both get the union
-- [ ] Handle label auto-creation on GitHub (two-step POST, ignore 422)
-- [ ] Write tests for label sync (mock `gh` CLI calls)
-- [ ] Write tests for label diff computation
-- [ ] Create golden tryscript tests for bidirectional label sync
+**`packages/tbd/src/file/github-issues.ts`**:
+
+- [ ] Add `addGitHubLabel()`:
+  - Step 1: `POST /repos/{owner}/{repo}/labels` (create if needed, ignore 422)
+  - Step 2: `POST /repos/{owner}/{repo}/issues/{number}/labels`
+- [ ] Add `removeGitHubLabel()`:
+  - `DELETE /repos/{owner}/{repo}/issues/{number}/labels/{label}`
+- [ ] Add `computeLabelDiff()` helper:
+  ```typescript
+  function computeLabelDiff(
+    localLabels: string[], remoteLabels: string[]
+  ): { toAdd: string[]; toRemove: string[] };
+  ```
+
+**`packages/tbd/src/cli/commands/sync.ts`**:
+
+- [ ] Extend `syncExternalPull()` to also pull label changes
+- [ ] Extend `syncExternalPush()` to also push label diffs
+- [ ] Union semantics: if both sides added different labels, both get union
+
+**Tests:**
+- [ ] Label diff computation tests in `github-issues.test.ts`
+- [ ] Label sync mock tests
+- [ ] Golden tryscript tests for bidirectional label sync
 
 ### Documentation Updates
 
@@ -842,14 +1170,75 @@ via LWW).
 
 ## References
 
-- `packages/tbd/src/lib/schemas.ts` — Current bead schema (line 118-151)
-- `packages/tbd/src/cli/commands/create.ts` — `spec_path` inheritance pattern (lines 113-119)
-- `packages/tbd/src/cli/commands/update.ts` — `spec_path` propagation pattern (lines 151-164)
-- `packages/tbd/src/file/git.ts` — Merge strategy rules (lines 277-308)
-- `packages/tbd/src/file/github-fetch.ts` — Existing GitHub URL parsing patterns
-- `packages/tbd/src/cli/commands/doctor.ts` — Health check infrastructure
-- `packages/tbd/docs/tbd-design.md` §8.7 — External Issue Tracker Linking design (lines 5717-5779)
-- `packages/tbd/docs/tbd-design.md` §7.2 — Future GitHub Bridge architecture (lines 4958-4976)
-- `docs/project/specs/done/plan-2026-01-26-spec-linking.md` — Reference spec (similar feature)
+### Source Files (with key line numbers)
+
+| File | Key Lines | What's There |
+| --- | --- | --- |
+| `packages/tbd/src/lib/schemas.ts` | 118-151 | `IssueSchema` definition |
+| | 149-150 | `spec_path` field (template for `external_issue_url`) |
+| | ~280 | `use_gh_cli: z.boolean().default(true)` in ConfigSchema |
+| `packages/tbd/src/lib/types.ts` | 28 | `Issue` type (inferred from schema) |
+| | 81-91 | `CreateIssueOptions` (needs `external_issue_url`) |
+| | 96-109 | `UpdateIssueOptions` (needs `external_issue_url`) |
+| `packages/tbd/src/cli/commands/create.ts` | 29-41 | `CreateOptions` interface |
+| | 67-76 | `--spec` validation block (template for `--external-issue`) |
+| | 95 | `readConfig(tbdRoot)` — config already loaded here |
+| | 113-119 | `spec_path` inheritance from parent (to refactor) |
+| | 138 | `spec_path: specPath` in issue data (add `external_issue_url`) |
+| | 201 | `.option('--spec ...')` Commander flag |
+| `packages/tbd/src/cli/commands/update.ts` | 30-41 | `UpdateOptions` interface |
+| | 76-77 | `oldSpecPath` capture (generalize to all inheritable) |
+| | 90 | `spec_path` update (add `external_issue_url`) |
+| | 94-104 | Re-parent inheritance (to refactor) |
+| | 151-164 | Propagation to children (to refactor) |
+| | 371-383 | `--spec` CLI option handling in `buildUpdates` |
+| | 437 | `.option('--spec ...')` Commander flag |
+| `packages/tbd/src/cli/commands/show.ts` | 69-70 | `spec_path` color highlighting (add `external_issue_url`) |
+| `packages/tbd/src/cli/commands/list.ts` | 33-50 | `ListOptions` interface |
+| | 96 | `spec_path` in displayIssues (add `external_issue_url`) |
+| | 247-251 | `--spec` filter block (template for `--external-issue`) |
+| | 301-304 | `.option('--spec ...')` Commander flag |
+| `packages/tbd/src/cli/commands/sync.ts` | 58-65 | `SyncOptions` interface (add `external`) |
+| | 89-103 | Scope selection logic (extend for `--external`) |
+| | 105 | Step 1: docs sync |
+| | 116 | Step 2: issues sync |
+| | 1100-1113 | Commander definition + options |
+| `packages/tbd/src/cli/commands/close.ts` | 56-61 | Idempotent close (no external side effects — by design) |
+| `packages/tbd/src/cli/commands/doctor.ts` | 88-133 | 15 health checks |
+| | 136-142 | 2 integration checks (add `gh` CLI check) |
+| | 562-601 | Integration check methods (add `checkGhCli()`) |
+| `packages/tbd/src/file/git.ts` | 277-308 | `FIELD_STRATEGIES` merge rules |
+| | 300 | `spec_path: 'lww'` (add `external_issue_url`) |
+| `packages/tbd/src/file/github-fetch.ts` | 12-16 | `execFile` + `promisify` pattern for `gh` CLI |
+| | 28, 36 | GitHub URL regex patterns (reference for issue regex) |
+| | 63 | `isGitHubUrl()` helper |
+
+### New Files to Create
+
+| File | Purpose |
+| --- | --- |
+| `packages/tbd/src/file/github-issues.ts` | GitHub issue URL parsing, validation, and API operations |
+| `packages/tbd/src/lib/inheritable-fields.ts` | Generic parent→child field inheritance/propagation |
+| `packages/tbd/src/file/github-issues.test.ts` | URL parsing and status mapping tests |
+| `packages/tbd/src/lib/inheritable-fields.test.ts` | Inheritance logic tests |
+| `packages/tbd/tests/cli-external-issue-linking.tryscript.md` | Golden tests for external issue linking |
+| `packages/tbd/tests/cli-inheritable-fields.tryscript.md` | Golden tests for inheritance system |
+
+### Documentation Files to Update
+
+| File | Sections |
+| --- | --- |
+| `packages/tbd/docs/tbd-design.md` | §2.6.3, §2.7.4, §4.4, §4.7, §5.5, §7.2, §8.7 |
+| `packages/tbd/docs/tbd-docs.md` | create, update, list, show, sync sections |
+| `packages/tbd/docs/tbd-prime.md` | Creating, Sync, Common Workflows |
+| `README.md` | GitHub auth, Commands sections |
+| `packages/tbd/docs/shortcuts/standard/plan-implementation-with-beads.md` | Epic creation |
+| `packages/tbd/docs/shortcuts/standard/implement-beads.md` | Bead awareness |
+| `packages/tbd/docs/shortcuts/standard/agent-handoff.md` | Handoff checklist |
+| `packages/tbd/docs/shortcuts/standard/setup-github-cli.md` | Feature list |
+
+### External References
+
+- `docs/project/specs/done/plan-2026-01-26-spec-linking.md` — Reference spec for similar `spec_path` feature
 - [GitHub Issues API: state and state_reason](https://docs.github.com/en/rest/issues)
 - [GitHub REST API: Labels](https://docs.github.com/en/rest/issues/labels)
