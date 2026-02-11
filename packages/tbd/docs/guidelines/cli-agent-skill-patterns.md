@@ -18,22 +18,22 @@ seamless integration with multiple AI agents through a single npm package.
 coding agents, when adding agent integration to an existing CLI, or when designing
 context management for agent-aware applications.
 
-## Key Insights
+## Key Patterns to Consider for CLIs
 
-1. **CLI as Dynamic Skill Module**: CLIs can provide context management,
+1. **CLI as Dynamic Skill Module:** CLIs can provide context management,
    self-documentation, and multi-agent integration through a single npm package.
 
-2. **CLI as Knowledge Library**: Bundle guidelines, shortcuts, and templates that agents
+2. **CLI as Knowledge Library:** Bundle guidelines, shortcuts, and templates that agents
    can query on-demand to improve work quality.
    This transforms the CLI from a tool the agent tells users about into a resource the
    agent uses to better serve users.
 
-3. **Context Injection Loop**: A recursive architecture where skill documentation
+3. **Context Injection Loop:** A recursive architecture where skill documentation
    references commands, those commands output more context, and that context references
    further commands. This creates a self-directing knowledge system where agents get
    progressively smarter as they work.
 
-4. **Task Management Integration**: CLIs that help agents track work across sessions,
+4. **Task Management Integration:** CLIs that help agents track work across sessions,
    discover available tasks, and enforce session boundaries lead to more reliable
    agentic workflows.
 
@@ -43,30 +43,43 @@ context management for agent-aware applications.
 
 ### 1.1 Bundled Documentation Pattern
 
-- **Bundle documentation files with CLI**: Include `SKILL.md`, `README.md`, and docs in
+- **Bundle documentation files with CLI**: Include skill files, `README.md`, and docs in
   the CLI distribution.
+  Maintain tiered skill files for different contexts:
 
-  ```typescript
-  function getDocPath(filename: string): string {
-    const __dirname = dirname(fileURLToPath(import.meta.url));
-    return join(__dirname, 'docs', filename);
+| Tier | File | Tokens | Purpose |
+| --- | --- | --- | --- |
+| Full | `skill-baseline.md` | ~2000 | Default installation, full workflow guide |
+| Brief | `skill-brief.md` | ~400 | Condensed version for `--brief` flag |
+
+```typescript
+function getDocPath(filename: string): string {
+  const __dirname = dirname(fileURLToPath(import.meta.url));
+  return join(__dirname, 'docs', filename);
+}
+
+async function loadDocContent(filename: string): Promise<string> {
+  // Try bundled location first
+  try {
+    return await readFile(getDocPath(filename), 'utf-8');
+  } catch {
+    // Fallback chain: dev path → repo path → error
   }
-  
-  async function loadDocContent(filename: string): Promise<string> {
-    // Try bundled location first
-    try {
-      return await readFile(getDocPath(filename), 'utf-8');
-    } catch {
-      // Fallback chain: dev path → repo path → error
-    }
-  }
-  ```
+}
+```
 
 - **Use a `dist/docs/` directory**: Store bundled docs alongside the CLI for
   self-contained packages that work in sandboxed environments, containers, and CI.
 
 - **Implement fallback loading**: Support bundled → development source → repo-level
   docs.
+
+- **Provide a `skill` subcommand**: Output skill content to stdout so agents can inspect
+  or pipe it. Support verbosity flags:
+  ```bash
+  mycli skill           # Full skill with dynamic content
+  mycli skill --brief   # Condensed version (~400 tokens)
+  ```
 
 ### 1.2 Multi-Agent Integration Files
 
@@ -131,6 +144,18 @@ It outputs contextual information appropriate to the current state:
 - Custom override via `.mycli/PRIME.md` file
 - CLI with no args shows help with prominent prompt to run `mycli prime` for full
   context
+
+**Relationship with `skill` Command**:
+
+The `prime` and `skill` commands serve different purposes:
+
+| Command | Purpose | When Called |
+| --- | --- | --- |
+| `mycli prime` | Dashboard + status + workflow rules | Session start, context compaction |
+| `mycli skill` | Pure skill content (no status/dashboard) | Agent inspection, installation preview |
+
+Use `prime` for context restoration with current state, `skill` for static skill
+documentation.
 
 **Dashboard Output Structure**:
 
@@ -265,6 +290,253 @@ exposes resources via CLI commands rather than individual skills.
 This consumes only one description slot (~200 chars) instead of 50+ slots that would
 exceed the budget. See
 [Skills vs Meta-Skill Architecture Research](../../project/research/current/research-skills-vs-meta-skill-architecture.md).
+
+### 2.5 Skill Command Architecture
+
+Every agent-integrated CLI should have a `skill` subcommand that outputs skill content
+to stdout.
+This enables agents to inspect skill content, preview before installation, and
+pipe to other commands.
+
+**Basic Pattern**:
+
+```bash
+mycli skill           # Full skill content
+mycli skill --brief   # Condensed version for constrained contexts
+```
+
+**Key Behaviors**:
+
+- Outputs composed skill content (doesn’t just read a static file)
+- Dynamically generates resource directories from available docs
+- Supports verbosity flags for different contexts
+- Can be piped to files or other commands
+
+#### 2.5.1 Tiered Skill Files
+
+Maintain two tiers of skill content for different contexts:
+
+| Tier | File | Tokens | When Used |
+| --- | --- | --- | --- |
+| Full | `skill-baseline.md` | ~2000 | Default setup, `skill` command |
+| Brief | `skill-brief.md` | ~400 | `skill --brief`, compacted contexts |
+
+#### 2.5.2 Skill Composition Pattern
+
+Compose full skill content from separate components:
+
+```
+┌─────────────────────────────────────┐
+│ claude-header.md (YAML frontmatter) │
+├─────────────────────────────────────┤
+│ skill-baseline.md (workflow guide)  │
+├─────────────────────────────────────┤
+│ <!-- BEGIN SHORTCUT DIRECTORY -->   │
+│ (dynamically generated tables)      │
+│ <!-- END SHORTCUT DIRECTORY -->     │
+└─────────────────────────────────────┘
+```
+
+**Benefits**:
+
+- Header can be updated independently from content
+- Dynamic sections stay current with available resources
+- HTML comment markers enable partial updates without full regeneration
+
+**Implementation Pattern**:
+
+```typescript
+async function composeFullSkill(): Promise<string> {
+  // Load YAML header (Claude Code metadata)
+  const header = await loadDocContent('install/claude-header.md');
+
+  // Load base skill content
+  const baseSkill = await loadDocContent('shortcuts/system/skill-baseline.md');
+
+  // Generate dynamic resource directory
+  const directory = await generateShortcutDirectory();
+
+  // Compose: header + base + dynamic content
+  let result = header + baseSkill;
+  if (directory) {
+    result = result.trimEnd() + '\n\n' + directory;
+  }
+
+  return result;
+}
+```
+
+**Updatable Regions with HTML Markers**:
+
+When installing skill files, use HTML comment markers to identify sections that can be
+updated independently:
+
+```markdown
+<!-- BEGIN SHORTCUT DIRECTORY -->
+## Available Shortcuts
+...generated table...
+<!-- END SHORTCUT DIRECTORY -->
+```
+
+This allows the CLI to update just the directory section when resources change, without
+regenerating the entire skill file.
+
+**“DO NOT EDIT” Markers**:
+
+For generated skill files installed in `.claude/skills/`, insert a “DO NOT EDIT” marker
+after the frontmatter to warn users:
+
+```markdown
+---
+name: mycli
+description: ...
+---
+<!-- DO NOT EDIT: Generated by mycli setup.
+Run 'mycli setup' to update.
+-->
+# mycli Workflow
+...
+```
+
+#### 2.5.3 File Management Patterns
+
+**Critical Architecture Principle**: CLIs should version control **source files**, not
+final installed files.
+Different file types have different management patterns.
+
+**File Ownership Summary**:
+
+| File | Location | Managed By | User Editable? |
+| --- | --- | --- | --- |
+| **SKILL.md** | `.claude/skills/mycli/` | CLI (fully) | ❌ Never |
+| **AGENTS.md** | Repo root | CLI + User (hybrid) | ✓ Outside markers |
+| **CLAUDE.md** | Repo root | User (optional) | ✓ Fully |
+
+**Pattern 1: SKILL.md (CLI-Managed Only)**
+
+The SKILL.md file is **entirely managed by the CLI**. Neither users nor agents should
+edit it directly—it will be overwritten on the next `setup` run.
+
+```
+project-root/.claude/skills/mycli/SKILL.md  # Generated, never edit
+```
+
+**How tbd implements this**:
+- `tbd setup --auto` composes and installs `.claude/skills/tbd/SKILL.md`
+- Inserts “DO NOT EDIT” marker after frontmatter
+- Regenerates on each setup with latest CLI content + dynamic shortcut directory
+
+**Pattern 2: AGENTS.md (Hybrid Management)**
+
+The AGENTS.md file uses **HTML comment markers** to separate CLI-managed sections from
+user-editable content.
+
+```markdown
+# My Project
+
+User-written context here... ✓ User can edit
+
+<!-- BEGIN MYCLI INTEGRATION -->
+...CLI-generated content...
+<!-- END MYCLI INTEGRATION -->
+
+More user content... ✓ User can edit
+```
+
+**Marker-based updates**:
+- CLI owns content **between markers** (`<!-- BEGIN ... -->` to `<!-- END ... -->`)
+- User can freely edit content **outside markers**
+- `mycli setup --auto` updates only the marked section, preserving user content
+
+**How tbd implements this**:
+```typescript
+// Define marker boundaries
+const BEGIN_MARKER = '<!-- BEGIN TBD INTEGRATION -->';
+const END_MARKER = '<!-- END TBD INTEGRATION -->';
+
+// Update only marked section
+function updateSection(existingContent: string, newSection: string): string {
+  const start = existingContent.indexOf(BEGIN_MARKER);
+  const end = existingContent.indexOf(END_MARKER) + END_MARKER.length;
+  return existingContent.slice(0, start) + newSection + existingContent.slice(end);
+}
+```
+
+**Pattern 3: CLAUDE.md (Optional User File)**
+
+CLAUDE.md is typically **user-managed** for project-specific instructions.
+CLIs can support different approaches:
+
+1. **Symlink to AGENTS.md** (recommended for identical content):
+   ```bash
+   ln -s AGENTS.md CLAUDE.md
+   ```
+
+2. **Copy of AGENTS.md** (for separate content):
+   ```bash
+   mycli setup --create-claude-md  # CLI creates initial copy
+   ```
+
+3. **Separate user-maintained file** (tbd’s approach):
+   - CLI doesn’t manage it
+   - Users create/maintain manually
+
+**What to Version Control in Your CLI Package**:
+
+```
+packages/mycli/
+├── docs/
+│   ├── install/
+│   │   └── claude-header.md       # ✓ YAML frontmatter source
+│   └── shortcuts/system/
+│       ├── skill-baseline.md      # ✓ Full skill source
+│       └── skill-brief.md         # ✓ Brief skill source
+└── dist/docs/
+    └── SKILL.md                   # ✓ Bundled during build
+```
+
+**What NOT to Version in CLI Package**:
+
+- ❌ `.claude/skills/mycli/SKILL.md` (installed per-project)
+- ❌ `AGENTS.md` (created in user projects)
+- ❌ `CLAUDE.md` (user-managed)
+
+**User Project Structure** (after `mycli setup --auto`):
+
+```
+user-project/
+├── .claude/skills/mycli/
+│   └── SKILL.md               # CLI-managed, DO NOT EDIT
+├── AGENTS.md                  # Hybrid: CLI section + user content
+└── CLAUDE.md                  # Optional: User-managed or symlink
+```
+
+**Correct Workflows**:
+
+```bash
+# Setup in user project
+npm install -g mycli@latest
+cd /path/to/project
+mycli setup --auto
+
+# ✓ Users can edit AGENTS.md outside markers
+vim AGENTS.md  # Edit user sections, avoid marked regions
+
+# ✓ Update CLI-managed content by re-running setup
+mycli setup --auto  # Idempotent, preserves user edits
+
+# ❌ Don't edit CLI-managed files
+vim .claude/skills/mycli/SKILL.md  # Will be overwritten!
+```
+
+**Key Principles**:
+
+1. **Single Source of Truth**: Source files in CLI package are canonical
+2. **Clear Ownership Boundaries**: Use markers and “DO NOT EDIT” warnings
+3. **Preserve User Content**: Surgical updates to marked sections only
+4. **Idempotent Setup**: Safe to run `setup --auto` multiple times
+5. **Dynamic Per-Project Content**: Installed files may include project-specific
+   additions
 
 * * *
 
@@ -454,7 +726,64 @@ mycli setup --interactive # Interactive (for humans)
 - Ensures humans get guided experience when they want it
 - Explicit is better than implicit for setup operations
 
-### 5.3 Never Guess User Preferences
+### 5.3 Setup Idempotency Requirements
+
+**Setup MUST be idempotent**—safe to run repeatedly without side effects or errors.
+This is critical because:
+
+- Agents may run setup multiple times to refresh configuration
+- Users may run setup after CLI updates to get new features
+- Setup may be called automatically via scripts or CI
+
+**Idempotency Patterns**:
+
+1. **Hook Deduplication**: When merging hooks into `.claude/settings.json`, filter out
+   existing hooks before adding new ones:
+
+   ```typescript
+   // Filter out existing CLI hooks before merging
+   const existingHooks = currentSettings.hooks.SessionStart || [];
+   const filtered = existingHooks.filter(
+     (entry) => !entry.hooks?.some((h) => h.command?.includes('mycli'))
+   );
+   mergedHooks.SessionStart = [...filtered, ...newHooks];
+   ```
+
+2. **Skill File Regeneration**: Always regenerate skill files with fresh content on each
+   setup run. Don’t try to update in place—overwrite:
+
+   ```typescript
+   // Always regenerate skill file
+   const skillContent = await composeFullSkill();
+   await writeFile(skillPath, skillContent);  // Overwrite, don't append
+   ```
+
+3. **Legacy Cleanup**: Remove deprecated patterns on each run:
+
+   ```typescript
+   // Clean up old hook patterns
+   const oldScripts = ['setup-mycli.sh', 'ensure-mycli.sh'];
+   for (const script of oldScripts) {
+     await rm(join(projectDir, '.claude/scripts', script)).catch(() => {});
+   }
+   ```
+
+4. **Directory Creation**: Use `mkdir -p` style recursive creation that succeeds if
+   directory already exists:
+
+   ```typescript
+   await mkdir(dirname(skillPath), { recursive: true });
+   ```
+
+**Testing Idempotency**:
+
+Run setup twice and verify:
+- No duplicate hooks in settings.json
+- Skill file content is identical on both runs (except timestamps)
+- No error messages about existing files/configs
+- All features work correctly after both runs
+
+### 5.4 Never Guess User Preferences
 
 For configuration values that are matters of user taste (not technical requirements),
 **never guess or auto-detect**. Always ask the user.
@@ -488,6 +817,27 @@ Configure Claude Code hooks for automatic context management:
   }
 }
 ```
+
+**Alternative PreCompact Hook Pattern (Optional)**:
+
+For CLIs where token efficiency is critical, consider using `skill --brief` instead of
+`prime` in the PreCompact hook:
+
+```json
+"PreCompact": [{
+  "matcher": "",
+  "hooks": [{ "type": "command", "command": "mycli skill --brief" }]
+}]
+```
+
+**Tradeoffs**:
+- ✓ More token-efficient (~~400 tokens vs ~~800-1200 for `prime`)
+- ✓ Pure skill content without status/dashboard noise
+- ✗ No project-specific status information before compaction
+- ✗ Agent loses current state context
+
+Use `skill --brief` when the condensed workflow rules are sufficient, or `prime` when
+current project status is valuable for context restoration.
 
 **Project Hooks** (`.claude/settings.json`):
 
@@ -523,6 +873,72 @@ if [[ "$command" == git\ push* ]] || [[ "$command" == *"&& git push"* ]]; then
 fi
 exit 0
 ```
+
+### 6.3 Help Structure for Agent Discovery
+
+Agents need clear signals about how to get started with your CLI. Structure help output
+to make setup commands and context restoration prominent.
+
+**Pattern 1: Help Epilog with IMPORTANT Section**
+
+Add prominent sections at the bottom of `--help` output:
+
+```bash
+$ mycli --help
+Usage: mycli [options] [command]
+...
+
+IMPORTANT:
+  Agents unfamiliar with mycli should run `mycli prime` for full context.
+
+Getting Started:
+  npm install -g mycli@latest && mycli setup --auto --prefix=<name>
+```
+
+**Implementation with Commander.js**:
+
+```typescript
+program
+  .name('mycli')
+  .description('Brief description')
+  .addHelpText('after', `
+IMPORTANT:
+  Agents unfamiliar with mycli should run \`mycli prime\` for full context.
+
+Getting Started:
+  npm install -g mycli@latest && mycli setup --auto --prefix=<name>
+`);
+```
+
+**Pattern 2: Context Recovery Prompt**
+
+When the CLI runs without arguments, don’t just show help—prompt for context:
+
+```bash
+$ mycli
+Usage: mycli [command] [options]
+...
+Tip: Run `mycli prime` to restore full workflow context.
+```
+
+**Pattern 3: Setup Command Prominence**
+
+Ensure `setup` appears in a dedicated “Setup & Configuration” category in help output,
+not buried in a long alphabetical list:
+
+```
+Setup & Configuration:
+  init [options]         Initialize mycli in a repository
+  setup [options]        Configure mycli integration with editors and tools
+  config                 Manage configuration
+```
+
+**Why This Matters**:
+
+- Agents often lose context after compaction or in new sessions
+- Prominent `prime` references help agents restore workflow rules
+- Clear setup commands help agents guide users through installation
+- “IMPORTANT” section is scanned even when full help is ignored
 
 * * *
 
@@ -591,10 +1007,40 @@ Before completing a session:
 
 ## 8. Dynamic Generation Patterns
 
-### 8.1 On-the-Fly Resource Directory Generation
+### 8.1 Dynamic Skill and Resource Directory Generation
 
-Rather than maintaining static resource directories that can become stale, generate them
-dynamically at runtime from installed documents.
+Rather than maintaining static content that can become stale, generate skill files and
+resource directories dynamically at runtime from source components and installed
+documents.
+
+**Pattern 1: Skill Composition from Multiple Sources**
+
+Compose skill content from separate files for maintainability:
+
+```typescript
+async function composeFullSkill(): Promise<string> {
+  // 1. Load YAML header (Claude Code metadata)
+  const header = await loadDocContent('install/claude-header.md');
+
+  // 2. Load base skill workflow content
+  const baseSkill = await loadDocContent('shortcuts/system/skill-baseline.md');
+
+  // 3. Generate dynamic resource directory from current docs
+  const directory = await generateShortcutDirectory();
+
+  // 4. Compose final skill: header + base + dynamic content
+  let result = header + baseSkill;
+  if (directory) {
+    result = result.trimEnd() + '\n\n' + directory;
+  }
+
+  return result;
+}
+```
+
+**Pattern 2: Resource Directory Generation**
+
+Generate tables of available resources from loaded documents:
 
 ```typescript
 async function generateShortcutDirectory(): Promise<string> {
@@ -603,15 +1049,62 @@ async function generateShortcutDirectory(): Promise<string> {
     const meta = doc.frontmatter;
     return `| ${doc.name} | ${meta.title} | ${meta.description} |`;
   });
+
+  // Wrap in HTML markers for incremental updates
   return [
+    '<!-- BEGIN SHORTCUT DIRECTORY -->',
     '## Available Shortcuts',
     '',
     '| Name | Title | Description |',
     '| --- | --- | --- |',
-    ...rows
+    ...rows,
+    '<!-- END SHORTCUT DIRECTORY -->'
   ].join('\n');
 }
 ```
+
+**Pattern 3: Incremental Updates with HTML Markers**
+
+Use HTML comment markers to identify sections that can be updated independently:
+
+```markdown
+<!-- BEGIN SHORTCUT DIRECTORY -->
+## Available Shortcuts
+| Name | Description |
+| --- | --- |
+| code-review | Run pre-commit checks and commit |
+| new-plan-spec | Create a planning specification |
+
+<!-- END SHORTCUT DIRECTORY -->
+```
+
+This allows updating just the directory section when resources change, without
+regenerating the entire skill file.
+
+**Pattern 4: “DO NOT EDIT” Warnings**
+
+For generated files installed in `.claude/skills/`, insert warnings after frontmatter:
+
+```typescript
+function insertDoNotEditMarker(content: string): string {
+  const marker = `<!-- DO NOT EDIT: Generated by mycli setup.
+Run 'mycli setup' to update.
+-->`;
+
+  // Insert after YAML frontmatter
+  const lines = content.split('\n');
+  const endOfFrontmatter = lines.findIndex((l, i) => i > 0 && l === '---');
+  lines.splice(endOfFrontmatter + 1, 0, marker);
+  return lines.join('\n');
+}
+```
+
+**Benefits of Dynamic Generation**:
+
+1. **Always Current**: Resource directories reflect actual available docs
+2. **DRY Principle**: Single source of truth (frontmatter) drives multiple outputs
+3. **Partial Updates**: HTML markers enable surgical updates to sections
+4. **Version-Safe**: Content updates ship with CLI version updates
 
 ### 8.2 DocCache Shadowing Pattern
 
@@ -677,20 +1170,28 @@ Understanding when to use each is critical.
 ### Architecture
 
 1. **Bundle documentation with CLI**: Self-contained packages work in all environments
-2. **Implement fallback loading**: Support both bundled and development modes
-3. **Use platform-appropriate formats**: SKILL.md for Claude, MDC for Cursor, markers
+2. **Maintain tiered skill files**: Full (baseline) and brief versions for different
+   contexts
+3. **Provide a `skill` subcommand**: Output skill content to stdout with `--brief` flag
+4. **Implement fallback loading**: Support both bundled and development modes
+5. **Use platform-appropriate formats**: SKILL.md for Claude, MDC for Cursor, markers
    for AGENTS.md
 
 ### Context Management
 
-4. **Implement a `prime` command**: Dashboard at session start, brief mode for
+6. **Implement a `prime` command**: Dashboard at session start, brief mode for
    constrained contexts
-5. **Separate skill from dashboard**: Different verbosity levels for different needs
-6. **Include context recovery instructions**: Agents need to know how to restore context
-7. **Two-level orientation only**: Full (default) and brief—avoid more granularity
-8. **Use progressive disclosure**: Level 1 (metadata) → Level 2 (skill body) → Level 3
-   (resources)
-9. **Keep SKILL.md under 500 lines**: Move detailed content to reference files
+7. **Implement a `skill` command**: Output pure skill content (no dashboard) for
+   inspection and installation preview
+8. **Separate skill from dashboard**: `prime` = status + context, `skill` = pure
+   documentation
+9. **Compose skills from multiple sources**: Header + baseline + dynamic directory
+10. **Include context recovery instructions**: Agents need to know how to restore
+    context
+11. **Two-level orientation only**: Full (default) and brief—avoid more granularity
+12. **Use progressive disclosure**: Level 1 (metadata) → Level 2 (skill body) → Level 3
+    (resources)
+13. **Keep SKILL.md under 500 lines**: Move detailed content to reference files
 
 ### Description Optimization
 
@@ -705,61 +1206,72 @@ Understanding when to use each is critical.
 
 ### Self-Documentation
 
-13. **Provide documentation commands**: `readme`, `docs`, `design` as built-in commands
-14. **Include Getting Started in help epilog**: One-liner must be easily accessible
+14. **Provide documentation commands**: `readme`, `docs`, `design` as built-in commands
+15. **Include Getting Started in help epilog**: One-liner must be easily accessible
+16. **Add IMPORTANT section to help**: Prominently reference `prime` command for context
+    restoration
 
 ### Setup Flows
 
-15. **Two-tier command structure**: High-level (`setup`) and surgical (`init`)
-16. **Require explicit mode flags**: `--auto` for agents, `--interactive` for humans
-17. **Never guess user preferences**: For taste-based config (prefixes), always ask
+17. **Two-tier command structure**: High-level (`setup`) and surgical (`init`)
+18. **Require explicit mode flags**: `--auto` for agents, `--interactive` for humans
+19. **Make setup idempotent**: Safe to run multiple times without errors or duplicates
+20. **Deduplicate hooks on each run**: Filter existing hooks before merging new ones
+21. **Regenerate skill files**: Always overwrite with fresh content, don’t try to update
+    in place
+22. **Clean up legacy patterns**: Remove deprecated files/configs on each setup run
+23. **Never guess user preferences**: For taste-based config (prefixes), always ask
 
 ### Agent Integration
 
-18. **Install hooks programmatically**: SessionStart, PreCompact, PostToolUse
-19. **Use skill directories**: `.claude/skills/`, `.cursor/rules/`
-20. **Support multiple agents**: Single CLI, multiple integration points
+24. **Install hooks programmatically**: SessionStart, PreCompact, PostToolUse
+25. **Use skill directories**: `.claude/skills/`, `.cursor/rules/`
+26. **Support multiple agents**: Single CLI, multiple integration points
+27. **Structure help for agent discovery**: IMPORTANT section, Getting Started
+    one-liner, prominent setup commands
 
 ### Output
 
-21. **Implement `--json` for all commands**: Machine-readable output is essential
-22. **Use `output.data()` pattern**: Single code path for JSON and human output
-23. **Provide `--quiet` mode**: For scripted usage without noise
+28. **Implement `--json` for all commands**: Machine-readable output is essential
+29. **Use `output.data()` pattern**: Single code path for JSON and human output
+30. **Provide `--quiet` mode**: For scripted usage without noise
 
 ### Error Handling
 
-24. **Include next steps in errors**: Actionable guidance, not just error messages
-25. **Graceful deprecation**: Keep old commands working with migration guidance
-26. **Explicit completion protocols**: Checklists prevent premature completion
+31. **Include next steps in errors**: Actionable guidance, not just error messages
+32. **Graceful deprecation**: Keep old commands working with migration guidance
+33. **Explicit completion protocols**: Checklists prevent premature completion
 
 ### Agent Mental Model
 
-27. **Design for agent-as-partner**: Help agents serve users, not relay commands
-28. **Lead with value proposition**: Explain *why* before *how*
-29. **Distinguish action from informational commands**: Some commands teach, not do
+34. **Design for agent-as-partner**: Help agents serve users, not relay commands
+35. **Lead with value proposition**: Explain *why* before *how*
+36. **Distinguish action from informational commands**: Some commands teach, not do
 
 ### Resource Libraries
 
-30. **Bundle guidelines, shortcuts, templates**: Ship curated knowledge with CLI
-31. **Show full commands in directories**: `cli shortcut X`, not just `X`
-32. **Organize resources by purpose**: Categories by workflow phase or domain
-33. **Enable on-demand knowledge queries**: Agents pull in relevant resources JIT
-34. **Implement shadowing for customization**: Project-level overrides without forking
-35. **Generate directories dynamically**: Avoid stale documentation
+37. **Bundle guidelines, shortcuts, templates**: Ship curated knowledge with CLI
+38. **Show full commands in directories**: `cli shortcut X`, not just `X`
+39. **Organize resources by purpose**: Categories by workflow phase or domain
+40. **Enable on-demand knowledge queries**: Agents pull in relevant resources JIT
+41. **Implement shadowing for customization**: Project-level overrides without forking
+42. **Generate directories dynamically**: Avoid stale documentation
+43. **Use HTML markers for updatable sections**: Enable partial updates without full
+    regeneration
 
 ### Context Injection
 
-36. **Design self-reinforcing context chains**: SKILL.md → guidelines → actions
-37. **Reference commands explicitly**: Always `cli command arg`, never vague prose
-38. **Limit chain depth to 3**: Avoid deep reference chains that confuse agents
-39. **Make every layer actionable**: Each context injection should lead to actions
+44. **Design self-reinforcing context chains**: SKILL.md → guidelines → actions
+45. **Reference commands explicitly**: Always `cli command arg`, never vague prose
+46. **Limit chain depth to 3**: Avoid deep reference chains that confuse agents
+47. **Make every layer actionable**: Each context injection should lead to actions
 
 ### Task Management
 
-40. **Choose appropriate tracking strategy**: Ephemeral, session-local, or persistent
-41. **Implement work discovery**: `ready` or `next` commands for session start
-42. **Add session boundary enforcement**: Remind agents to sync/close at session end
-43. **Consider tbd integration**: For persistent multi-session task tracking
+48. **Choose appropriate tracking strategy**: Ephemeral, session-local, or persistent
+49. **Implement work discovery**: `ready` or `next` commands for session start
+50. **Add session boundary enforcement**: Remind agents to sync/close at session end
+51. **Consider tbd integration**: For persistent multi-session task tracking
 
 * * *
 
@@ -770,6 +1282,8 @@ Understanding when to use each is critical.
 - [ ] SKILL.md with YAML frontmatter (name, description, allowed-tools)
 - [ ] CURSOR.mdc with MDC frontmatter (description, alwaysApply)
 - [ ] AGENTS.md section with HTML markers
+- [ ] Tiered skill files: skill-baseline.md, skill-brief.md
+- [ ] Separate header file: claude-header.md with YAML frontmatter
 
 **Description Quality**
 
@@ -790,7 +1304,10 @@ Understanding when to use each is critical.
 **Context Management**
 
 - [ ] `prime` command with dashboard and brief modes (two levels only)
-- [ ] `skill` command for full documentation output
+- [ ] `skill` command for full documentation output with `--brief` flag
+- [ ] Skill composition from header + baseline + dynamic directory
+- [ ] HTML markers for updatable sections (<!-- BEGIN/END -->)
+- [ ] “DO NOT EDIT” warnings in generated skill files
 - [ ] Value-first orientation in skill file (why before how)
 - [ ] Context recovery instructions in all docs
 - [ ] Session closing protocol checklist
@@ -801,6 +1318,10 @@ Understanding when to use each is critical.
 - [ ] `setup --auto` for agent-friendly installation
 - [ ] `init --prefix` for surgical initialization
 - [ ] Multi-contributor detection (skip init if already configured)
+- [ ] Setup is idempotent (safe to run multiple times)
+- [ ] Hook deduplication (filter existing before merging)
+- [ ] Skill file regeneration (always overwrite, don’t update in place)
+- [ ] Legacy pattern cleanup on each setup run
 
 **Hooks**
 
@@ -810,7 +1331,10 @@ Understanding when to use each is critical.
 
 **Self-Documentation**
 
-- [ ] Help epilog with one-liner installation command
+- [ ] Help epilog with “IMPORTANT” section referencing `prime`
+- [ ] Help epilog with “Getting Started” one-liner installation command
+- [ ] Setup command in dedicated “Setup & Configuration” category
+- [ ] Context recovery prompt when CLI runs without args
 - [ ] Documentation commands (`readme`, `docs`)
 - [ ] `--json` flag on all commands
 
