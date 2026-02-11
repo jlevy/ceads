@@ -8,10 +8,16 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mkdtemp, rm, mkdir } from 'node:fs/promises';
+import { mkdtemp, rm, mkdir, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { initConfig, isInitialized, findTbdRoot } from '../src/file/config.js';
+import {
+  initConfig,
+  isInitialized,
+  findTbdRoot,
+  writeLocalState,
+  readLocalState,
+} from '../src/file/config.js';
 
 describe('subdirectory support', () => {
   let tempDir: string;
@@ -101,6 +107,78 @@ describe('subdirectory support', () => {
     it('returns root when called from docs subdirectory', async () => {
       const root = await findTbdRoot(join(tbdRootDir, 'docs'));
       expect(root).toBe(tbdRootDir);
+    });
+  });
+
+  describe('spurious .tbd/ directory handling', () => {
+    it('ignores .tbd/ directory in subdirectory that has no config.yml', async () => {
+      // Simulate a bug that creates .tbd/ in a subdirectory with only state.yml
+      const webDir = join(tbdRootDir, 'web');
+      await mkdir(webDir, { recursive: true });
+      await mkdir(join(webDir, '.tbd'), { recursive: true });
+      await writeFile(join(webDir, '.tbd', 'state.yml'), 'welcome_seen: true\n');
+
+      // findTbdRoot should skip the spurious web/.tbd/ and find the real root
+      const root = await findTbdRoot(webDir);
+      expect(root).toBe(tbdRootDir);
+    });
+
+    it('ignores empty .tbd/ directory in subdirectory', async () => {
+      // Create an empty .tbd/ directory in a subdirectory
+      const srcDir = join(tbdRootDir, 'src');
+      await mkdir(join(srcDir, '.tbd'), { recursive: true });
+
+      // Should still find the real root, not src/
+      const root = await findTbdRoot(srcDir);
+      expect(root).toBe(tbdRootDir);
+    });
+
+    it('isInitialized returns true even with spurious .tbd/ in subdirectory', async () => {
+      // Create spurious .tbd/ in subdirectory
+      const webDir = join(tbdRootDir, 'web');
+      await mkdir(webDir, { recursive: true });
+      await mkdir(join(webDir, '.tbd'), { recursive: true });
+
+      // isInitialized should still find the real root
+      const result = await isInitialized(webDir);
+      expect(result).toBe(true);
+    });
+
+    it('ignores .tbd/ directory with only random files (no config.yml)', async () => {
+      const subDir = join(tbdRootDir, 'packages', 'app');
+      await mkdir(subDir, { recursive: true });
+      await mkdir(join(subDir, '.tbd'), { recursive: true });
+      await writeFile(join(subDir, '.tbd', 'random.txt'), 'not a config\n');
+
+      const root = await findTbdRoot(subDir);
+      expect(root).toBe(tbdRootDir);
+    });
+
+    it('returns null when only spurious .tbd/ exists (no real root above)', async () => {
+      // Directory outside any tbd repo with a spurious .tbd/ directory
+      const orphanDir = join(tempDir, 'orphan');
+      await mkdir(orphanDir, { recursive: true });
+      await mkdir(join(orphanDir, '.tbd'), { recursive: true });
+      await writeFile(join(orphanDir, '.tbd', 'state.yml'), 'welcome_seen: true\n');
+
+      const root = await findTbdRoot(orphanDir);
+      expect(root).toBeNull();
+    });
+  });
+
+  describe('writeLocalState safety', () => {
+    it('writes state to existing .tbd/ directory at root', async () => {
+      await writeLocalState(tbdRootDir, { welcome_seen: true });
+      const state = await readLocalState(tbdRootDir);
+      expect(state.welcome_seen).toBe(true);
+    });
+
+    it('does not create .tbd/ in subdirectory when called with wrong path', async () => {
+      const webDir = join(tbdRootDir, 'web');
+      await mkdir(webDir, { recursive: true });
+
+      // writeLocalState should fail if .tbd/ doesn't exist (not create it)
+      await expect(writeLocalState(webDir, { welcome_seen: true })).rejects.toThrow();
     });
   });
 });

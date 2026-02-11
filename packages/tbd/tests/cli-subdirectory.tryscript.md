@@ -105,3 +105,56 @@ Repository: [..]
 ...
 ? 0
 ```
+
+* * *
+
+## Spurious .tbd/ Directory in Subdirectory
+
+# Test: Commands work when subdirectory has spurious .tbd/ (no config.yml)
+
+If a subdirectory has a `.tbd/` directory without `config.yml` (e.g., only `state.yml`
+from a bug), tbd should skip it and find the real root.
+
+```console
+$ mkdir -p web/.tbd && echo "welcome_seen: true" > web/.tbd/state.yml && cd web && tbd list
+...
+? 0
+```
+
+# Test: Config show works from subdirectory with spurious .tbd/
+
+The config command should read from the real root, not from the spurious subdirectory.
+
+```console
+$ cd web && tbd config show
+...
+id_prefix: test
+...
+? 0
+```
+
+# Test: Config set works from subdirectory with spurious .tbd/
+
+Config writes should go to the real root config.yml.
+
+```console
+$ cd web && tbd config set settings.auto_sync true && tbd config get settings.auto_sync
+true
+? 0
+```
+
+# Test: Create issue from subdirectory with spurious .tbd/
+
+```console
+$ cd web && tbd create "Issue from web subdir"
+✓ Created test-[SHORTID]: Issue from web subdir
+? 0
+```
+
+# Test: Empty .tbd/ directory in subdirectory is skipped
+
+```console
+$ mkdir -p packages/app/.tbd && cd packages/app && tbd list
+...
+? 0
+```

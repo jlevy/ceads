@@ -186,13 +186,17 @@ export async function writeConfig(baseDir: string, config: Config): Promise<void
 }
 
 /**
- * Check if tbd is initialized in the given directory (immediate check only).
- * Returns true if .tbd/ directory exists directly in baseDir.
+ * Check if tbd is properly initialized in the given directory.
+ * Returns true only if .tbd/config.yml exists (not just a .tbd/ directory).
+ *
+ * This prevents spurious .tbd/ directories (e.g., containing only state.yml
+ * created by a bug) from being mistaken for tbd roots. A valid tbd root
+ * always has config.yml created during `tbd init`.
  */
 async function hasTbdDir(dir: string): Promise<boolean> {
-  const tbdDir = join(dir, '.tbd');
+  const configPath = join(dir, CONFIG_FILE);
   try {
-    await access(tbdDir);
+    await access(configPath);
     return true;
   } catch {
     return false;
@@ -256,12 +260,26 @@ export async function readLocalState(baseDir: string): Promise<LocalState> {
 
 /**
  * Write local state to .tbd/state.yml
+ *
+ * IMPORTANT: The .tbd/ directory must already exist (created by `tbd init`).
+ * This function refuses to write if .tbd/ doesn't exist, preventing the
+ * creation of spurious .tbd/ directories in subdirectories.
  */
 export async function writeLocalState(baseDir: string, state: LocalState): Promise<void> {
-  const statePath = join(baseDir, STATE_FILE);
+  // Guard: refuse to write if .tbd/ directory doesn't exist.
+  // Only `tbd init` should create .tbd/. Writing state to a non-existent
+  // .tbd/ would create a spurious directory that confuses root detection.
+  const tbdDir = join(baseDir, '.tbd');
+  try {
+    await access(tbdDir);
+  } catch {
+    throw new Error(
+      `Cannot write state: .tbd/ directory does not exist at ${baseDir}. ` +
+        `Run 'tbd init' first or ensure the correct tbd root is being used.`,
+    );
+  }
 
-  // Ensure .tbd directory exists
-  await mkdir(join(baseDir, '.tbd'), { recursive: true });
+  const statePath = join(baseDir, STATE_FILE);
 
   // Use lineWidth: 0 for compact state output (sortMapEntries is in defaults)
   const yaml = stringifyYaml(state, { lineWidth: 0 });
