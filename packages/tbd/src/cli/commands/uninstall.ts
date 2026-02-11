@@ -7,7 +7,7 @@
 import { Command } from 'commander';
 import { rm, access, readdir, stat } from 'node:fs/promises';
 import { execSync } from 'node:child_process';
-import { join } from 'node:path';
+import { join, relative } from 'node:path';
 
 import { BaseCommand } from '../lib/base-command.js';
 import { NotInitializedError, CLIError } from '../lib/errors.js';
@@ -43,6 +43,9 @@ class UninstallHandler extends BaseCommand {
     const tbdDir = join(tbdRoot, '.tbd');
     const worktreePath = join(tbdDir, 'data-sync-worktree');
 
+    // Display paths relative to cwd for readability
+    const displayPath = (p: string) => relative(process.cwd(), p) || p;
+
     // Check what exists
     const items: string[] = [];
 
@@ -52,7 +55,7 @@ class UninstallHandler extends BaseCommand {
       await access(worktreePath);
       worktreeExists = true;
       const worktreeStats = await this.getDirectoryStats(worktreePath);
-      items.push(`  - Worktree: ${worktreePath} (${worktreeStats.files} files)`);
+      items.push(`  - Worktree: ${displayPath(worktreePath)} (${worktreeStats.files} files)`);
     } catch {
       // Worktree doesn't exist
     }
@@ -89,7 +92,7 @@ class UninstallHandler extends BaseCommand {
 
     // Count .tbd contents
     const tbdStats = await this.getDirectoryStats(tbdDir);
-    items.push(`  - Directory: .tbd/ (${tbdStats.files} files)`);
+    items.push(`  - Directory: ${displayPath(tbdDir)}/ (${tbdStats.files} files)`);
 
     // Show what will be removed
     console.log(colors.bold('The following will be removed:'));
