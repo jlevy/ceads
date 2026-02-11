@@ -128,7 +128,7 @@ The config command should read from the real root, not from the spurious subdire
 ```console
 $ cd web && tbd config show
 ...
-id_prefix: test
+  id_prefix: test
 ...
 ? 0
 ```
@@ -139,6 +139,7 @@ Config writes should go to the real root config.yml.
 
 ```console
 $ cd web && tbd config set settings.auto_sync true && tbd config get settings.auto_sync
+...
 true
 ? 0
 ```
