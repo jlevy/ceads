@@ -17,8 +17,11 @@ If unclear, ask the user if they want you to create a spec first using
 1. **Create a top-level epic** referencing the spec:
 
    ```bash
-   tbd create "Spec: [feature or task]" --type=epic --spec plan-YYYY-MM-DD-feature.md
+   tbd create "Spec: [feature or task]" --type=epic --spec plan-YYYY-MM-DD-feature.md [--external-issue=<github-issue-url>]
    ```
+
+   Use `--external-issue` to link the epic to a GitHub issue when one exists (requires
+   `use_gh_cli: true` in config).
 
 2. **Create child beads** for each implementation step, all under the epic:
 

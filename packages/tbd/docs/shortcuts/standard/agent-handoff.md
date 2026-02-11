@@ -19,6 +19,8 @@ The next agent needs the latest issue state.
 - **Task**: One line on what we’re doing
 - **Spec**: Path to active spec + relevant sections
 - **Beads**: tbd issue ID(s), status, dependencies, synced?
+- **External issues**: Whether beads have linked GitHub issues (`external_issue_url`),
+  sync status
 - **Branch**: Current branch, base branch (if not main), pushed to remote?
 - **PR**: Filed/not filed, URL, CI status, up to date with branch?
 - **Git**: Uncommitted changes, files modified

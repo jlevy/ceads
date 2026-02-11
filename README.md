@@ -331,11 +331,12 @@ For local CLI usage, add them to your shell profile (`~/.zshrc` or `~/.bashrc`).
 for details.
 
 To disable automatic `gh` installation, pass `--no-gh-cli` during setup or set
-`use_gh_cli: false` in `.tbd/config.yml` under `settings:`. Note: disabling
-`gh` also disables all external issue features — linking beads to GitHub issues
-(`--external-issue`), bidirectional status/label sync (`tbd sync --external`),
-and GitHub issue validation. The `external_issue_url` field can still exist on
-beads from collaborators, but no sync or validation occurs locally.
+`use_gh_cli: false` in `.tbd/config.yml` under `settings:`. Note: disabling `gh` also
+disables all external issue features — linking beads to GitHub issues
+(`--external-issue`), bidirectional status/label sync (`tbd sync --external`), and
+GitHub issue validation.
+The `external_issue_url` field can still exist on beads from collaborators, but no sync
+or validation occurs locally.
 
 ### Migrating from Beads
 
@@ -359,10 +360,13 @@ tbd list --all                 # Include closed
 tbd list --specs               # Group beads by spec
 tbd show proj-a7k2             # View bead details
 tbd create "Title" --type=bug  # Create bead (bug/feature/task/epic/chore)
+tbd create "Title" --external-issue=https://github.com/org/repo/issues/42
 tbd update proj-a7k2 --status=in_progress
+tbd update proj-a7k2 --external-issue=https://github.com/org/repo/issues/42
 tbd close proj-a7k2            # Close bead
 tbd close proj-a7k2 --reason="Fixed in commit abc123"
 tbd sync                       # Sync with remote (auto-commits and pushes)
+tbd sync --external            # Sync external GitHub issue status/labels
 ```
 
 ### Dependencies and Labels

@@ -210,6 +210,10 @@ tbd create "Add rate limiting" --description="Prevent API abuse with 100 req/min
 # With labels
 tbd create "Fix mobile layout" --label=frontend --label=urgent
 
+# Link to a GitHub issue (requires use_gh_cli: true)
+tbd create "Fix crash on login" --type=bug \
+  --external-issue=https://github.com/owner/repo/issues/123
+
 # With assignee and due date
 tbd create "Security audit" --assignee=alice --due=2025-02-01
 
@@ -231,6 +235,7 @@ Options:
   parent’s `spec_path`.
 - `--spec <path>` - Link to spec document (validated, normalized to project root)
 - `--label <label>` - Add label (can repeat)
+- `--external-issue <url>` - Link to a GitHub issue URL (requires `use_gh_cli: true`)
 - `--from-file <path>` - Create from YAML+Markdown file
 
 ### list
@@ -256,6 +261,8 @@ tbd list --count                            # Just show count
 tbd list --long                             # Show descriptions
 tbd list --pretty                           # Tree view with parent-child hierarchy
 tbd list --pretty --long                    # Tree view with descriptions
+tbd list --external-issue                   # Issues with any external issue link
+tbd list --external-issue=https://github.com/owner/repo/issues/123  # By specific URL
 
 # JSON output for scripting
 tbd list --json | jq '.[].title'
@@ -278,6 +285,9 @@ Options:
 - `--count` - Output only the count of matching issues
 - `--long` - Show issue descriptions on a second line
 - `--pretty` - Show tree view with parent-child relationships
+- `--external-issue [url]` - Filter by external issue link.
+  Without URL, shows all linked issues.
+  With URL, filters by specific URL.
 
 ### show
 
@@ -289,7 +299,7 @@ tbd show proj-a7k2 --json                     # JSON output
 ```
 
 Output includes all fields: title, description, status, priority, labels, dependencies,
-timestamps, and working notes.
+timestamps, working notes, and `external_issue_url` (if linked).
 
 ### update
 
@@ -310,6 +320,7 @@ tbd update proj-a7k2 --remove-label=urgent   # Remove label
 tbd update proj-a7k2 --parent=proj-x1y2        # Set parent epic
 tbd update proj-a7k2 --spec=docs/spec.md     # Link to spec
 tbd update proj-a7k2 --spec=""               # Clear spec link
+tbd update proj-a7k2 --external-issue=https://github.com/owner/repo/issues/123
 
 # Update from YAML file
 tbd update proj-a7k2 --from-file=updated.yml
@@ -334,6 +345,7 @@ Options:
 - `--spec <path>` - Set or clear spec path (empty string clears; validated and
   normalized). When updating a parent issue’s spec, the new value propagates to children
   whose `spec_path` was null or matched the old value.
+- `--external-issue <url>` - Link to a GitHub issue URL (requires `use_gh_cli: true`)
 
 ### close
 
@@ -451,18 +463,27 @@ Subcommands:
 Synchronize issues with remote repository.
 
 ```bash
-tbd sync                                    # Full sync (pull + push)
+tbd sync                                    # Full sync (pull + push, all scopes)
 tbd sync --status                           # Check sync status
 tbd sync --pull                             # Pull only
 tbd sync --push                             # Push only
 tbd sync --force                            # Force sync (overwrite conflicts)
+tbd sync --external                         # Sync only external issues (status & labels)
+tbd sync --issues                           # Sync only git issues
+tbd sync --docs                             # Sync only docs
 ```
+
+Sync phases run in order: external-pull, docs, issues (git), external-push.
+With no scope flags, all scopes are synced.
 
 Options:
 - `--push` - Push local changes only
 - `--pull` - Pull remote changes only
 - `--status` - Show sync status without syncing
 - `--force` - Force sync, overwriting conflicts
+- `--external` - Sync only external issues (status and labels from GitHub)
+- `--issues` - Sync only git-tracked issues
+- `--docs` - Sync only docs
 
 ### search
 

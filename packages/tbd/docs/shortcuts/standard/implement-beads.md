@@ -23,6 +23,10 @@ Create a to-do list with the following items then perform all of them:
    If the user did not specify which beads, check all open beads with `tbd ready`.
    - Beads are usually linked to specs so be sure to find specs that are relevant (for
      that bead or an umbrella bead) for each if possible and review those specs.
+   - Beads may be linked to external GitHub issues.
+     Check `tbd show <bead-id>` output for an `external_issue_url` field.
+     When present, be aware that `tbd sync` pushes status and label changes to the
+     linked GitHub issue bidirectionally.
    - Follow `tbd shortcut precommit-process` and `tbd sync` changes after each bead.
 
 4. Repeat this for all beads where you know how to fix them.

@@ -56,6 +56,7 @@ Every session must end with tbd in a clean state:
 - `tbd create "title" --type task|bug|feature --priority 2` - New issue
   - Priority: 0-4 (0=critical, 2=medium, 4=backlog).
     Do NOT use "high"/"medium"/"low"
+  - `--external-issue <url>` - Link to a GitHub issue
 - `tbd update <id> --status in_progress` - Claim work
 - `tbd update <id> --assignee username` - Assign to someone
 - `tbd close <id>` - Mark complete
@@ -70,7 +71,8 @@ Every session must end with tbd in a clean state:
 
 ### Sync & Collaboration
 
-- `tbd sync` - Sync with git remote (run at session end)
+- `tbd sync` - Sync with git remote (issues, docs, and external links)
+- `tbd sync --external` - Sync only external issue status and labels
 - `tbd sync --status` - Check sync status without syncing
 
 Note: `tbd sync` handles all git operations for issues--no manual git push needed.
@@ -95,6 +97,13 @@ tbd update <id> --status in_progress   # Claim it
 ```bash
 tbd close <id>    # Mark complete
 tbd sync          # Push to remote
+```
+
+**Linking to external issues:**
+
+```bash
+tbd create "Fix login bug" --type bug --external-issue https://github.com/org/repo/issues/42
+tbd sync --external                    # Refresh external issue status
 ```
 
 **Creating dependent work:**

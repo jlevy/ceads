@@ -1482,23 +1482,24 @@ type Issue = z.infer<typeof IssueSchema>;
   parent’s `spec_path` is updated, the new value propagates to all children whose
   `spec_path` was null or matched the parent’s old value (i.e., was inherited).
   Children with explicitly different `spec_path` values are not affected.
-  Re-parenting a child (via `tbd update --parent`) also inherits the new parent's
+  Re-parenting a child (via `tbd update --parent`) also inherits the new parent’s
   `spec_path` if the child has no existing `spec_path`.
 
 - `external_issue_url`: Optional URL to a linked external issue tracker issue.
-  For v1, only GitHub issue URLs are supported
-  (e.g., `https://github.com/owner/repo/issues/123`). The URL is validated at link
-  time to ensure the issue exists and is accessible via `gh` CLI.
+  For v1, only GitHub issue URLs are supported (e.g.,
+  `https://github.com/owner/repo/issues/123`). The URL is validated at link time to
+  ensure the issue exists and is accessible via `gh` CLI.
 
-  **Inheritance from Parent:** Follows the same inheritance rules as `spec_path`:
-  both fields are registered in the generic inheritable field system. When creating
-  a child with `--parent`, the child inherits `external_issue_url` from the parent
-  if not explicitly set. When a parent's URL is updated, it propagates to children
-  whose URL was null or matched the old value.
+  **Inheritance from Parent:** Follows the same inheritance rules as `spec_path`: both
+  fields are registered in the generic inheritable field system.
+  When creating a child with `--parent`, the child inherits `external_issue_url` from
+  the parent if not explicitly set.
+  When a parent’s URL is updated, it propagates to children whose URL was null or
+  matched the old value.
 
-  **Sync Behavior:** External issue sync (status and labels) happens only at
-  `tbd sync` time via the `--external` scope. See §8.7 for the full sync
-  architecture.
+  **Sync Behavior:** External issue sync (status and labels) happens only at `tbd sync`
+  time via the `--external` scope.
+  See §8.7 for the full sync architecture.
 
 - `child_order_hints`: Optional array of internal IssueIds specifying preferred display
   order for children of this issue.
@@ -1588,12 +1589,12 @@ const ConfigSchema = z.object({
 });
 ```
 
-**`use_gh_cli` setting:** Controls whether GitHub CLI (`gh`) features are
-enabled. When `true` (default), `tbd setup` installs a SessionStart hook that
-ensures `gh` is available, and all external issue features (linking, sync,
-validation) are active. When `false`, the hook is not installed and all `gh`-
-dependent features are disabled — including external issue linking (§8.7) and
-`tbd sync --external`. Set via `tbd setup --no-gh-cli` or directly in config.
+**`use_gh_cli` setting:** Controls whether GitHub CLI (`gh`) features are enabled.
+When `true` (default), `tbd setup` installs a SessionStart hook that ensures `gh` is
+available, and all external issue features (linking, sync, validation) are active.
+When `false`, the hook is not installed and all `gh`- dependent features are disabled —
+including external issue linking (§8.7) and `tbd sync --external`. Set via
+`tbd setup --no-gh-cli` or directly in config.
 
 > **Forward Compatibility Policy:** ConfigSchema uses Zod’s `strip()` mode, which
 > discards unknown fields.
@@ -2440,6 +2441,8 @@ Options:
   --defer <date>            Defer until date (ISO8601)
   --parent=<id>             Parent issue ID
   --label <label>           Add label (repeatable)
+  --spec <path>             Link to spec document
+  --external-issue <url>    Link to GitHub issue (requires use_gh_cli: true)
   --no-sync                 Don't sync after create
 ```
 
@@ -2456,6 +2459,8 @@ tbd create "Fix authentication bug" --type=bug --priority=P1
 tbd create "Add OAuth" --type=feature --label=backend --label=security
 tbd create "Write tests" --parent proj-a1b2
 tbd create "API docs" --file design.md
+tbd create "Billing epic" --type=epic --spec docs/billing-spec.md
+tbd create "Fix login" --type=bug --external-issue https://github.com/owner/repo/issues/42
 
 # Create from full YAML+Markdown file
 tbd create --from-file new-issue.md
@@ -2498,6 +2503,7 @@ Options:
                             (created/updated are shorthand for created_at/updated_at)
   --limit <n>               Limit results
   --count                   Output only the count of matching issues
+  --external-issue [url]    Filter by external issue (any linked if no URL given)
   --long                    Show descriptions
   --pretty                  Tree format showing parent-child hierarchy
   --json                    Output as JSON
@@ -2516,6 +2522,8 @@ tbd list --status closed             # Only closed issues
 tbd list --status open --priority=P1
 tbd list --assignee agent-1 --json
 tbd list --deferred
+tbd list --external-issue                                        # All linked beads
+tbd list --external-issue https://github.com/owner/repo/issues/42  # Specific issue
 ```
 
 **Output (human-readable):**
@@ -2614,6 +2622,8 @@ dependencies:
   - target: is-f14c3d
     type: blocks
 parent_id: null
+spec_path: null
+external_issue_url: null
 created_at: 2025-01-07T10:00:00Z
 updated_at: 2025-01-07T14:30:00Z
 created_by: alice
@@ -2631,7 +2641,8 @@ Users are getting logged out after 5 minutes of inactivity.
 Working on session token expiry. Found issue in refresh logic.
 ```
 
-Output is colorized when stdout is a TTY (see `--color` global option in §4.10).
+Output is colorized when stdout is a TTY (see `--color` global option in §4.10). Fields
+`spec_path` and `external_issue_url` are highlighted when non-null.
 
 **Round-trip editing workflow:**
 
@@ -2667,6 +2678,8 @@ Options:
   --add-label <label>       Add label
   --remove-label <label>    Remove label
   --parent=<id>             Set parent
+  --spec <path>             Set or clear spec path (empty clears)
+  --external-issue <url>    Set or clear external issue (empty clears, requires use_gh_cli: true)
   --child-order <ids>    Set child ordering hints (comma-separated)
   --no-sync                 Don't sync after update
 ```
@@ -2678,6 +2691,8 @@ tbd update proj-a1b2 --status=in_progress
 tbd update proj-a1b2 --title "New issue title"
 tbd update proj-a1b2 --add-label urgent --priority=P0
 tbd update proj-a1b2 --defer 2025-02-01
+tbd update proj-a1b2 --external-issue https://github.com/owner/repo/issues/42
+tbd update proj-a1b2 --external-issue ""  # Clear external issue link
 
 # Set child display ordering for a parent issue
 tbd update proj-a1b2 --child-order proj-c3d4,proj-e5f6,proj-g7h8
@@ -2869,13 +2884,16 @@ Future: `related`, `discovered-from`.
 ### 4.7 Sync Commands
 
 ```bash
-# Full sync (pull then push)
+# Full sync (all scopes: external-pull, docs, issues, external-push)
 tbd sync
 
-# Pull only
-tbd sync --pull
+# Scope flags (select which scopes to sync)
+tbd sync --issues                # Sync only issues (git push/pull)
+tbd sync --docs                  # Sync only docs
+tbd sync --external              # Sync only external issues (GitHub)
 
-# Push only
+# Direction flags (issues scope only)
+tbd sync --pull
 tbd sync --push
 
 # Show sync status
@@ -2887,6 +2905,40 @@ tbd sync --force
 # Repair worktree before syncing
 tbd sync --fix
 ```
+
+**Sync Scopes:**
+
+| Flag | Scope | What it syncs |
+| --- | --- | --- |
+| `--issues` | Git sync branch | Push/pull bead data via `tbd-sync` branch |
+| `--docs` | Doc cache | Sync docs from configured sources |
+| `--external` | External issues | Push/pull status and labels to/from linked GitHub issues |
+
+By default (no scope flags), `tbd sync` runs all scopes.
+Scope flags are combinable.
+The `--push`/`--pull` direction flags apply only to `--issues` scope and cannot be
+combined with `--docs` or `--external`.
+
+**4-Phase Sync Ordering:**
+
+When all scopes run, sync executes in this order:
+
+```
+Phase 1: External-pull   — Pull status/label changes from GitHub into local beads
+Phase 2: Docs            — Sync docs from configured sources
+Phase 3: Issues (git)    — Push/pull bead data to/from tbd-sync branch
+Phase 4: External-push   — Push local status/label changes to linked GitHub issues
+```
+
+This ordering ensures consistency: external changes are captured locally before the git
+commit (Phase 3), and local changes are only pushed externally after a successful git
+commit.
+If any phase fails, subsequent phases still attempt to run (best-effort), but the
+overall sync returns a non-zero exit code.
+
+The `--external` scope requires `use_gh_cli: true` in config.
+When `use_gh_cli` is false, phases 1 and 4 are silently skipped (or warned if
+`--external` was explicitly requested).
 
 **Worktree Health Requirement:**
 
@@ -4985,8 +5037,8 @@ Post-process results to:
 #### GitHub Bridge
 
 **v1 (implemented):** CLI-driven external issue linking via `external_issue_url` field
-and `tbd sync --external`. See §8.7 for details. Supports bidirectional status and
-label sync via `gh` CLI.
+and `tbd sync --external`. See §8.7 for details.
+Supports bidirectional status and label sync via `gh` CLI.
 
 **Future architecture** (beyond v1):
 
@@ -5748,22 +5800,23 @@ single-source-of-truth model while adding convenience.
 **Linking tbd issues to external issue trackers (v1: GitHub Issues)**
 
 tbd issues can be optionally linked to an external issue tracker via the
-`external_issue_url` field. For v1, only GitHub issue URLs are supported.
+`external_issue_url` field.
+For v1, only GitHub issue URLs are supported.
 
 See: `docs/project/specs/active/plan-2026-02-10-external-issue-linking.md`
 
 **Prerequisite: `use_gh_cli` must be `true`**
 
-All external issue features require the GitHub CLI (`gh`). The `use_gh_cli`
-setting in ConfigSchema (see §2.7.4) serves as the master gate:
+All external issue features require the GitHub CLI (`gh`). The `use_gh_cli` setting in
+ConfigSchema (see §2.7.4) serves as the master gate:
 
-- When `false`: `--external-issue` flags are rejected, `tbd sync --external`
-  is a no-op, and `tbd sync` (no flags) silently skips external phases. The
-  `external_issue_url` field can still exist on beads (from collaborators),
-  but no validation or sync occurs locally.
-- When `true` (default): All features are available — URL validation at link
-  time, bidirectional status/label sync at `tbd sync` time, and `doctor`
-  checks for `gh` availability.
+- When `false`: `--external-issue` flags are rejected, `tbd sync --external` is a no-op,
+  and `tbd sync` (no flags) silently skips external phases.
+  The `external_issue_url` field can still exist on beads (from collaborators), but no
+  validation or sync occurs locally.
+- When `true` (default): All features are available — URL validation at link time,
+  bidirectional status/label sync at `tbd sync` time, and `doctor` checks for `gh`
+  availability.
 
 **Schema:**
 
@@ -5773,19 +5826,21 @@ external_issue_url: z.string().url().optional(),
 ```
 
 The field stores the full GitHub issue URL (e.g.,
-`https://github.com/owner/repo/issues/123`). Only full URLs are accepted —
-no shorthand like `#123`. The URL is parsed to extract `{owner, repo, number}`
-for API operations via `gh` CLI.
+`https://github.com/owner/repo/issues/123`). Only full URLs are accepted — no shorthand
+like `#123`. The URL is parsed to extract `{owner, repo, number}` for API operations via
+`gh` CLI.
 
-**Inheritance:** `external_issue_url` uses the same generic inheritable field system
-as `spec_path`. When creating a child with `--parent`, the child inherits the URL
-from the parent if not explicitly set. When a parent's URL changes, it propagates
-to children whose URL was null or matched the old value.
+**Inheritance:** `external_issue_url` uses the same generic inheritable field system as
+`spec_path`. When creating a child with `--parent`, the child inherits the URL from the
+parent if not explicitly set.
+When a parent’s URL changes, it propagates to children whose URL was null or matched the
+old value.
 
 **Sync Architecture:**
 
-External issue sync happens only at `tbd sync` time via the `--external` scope,
-not on individual bead operations. Local operations act as a staging area.
+External issue sync happens only at `tbd sync` time via the `--external` scope, not on
+individual bead operations.
+Local operations act as a staging area.
 
 The full sync ordering when `tbd sync` runs all scopes:
 
@@ -5797,8 +5852,9 @@ Phase 4: Push from local beads → external     (external-push)
 ```
 
 External-pull runs first so that changes from GitHub are captured into local beads
-before those beads are committed to the git sync branch. External-push runs last
-so that only committed, consistent state is pushed to external trackers.
+before those beads are committed to the git sync branch.
+External-push runs last so that only committed, consistent state is pushed to external
+trackers.
 
 **Status Mapping (tbd → GitHub):**
 
@@ -5821,9 +5877,9 @@ so that only committed, consistent state is pushed to external trackers.
 
 `blocked` and `in_progress` have no GitHub equivalent and are preserved.
 
-**Label Sync:** Labels sync bidirectionally at sync time via exact string matching
-with union semantics. Labels are auto-created on GitHub if they don't exist
-(two-step API: create label, then add to issue).
+**Label Sync:** Labels sync bidirectionally at sync time via exact string matching with
+union semantics. Labels are auto-created on GitHub if they don’t exist (two-step API:
+create label, then add to issue).
 
 **Future Extensions:**
 
@@ -5841,8 +5897,8 @@ Future enhancements could include:
       project: PROJ
       key: PROJ-123
   ```
-- **Additional providers**: Jira, Linear, and other project management systems,
-  each with provider-specific adapters for status/label mapping
+- **Additional providers**: Jira, Linear, and other project management systems, each
+  with provider-specific adapters for status/label mapping
 - **Bidirectional comment sync** (see GitHub Bridge in §7.2)
 - **Convention-based linking**: Auto-detecting issue references like `gh#456`,
   `PROJ-123` in descriptions and commit messages

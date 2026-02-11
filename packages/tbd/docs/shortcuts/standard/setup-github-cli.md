@@ -4,7 +4,8 @@ description: Ensure GitHub CLI (gh) is installed and working
 category: session
 author: Joshua Levy (github.com/jlevy) with LLM assistance
 ---
-The GitHub CLI (`gh`) is required for PR and issue operations.
+The GitHub CLI (`gh`) is required for PR creation, code review, and external issue
+linking (`--external-issue`, `tbd sync --external`).
 
 **In most cases, gh is already available** - tbd installs a SessionStart hook that
 auto-installs gh on every session.
