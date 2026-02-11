@@ -88,7 +88,8 @@ Labels and Dependencies:
   label                         Manage issue labels
 
 Sync and Status:
-  sync [options]                Synchronize issues and docs (both by default)
+  sync [options]                Synchronize issues, docs, and external links
+                                (all by default)
   save [options]                Save issues to a workspace or directory
   status                        Show repository status and orientation
   stats                         Show repository statistics

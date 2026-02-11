@@ -3,6 +3,7 @@ sandbox: true
 env:
   NO_COLOR: '1'
   FORCE_COLOR: '0'
+  GH_TOKEN: ''
 path:
   - ../dist
 timeout: 30000
@@ -96,6 +97,8 @@ INTEGRATIONS
     Run: tbd setup --auto
 ⚠ Codex AGENTS.md - not installed (AGENTS.md)
     Run: tbd setup --auto
+⚠ GitHub CLI (gh) - not authenticated
+    Run: gh auth login, or set GH_TOKEN env var
 
 HEALTH CHECKS
 ✓ Git version - [GIT_VERSION]
