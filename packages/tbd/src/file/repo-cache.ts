@@ -8,9 +8,9 @@
 
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import { join, isAbsolute } from 'node:path';
+import { join, isAbsolute, resolve } from 'node:path';
 import { createHash } from 'node:crypto';
-import { mkdir, readFile, readdir, access, stat } from 'node:fs/promises';
+import { mkdir, readFile, readdir, access, stat, rm } from 'node:fs/promises';
 import { repoUrlToSlug, getCloneUrl } from '../lib/repo-url.js';
 
 const execFileAsync = promisify(execFile);
@@ -130,33 +130,56 @@ export class RepoCache {
   ): Promise<void> {
     const cloneUrl = this.resolveCloneUrl(url);
 
-    // Shallow clone with sparse checkout
-    await execFileAsync('git', [
-      'clone',
-      '--depth',
-      '1',
-      '--branch',
-      ref,
-      '--sparse',
-      cloneUrl,
-      repoDir,
-    ]);
+    try {
+      // Shallow clone with sparse checkout
+      await execFileAsync('git', [
+        'clone',
+        '--depth',
+        '1',
+        '--branch',
+        ref,
+        '--sparse',
+        cloneUrl,
+        repoDir,
+      ]);
 
-    // Set sparse checkout paths
-    if (paths.length > 0) {
-      await execFileAsync('git', ['-C', repoDir, 'sparse-checkout', 'set', ...paths]);
+      // Set sparse checkout paths
+      if (paths.length > 0) {
+        await execFileAsync('git', ['-C', repoDir, 'sparse-checkout', 'set', '--', ...paths]);
+      }
+    } catch (err) {
+      // Clean up partial clone on failure
+      try {
+        await rm(repoDir, { recursive: true, force: true });
+      } catch {
+        // Ignore cleanup errors
+      }
+
+      const message = err instanceof Error ? err.message : String(err);
+      throw new Error(
+        `Failed to clone ${url} (ref: ${ref}): ${message}. ` +
+          'Check that the URL and ref are correct and you have access.',
+      );
     }
   }
 
   private async updateRepo(repoDir: string, ref: string, paths: string[]): Promise<void> {
-    // Update sparse checkout paths if needed
-    if (paths.length > 0) {
-      await execFileAsync('git', ['-C', repoDir, 'sparse-checkout', 'set', ...paths]);
-    }
+    try {
+      // Update sparse checkout paths if needed
+      if (paths.length > 0) {
+        await execFileAsync('git', ['-C', repoDir, 'sparse-checkout', 'set', '--', ...paths]);
+      }
 
-    // Fetch latest
-    await execFileAsync('git', ['-C', repoDir, 'fetch', '--depth', '1', 'origin', ref]);
-    await execFileAsync('git', ['-C', repoDir, 'checkout', 'FETCH_HEAD']);
+      // Fetch latest
+      await execFileAsync('git', ['-C', repoDir, 'fetch', '--depth', '1', 'origin', ref]);
+      await execFileAsync('git', ['-C', repoDir, 'checkout', 'FETCH_HEAD']);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      throw new Error(
+        `Failed to update repo cache (ref: ${ref}): ${message}. ` +
+          'Try removing the cache directory and re-syncing.',
+      );
+    }
   }
 
   /**
@@ -179,7 +202,9 @@ export class RepoCache {
     }
     // Local paths (absolute or relative, including Windows drive letters) - convert to file:// for --depth support
     if (url.startsWith('/') || url.startsWith('.') || isAbsolute(url)) {
-      return `file://${url}`;
+      // Resolve relative paths to absolute before creating file:// URL
+      const absPath = isAbsolute(url) ? url : resolve(url);
+      return `file://${absPath}`;
     }
     // Already a full URL or SSH format
     if (url.startsWith('https://') || url.startsWith('http://') || url.startsWith('git@')) {

@@ -411,8 +411,7 @@ export function isDocsStale(lastSyncAt: string | undefined, autoSyncHours: numbe
 // Unified Doc Sync with Defaults
 // =============================================================================
 
-/** Prefix for internal bundled doc sources */
-const INTERNAL_SOURCE_PREFIX = 'internal:';
+// Reuse INTERNAL_PREFIX constant from above
 
 /**
  * Options for syncDocsWithDefaults.
@@ -482,8 +481,8 @@ export async function pruneStaleInternals(
   const pruned: string[] = [];
 
   for (const [dest, source] of Object.entries(config)) {
-    if (source.startsWith(INTERNAL_SOURCE_PREFIX)) {
-      const location = source.slice(INTERNAL_SOURCE_PREFIX.length);
+    if (source.startsWith(INTERNAL_PREFIX)) {
+      const location = source.slice(INTERNAL_PREFIX.length);
       const exists = await internalDocExists(location);
       if (!exists) {
         pruned.push(dest);
@@ -723,20 +722,17 @@ export async function syncDocsWithDefaults(
   const docSync = new DocSync(tbdRoot, prunedConfig);
   const syncResult = await docSync.sync({ dryRun: options.dryRun });
 
-  // 6. Check if config changed (files or lookup_path)
-  const defaultLookupPath = ['.tbd/docs/sys/shortcuts', '.tbd/docs/tbd/shortcuts'];
-  const currentLookupPath = config.docs_cache?.lookup_path ?? [];
-  const lookupPathChanged =
-    currentLookupPath.length !== defaultLookupPath.length ||
-    currentLookupPath.some((p, i) => p !== defaultLookupPath[i]);
-  const configChanged = !configsEqual(prunedConfig, originalFiles) || lookupPathChanged;
+  // 6. Check if config changed (files)
+  const configChanged = !configsEqual(prunedConfig, originalFiles);
 
   // 7. Write config if changed (and not dry run)
   if (configChanged && !options.dryRun) {
     config.docs_cache = {
-      lookup_path: defaultLookupPath,
+      ...config.docs_cache,
       files: prunedConfig,
     };
+    // Remove deprecated lookup_path if still present (f04 migration)
+    delete config.docs_cache.lookup_path;
     await writeConfig(tbdRoot, config);
   }
 

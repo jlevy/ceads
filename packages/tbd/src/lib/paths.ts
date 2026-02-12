@@ -245,6 +245,48 @@ export function getDefaultDocPaths(typeName: DocTypeName): string[] {
 }
 
 /**
+ * Derive doc lookup paths from configured sources for a given doc type.
+ *
+ * Reads the `docs_cache.sources` array and builds paths for each source that
+ * includes the requested doc type directory. Falls back to `getDefaultDocPaths`
+ * when no sources are configured (backward compatibility with pre-f04 configs).
+ *
+ * @param docsCache - The docs_cache config object (from config.docs_cache)
+ * @param typeName - The doc type to look up
+ * @returns Array of paths relative to tbd root
+ */
+export function getDocPathsFromConfig(
+  docsCache:
+    | {
+        sources?: { prefix: string; paths: string[]; hidden?: boolean }[];
+        lookup_path?: string[];
+      }
+    | undefined,
+  typeName: DocTypeName,
+): string[] {
+  const dir = getDocTypeDirectory(typeName);
+
+  // If sources are configured (f04+), derive paths from them
+  if (docsCache?.sources && docsCache.sources.length > 0) {
+    const paths: string[] = [];
+    for (const source of docsCache.sources) {
+      // Check if this source includes the requested doc type directory
+      const hasType = source.paths.some(
+        (p) => p.replace(/\/$/, '') === dir || p.replace(/\/$/, '') === typeName,
+      );
+      if (hasType) {
+        paths.push(join(TBD_DOCS_DIR, source.prefix, dir));
+      }
+    }
+    // If sources exist but none match this type, fall back to defaults
+    return paths.length > 0 ? paths : getDefaultDocPaths(typeName);
+  }
+
+  // Fallback: use defaults (pre-f04 compatibility)
+  return getDefaultDocPaths(typeName);
+}
+
+/**
  * Get the full path to an issue file.
  */
 export function getIssuePath(issueId: string): string {

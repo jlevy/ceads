@@ -310,9 +310,13 @@ function migrate_f03_to_f04(config: RawConfig): MigrationResult {
   changes.push('Added docs_cache.sources with default internal sources');
 
   // Keep custom files if any, otherwise remove the files key
+  const warnings: string[] = [];
   if (Object.keys(customFiles).length > 0) {
     migrated.docs_cache.files = customFiles;
     changes.push('Preserved custom file overrides in docs_cache.files');
+    warnings.push(
+      `Preserved ${Object.keys(customFiles).length} custom file override(s) in docs_cache.files`,
+    );
   } else {
     delete migrated.docs_cache.files;
     if (config.docs_cache?.files && Object.keys(config.docs_cache.files).length > 0) {
@@ -326,7 +330,7 @@ function migrate_f03_to_f04(config: RawConfig): MigrationResult {
     toFormat: 'f04',
     changed: changes.length > 0,
     changes,
-    warnings: [],
+    warnings,
   };
 }
 

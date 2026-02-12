@@ -41,8 +41,16 @@ export async function addSource(tbdRoot: string, options: AddSourceOptions): Pro
     );
   }
 
+  // Prevent collision with reserved internal prefixes
+  const RESERVED_PREFIXES = ['sys', 'tbd'];
+  if (RESERVED_PREFIXES.includes(prefix)) {
+    throw new CLIError(
+      `Prefix "${prefix}" is reserved for internal use. Choose a different prefix.`,
+    );
+  }
+
   const config = await readConfig(tbdRoot);
-  config.docs_cache ??= { files: {}, lookup_path: [] };
+  config.docs_cache ??= { files: {} };
   config.docs_cache.sources ??= [];
 
   // Check for duplicate prefix

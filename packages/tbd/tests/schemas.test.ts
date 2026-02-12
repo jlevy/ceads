@@ -342,7 +342,7 @@ describe('ConfigSchema', () => {
       }
     });
 
-    it('uses default lookup_path when not specified', () => {
+    it('lookup_path is optional and undefined when not specified (f04)', () => {
       const config = {
         tbd_version: '3.0.0',
         display: { id_prefix: 'proj' },
@@ -352,10 +352,7 @@ describe('ConfigSchema', () => {
       const result = ConfigSchema.safeParse(config);
       expect(result.success).toBe(true);
       if (result.success) {
-        expect(result.data.docs_cache?.lookup_path).toEqual([
-          '.tbd/docs/sys/shortcuts',
-          '.tbd/docs/tbd/shortcuts',
-        ]);
+        expect(result.data.docs_cache?.lookup_path).toBeUndefined();
       }
     });
   });

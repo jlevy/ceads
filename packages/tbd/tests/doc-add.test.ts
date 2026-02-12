@@ -252,7 +252,7 @@ describe('addDoc', () => {
     expect(result.destPath).toBe('tbd/templates/test-template.md');
   });
 
-  it('adds lookup_path entry if not already present', async () => {
+  it('does not write deprecated lookup_path to config (f04)', async () => {
     await addDoc(tempDir, {
       url: 'https://raw.githubusercontent.com/org/repo/main/docs/file.md',
       name: 'test-shortcut',
@@ -260,10 +260,10 @@ describe('addDoc', () => {
     });
 
     const configContent = await readFile(join(tempDir, '.tbd', 'config.yml'), 'utf-8');
-    expect(configContent).toContain('.tbd/docs/tbd/shortcuts');
+    expect(configContent).not.toContain('lookup_path');
   });
 
-  it('does not duplicate lookup_path entry on second add', async () => {
+  it('stores file mapping in docs_cache.files on add', async () => {
     await addDoc(tempDir, {
       url: 'https://raw.githubusercontent.com/org/repo/main/docs/file1.md',
       name: 'first-guideline',
@@ -277,9 +277,9 @@ describe('addDoc', () => {
     });
 
     const configContent = await readFile(join(tempDir, '.tbd', 'config.yml'), 'utf-8');
-    // Count occurrences of .tbd/docs/tbd/guidelines
-    const matches = configContent.match(/\.tbd\/docs\/tbd\/guidelines/g);
-    expect(matches?.length).toBe(1);
+    // Both files should be in the config
+    expect(configContent).toContain('first-guideline.md');
+    expect(configContent).toContain('second-guideline.md');
   });
 
   it('reports usedGhCli from fetch result', async () => {

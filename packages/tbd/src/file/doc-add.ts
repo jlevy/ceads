@@ -13,6 +13,7 @@ import { writeFile } from 'atomically';
 import { readConfig, writeConfig } from './config.js';
 import { githubBlobToRawUrl, fetchWithGhFallback } from './github-fetch.js';
 import { TBD_DOCS_DIR, TBD_PREFIX } from '../lib/paths.js';
+import { type DocTypeName, getDocTypeDirectory } from '../lib/doc-types.js';
 
 // =============================================================================
 // Types
@@ -20,8 +21,9 @@ import { TBD_DOCS_DIR, TBD_PREFIX } from '../lib/paths.js';
 
 /**
  * The type of document being added.
+ * Re-exported from doc-types.ts for backward compatibility.
  */
-export type DocType = 'guideline' | 'shortcut' | 'template' | 'reference';
+export type DocType = DocTypeName;
 
 /**
  * Options for adding a document.
@@ -88,18 +90,10 @@ export function validateDocContent(content: string, name: string): void {
 
 /**
  * Get the destination subdirectory for a doc type.
+ * Delegates to the doc-types registry.
  */
 export function getDocTypeSubdir(docType: DocType): string {
-  switch (docType) {
-    case 'guideline':
-      return 'guidelines';
-    case 'shortcut':
-      return 'shortcuts';
-    case 'template':
-      return 'templates';
-    case 'reference':
-      return 'references';
-  }
+  return getDocTypeDirectory(docType);
 }
 
 // =============================================================================
@@ -142,15 +136,9 @@ export async function addDoc(tbdRoot: string, options: AddDocOptions): Promise<A
 
   // Atomically update config
   const config = await readConfig(tbdRoot);
-  config.docs_cache ??= { files: {}, lookup_path: [] };
+  config.docs_cache ??= { files: {} };
   config.docs_cache.files ??= {};
   config.docs_cache.files[destPath] = rawUrl;
-
-  // Ensure the lookup_path includes the prefixed subdir
-  const lookupDir = `.tbd/docs/${TBD_PREFIX}/${subdir}`;
-  if (!config.docs_cache.lookup_path.includes(lookupDir)) {
-    config.docs_cache.lookup_path.push(lookupDir);
-  }
 
   await writeConfig(tbdRoot, config);
 

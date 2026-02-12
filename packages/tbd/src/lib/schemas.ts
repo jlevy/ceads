@@ -205,23 +205,28 @@ export const DocCacheConfigSchema = z.record(z.string(), z.string());
  * Sources are listed in precedence order in docs_cache.sources[].
  * See: docs/project/specs/active/plan-2026-02-02-external-docs-repos.md
  */
-export const DocsSourceSchema = z.object({
-  type: z.enum(['internal', 'repo']),
-  /** Namespace prefix for this source (1-16 lowercase alphanumeric + dash). */
-  prefix: z
-    .string()
-    .min(1)
-    .max(16)
-    .regex(/^[a-z0-9-]+$/),
-  /** Repository URL (required for type: repo). */
-  url: z.string().optional(),
-  /** Git ref to checkout (defaults to 'main' for repos). */
-  ref: z.string().optional(),
-  /** Doc type directories to include from this source. */
-  paths: z.array(z.string()),
-  /** Exclude from --list output. */
-  hidden: z.boolean().optional(),
-});
+export const DocsSourceSchema = z
+  .object({
+    type: z.enum(['internal', 'repo']),
+    /** Namespace prefix for this source (1-16 lowercase alphanumeric + dash). */
+    prefix: z
+      .string()
+      .min(1)
+      .max(16)
+      .regex(/^[a-z0-9-]+$/),
+    /** Repository URL (required for type: repo). */
+    url: z.string().optional(),
+    /** Git ref to checkout (defaults to 'main' for repos). */
+    ref: z.string().optional(),
+    /** Doc type directories to include from this source. */
+    paths: z.array(z.string()),
+    /** Exclude from --list output. */
+    hidden: z.boolean().optional(),
+  })
+  .refine((data) => data.type !== 'repo' || (data.url && data.url.length > 0), {
+    message: 'url is required for repo sources',
+    path: ['url'],
+  });
 
 /**
  * Documentation cache configuration (consolidated structure).
@@ -244,10 +249,10 @@ export const DocsCacheSchema = z.object({
    */
   files: z.record(z.string(), z.string()).optional(),
   /**
-   * Search paths for doc lookup (like shell $PATH).
-   * Earlier paths take precedence when names conflict.
+   * @deprecated Replaced by source ordering in f04. Kept for backward compatibility
+   * with f03 configs. In f04+, source order determines lookup precedence.
    */
-  lookup_path: z.array(z.string()).default(['.tbd/docs/sys/shortcuts', '.tbd/docs/tbd/shortcuts']),
+  lookup_path: z.array(z.string()).optional(),
 });
 
 /**

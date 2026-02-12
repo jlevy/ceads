@@ -60,7 +60,7 @@ export async function loadSkillContent(): Promise<string> {
     // From packages/tbd/src/cli/commands/ go to packages/tbd/docs/
     const docsDir = join(__dirname, '..', '..', '..', 'docs');
     const headerPath = join(docsDir, 'install', 'claude-header.md');
-    const skillPath = join(docsDir, 'shortcuts', 'system', 'skill-baseline.md');
+    const skillPath = join(docsDir, 'sys', 'shortcuts', 'skill-baseline.md');
 
     const header = await readFile(headerPath, 'utf-8');
     const skill = await readFile(skillPath, 'utf-8');

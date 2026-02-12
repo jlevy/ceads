@@ -102,12 +102,34 @@ describe('source command logic', () => {
     });
 
     it('rejects duplicate prefix', async () => {
+      // First add a source with prefix 'ext'
+      await addSource(tempDir, {
+        url: 'github.com/org/repo',
+        prefix: 'ext',
+      });
+      // Then try to add another with the same prefix
+      await expect(
+        addSource(tempDir, {
+          url: 'github.com/other/repo',
+          prefix: 'ext', // already exists
+        }),
+      ).rejects.toThrow(/prefix.*already exists/i);
+    });
+
+    it('rejects reserved prefixes', async () => {
       await expect(
         addSource(tempDir, {
           url: 'github.com/org/repo',
-          prefix: 'tbd', // already exists
+          prefix: 'sys',
         }),
-      ).rejects.toThrow(/prefix.*already exists/i);
+      ).rejects.toThrow(/reserved/i);
+
+      await expect(
+        addSource(tempDir, {
+          url: 'github.com/org/repo',
+          prefix: 'tbd',
+        }),
+      ).rejects.toThrow(/reserved/i);
     });
 
     it('validates prefix format', async () => {
