@@ -326,9 +326,88 @@ launching Claude Code.
 
 #### Cloud-Specific Considerations
 
-Claude Code Cloud runs in isolated sandbox sessions. Sub-agents work normally
-within a cloud session. However:
+Claude Code Cloud runs in isolated, Anthropic-managed VMs that clone your
+GitHub repository. Sub-agents work normally within a cloud session. However
+there are important differences in how configuration reaches the environment.
 
+**What IS available in Cloud sessions:**
+- `.claude/settings.json` (project-level, committed to Git) — **YES**
+- `.claude/agents/` (project-level sub-agent definitions) — **YES**
+- Cloud environment dialog settings (env vars in `.env` format) — **YES**
+- Server-managed settings (Enterprise/Teams) — **YES**
+- `/model` command during session — **YES**
+
+**What is NOT available in Cloud sessions:**
+- `~/.claude/settings.json` (user-level) — **NO** (not in the repo)
+- `.claude/settings.local.json` (gitignored) — **NO**
+- Shell `export` commands — **NO** (each Bash runs in a fresh shell)
+
+**Three methods to set `CLAUDE_CODE_SUBAGENT_MODEL` in Cloud:**
+
+**Method 1: Cloud environment dialog (recommended for Cloud)**
+
+On claude.ai, when adding or editing an environment, there's a dialog where
+you can specify environment variables in `.env` format:
+
+```
+CLAUDE_CODE_SUBAGENT_MODEL=claude-opus-4-6
+ANTHROPIC_MODEL=opus
+```
+
+**Method 2: Project settings.json `env` field (recommended for teams)**
+
+Commit this to your repository so it takes effect for all Cloud sessions:
+
+```json
+// .claude/settings.json (committed to git)
+{
+  "model": "opus",
+  "env": {
+    "CLAUDE_CODE_SUBAGENT_MODEL": "claude-opus-4-6"
+  }
+}
+```
+
+**Method 3: SessionStart hook writing to CLAUDE_ENV_FILE**
+
+For dynamic setup, a SessionStart hook can write env vars:
+
+```json
+{
+  "hooks": {
+    "SessionStart": [{
+      "hooks": [{
+        "type": "command",
+        "command": "echo 'export CLAUDE_CODE_SUBAGENT_MODEL=claude-opus-4-6' >> \"$CLAUDE_ENV_FILE\""
+      }]
+    }]
+  }
+}
+```
+
+Note: `CLAUDE_ENV_FILE` makes variables available to subsequent Bash commands
+but may not affect Claude Code's internal sub-agent spawning if the variable
+is only read at startup. The `env` field in settings.json is more reliable.
+
+**Important: `export` in Bash does NOT work for sub-agent model control.**
+Each Bash command runs in a fresh shell, and environment variables set within
+Bash are not visible to Claude Code's agentic loop that spawns sub-agents.
+
+**How to verify which model sub-agents are using:**
+
+1. `/status` — shows current main model and account info
+2. `/agents` — shows all sub-agents with their model configurations
+3. `/model` — shows current model; use arrow keys to see effort slider
+4. Sub-agent transcripts at `~/.claude/projects/{project}/{sessionId}/subagents/`
+5. Ask Claude directly: "What model are your sub-agents configured to use?"
+
+**Does `/model` affect sub-agents?** Partially:
+- Sub-agents with `model: inherit` (or no model field) **will** follow `/model`
+- Sub-agents with an explicit model (e.g., `model: sonnet`) **will not**
+- Built-in Explore uses Haiku regardless of `/model`
+- `CLAUDE_CODE_SUBAGENT_MODEL` overrides everything
+
+**Other considerations:**
 - No native instance-to-instance communication between cloud sessions
 - No official orchestration API for cloud instances
 - Teleport (`/tp`) brings cloud sessions to local terminal but doesn't
@@ -705,6 +784,188 @@ handoff = result.structured_output  # if using --json-schema
 | Maturity            | Stable                   | Experimental                | DIY (all stable primitives)  |
 | Permission control  | Inherited + overrides    | Inherited                   | Fully independent            |
 
+### 9. Creating Custom Sub-Agent Delegation Frameworks
+
+#### Yes, Custom Sub-Agents Are a First-Class Extension Point
+
+Claude Code's sub-agent system is designed to be extended. You can create
+your own sub-agents that participate in the same delegation framework as the
+built-in ones. Claude uses each sub-agent's `description` field to decide
+when to delegate, so a well-described custom sub-agent will be automatically
+invoked for matching tasks.
+
+#### How Delegation Works (and How to Customize It)
+
+The delegation flow is:
+
+1. Claude encounters a task in the conversation
+2. Claude evaluates available sub-agents' `description` fields
+3. If a sub-agent matches, Claude delegates via the Task tool
+4. The sub-agent runs with its own system prompt, tools, and model
+5. Results return to the main conversation
+
+You can influence this at every step:
+
+**Control which sub-agents exist** (`.claude/agents/` or `~/.claude/agents/`):
+- Create project-specific sub-agents that your team shares
+- Create personal sub-agents for your own workflows
+- Distribute sub-agents via plugins
+
+**Control which sub-agents can be used** (permissions):
+- `deny` specific sub-agents: `"permissions": { "deny": ["Task(Explore)"] }`
+- `--disallowedTools "Task(my-agent)"` on the CLI
+- Restrict which sub-agents another agent can spawn: `tools: Task(worker, researcher)`
+
+**Control delegation behavior** (hooks):
+- `SubagentStart` hook fires when any sub-agent begins — run setup scripts
+- `SubagentStop` hook fires when any sub-agent completes — run cleanup
+- `PreToolUse` hooks within sub-agents validate operations before execution
+- `PostToolUse` hooks within sub-agents run after tool operations
+
+**Example: A custom delegation framework with pre/post hooks**
+
+```yaml
+# .claude/agents/guarded-coder.md
+---
+name: guarded-coder
+description: Implement code changes with mandatory pre-commit validation.
+  Use proactively when making code changes.
+tools: Read, Edit, Write, Bash, Grep, Glob
+model: opus
+permissionMode: acceptEdits
+hooks:
+  PostToolUse:
+    - matcher: "Edit|Write"
+      hooks:
+        - type: command
+          command: "./scripts/lint-changed-files.sh"
+  Stop:
+    - hooks:
+        - type: command
+          command: "./scripts/run-tests-on-changes.sh"
+---
+
+You are a senior developer. When implementing changes:
+1. Read and understand the existing code
+2. Make minimal, focused changes
+3. Ensure all changes pass linting (automatic via hooks)
+4. Run tests before reporting completion (automatic via hooks)
+```
+
+**Example: Settings-level hooks for sub-agent lifecycle**
+
+```json
+// .claude/settings.json
+{
+  "hooks": {
+    "SubagentStart": [{
+      "matcher": "guarded-coder",
+      "hooks": [{
+        "type": "command",
+        "command": "./scripts/create-git-stash.sh"
+      }]
+    }],
+    "SubagentStop": [{
+      "matcher": "guarded-coder",
+      "hooks": [{
+        "type": "command",
+        "command": "./scripts/validate-and-format.sh"
+      }]
+    }]
+  }
+}
+```
+
+#### Building a Multi-Agent Pipeline with Custom Sub-Agents
+
+You can build a custom pipeline by creating several specialized sub-agents
+and having the main agent (or a coordinator sub-agent) chain them:
+
+```
+.claude/agents/
+  ├── researcher.md      # Read-only, explores codebase (model: haiku)
+  ├── planner.md         # Read-only, creates implementation plan (model: opus)
+  ├── implementer.md     # Full tools, writes code (model: opus)
+  ├── reviewer.md        # Read-only, reviews changes (model: sonnet)
+  └── test-runner.md     # Bash only, runs tests (model: haiku)
+```
+
+Then instruct Claude (via CLAUDE.md or prompts):
+
+```markdown
+When implementing features, follow this pipeline:
+1. Use the researcher sub-agent to understand the codebase
+2. Use the planner sub-agent to create an implementation plan
+3. Use the implementer sub-agent to write the code
+4. Use the reviewer sub-agent to review the changes
+5. Use the test-runner sub-agent to validate
+```
+
+#### Restricting Sub-Agent Spawning for Coordinator Agents
+
+When running Claude as a named agent via `claude --agent coordinator`, you
+can restrict which sub-agents it can spawn:
+
+```yaml
+# .claude/agents/coordinator.md
+---
+name: coordinator
+description: Coordinates work across specialized agents
+tools: Task(researcher, implementer, reviewer), Read, Bash
+---
+
+You are a coordinator. Delegate research to the researcher,
+implementation to the implementer, and review to the reviewer.
+Never implement code directly.
+```
+
+The `Task(researcher, implementer, reviewer)` syntax is an allowlist — only
+those three sub-agents can be spawned. This restriction only applies to
+agents running as the main thread with `claude --agent`.
+
+#### Limitations of Custom Delegation
+
+1. **No custom delegation logic:** You cannot write code that runs inside
+   Claude Code's delegation decision. The delegation is based on Claude's
+   interpretation of `description` fields — it's LLM-driven, not rule-based.
+
+2. **No sub-agent-to-sub-agent communication:** Sub-agents can only report
+   back to the parent. For inter-agent communication, use agent teams.
+
+3. **No sub-sub-agents:** Sub-agents cannot spawn their own sub-agents.
+   Pipelines must be orchestrated from the main conversation.
+
+4. **Hook-based control is limited to shell commands:** Hooks run shell
+   commands and use exit codes to allow/block. They can't modify the
+   sub-agent's prompt or tools dynamically.
+
+5. **No programmatic delegation override:** You can't write a function that
+   decides which sub-agent to use based on custom logic. You can only
+   influence the decision via descriptions and deny lists.
+
+#### Workaround: Full Custom Delegation via Outer Loop
+
+For fully custom delegation logic, use the `claude -p` outer loop pattern
+(Section 7). The outer Claude Code instance can implement arbitrary
+delegation logic:
+
+```bash
+# Outer orchestrator decides which specialist to invoke
+claude -p "Analyze this task and determine the right approach" \
+  --output-format json \
+  --json-schema '{"type":"object","properties":{"approach":{"enum":["research","implement","debug"]},"reasoning":{"type":"string"}}}'
+
+# Based on the structured output, invoke the right specialist
+if [ "$approach" = "research" ]; then
+  claude -p "Research: $task" --model haiku --system-prompt "You are a researcher..."
+elif [ "$approach" = "implement" ]; then
+  claude -p "Implement: $task" --model opus --system-prompt "You are a developer..."
+fi
+```
+
+This gives you fully custom delegation at the cost of managing the
+orchestration yourself.
+
 ---
 
 ## Recommendations
@@ -801,6 +1062,8 @@ claude --model opus
   Workflow patterns including parallel sessions with git worktrees
 - [Hooks](https://code.claude.com/docs/en/hooks) — Lifecycle hooks including
   SubagentStart/SubagentStop events
+- [Claude Code on the web](https://code.claude.com/docs/en/claude-code-on-the-web) —
+  Cloud environment configuration including environment variables
 
 ### Anthropic Research
 
