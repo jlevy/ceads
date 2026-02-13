@@ -1,4 +1,7 @@
 {
+  "env": {
+    "CLAUDE_CODE_SUBAGENT_MODEL": "claude-opus-4-6"
+  },
   "hooks": {
     "PostToolUse": [
       {
