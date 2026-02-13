@@ -10,6 +10,6 @@ priority: 2
 status: open
 title: "Review: Section 3 — Context Transfer Between Parent and Sub-Agents (verify what is/isn't shared)"
 type: is
-updated_at: 2026-02-13T18:49:17.899Z
-version: 2
+updated_at: 2026-02-13T18:50:23.873Z
+version: 3
 ---

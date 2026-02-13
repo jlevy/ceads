@@ -10,6 +10,6 @@ priority: 2
 status: open
 title: "Review: Recommendations and Quick-Reference (verify settings examples are correct and complete)"
 type: is
-updated_at: 2026-02-13T18:49:21.258Z
-version: 2
+updated_at: 2026-02-13T18:50:23.921Z
+version: 3
 ---

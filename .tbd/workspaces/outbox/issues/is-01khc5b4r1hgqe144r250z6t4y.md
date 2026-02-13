@@ -10,6 +10,6 @@ priority: 2
 status: open
 title: "Review: Section 8 — Comparison Table: Native Sub-Agents vs Agent Teams vs Outer Loop"
 type: is
-updated_at: 2026-02-13T18:49:20.038Z
-version: 2
+updated_at: 2026-02-13T18:50:23.903Z
+version: 3
 ---

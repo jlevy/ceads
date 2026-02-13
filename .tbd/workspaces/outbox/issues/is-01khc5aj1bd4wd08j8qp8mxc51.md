@@ -10,6 +10,6 @@ priority: 2
 status: open
 title: "Review: Section 4 — Environments: CLI, VS Code, Desktop, Cloud (verify Cloud config methods, /model behavior)"
 type: is
-updated_at: 2026-02-13T18:49:18.330Z
-version: 2
+updated_at: 2026-02-13T18:50:23.879Z
+version: 3
 ---

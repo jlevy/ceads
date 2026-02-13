@@ -10,6 +10,6 @@ priority: 2
 status: open
 title: "Review: Section 1 — Sub-Agent Architecture and Built-in Types (verify model defaults, tool access, nesting constraint)"
 type: is
-updated_at: 2026-02-13T18:49:17.062Z
-version: 2
+updated_at: 2026-02-13T18:50:23.862Z
+version: 3
 ---

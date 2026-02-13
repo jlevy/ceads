@@ -10,6 +10,6 @@ priority: 2
 status: open
 title: "Review: References — validate all URLs, check for dead links, verify cited issue numbers"
 type: is
-updated_at: 2026-02-13T18:49:21.660Z
-version: 2
+updated_at: 2026-02-13T18:50:23.927Z
+version: 3
 ---
