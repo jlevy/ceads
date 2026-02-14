@@ -575,19 +575,21 @@ ecosystem for skill discovery and installation (`npx skills add <owner/repo>`). 
 become the primary distribution channel for Agent Skills, with 47K+ total installations
 across 27+ compatible agent products.
 
-**Impact on tbd's architecture decision**: skills.sh validates the meta-skill approach.
-skills.sh distributes SKILL.md files (Level 1-2 content), while tbd's CLI serves as an
-on-demand Level 3 resource server. These are complementary layers:
+**Impact on tbd’s architecture decision**: skills.sh validates the meta-skill approach.
+skills.sh distributes SKILL.md files (Level 1-2 content), while tbd’s CLI serves as an
+on-demand Level 3 resource server.
+These are complementary layers:
 
-- **skills.sh**: "How do I give my agent the ability to do X?" (capabilities)
-- **tbd CLI**: "How do I give my agent knowledge about X?" (domain expertise)
+- **skills.sh**: “How do I give my agent the ability to do X?” (capabilities)
+- **tbd CLI**: “How do I give my agent knowledge about X?” (domain expertise)
 
-tbd itself could be listed as a skill on skills.sh (for discovery), while `tbd source
-add` handles the separate problem of distributing domain knowledge repos.
+tbd itself could be listed as a skill on skills.sh (for discovery), while
+`tbd source add` handles the separate problem of distributing domain knowledge repos.
 
 ### External Docs Repos Feature
 
-The new [external docs repos spec](../../specs/active/plan-2026-02-02-external-docs-repos.md)
+The new
+[external docs repos spec](../../specs/active/plan-2026-02-02-external-docs-repos.md)
 extends the meta-skill architecture to support external knowledge sources:
 
 ```bash
@@ -595,9 +597,9 @@ tbd source add github.com/jlevy/rust-porting-playbook
 # Adds domain expertise accessible via tbd guidelines X
 ```
 
-This is distinct from skills.sh distribution: skills.sh copies SKILL.md files once, while
-`tbd source add` establishes ongoing git sync for evolving knowledge repos. See the spec
-appendix for detailed comparison.
+This is distinct from skills.sh distribution: skills.sh copies SKILL.md files once,
+while `tbd source add` establishes ongoing git sync for evolving knowledge repos.
+See the spec appendix for detailed comparison.
 
 * * *
 
@@ -627,9 +629,10 @@ appendix for detailed comparison.
    discovery? This would make tbd discoverable via `npx skills add` while the actual
    functionality remains CLI-based.
 
-7. **Doc repos as "knowledge skills"**: Could domain knowledge repos (like
+7. **Doc repos as “knowledge skills”**: Could domain knowledge repos (like
    rust-porting-playbook) be listed on skills.sh with a SKILL.md that references
-   `tbd guidelines X` commands? This would bridge the two distribution models.
+   `tbd guidelines X` commands?
+   This would bridge the two distribution models.
 
 * * *
 
