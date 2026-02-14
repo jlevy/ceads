@@ -173,6 +173,7 @@ or want help → run `tbd shortcut welcome-user`
 | `tbd guidelines <name>` | Load coding guidelines |
 | `tbd guidelines --list` | List guidelines |
 | `tbd template <name>` | Output a template |
+| `tbd reference <name>` | Load a reference document |
 
 ## Quick Reference
 

@@ -8,6 +8,9 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import {
   DocCache,
+  generateShortcutDirectory,
+  parseQualifiedName,
+  type CachedDoc,
   SCORE_EXACT_MATCH,
   SCORE_PREFIX_MATCH,
   SCORE_CONTAINS_ALL,
@@ -23,8 +26,8 @@ describe('DocCache', () => {
   beforeEach(async () => {
     // Create temp directories for testing
     testDir = join(tmpdir(), `doc-cache-test-${Date.now()}`);
-    systemDir = join(testDir, '.tbd', 'docs', 'shortcuts', 'system');
-    standardDir = join(testDir, '.tbd', 'docs', 'shortcuts', 'standard');
+    systemDir = join(testDir, '.tbd', 'docs', 'sys', 'shortcuts');
+    standardDir = join(testDir, '.tbd', 'docs', 'tbd', 'shortcuts');
     await mkdir(systemDir, { recursive: true });
     await mkdir(standardDir, { recursive: true });
   });
@@ -39,10 +42,7 @@ describe('DocCache', () => {
       await writeFile(join(systemDir, 'skill-baseline.md'), '# Skill\n\nContent here.');
       await writeFile(join(standardDir, 'workflow.md'), '# Workflow\n\nContent here.');
 
-      const cache = new DocCache(
-        ['.tbd/docs/shortcuts/system', '.tbd/docs/shortcuts/standard'],
-        testDir,
-      );
+      const cache = new DocCache(['.tbd/docs/sys/shortcuts', '.tbd/docs/tbd/shortcuts'], testDir);
       await cache.load();
 
       const docs = cache.list();
@@ -56,7 +56,7 @@ describe('DocCache', () => {
       await writeFile(join(systemDir, 'readme.txt'), 'Not markdown');
       await writeFile(join(systemDir, 'config.yml'), 'yaml: true');
 
-      const cache = new DocCache(['.tbd/docs/shortcuts/system'], testDir);
+      const cache = new DocCache(['.tbd/docs/sys/shortcuts'], testDir);
       await cache.load();
 
       const docs = cache.list();
@@ -66,7 +66,7 @@ describe('DocCache', () => {
 
     it('handles missing directories gracefully', async () => {
       const cache = new DocCache(
-        ['.tbd/docs/shortcuts/nonexistent', '.tbd/docs/shortcuts/system'],
+        ['.tbd/docs/shortcuts/nonexistent', '.tbd/docs/sys/shortcuts'],
         testDir,
       );
       await cache.load();
@@ -90,7 +90,7 @@ Content here.`;
 
       await writeFile(join(standardDir, 'new-plan-spec.md'), content);
 
-      const cache = new DocCache(['.tbd/docs/shortcuts/standard'], testDir);
+      const cache = new DocCache(['.tbd/docs/tbd/shortcuts'], testDir);
       await cache.load();
 
       const docs = cache.list();
@@ -103,7 +103,7 @@ Content here.`;
     it('handles files without frontmatter', async () => {
       await writeFile(join(standardDir, 'simple.md'), '# Simple\n\nNo frontmatter.');
 
-      const cache = new DocCache(['.tbd/docs/shortcuts/standard'], testDir);
+      const cache = new DocCache(['.tbd/docs/tbd/shortcuts'], testDir);
       await cache.load();
 
       const docs = cache.list();
@@ -116,7 +116,7 @@ Content here.`;
     it('finds document by exact name', async () => {
       await writeFile(join(standardDir, 'new-plan-spec.md'), '# Plan Spec');
 
-      const cache = new DocCache(['.tbd/docs/shortcuts/standard'], testDir);
+      const cache = new DocCache(['.tbd/docs/tbd/shortcuts'], testDir);
       await cache.load();
 
       const match = cache.get('new-plan-spec');
@@ -128,7 +128,7 @@ Content here.`;
     it('finds document with .md extension in query', async () => {
       await writeFile(join(standardDir, 'workflow.md'), '# Workflow');
 
-      const cache = new DocCache(['.tbd/docs/shortcuts/standard'], testDir);
+      const cache = new DocCache(['.tbd/docs/tbd/shortcuts'], testDir);
       await cache.load();
 
       const match = cache.get('workflow.md');
@@ -139,7 +139,7 @@ Content here.`;
     it('returns null for non-existent document', async () => {
       await writeFile(join(standardDir, 'exists.md'), '# Exists');
 
-      const cache = new DocCache(['.tbd/docs/shortcuts/standard'], testDir);
+      const cache = new DocCache(['.tbd/docs/tbd/shortcuts'], testDir);
       await cache.load();
 
       const match = cache.get('nonexistent');
@@ -179,7 +179,7 @@ description: Quick exploration of a technical approach
     });
 
     it('returns exact matches with highest score', async () => {
-      const cache = new DocCache(['.tbd/docs/shortcuts/standard'], testDir);
+      const cache = new DocCache(['.tbd/docs/tbd/shortcuts'], testDir);
       await cache.load();
 
       const matches = cache.search('new-plan-spec');
@@ -189,7 +189,7 @@ description: Quick exploration of a technical approach
     });
 
     it('returns prefix matches with high score', async () => {
-      const cache = new DocCache(['.tbd/docs/shortcuts/standard'], testDir);
+      const cache = new DocCache(['.tbd/docs/tbd/shortcuts'], testDir);
       await cache.load();
 
       const matches = cache.search('new-plan');
@@ -199,7 +199,7 @@ description: Quick exploration of a technical approach
     });
 
     it('matches documents containing all query words', async () => {
-      const cache = new DocCache(['.tbd/docs/shortcuts/standard'], testDir);
+      const cache = new DocCache(['.tbd/docs/tbd/shortcuts'], testDir);
       await cache.load();
 
       const matches = cache.search('plan spec');
@@ -210,7 +210,7 @@ description: Quick exploration of a technical approach
     });
 
     it('matches against title and description', async () => {
-      const cache = new DocCache(['.tbd/docs/shortcuts/standard'], testDir);
+      const cache = new DocCache(['.tbd/docs/tbd/shortcuts'], testDir);
       await cache.load();
 
       const matches = cache.search('feature planning');
@@ -220,7 +220,7 @@ description: Quick exploration of a technical approach
     });
 
     it('returns empty array for no matches', async () => {
-      const cache = new DocCache(['.tbd/docs/shortcuts/standard'], testDir);
+      const cache = new DocCache(['.tbd/docs/tbd/shortcuts'], testDir);
       await cache.load();
 
       const matches = cache.search('xyznonexistent123');
@@ -228,7 +228,7 @@ description: Quick exploration of a technical approach
     });
 
     it('respects limit parameter', async () => {
-      const cache = new DocCache(['.tbd/docs/shortcuts/standard'], testDir);
+      const cache = new DocCache(['.tbd/docs/tbd/shortcuts'], testDir);
       await cache.load();
 
       const matches = cache.search('spec', 1);
@@ -236,7 +236,7 @@ description: Quick exploration of a technical approach
     });
 
     it('sorts results by score descending', async () => {
-      const cache = new DocCache(['.tbd/docs/shortcuts/standard'], testDir);
+      const cache = new DocCache(['.tbd/docs/tbd/shortcuts'], testDir);
       await cache.load();
 
       const matches = cache.search('spec');
@@ -250,7 +250,7 @@ description: Quick exploration of a technical approach
     it('handles empty query', async () => {
       await writeFile(join(standardDir, 'test.md'), '# Test');
 
-      const cache = new DocCache(['.tbd/docs/shortcuts/standard'], testDir);
+      const cache = new DocCache(['.tbd/docs/tbd/shortcuts'], testDir);
       await cache.load();
 
       const matches = cache.search('');
@@ -260,7 +260,7 @@ description: Quick exploration of a technical approach
     it('handles whitespace-only query', async () => {
       await writeFile(join(standardDir, 'test.md'), '# Test');
 
-      const cache = new DocCache(['.tbd/docs/shortcuts/standard'], testDir);
+      const cache = new DocCache(['.tbd/docs/tbd/shortcuts'], testDir);
       await cache.load();
 
       const matches = cache.search('   ');
@@ -277,7 +277,7 @@ description: A test file [with brackets]
 # Test`,
       );
 
-      const cache = new DocCache(['.tbd/docs/shortcuts/standard'], testDir);
+      const cache = new DocCache(['.tbd/docs/tbd/shortcuts'], testDir);
       await cache.load();
 
       // Should not throw, may or may not find matches
@@ -294,7 +294,7 @@ title: My Workflow
 # Content`,
       );
 
-      const cache = new DocCache(['.tbd/docs/shortcuts/standard'], testDir);
+      const cache = new DocCache(['.tbd/docs/tbd/shortcuts'], testDir);
       await cache.load();
 
       const lowerMatches = cache.search('myworkflow');
@@ -316,7 +316,7 @@ title: New Plan Spec
 # Content`,
       );
 
-      const cache = new DocCache(['.tbd/docs/shortcuts/standard'], testDir);
+      const cache = new DocCache(['.tbd/docs/tbd/shortcuts'], testDir);
       await cache.load();
 
       const matches = cache.search('  new   plan  ');
@@ -328,7 +328,7 @@ title: New Plan Spec
       await writeFile(join(standardDir, 'specification.md'), '# Spec');
       await writeFile(join(standardDir, 'spec.md'), '# Spec');
 
-      const cache = new DocCache(['.tbd/docs/shortcuts/standard'], testDir);
+      const cache = new DocCache(['.tbd/docs/tbd/shortcuts'], testDir);
       await cache.load();
 
       const matches = cache.search('spec');
@@ -349,7 +349,7 @@ not: closed: properly
       );
       await writeFile(join(standardDir, 'valid.md'), '# Valid file');
 
-      const cache = new DocCache(['.tbd/docs/shortcuts/standard'], testDir);
+      const cache = new DocCache(['.tbd/docs/tbd/shortcuts'], testDir);
       await cache.load();
 
       // Should load without throwing
@@ -364,16 +364,13 @@ not: closed: properly
       await writeFile(join(systemDir, 'shared.md'), '# System version');
       await writeFile(join(standardDir, 'shared.md'), '# Standard version');
 
-      const cache = new DocCache(
-        ['.tbd/docs/shortcuts/system', '.tbd/docs/shortcuts/standard'],
-        testDir,
-      );
+      const cache = new DocCache(['.tbd/docs/sys/shortcuts', '.tbd/docs/tbd/shortcuts'], testDir);
       await cache.load();
 
       const match = cache.get('shared');
       expect(match).not.toBeNull();
       expect(match!.doc.content).toContain('System version');
-      expect(match!.doc.sourceDir).toBe('.tbd/docs/shortcuts/system');
+      expect(match!.doc.sourceDir).toBe('.tbd/docs/sys/shortcuts');
     });
 
     it('list() returns only active docs by default', async () => {
@@ -381,10 +378,7 @@ not: closed: properly
       await writeFile(join(standardDir, 'shared.md'), '# Standard');
       await writeFile(join(standardDir, 'unique.md'), '# Unique');
 
-      const cache = new DocCache(
-        ['.tbd/docs/shortcuts/system', '.tbd/docs/shortcuts/standard'],
-        testDir,
-      );
+      const cache = new DocCache(['.tbd/docs/sys/shortcuts', '.tbd/docs/tbd/shortcuts'], testDir);
       await cache.load();
 
       const docs = cache.list();
@@ -396,10 +390,7 @@ not: closed: properly
       await writeFile(join(standardDir, 'shared.md'), '# Standard');
       await writeFile(join(standardDir, 'unique.md'), '# Unique');
 
-      const cache = new DocCache(
-        ['.tbd/docs/shortcuts/system', '.tbd/docs/shortcuts/standard'],
-        testDir,
-      );
+      const cache = new DocCache(['.tbd/docs/sys/shortcuts', '.tbd/docs/tbd/shortcuts'], testDir);
       await cache.load();
 
       const allDocs = cache.list(true);
@@ -410,15 +401,12 @@ not: closed: properly
       await writeFile(join(systemDir, 'shared.md'), '# System');
       await writeFile(join(standardDir, 'shared.md'), '# Standard');
 
-      const cache = new DocCache(
-        ['.tbd/docs/shortcuts/system', '.tbd/docs/shortcuts/standard'],
-        testDir,
-      );
+      const cache = new DocCache(['.tbd/docs/sys/shortcuts', '.tbd/docs/tbd/shortcuts'], testDir);
       await cache.load();
 
       const allDocs = cache.list(true);
-      const systemDoc = allDocs.find((d) => d.sourceDir === '.tbd/docs/shortcuts/system');
-      const standardDoc = allDocs.find((d) => d.sourceDir === '.tbd/docs/shortcuts/standard');
+      const systemDoc = allDocs.find((d) => d.sourceDir === '.tbd/docs/sys/shortcuts');
+      const standardDoc = allDocs.find((d) => d.sourceDir === '.tbd/docs/tbd/shortcuts');
 
       expect(cache.isShadowed(systemDoc!)).toBe(false);
       expect(cache.isShadowed(standardDoc!)).toBe(true);
@@ -440,5 +428,185 @@ not: closed: properly
       expect(SCORE_CONTAINS_ALL).toBeGreaterThan(SCORE_PARTIAL_BASE);
       expect(SCORE_PARTIAL_BASE).toBeGreaterThan(SCORE_MIN_THRESHOLD);
     });
+  });
+});
+
+describe('generateShortcutDirectory', () => {
+  function makeCachedDoc(name: string, description: string, hidden?: boolean): CachedDoc {
+    return {
+      path: `/test/${name}.md`,
+      name,
+      frontmatter: { description },
+      content: `# ${name}`,
+      sourceDir: '/test',
+      sizeBytes: 100,
+      approxTokens: 30,
+      hidden: hidden ?? false,
+    };
+  }
+
+  it('excludes docs with hidden=true from shortcut table', () => {
+    const shortcuts = [
+      makeCachedDoc('skill', 'System skill file', true),
+      makeCachedDoc('skill-brief', 'Brief skill file', true),
+      makeCachedDoc('code-review', 'Review code changes'),
+    ];
+
+    const result = generateShortcutDirectory(shortcuts);
+
+    expect(result).toContain('code-review');
+    expect(result).not.toContain('| skill |');
+    expect(result).not.toContain('| skill-brief |');
+  });
+
+  it('excludes docs with hidden=true from guidelines table', () => {
+    const shortcuts = [makeCachedDoc('workflow', 'A workflow')];
+    const guidelines = [
+      makeCachedDoc('internal-guide', 'Internal only', true),
+      makeCachedDoc('typescript-rules', 'TypeScript best practices'),
+    ];
+
+    const result = generateShortcutDirectory(shortcuts, guidelines);
+
+    expect(result).toContain('typescript-rules');
+    expect(result).not.toContain('internal-guide');
+  });
+
+  it('includes all docs when none are hidden', () => {
+    const shortcuts = [
+      makeCachedDoc('review', 'Review code'),
+      makeCachedDoc('commit', 'Commit changes'),
+    ];
+
+    const result = generateShortcutDirectory(shortcuts);
+
+    expect(result).toContain('review');
+    expect(result).toContain('commit');
+  });
+
+  it('shows empty message when all shortcuts are hidden', () => {
+    const shortcuts = [
+      makeCachedDoc('skill', 'Hidden', true),
+      makeCachedDoc('skill-brief', 'Hidden', true),
+    ];
+
+    const result = generateShortcutDirectory(shortcuts);
+
+    expect(result).toContain('No shortcuts available');
+  });
+});
+
+describe('parseQualifiedName', () => {
+  it('parses unqualified name', () => {
+    const result = parseQualifiedName('typescript-rules');
+    expect(result).toEqual({ baseName: 'typescript-rules' });
+  });
+
+  it('parses qualified name with prefix', () => {
+    const result = parseQualifiedName('spec:typescript-rules');
+    expect(result).toEqual({ prefix: 'spec', baseName: 'typescript-rules' });
+  });
+
+  it('handles names with multiple colons (first colon is separator)', () => {
+    const result = parseQualifiedName('spec:some:doc-name');
+    expect(result).toEqual({ prefix: 'spec', baseName: 'some:doc-name' });
+  });
+
+  it('handles empty prefix (colon at start)', () => {
+    const result = parseQualifiedName(':typescript-rules');
+    expect(result).toEqual({ baseName: ':typescript-rules' });
+  });
+
+  it('strips .md extension', () => {
+    const result = parseQualifiedName('typescript-rules.md');
+    expect(result).toEqual({ baseName: 'typescript-rules' });
+  });
+
+  it('strips .md extension from qualified name', () => {
+    const result = parseQualifiedName('spec:typescript-rules.md');
+    expect(result).toEqual({ prefix: 'spec', baseName: 'typescript-rules' });
+  });
+});
+
+describe('DocCache prefix-aware lookup', () => {
+  let testDir: string;
+
+  beforeEach(async () => {
+    testDir = join(tmpdir(), `doc-cache-prefix-test-${Date.now()}`);
+    // Create prefix-based directories
+    await mkdir(join(testDir, '.tbd', 'docs', 'sys', 'shortcuts'), { recursive: true });
+    await mkdir(join(testDir, '.tbd', 'docs', 'tbd', 'shortcuts'), { recursive: true });
+    await mkdir(join(testDir, '.tbd', 'docs', 'spec', 'shortcuts'), { recursive: true });
+  });
+
+  afterEach(async () => {
+    await rm(testDir, { recursive: true, force: true });
+  });
+
+  it('loads docs with prefix from directory structure', async () => {
+    await writeFile(
+      join(testDir, '.tbd', 'docs', 'tbd', 'shortcuts', 'commit.md'),
+      '---\ntitle: Commit\n---\n# Commit',
+    );
+
+    const cache = new DocCache(['.tbd/docs/tbd/shortcuts'], testDir);
+    await cache.load();
+
+    const match = cache.get('commit');
+    expect(match).not.toBeNull();
+    expect(match!.doc.prefix).toBe('tbd');
+  });
+
+  it('resolves qualified name to specific prefix', async () => {
+    // Same name in two prefixes
+    await writeFile(join(testDir, '.tbd', 'docs', 'tbd', 'shortcuts', 'review.md'), '# TBD Review');
+    await writeFile(
+      join(testDir, '.tbd', 'docs', 'spec', 'shortcuts', 'review.md'),
+      '# Spec Review',
+    );
+
+    const cache = new DocCache(['.tbd/docs/tbd/shortcuts', '.tbd/docs/spec/shortcuts'], testDir);
+    await cache.load();
+
+    // Qualified lookup should return specific prefix
+    const match = cache.get('spec:review');
+    expect(match).not.toBeNull();
+    expect(match!.doc.content).toContain('Spec Review');
+    expect(match!.doc.prefix).toBe('spec');
+  });
+
+  it('unqualified name returns first match in path order', async () => {
+    await writeFile(join(testDir, '.tbd', 'docs', 'tbd', 'shortcuts', 'review.md'), '# TBD Review');
+    await writeFile(
+      join(testDir, '.tbd', 'docs', 'spec', 'shortcuts', 'review.md'),
+      '# Spec Review',
+    );
+
+    const cache = new DocCache(['.tbd/docs/tbd/shortcuts', '.tbd/docs/spec/shortcuts'], testDir);
+    await cache.load();
+
+    // Unqualified should return first (tbd)
+    const match = cache.get('review');
+    expect(match).not.toBeNull();
+    expect(match!.doc.content).toContain('TBD Review');
+    expect(match!.doc.prefix).toBe('tbd');
+  });
+
+  it('list() filters out hidden docs by default', async () => {
+    await writeFile(
+      join(testDir, '.tbd', 'docs', 'sys', 'shortcuts', 'skill.md'),
+      '---\ntitle: Skill\n---\n# Skill',
+    );
+    await writeFile(
+      join(testDir, '.tbd', 'docs', 'tbd', 'shortcuts', 'commit.md'),
+      '---\ntitle: Commit\n---\n# Commit',
+    );
+
+    const cache = new DocCache(['.tbd/docs/sys/shortcuts', '.tbd/docs/tbd/shortcuts'], testDir);
+    await cache.load();
+
+    // sys docs are not hidden by default (hidden is set at source level, not directory level)
+    const docs = cache.list();
+    expect(docs.length).toBe(2);
   });
 });

@@ -14,6 +14,9 @@ import { GUIDELINES_AGENT_HEADER } from './doc-prompts.js';
 import { requireInit } from './errors.js';
 import { DocCache, SCORE_PREFIX_MATCH } from '../../file/doc-cache.js';
 import { addDoc, type DocType } from '../../file/doc-add.js';
+import { readConfig } from '../../file/config.js';
+import { getDocPathsFromConfig } from '../../lib/paths.js';
+import type { DocTypeName } from '../../lib/doc-types.js';
 import { truncate } from '../../lib/truncate.js';
 import { formatDocSize } from '../../lib/format-utils.js';
 import { getTerminalWidth, renderMarkdownWithFrontmatter, paginateOutput } from './output.js';
@@ -70,10 +73,24 @@ export abstract class DocCommandHandler extends BaseCommand {
 
   /**
    * Initialize the doc cache. Must be called before other operations.
+   *
+   * Reads config sources at runtime to derive lookup paths. This ensures
+   * docs from external repo sources are discoverable by all doc commands.
+   * Falls back to the static paths from the constructor config.
    */
   protected async initCache(): Promise<void> {
     this.tbdRoot = await requireInit();
-    this.cache = new DocCache(this.config.paths, this.tbdRoot);
+
+    // Derive paths from configured sources (f04+) or use static defaults
+    let paths = this.config.paths;
+    try {
+      const config = await readConfig(this.tbdRoot);
+      paths = getDocPathsFromConfig(config.docs_cache, this.config.typeName as DocTypeName);
+    } catch {
+      // Fall back to constructor paths if config read fails
+    }
+
+    this.cache = new DocCache(paths, this.tbdRoot);
     await this.cache.load({ quiet: this.ctx.quiet });
   }
 

@@ -122,8 +122,12 @@ describe('getDocTypeSubdir', () => {
     expect(getDocTypeSubdir('guideline')).toBe('guidelines');
   });
 
-  it('returns shortcuts/custom for shortcut type', () => {
-    expect(getDocTypeSubdir('shortcut')).toBe('shortcuts/custom');
+  it('returns shortcuts for shortcut type', () => {
+    expect(getDocTypeSubdir('shortcut')).toBe('shortcuts');
+  });
+
+  it('returns references for reference type', () => {
+    expect(getDocTypeSubdir('reference')).toBe('references');
   });
 
   it('returns templates for template type', () => {
@@ -148,7 +152,7 @@ describe('addDoc', () => {
     tempDir = join(tmpdir(), `tbd-doc-add-test-${randomBytes(4).toString('hex')}`);
     await mkdir(tempDir, { recursive: true });
     await mkdir(join(tempDir, '.tbd', 'docs', 'guidelines'), { recursive: true });
-    await mkdir(join(tempDir, '.tbd', 'docs', 'shortcuts', 'custom'), { recursive: true });
+    await mkdir(join(tempDir, '.tbd', 'docs', 'shortcuts'), { recursive: true });
     await mkdir(join(tempDir, '.tbd', 'docs', 'templates'), { recursive: true });
 
     // Create a minimal config.yml
@@ -177,7 +181,7 @@ describe('addDoc', () => {
       docType: 'guideline',
     });
 
-    expect(result.destPath).toBe('guidelines/modern-bun-monorepo-patterns.md');
+    expect(result.destPath).toBe('tbd/guidelines/modern-bun-monorepo-patterns.md');
     expect(result.rawUrl).toContain('raw.githubusercontent.com');
 
     // Verify fetchWithGhFallback was called with the URL
@@ -185,9 +189,9 @@ describe('addDoc', () => {
       'https://raw.githubusercontent.com/org/repo/main/docs/file.md',
     );
 
-    // Verify file was written
+    // Verify file was written to prefix-based path
     const content = await readFile(
-      join(tempDir, '.tbd', 'docs', 'guidelines', 'modern-bun-monorepo-patterns.md'),
+      join(tempDir, '.tbd', 'docs', 'tbd', 'guidelines', 'modern-bun-monorepo-patterns.md'),
       'utf-8',
     );
     expect(content).toBe('# Mocked Document\n\nThis is mocked content for testing.\n');
@@ -218,21 +222,21 @@ describe('addDoc', () => {
     });
 
     // Should not double the .md
-    expect(result.destPath).toBe('guidelines/modern-bun-monorepo-patterns.md');
+    expect(result.destPath).toBe('tbd/guidelines/modern-bun-monorepo-patterns.md');
   });
 
-  it('uses shortcuts/custom subdir for shortcut type', async () => {
+  it('uses shortcuts subdir for shortcut type', async () => {
     const result = await addDoc(tempDir, {
       url: 'https://raw.githubusercontent.com/org/repo/main/docs/file.md',
       name: 'test-shortcut',
       docType: 'shortcut',
     });
 
-    expect(result.destPath).toBe('shortcuts/custom/test-shortcut.md');
+    expect(result.destPath).toBe('tbd/shortcuts/test-shortcut.md');
 
     // Verify file went to the right place
     const content = await readFile(
-      join(tempDir, '.tbd', 'docs', 'shortcuts', 'custom', 'test-shortcut.md'),
+      join(tempDir, '.tbd', 'docs', 'tbd', 'shortcuts', 'test-shortcut.md'),
       'utf-8',
     );
     expect(content).toBe('# Mocked Document\n\nThis is mocked content for testing.\n');
@@ -245,10 +249,10 @@ describe('addDoc', () => {
       docType: 'template',
     });
 
-    expect(result.destPath).toBe('templates/test-template.md');
+    expect(result.destPath).toBe('tbd/templates/test-template.md');
   });
 
-  it('adds lookup_path entry if not already present', async () => {
+  it('does not write deprecated lookup_path to config (f04)', async () => {
     await addDoc(tempDir, {
       url: 'https://raw.githubusercontent.com/org/repo/main/docs/file.md',
       name: 'test-shortcut',
@@ -256,10 +260,10 @@ describe('addDoc', () => {
     });
 
     const configContent = await readFile(join(tempDir, '.tbd', 'config.yml'), 'utf-8');
-    expect(configContent).toContain('.tbd/docs/shortcuts/custom');
+    expect(configContent).not.toContain('lookup_path');
   });
 
-  it('does not duplicate lookup_path entry on second add', async () => {
+  it('stores file mapping in docs_cache.files on add', async () => {
     await addDoc(tempDir, {
       url: 'https://raw.githubusercontent.com/org/repo/main/docs/file1.md',
       name: 'first-guideline',
@@ -273,9 +277,9 @@ describe('addDoc', () => {
     });
 
     const configContent = await readFile(join(tempDir, '.tbd', 'config.yml'), 'utf-8');
-    // Count occurrences of .tbd/docs/guidelines
-    const matches = configContent.match(/\.tbd\/docs\/guidelines/g);
-    expect(matches?.length).toBe(1);
+    // Both files should be in the config
+    expect(configContent).toContain('first-guideline.md');
+    expect(configContent).toContain('second-guideline.md');
   });
 
   it('reports usedGhCli from fetch result', async () => {

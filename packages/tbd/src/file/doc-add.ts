@@ -12,7 +12,8 @@ import { writeFile } from 'atomically';
 
 import { readConfig, writeConfig } from './config.js';
 import { githubBlobToRawUrl, fetchWithGhFallback } from './github-fetch.js';
-import { TBD_DOCS_DIR } from '../lib/paths.js';
+import { TBD_DOCS_DIR, TBD_PREFIX } from '../lib/paths.js';
+import { type DocTypeName, getDocTypeDirectory } from '../lib/doc-types.js';
 
 // =============================================================================
 // Types
@@ -20,8 +21,9 @@ import { TBD_DOCS_DIR } from '../lib/paths.js';
 
 /**
  * The type of document being added.
+ * Re-exported from doc-types.ts for backward compatibility.
  */
-export type DocType = 'guideline' | 'shortcut' | 'template';
+export type DocType = DocTypeName;
 
 /**
  * Options for adding a document.
@@ -88,16 +90,10 @@ export function validateDocContent(content: string, name: string): void {
 
 /**
  * Get the destination subdirectory for a doc type.
+ * Delegates to the doc-types registry.
  */
 export function getDocTypeSubdir(docType: DocType): string {
-  switch (docType) {
-    case 'guideline':
-      return 'guidelines';
-    case 'shortcut':
-      return 'shortcuts/custom';
-    case 'template':
-      return 'templates';
-  }
+  return getDocTypeDirectory(docType);
 }
 
 // =============================================================================
@@ -123,7 +119,8 @@ export async function addDoc(tbdRoot: string, options: AddDocOptions): Promise<A
   const cleanName = name.endsWith('.md') ? name.slice(0, -3) : name;
   const filename = `${cleanName}.md`;
   const subdir = getDocTypeSubdir(docType);
-  const destPath = `${subdir}/${filename}`;
+  // User-added docs go into the tbd/ prefix directory
+  const destPath = `${TBD_PREFIX}/${subdir}/${filename}`;
   const rawUrl = githubBlobToRawUrl(url);
 
   // Fetch content
@@ -132,22 +129,16 @@ export async function addDoc(tbdRoot: string, options: AddDocOptions): Promise<A
   // Validate content
   validateDocContent(content, cleanName);
 
-  // Write file to .tbd/docs/{subdir}/{name}.md
+  // Write file to .tbd/docs/tbd/{subdir}/{name}.md
   const fullPath = join(tbdRoot, TBD_DOCS_DIR, destPath);
   await mkdir(dirname(fullPath), { recursive: true });
   await writeFile(fullPath, content);
 
   // Atomically update config
   const config = await readConfig(tbdRoot);
-  config.docs_cache ??= { files: {}, lookup_path: [] };
+  config.docs_cache ??= { files: {} };
   config.docs_cache.files ??= {};
   config.docs_cache.files[destPath] = rawUrl;
-
-  // Ensure the lookup_path includes the subdir
-  const lookupDir = `.tbd/docs/${subdir}`;
-  if (!config.docs_cache.lookup_path.includes(lookupDir)) {
-    config.docs_cache.lookup_path.push(lookupDir);
-  }
 
   await writeConfig(tbdRoot, config);
 

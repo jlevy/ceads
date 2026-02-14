@@ -60,9 +60,13 @@ In addition to these repository docs, tbd provides built-in documentation via CL
   (typescript-rules, python-rules, general-tdd-guidelines, etc.)
 - `tbd template --list` / `tbd template <name>` — Document templates (plan-spec,
   research-brief, architecture)
+- `tbd reference --list` / `tbd reference <name>` — Reference documents (API docs, data
+  models, etc.)
 
 These CLI-provided docs are installed locally in `.tbd/docs/` during `tbd setup --auto`
 and can be refreshed anytime by re-running setup.
+Docs are organized in prefix-based directories: `.tbd/docs/{prefix}/{type}/` (e.g.,
+`.tbd/docs/sys/shortcuts/`, `.tbd/docs/tbd/guidelines/`).
 
 #### Adding external docs by URL
 
@@ -72,10 +76,9 @@ You can register external documentation from any URL (including GitHub blob URLs
 tbd guidelines --add=<url> --name=<name>
 tbd shortcut --add=<url> --name=<name>
 tbd template --add=<url> --name=<name>
+tbd reference --add=<url> --name=<name>
 ```
 
 GitHub blob URLs are automatically converted to raw URLs.
 If direct fetch returns HTTP 403, the system falls back to `gh api` for authenticated
-access.
-User-added shortcuts are stored in `shortcuts/custom/` to keep them separate from
-bundled docs.
+access. User-added docs are stored in `.tbd/docs/{type}/` alongside bundled docs.

@@ -57,6 +57,7 @@ Documentation:
   shortcut [options] [query]    Find and output documentation shortcuts
   guidelines [options] [query]  Find and output coding guidelines
   template [options] [query]    Find and output document templates
+  reference [options] [query]   Find and output reference documents
   closing                       Display the session closing protocol reminder
   docs [options] [topic]        Display CLI documentation (use tbd sync --docs
                                 for doc cache sync)
@@ -67,6 +68,7 @@ Setup & Configuration:
   init [options]                Initialize tbd in a git repository
   config                        Manage configuration
   setup [options]               Configure tbd integration with editors and tools
+  source                        Manage doc sources (repos and internal bundles)
 
 Working With Issues:
   create [options] [title]      Create a new issue

@@ -78,7 +78,7 @@ Patterns were validated through CI testing and actual agent usage.
 - tbd source code (`packages/tbd/src/cli/`)
 - Claude Code skill documentation (https://code.claude.com/docs/en/skills)
 - Agent Skills open standard (https://agentskills.io)
-- skills.sh open ecosystem (https://skills.sh) - Vercel's skill discovery/installation
+- skills.sh open ecosystem (https://skills.sh) - Vercel’s skill discovery/installation
   platform
 - Anthropic Skills repo (https://github.com/anthropics/skills)
 - Cursor IDE rules documentation (AGENTS.md support)
@@ -1368,23 +1368,25 @@ defaults.
 
 **Details**:
 
-The agent skills ecosystem has matured significantly since initial research. Three key
-components now form the distribution infrastructure:
+The agent skills ecosystem has matured significantly since initial research.
+Three key components now form the distribution infrastructure:
 
 1. **Agent Skills Open Standard** ([agentskills.io](https://agentskills.io)): Originally
-   developed by Anthropic, now adopted by 27+ agent products (Claude Code, Cursor, GitHub
-   Copilot, Codex, Gemini CLI, Windsurf, Goose, and others). Defines the SKILL.md format
-   with standardized frontmatter fields: `name`, `description`, `license`,
-   `compatibility`, `metadata`, `allowed-tools`.
+   developed by Anthropic, now adopted by 27+ agent products (Claude Code, Cursor,
+   GitHub Copilot, Codex, Gemini CLI, Windsurf, Goose, and others).
+   Defines the SKILL.md format with standardized frontmatter fields: `name`,
+   `description`, `license`, `compatibility`, `metadata`, `allowed-tools`.
 
-2. **skills.sh** ([skills.sh](https://skills.sh)): Vercel's open ecosystem for
-   discovering and installing skills. Functions as "npm for agents" with CLI:
-   `npx skills add <owner/repo>`. Installs SKILL.md to `.agents/skills/` and symlinks to
-   agent-specific directories. Hosts a leaderboard with 47K+ installations.
+2. **skills.sh** ([skills.sh](https://skills.sh)): Vercel’s open ecosystem for
+   discovering and installing skills.
+   Functions as “npm for agents” with CLI: `npx skills add <owner/repo>`. Installs
+   SKILL.md to `.agents/skills/` and symlinks to agent-specific directories.
+   Hosts a leaderboard with 47K+ installations.
 
-3. **Anthropic Skills Repo** ([github.com/anthropics/skills](https://github.com/anthropics/skills)):
-   Reference implementations (65K+ stars). Skills for document creation, creative
-   workflows, and technical tasks.
+3. **Anthropic Skills Repo**
+   ([github.com/anthropics/skills](https://github.com/anthropics/skills)): Reference
+   implementations (65K+ stars).
+   Skills for document creation, creative workflows, and technical tasks.
 
 **The Progressive Disclosure Hierarchy**:
 
@@ -1397,9 +1399,9 @@ The Agent Skills spec formalizes the three-level progressive disclosure pattern:
 | Level 3 | Resources (`scripts/`, `references/`, `assets/`) | Unlimited | On demand only |
 
 **Implication for CLIs**: A CLI meta-skill provides Level 1-2 (the SKILL.md describing
-the CLI's capabilities). The CLI's resource library (guidelines, shortcuts, templates)
-provides Level 3 content on demand. This architecture aligns perfectly with the open
-standard.
+the CLI’s capabilities).
+The CLI’s resource library (guidelines, shortcuts, templates) provides Level 3 content
+on demand. This architecture aligns perfectly with the open standard.
 
 **skills.sh Installation Flow**:
 
@@ -1451,7 +1453,7 @@ allowed-tools: Read Bash(git:*) # Optional: pre-approved tools
 ---
 ```
 
-**tbd's current doc frontmatter**:
+**tbd’s current doc frontmatter**:
 
 ```yaml
 ---

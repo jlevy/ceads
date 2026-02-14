@@ -10,7 +10,7 @@ import pc from 'picocolors';
 
 import { DocCommandHandler, type DocCommandOptions } from '../lib/doc-command-handler.js';
 import { CLIError } from '../lib/errors.js';
-import { DEFAULT_GUIDELINES_PATHS } from '../../lib/paths.js';
+import { getDefaultDocPaths } from '../../lib/paths.js';
 import { truncate } from '../../lib/truncate.js';
 import { formatDocSize } from '../../lib/format-utils.js';
 import { getTerminalWidth } from '../lib/output.js';
@@ -65,7 +65,7 @@ class GuidelinesHandler extends DocCommandHandler {
     super(command, {
       typeName: 'guideline',
       typeNamePlural: 'guidelines',
-      paths: DEFAULT_GUIDELINES_PATHS,
+      paths: getDefaultDocPaths('guideline'),
       docType: 'guideline',
     });
   }

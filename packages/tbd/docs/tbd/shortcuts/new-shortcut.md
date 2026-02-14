@@ -8,8 +8,8 @@ Create a new shortcut for `tbd shortcut <name>`.
 
 ## Locations
 
-- **Official** (bundled with tbd): `packages/tbd/docs/shortcuts/standard/<name>.md`
-- **Project-level** (custom): `.tbd/docs/shortcuts/standard/<name>.md`
+- **Official** (bundled with tbd): `packages/tbd/docs/tbd/shortcuts/<name>.md`
+- **Project-level** (custom): `.tbd/docs/tbd/shortcuts/<name>.md`
 
 ## Format
 
@@ -64,7 +64,7 @@ For official shortcuts: `pnpm build` in packages/tbd/
 
 ## Documentation Updates (Official Shortcuts)
 
-For official shortcuts added to `packages/tbd/docs/shortcuts/standard/`:
+For official shortcuts added to `packages/tbd/docs/tbd/shortcuts/`:
 
 1. **Update root README.md** — Add to the “Available shortcuts” table (grouped by
    category: Planning, Documentation, Review, Git, Cleanup, Session, Meta)

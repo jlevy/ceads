@@ -14,6 +14,11 @@ import {
   mergeDocCacheConfig,
   internalDocExists,
   pruneStaleInternals,
+  resolveSourcesToDocs,
+  getSourcesHash,
+  readSourcesHash,
+  writeSourcesHash,
+  shouldClearDocsCache,
 } from '../src/file/doc-sync.js';
 
 describe('doc-sync', () => {
@@ -32,10 +37,10 @@ describe('doc-sync', () => {
   describe('DocSync.parseSource', () => {
     it('parses internal source', () => {
       const sync = new DocSync(tempDir, {});
-      const source = sync.parseSource('internal:shortcuts/standard/code-review-and-commit.md');
+      const source = sync.parseSource('internal:tbd/shortcuts/code-review-and-commit.md');
 
       expect(source.type).toBe('internal');
-      expect(source.location).toBe('shortcuts/standard/code-review-and-commit.md');
+      expect(source.location).toBe('tbd/shortcuts/code-review-and-commit.md');
     });
 
     it('parses URL source', () => {
@@ -244,8 +249,8 @@ describe('doc-sync', () => {
   describe('internalDocExists', () => {
     it('returns true for existing bundled docs', async () => {
       // This tests against the actual bundled docs in the package
-      // shortcuts/standard/code-review-and-commit.md should exist
-      const exists = await internalDocExists('shortcuts/standard/code-review-and-commit.md');
+      // tbd/shortcuts/code-review-and-commit.md should exist
+      const exists = await internalDocExists('tbd/shortcuts/code-review-and-commit.md');
       expect(exists).toBe(true);
     });
 
@@ -264,14 +269,14 @@ describe('doc-sync', () => {
   describe('pruneStaleInternals', () => {
     it('keeps entries with existing internal sources', async () => {
       const config = {
-        'shortcuts/standard/code-review-and-commit.md':
-          'internal:shortcuts/standard/code-review-and-commit.md',
+        'tbd/shortcuts/code-review-and-commit.md':
+          'internal:tbd/shortcuts/code-review-and-commit.md',
       };
 
       const result = await pruneStaleInternals(config);
 
-      expect(result.config['shortcuts/standard/code-review-and-commit.md']).toBe(
-        'internal:shortcuts/standard/code-review-and-commit.md',
+      expect(result.config['tbd/shortcuts/code-review-and-commit.md']).toBe(
+        'internal:tbd/shortcuts/code-review-and-commit.md',
       );
       expect(result.pruned).toEqual([]);
     });
@@ -300,8 +305,8 @@ describe('doc-sync', () => {
 
     it('handles mixed configs correctly', async () => {
       const config = {
-        'shortcuts/standard/code-review-and-commit.md':
-          'internal:shortcuts/standard/code-review-and-commit.md', // exists
+        'tbd/shortcuts/code-review-and-commit.md':
+          'internal:tbd/shortcuts/code-review-and-commit.md', // exists
         'stale/doc.md': 'internal:nonexistent/fake-doc.md', // doesn't exist
         'external/doc.md': 'https://example.com/doc.md', // URL, always kept
       };
@@ -309,8 +314,8 @@ describe('doc-sync', () => {
       const result = await pruneStaleInternals(config);
 
       // Existing internal kept
-      expect(result.config['shortcuts/standard/code-review-and-commit.md']).toBe(
-        'internal:shortcuts/standard/code-review-and-commit.md',
+      expect(result.config['tbd/shortcuts/code-review-and-commit.md']).toBe(
+        'internal:tbd/shortcuts/code-review-and-commit.md',
       );
       // Non-existent internal pruned
       expect(result.config['stale/doc.md']).toBeUndefined();
@@ -328,6 +333,411 @@ describe('doc-sync', () => {
       const result = await pruneStaleInternals(config);
 
       expect(result.pruned).toEqual([]);
+    });
+  });
+
+  describe('resolveSourcesToDocs', () => {
+    it('resolves internal source to file entries', async () => {
+      const sources = [
+        {
+          type: 'internal' as const,
+          prefix: 'tbd',
+          paths: ['shortcuts/'],
+        },
+      ];
+
+      const result = await resolveSourcesToDocs(sources);
+
+      // Should contain bundled tbd shortcuts with prefix-based keys
+      expect(result['tbd/shortcuts/code-review-and-commit.md']).toBe(
+        'internal:tbd/shortcuts/code-review-and-commit.md',
+      );
+    });
+
+    it('resolves internal source with hidden flag', async () => {
+      const sources = [
+        {
+          type: 'internal' as const,
+          prefix: 'sys',
+          hidden: true,
+          paths: ['shortcuts/'],
+        },
+      ];
+
+      const result = await resolveSourcesToDocs(sources);
+
+      // Should contain sys shortcuts
+      expect(result['sys/shortcuts/skill-baseline.md']).toBe(
+        'internal:sys/shortcuts/skill-baseline.md',
+      );
+    });
+
+    it('resolves multiple internal sources', async () => {
+      const sources = [
+        {
+          type: 'internal' as const,
+          prefix: 'sys',
+          hidden: true,
+          paths: ['shortcuts/'],
+        },
+        {
+          type: 'internal' as const,
+          prefix: 'tbd',
+          paths: ['shortcuts/', 'guidelines/', 'templates/'],
+        },
+      ];
+
+      const result = await resolveSourcesToDocs(sources);
+
+      // sys shortcuts
+      expect(result['sys/shortcuts/skill-baseline.md']).toBe(
+        'internal:sys/shortcuts/skill-baseline.md',
+      );
+      // tbd shortcuts
+      expect(result['tbd/shortcuts/code-review-and-commit.md']).toBe(
+        'internal:tbd/shortcuts/code-review-and-commit.md',
+      );
+      // tbd guidelines
+      expect(result['tbd/guidelines/typescript-rules.md']).toBe(
+        'internal:tbd/guidelines/typescript-rules.md',
+      );
+      // tbd templates
+      expect(result['tbd/templates/plan-spec.md']).toBe('internal:tbd/templates/plan-spec.md');
+    });
+
+    it('applies files overrides last', async () => {
+      const sources = [
+        {
+          type: 'internal' as const,
+          prefix: 'tbd',
+          paths: ['shortcuts/'],
+        },
+      ];
+
+      const filesOverrides = {
+        'tbd/shortcuts/code-review-and-commit.md': 'https://example.com/custom-commit-shortcut.md',
+        'custom/my-doc.md': 'https://example.com/my-doc.md',
+      };
+
+      const result = await resolveSourcesToDocs(sources, filesOverrides);
+
+      // Override should win over internal source
+      expect(result['tbd/shortcuts/code-review-and-commit.md']).toBe(
+        'https://example.com/custom-commit-shortcut.md',
+      );
+      // Custom file entry should be added
+      expect(result['custom/my-doc.md']).toBe('https://example.com/my-doc.md');
+    });
+
+    it('returns empty map for empty sources', async () => {
+      const result = await resolveSourcesToDocs([]);
+
+      expect(Object.keys(result)).toEqual([]);
+    });
+
+    it('returns only files overrides when no sources', async () => {
+      const filesOverrides = {
+        'custom/doc.md': 'https://example.com/doc.md',
+      };
+
+      const result = await resolveSourcesToDocs([], filesOverrides);
+
+      expect(result['custom/doc.md']).toBe('https://example.com/doc.md');
+      expect(Object.keys(result).length).toBe(1);
+    });
+
+    it('handles non-existent internal path gracefully', async () => {
+      const sources = [
+        {
+          type: 'internal' as const,
+          prefix: 'custom',
+          paths: ['nonexistent-dir/'],
+        },
+      ];
+
+      const result = await resolveSourcesToDocs(sources);
+
+      // No entries for non-existent paths
+      expect(Object.keys(result).length).toBe(0);
+    });
+  });
+
+  describe('getSourcesHash', () => {
+    it('returns deterministic hash for same sources', () => {
+      const sources = [{ type: 'internal' as const, prefix: 'tbd', paths: ['shortcuts/'] }];
+
+      const hash1 = getSourcesHash(sources);
+      const hash2 = getSourcesHash(sources);
+
+      expect(hash1).toBe(hash2);
+    });
+
+    it('returns 8-character hex string', () => {
+      const sources = [{ type: 'internal' as const, prefix: 'tbd', paths: ['shortcuts/'] }];
+
+      const hash = getSourcesHash(sources);
+
+      expect(hash).toMatch(/^[a-f0-9]{8}$/);
+    });
+
+    it('returns different hash for different sources', () => {
+      const sources1 = [{ type: 'internal' as const, prefix: 'tbd', paths: ['shortcuts/'] }];
+      const sources2 = [{ type: 'internal' as const, prefix: 'sys', paths: ['shortcuts/'] }];
+
+      const hash1 = getSourcesHash(sources1);
+      const hash2 = getSourcesHash(sources2);
+
+      expect(hash1).not.toBe(hash2);
+    });
+
+    it('returns different hash when source order changes', () => {
+      const sources1 = [
+        { type: 'internal' as const, prefix: 'sys', paths: ['shortcuts/'] },
+        { type: 'internal' as const, prefix: 'tbd', paths: ['shortcuts/'] },
+      ];
+      const sources2 = [
+        { type: 'internal' as const, prefix: 'tbd', paths: ['shortcuts/'] },
+        { type: 'internal' as const, prefix: 'sys', paths: ['shortcuts/'] },
+      ];
+
+      const hash1 = getSourcesHash(sources1);
+      const hash2 = getSourcesHash(sources2);
+
+      expect(hash1).not.toBe(hash2);
+    });
+
+    it('returns empty string for empty sources', () => {
+      const hash = getSourcesHash([]);
+
+      // Empty sources should produce a consistent hash
+      expect(hash).toMatch(/^[a-f0-9]{8}$/);
+    });
+  });
+
+  describe('readSourcesHash / writeSourcesHash', () => {
+    it('returns undefined when no hash file exists', async () => {
+      const hash = await readSourcesHash(tempDir);
+
+      expect(hash).toBeUndefined();
+    });
+
+    it('writes and reads hash', async () => {
+      await writeSourcesHash(tempDir, 'abcd1234');
+      const hash = await readSourcesHash(tempDir);
+
+      expect(hash).toBe('abcd1234');
+    });
+
+    it('overwrites existing hash', async () => {
+      await writeSourcesHash(tempDir, 'abcd1234');
+      await writeSourcesHash(tempDir, 'efgh5678');
+      const hash = await readSourcesHash(tempDir);
+
+      expect(hash).toBe('efgh5678');
+    });
+  });
+
+  describe('shouldClearDocsCache', () => {
+    it('returns true when no hash file exists (first sync)', async () => {
+      const sources = [{ type: 'internal' as const, prefix: 'tbd', paths: ['shortcuts/'] }];
+
+      const result = await shouldClearDocsCache(tempDir, sources);
+
+      expect(result).toBe(true);
+    });
+
+    it('returns false when hash matches current sources', async () => {
+      const sources = [{ type: 'internal' as const, prefix: 'tbd', paths: ['shortcuts/'] }];
+
+      const hash = getSourcesHash(sources);
+      await writeSourcesHash(tempDir, hash);
+
+      const result = await shouldClearDocsCache(tempDir, sources);
+
+      expect(result).toBe(false);
+    });
+
+    it('returns true when sources have changed', async () => {
+      const oldSources = [{ type: 'internal' as const, prefix: 'tbd', paths: ['shortcuts/'] }];
+      const newSources = [
+        { type: 'internal' as const, prefix: 'tbd', paths: ['shortcuts/'] },
+        { type: 'internal' as const, prefix: 'sys', paths: ['shortcuts/'] },
+      ];
+
+      const hash = getSourcesHash(oldSources);
+      await writeSourcesHash(tempDir, hash);
+
+      const result = await shouldClearDocsCache(tempDir, newSources);
+
+      expect(result).toBe(true);
+    });
+
+    it('returns true when source order changes', async () => {
+      const sources1 = [
+        { type: 'internal' as const, prefix: 'sys', paths: ['shortcuts/'] },
+        { type: 'internal' as const, prefix: 'tbd', paths: ['shortcuts/'] },
+      ];
+      const sources2 = [
+        { type: 'internal' as const, prefix: 'tbd', paths: ['shortcuts/'] },
+        { type: 'internal' as const, prefix: 'sys', paths: ['shortcuts/'] },
+      ];
+
+      const hash = getSourcesHash(sources1);
+      await writeSourcesHash(tempDir, hash);
+
+      const result = await shouldClearDocsCache(tempDir, sources2);
+
+      expect(result).toBe(true);
+    });
+
+    it('returns false for empty sources when hash matches', async () => {
+      const sources: { type: 'internal' | 'repo'; prefix: string; paths: string[] }[] = [];
+      const hash = getSourcesHash(sources);
+      await writeSourcesHash(tempDir, hash);
+
+      const result = await shouldClearDocsCache(tempDir, sources);
+
+      expect(result).toBe(false);
+    });
+  });
+
+  describe('integration: resolveSourcesToDocs → DocSync cycle', () => {
+    it('resolves default sources and syncs files to .tbd/docs/', async () => {
+      // Default sources (matching what f04 migration produces)
+      const sources = [
+        { type: 'internal' as const, prefix: 'sys', hidden: true, paths: ['shortcuts/'] },
+        {
+          type: 'internal' as const,
+          prefix: 'tbd',
+          paths: ['shortcuts/', 'guidelines/', 'templates/'],
+        },
+      ];
+
+      // Resolve sources to flat file map
+      const fileMap = await resolveSourcesToDocs(sources);
+
+      // Verify resolution produced expected entries
+      expect(Object.keys(fileMap).length).toBeGreaterThan(0);
+      expect(fileMap['sys/shortcuts/skill-baseline.md']).toBe(
+        'internal:sys/shortcuts/skill-baseline.md',
+      );
+      expect(fileMap['tbd/shortcuts/code-review-and-commit.md']).toBe(
+        'internal:tbd/shortcuts/code-review-and-commit.md',
+      );
+      expect(fileMap['tbd/guidelines/typescript-rules.md']).toBe(
+        'internal:tbd/guidelines/typescript-rules.md',
+      );
+
+      // Sync using the resolved file map
+      const sync = new DocSync(tempDir, fileMap);
+      const result = await sync.sync();
+
+      // Should have added files
+      expect(result.added.length).toBeGreaterThan(0);
+      expect(result.errors.length).toBe(0);
+      expect(result.success).toBe(true);
+
+      // Verify files actually exist on disk
+      const skillContent = await readFile(
+        join(tempDir, '.tbd', 'docs', 'sys', 'shortcuts', 'skill-baseline.md'),
+        'utf-8',
+      );
+      expect(skillContent).toContain('tbd');
+
+      const commitContent = await readFile(
+        join(tempDir, '.tbd', 'docs', 'tbd', 'shortcuts', 'code-review-and-commit.md'),
+        'utf-8',
+      );
+      expect(commitContent.length).toBeGreaterThan(0);
+    });
+
+    it('sources hash detects change and enables cache clear', async () => {
+      const sources1 = [{ type: 'internal' as const, prefix: 'tbd', paths: ['shortcuts/'] }];
+
+      // Write initial hash
+      const hash1 = getSourcesHash(sources1);
+      await writeSourcesHash(tempDir, hash1);
+
+      // Same sources: no clear needed
+      expect(await shouldClearDocsCache(tempDir, sources1)).toBe(false);
+
+      // Add a new source: clear needed
+      const sources2 = [
+        ...sources1,
+        { type: 'internal' as const, prefix: 'sys', paths: ['shortcuts/'] },
+      ];
+      expect(await shouldClearDocsCache(tempDir, sources2)).toBe(true);
+
+      // After writing new hash: no clear needed
+      await writeSourcesHash(tempDir, getSourcesHash(sources2));
+      expect(await shouldClearDocsCache(tempDir, sources2)).toBe(false);
+    });
+
+    it('end-to-end: default f04 sources produce correct prefix directories', async () => {
+      // Simulate the default sources from f04 migration
+      const defaultSources = [
+        { type: 'internal' as const, prefix: 'sys', hidden: true, paths: ['shortcuts/'] },
+        {
+          type: 'internal' as const,
+          prefix: 'tbd',
+          paths: ['shortcuts/', 'guidelines/', 'templates/'],
+        },
+      ];
+
+      // Step 1: Resolve sources to file map
+      const fileMap = await resolveSourcesToDocs(defaultSources);
+
+      // Step 2: Verify all expected prefix/type combos are present
+      const prefixTypes = new Set<string>();
+      for (const key of Object.keys(fileMap)) {
+        const parts = key.split('/');
+        if (parts.length >= 2) {
+          prefixTypes.add(`${parts[0]}/${parts[1]}`);
+        }
+      }
+      expect(prefixTypes.has('sys/shortcuts')).toBe(true);
+      expect(prefixTypes.has('tbd/shortcuts')).toBe(true);
+      expect(prefixTypes.has('tbd/guidelines')).toBe(true);
+      expect(prefixTypes.has('tbd/templates')).toBe(true);
+
+      // Step 3: Sync to disk
+      const sync = new DocSync(tempDir, fileMap);
+      const result = await sync.sync();
+
+      expect(result.success).toBe(true);
+      expect(result.errors).toEqual([]);
+      expect(result.added.length).toBeGreaterThan(50); // Should sync 50+ docs
+
+      // Step 4: Verify directory structure
+      const { readdir: rd } = await import('node:fs/promises');
+
+      const sysShortcuts = await rd(join(tempDir, '.tbd', 'docs', 'sys', 'shortcuts'));
+      expect(sysShortcuts.length).toBeGreaterThan(0);
+      expect(sysShortcuts).toContain('skill-baseline.md');
+
+      const tbdShortcuts = await rd(join(tempDir, '.tbd', 'docs', 'tbd', 'shortcuts'));
+      expect(tbdShortcuts.length).toBeGreaterThan(0);
+      expect(tbdShortcuts).toContain('code-review-and-commit.md');
+
+      const tbdGuidelines = await rd(join(tempDir, '.tbd', 'docs', 'tbd', 'guidelines'));
+      expect(tbdGuidelines.length).toBeGreaterThan(0);
+      expect(tbdGuidelines).toContain('typescript-rules.md');
+
+      const tbdTemplates = await rd(join(tempDir, '.tbd', 'docs', 'tbd', 'templates'));
+      expect(tbdTemplates.length).toBeGreaterThan(0);
+      expect(tbdTemplates).toContain('plan-spec.md');
+
+      // Step 5: Write and verify sources hash
+      const hash = getSourcesHash(defaultSources);
+      await writeSourcesHash(tempDir, hash);
+      expect(await shouldClearDocsCache(tempDir, defaultSources)).toBe(false);
+
+      // Step 6: Resync should report no changes
+      const resync = new DocSync(tempDir, fileMap);
+      const result2 = await resync.sync();
+      expect(result2.added).toEqual([]);
+      expect(result2.updated).toEqual([]);
+      expect(result2.removed).toEqual([]);
     });
   });
 });

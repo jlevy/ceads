@@ -79,7 +79,7 @@ All set!
 # Test: Docs directory has shortcuts
 
 ```console
-$ ls .tbd/docs/shortcuts/standard/ | wc -l | tr -d ' '
+$ ls .tbd/docs/tbd/shortcuts/ | wc -l | tr -d ' '
 [..]
 ? 0
 ```

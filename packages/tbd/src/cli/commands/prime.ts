@@ -19,11 +19,7 @@ import { findTbdRoot, readConfig, hasSeenWelcome, markWelcomeSeen } from '../../
 import { stripFrontmatter } from '../../utils/markdown-utils.js';
 import { VERSION } from '../lib/version.js';
 import { listIssues } from '../../file/storage.js';
-import {
-  resolveDataSyncDir,
-  DEFAULT_SHORTCUT_PATHS,
-  DEFAULT_GUIDELINES_PATHS,
-} from '../../lib/paths.js';
+import { resolveDataSyncDir, getDefaultDocPaths } from '../../lib/paths.js';
 import { getClaudePaths } from '../../lib/integration-paths.js';
 import type { Issue } from '../../lib/types.js';
 import { DocCache, generateShortcutDirectory } from '../../file/doc-cache.js';
@@ -64,7 +60,7 @@ export async function loadSkillContent(): Promise<string> {
     // From packages/tbd/src/cli/commands/ go to packages/tbd/docs/
     const docsDir = join(__dirname, '..', '..', '..', 'docs');
     const headerPath = join(docsDir, 'install', 'claude-header.md');
-    const skillPath = join(docsDir, 'shortcuts', 'system', 'skill-baseline.md');
+    const skillPath = join(docsDir, 'sys', 'shortcuts', 'skill-baseline.md');
 
     const header = await readFile(headerPath, 'utf-8');
     const skill = await readFile(skillPath, 'utf-8');
@@ -409,12 +405,12 @@ class PrimeHandler extends BaseCommand {
    */
   private async getShortcutDirectory(tbdRoot: string): Promise<string | null> {
     // Load shortcuts
-    const shortcutCache = new DocCache(DEFAULT_SHORTCUT_PATHS, tbdRoot);
+    const shortcutCache = new DocCache(getDefaultDocPaths('shortcut'), tbdRoot);
     await shortcutCache.load({ quiet: this.ctx.quiet });
     const shortcuts = shortcutCache.list();
 
     // Load guidelines
-    const guidelinesCache = new DocCache(DEFAULT_GUIDELINES_PATHS, tbdRoot);
+    const guidelinesCache = new DocCache(getDefaultDocPaths('guideline'), tbdRoot);
     await guidelinesCache.load({ quiet: this.ctx.quiet });
     const guidelines = guidelinesCache.list();
 

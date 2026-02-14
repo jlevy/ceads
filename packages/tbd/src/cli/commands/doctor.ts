@@ -132,6 +132,10 @@ class DoctorHandler extends BaseCommand {
     // Check 15: Sync consistency (worktree matches local, ahead/behind counts)
     healthChecks.push(await this.checkSyncConsistency());
 
+    // Check 15: Repo cache health
+    const sources = this.config?.docs_cache?.sources ?? [];
+    healthChecks.push(await checkRepoCacheHealth(this.cwd, sources));
+
     // Run integration checks (optional IDE/agent integrations)
     const integrationChecks: DiagnosticResult[] = [];
 
@@ -1048,6 +1052,85 @@ class DoctorHandler extends BaseCommand {
       };
     }
   }
+}
+
+/**
+ * Check health of repo cache directories.
+ *
+ * For each type:repo source, checks if the cache directory exists.
+ * Also detects orphaned cache directories (source removed from config).
+ */
+export async function checkRepoCacheHealth(
+  tbdRoot: string,
+  sources: { type: string; prefix: string; url?: string; ref?: string; paths: string[] }[],
+): Promise<DiagnosticResult> {
+  const repoSources = sources.filter((s) => s.type === 'repo' && s.url);
+
+  // Check for orphaned cache dirs
+  const cacheBaseDir = join(tbdRoot, '.tbd', 'repo-cache');
+  let existingDirs: string[] = [];
+  try {
+    existingDirs = await readdir(cacheBaseDir);
+  } catch {
+    // No cache dir at all
+  }
+
+  if (repoSources.length === 0 && existingDirs.length === 0) {
+    return { name: 'Repo cache', status: 'ok', message: 'no repo sources configured' };
+  }
+
+  // Import slug utility dynamically to avoid circular deps
+  const { repoUrlToSlug } = await import('../../lib/repo-url.js');
+
+  const expectedSlugs = new Set<string>();
+  const missingDirs: string[] = [];
+
+  for (const source of repoSources) {
+    const slug = repoUrlToSlug(source.url!);
+    expectedSlugs.add(slug);
+    try {
+      await access(join(cacheBaseDir, slug));
+    } catch {
+      missingDirs.push(`${source.prefix} (${source.url})`);
+    }
+  }
+
+  // Detect orphaned dirs
+  const orphanedDirs = existingDirs.filter((d) => !expectedSlugs.has(d));
+
+  const details: string[] = [];
+  if (missingDirs.length > 0) {
+    details.push(...missingDirs.map((d) => `missing: ${d}`));
+  }
+  if (orphanedDirs.length > 0) {
+    details.push(...orphanedDirs.map((d) => `orphaned: ${d}`));
+  }
+
+  if (missingDirs.length > 0) {
+    return {
+      name: 'Repo cache',
+      status: 'warn',
+      message: `${missingDirs.length} missing cache dir(s)`,
+      details,
+      suggestion: 'Run: tbd sync --docs to populate',
+    };
+  }
+
+  if (orphanedDirs.length > 0) {
+    return {
+      name: 'Repo cache',
+      status: 'warn',
+      message: `${orphanedDirs.length} orphaned cache dir(s)`,
+      details,
+      suggestion: 'Delete orphaned dirs from .tbd/repo-cache/',
+    };
+  }
+
+  return {
+    name: 'Repo cache',
+    status: 'ok',
+    message: `${repoSources.length} repo source(s) cached`,
+  };
 }
 
 export const doctorCommand = new Command('doctor')

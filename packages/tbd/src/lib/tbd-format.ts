@@ -37,7 +37,7 @@
  * Current format version.
  * Bump this ONLY for breaking changes that require migration.
  */
-export const CURRENT_FORMAT = 'f03';
+export const CURRENT_FORMAT = 'f04';
 
 /**
  * Initial format version for configs that don't have tbd_format field.
@@ -84,6 +84,17 @@ export const FORMAT_HISTORY = {
     ],
     migration: 'Migrates old config keys to new docs_cache structure',
   },
+  f04: {
+    introduced: '0.2.0',
+    description: 'Prefix-based doc sources with external repo support',
+    changes: [
+      'Added docs_cache.sources: array for internal and external repo sources',
+      'Removed docs_cache.lookup_path: (replaced by source ordering)',
+      'Converted default internal files: entries to sources: array',
+      'Preserved custom file overrides in docs_cache.files:',
+    ],
+    migration: 'Converts files/lookup_path to sources array, preserves custom overrides',
+  },
 } as const;
 
 export type FormatVersion = keyof typeof FORMAT_HISTORY;
@@ -119,6 +130,15 @@ export interface RawConfig {
   docs_cache?: {
     files?: Record<string, string>;
     lookup_path?: string[];
+    // f04+: prefix-based sources
+    sources?: {
+      type: 'internal' | 'repo';
+      prefix: string;
+      url?: string;
+      ref?: string;
+      paths: string[];
+      hidden?: boolean;
+    }[];
   };
 }
 
@@ -136,6 +156,8 @@ export interface MigrationResult {
   changed: boolean;
   /** Description of changes made */
   changes: string[];
+  /** Non-fatal warnings (e.g., preserved custom overrides) */
+  warnings: string[];
 }
 
 // =============================================================================
@@ -173,6 +195,7 @@ function migrate_f01_to_f02(config: RawConfig): MigrationResult {
     toFormat: 'f02',
     changed: changes.length > 0,
     changes,
+    warnings: [],
   };
 }
 
@@ -219,6 +242,95 @@ function migrate_f02_to_f03(config: RawConfig): MigrationResult {
     toFormat: 'f03',
     changed: changes.length > 0,
     changes,
+    warnings: [],
+  };
+}
+
+/**
+ * Check if a files: entry is a default internal mapping (source === 'internal:' + dest).
+ */
+function isDefaultFileEntry(dest: string, source: string): boolean {
+  return source === `internal:${dest}`;
+}
+
+/**
+ * Get default sources for a fresh f04 config.
+ */
+function getDefaultSources(): NonNullable<NonNullable<RawConfig['docs_cache']>['sources']> {
+  return [
+    {
+      type: 'internal' as const,
+      prefix: 'sys',
+      hidden: true,
+      paths: ['shortcuts/'],
+    },
+    {
+      type: 'internal' as const,
+      prefix: 'tbd',
+      paths: ['shortcuts/', 'guidelines/', 'templates/'],
+    },
+  ];
+}
+
+/**
+ * Migrate from f03 to f04.
+ * - Converts files: entries to sources: array
+ * - Removes lookup_path: (replaced by source ordering)
+ * - Preserves custom file overrides (non-internal entries)
+ */
+function migrate_f03_to_f04(config: RawConfig): MigrationResult {
+  const changes: string[] = [];
+  const migrated = { ...config };
+
+  // Update format version
+  migrated.tbd_format = 'f04';
+  changes.push('Updated tbd_format: f04');
+
+  // Initialize docs_cache if needed
+  migrated.docs_cache = { ...migrated.docs_cache };
+
+  // Remove lookup_path
+  if (migrated.docs_cache.lookup_path) {
+    delete migrated.docs_cache.lookup_path;
+    changes.push('Removed docs_cache.lookup_path (replaced by source ordering)');
+  }
+
+  // Separate default internal files from custom overrides
+  const customFiles: Record<string, string> = {};
+  if (migrated.docs_cache.files) {
+    for (const [dest, source] of Object.entries(migrated.docs_cache.files)) {
+      if (!isDefaultFileEntry(dest, source)) {
+        customFiles[dest] = source;
+      }
+    }
+  }
+
+  // Set up default sources
+  migrated.docs_cache.sources = getDefaultSources();
+  changes.push('Added docs_cache.sources with default internal sources');
+
+  // Keep custom files if any, otherwise remove the files key
+  const warnings: string[] = [];
+  if (Object.keys(customFiles).length > 0) {
+    migrated.docs_cache.files = customFiles;
+    changes.push('Preserved custom file overrides in docs_cache.files');
+    warnings.push(
+      `Preserved ${Object.keys(customFiles).length} custom file override(s) in docs_cache.files`,
+    );
+  } else {
+    delete migrated.docs_cache.files;
+    if (config.docs_cache?.files && Object.keys(config.docs_cache.files).length > 0) {
+      changes.push('Removed default internal entries from docs_cache.files (now in sources)');
+    }
+  }
+
+  return {
+    config: migrated,
+    fromFormat: 'f03',
+    toFormat: 'f04',
+    changed: changes.length > 0,
+    changes,
+    warnings,
   };
 }
 
@@ -270,12 +382,14 @@ export function migrateToLatest(config: RawConfig): MigrationResult {
       toFormat: CURRENT_FORMAT,
       changed: false,
       changes: [],
+      warnings: [],
     };
   }
 
   let current = config;
   let currentFormat: FormatVersion = fromFormat;
   const allChanges: string[] = [];
+  const allWarnings: string[] = [];
 
   // Apply migrations in sequence
   if (currentFormat === 'f01') {
@@ -283,6 +397,7 @@ export function migrateToLatest(config: RawConfig): MigrationResult {
     current = result.config;
     currentFormat = 'f02' as FormatVersion;
     allChanges.push(...result.changes);
+    allWarnings.push(...result.warnings);
   }
 
   if (currentFormat === 'f02') {
@@ -290,6 +405,15 @@ export function migrateToLatest(config: RawConfig): MigrationResult {
     current = result.config;
     currentFormat = 'f03' as FormatVersion;
     allChanges.push(...result.changes);
+    allWarnings.push(...result.warnings);
+  }
+
+  if (currentFormat === 'f03') {
+    const result = migrate_f03_to_f04(current);
+    current = result.config;
+    currentFormat = 'f04' as FormatVersion;
+    allChanges.push(...result.changes);
+    allWarnings.push(...result.warnings);
   }
 
   // Add more migrations here as new format versions are added
@@ -300,6 +424,7 @@ export function migrateToLatest(config: RawConfig): MigrationResult {
     toFormat: currentFormat,
     changed: allChanges.length > 0,
     changes: allChanges,
+    warnings: allWarnings,
   };
 }
 
@@ -336,6 +461,11 @@ export function describeMigration(fromFormat: FormatVersion): string[] {
   if (current === 'f02') {
     descriptions.push('f02 → f03: Consolidate doc_cache and docs into docs_cache');
     current = 'f03';
+  }
+
+  if (current === 'f03') {
+    descriptions.push('f03 → f04: Add prefix-based doc sources with external repo support');
+    current = 'f04';
   }
 
   // Add more migration descriptions here

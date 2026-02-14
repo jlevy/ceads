@@ -17,3 +17,7 @@ state.yml
 
 # Migration backups (local only, not synced)
 backups/
+
+
+# Cached external repo checkouts
+repo-cache/

@@ -188,6 +188,74 @@ vb4g: 01aaaaaaaaaaaaaaaaaaaaaa04`;
   });
 });
 
+describe('checkRepoCacheHealth', () => {
+  let testDir: string;
+
+  beforeEach(async () => {
+    testDir = join(tmpdir(), `tbd-repocache-test-${randomBytes(4).toString('hex')}`);
+    await mkdir(join(testDir, '.tbd'), { recursive: true });
+  });
+
+  afterEach(async () => {
+    await rm(testDir, { recursive: true, force: true });
+  });
+
+  it('returns ok with no repo sources', async () => {
+    const { checkRepoCacheHealth } = await import('../src/cli/commands/doctor.js');
+    const result = await checkRepoCacheHealth(testDir, []);
+    expect(result.status).toBe('ok');
+    expect(result.message).toContain('no repo sources');
+  });
+
+  it('warns when repo source cache dir is missing', async () => {
+    const { checkRepoCacheHealth } = await import('../src/cli/commands/doctor.js');
+    const sources = [
+      {
+        type: 'repo' as const,
+        prefix: 'ext',
+        url: 'https://github.com/org/repo',
+        ref: 'main',
+        paths: ['guidelines'],
+      },
+    ];
+    const result = await checkRepoCacheHealth(testDir, sources);
+    expect(result.status).toBe('warn');
+    expect(result.message).toContain('missing');
+    expect(result.suggestion).toContain('tbd sync --docs');
+  });
+
+  it('returns ok when repo cache dir exists', async () => {
+    const { checkRepoCacheHealth } = await import('../src/cli/commands/doctor.js');
+    const { repoUrlToSlug } = await import('../src/lib/repo-url.js');
+    const url = 'https://github.com/org/repo';
+    const slug = repoUrlToSlug(url);
+    await mkdir(join(testDir, '.tbd', 'repo-cache', slug), { recursive: true });
+    const sources = [
+      { type: 'repo' as const, prefix: 'ext', url, ref: 'main', paths: ['guidelines'] },
+    ];
+    const result = await checkRepoCacheHealth(testDir, sources);
+    expect(result.status).toBe('ok');
+  });
+
+  it('warns about orphaned cache dirs', async () => {
+    const { checkRepoCacheHealth } = await import('../src/cli/commands/doctor.js');
+    // Create a cache dir that's not referenced by any source
+    await mkdir(join(testDir, '.tbd', 'repo-cache', 'orphaned-slug'), { recursive: true });
+    const result = await checkRepoCacheHealth(testDir, []);
+    expect(result.status).toBe('warn');
+    expect(result.details).toBeDefined();
+    expect(result.details!.some((d: string) => d.includes('orphaned'))).toBe(true);
+  });
+
+  it('skips internal sources', async () => {
+    const { checkRepoCacheHealth } = await import('../src/cli/commands/doctor.js');
+    const sources = [{ type: 'internal' as const, prefix: 'sys', paths: ['shortcuts'] }];
+    const result = await checkRepoCacheHealth(testDir, sources);
+    expect(result.status).toBe('ok');
+    expect(result.message).toContain('no repo sources');
+  });
+});
+
 describe('sync status logic', () => {
   let testDir: string;
   const issuesDir = DATA_SYNC_DIR;

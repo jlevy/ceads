@@ -9,6 +9,8 @@ import {
   ShortId,
   ExternalIssueIdInput,
   ConfigSchema,
+  DocsSourceSchema,
+  DocsCacheSchema,
 } from '../src/lib/schemas.js';
 
 // Sample valid ULID for testing (26 lowercase alphanumeric chars)
@@ -277,8 +279,8 @@ describe('ConfigSchema', () => {
         display: { id_prefix: 'proj' },
         docs_cache: {
           files: {
-            'shortcuts/standard/code-review-and-commit.md':
-              'internal:shortcuts/standard/code-review-and-commit.md',
+            'tbd/shortcuts/code-review-and-commit.md':
+              'internal:tbd/shortcuts/code-review-and-commit.md',
             'custom/my-doc.md': 'https://example.com/my-doc.md',
           },
         },
@@ -288,8 +290,8 @@ describe('ConfigSchema', () => {
       expect(result.success).toBe(true);
       if (result.success) {
         expect(result.data.docs_cache?.files).toEqual({
-          'shortcuts/standard/code-review-and-commit.md':
-            'internal:shortcuts/standard/code-review-and-commit.md',
+          'tbd/shortcuts/code-review-and-commit.md':
+            'internal:tbd/shortcuts/code-review-and-commit.md',
           'custom/my-doc.md': 'https://example.com/my-doc.md',
         });
       }
@@ -302,8 +304,8 @@ describe('ConfigSchema', () => {
         docs_cache: {
           lookup_path: [
             '.tbd/docs/shortcuts/custom',
-            '.tbd/docs/shortcuts/system',
-            '.tbd/docs/shortcuts/standard',
+            '.tbd/docs/sys/shortcuts',
+            '.tbd/docs/tbd/shortcuts',
           ],
         },
       };
@@ -313,8 +315,8 @@ describe('ConfigSchema', () => {
       if (result.success) {
         expect(result.data.docs_cache?.lookup_path).toEqual([
           '.tbd/docs/shortcuts/custom',
-          '.tbd/docs/shortcuts/system',
-          '.tbd/docs/shortcuts/standard',
+          '.tbd/docs/sys/shortcuts',
+          '.tbd/docs/tbd/shortcuts',
         ]);
       }
     });
@@ -325,10 +327,10 @@ describe('ConfigSchema', () => {
         display: { id_prefix: 'proj' },
         docs_cache: {
           files: {
-            'shortcuts/standard/code-review-and-commit.md':
-              'internal:shortcuts/standard/code-review-and-commit.md',
+            'tbd/shortcuts/code-review-and-commit.md':
+              'internal:tbd/shortcuts/code-review-and-commit.md',
           },
-          lookup_path: ['.tbd/docs/shortcuts/system', '.tbd/docs/shortcuts/standard'],
+          lookup_path: ['.tbd/docs/sys/shortcuts', '.tbd/docs/tbd/shortcuts'],
         },
       };
 
@@ -340,7 +342,7 @@ describe('ConfigSchema', () => {
       }
     });
 
-    it('uses default lookup_path when not specified', () => {
+    it('lookup_path is optional and undefined when not specified (f04)', () => {
       const config = {
         tbd_version: '3.0.0',
         display: { id_prefix: 'proj' },
@@ -350,11 +352,238 @@ describe('ConfigSchema', () => {
       const result = ConfigSchema.safeParse(config);
       expect(result.success).toBe(true);
       if (result.success) {
-        expect(result.data.docs_cache?.lookup_path).toEqual([
-          '.tbd/docs/shortcuts/system',
-          '.tbd/docs/shortcuts/standard',
-        ]);
+        expect(result.data.docs_cache?.lookup_path).toBeUndefined();
       }
     });
+  });
+});
+
+describe('DocsSourceSchema', () => {
+  describe('valid internal sources', () => {
+    it('accepts minimal internal source', () => {
+      const source = {
+        type: 'internal',
+        prefix: 'sys',
+        paths: ['shortcuts/'],
+      };
+      const result = DocsSourceSchema.safeParse(source);
+      expect(result.success).toBe(true);
+    });
+
+    it('accepts internal source with hidden flag', () => {
+      const source = {
+        type: 'internal',
+        prefix: 'sys',
+        hidden: true,
+        paths: ['shortcuts/'],
+      };
+      const result = DocsSourceSchema.safeParse(source);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.hidden).toBe(true);
+      }
+    });
+
+    it('accepts internal source with multiple paths', () => {
+      const source = {
+        type: 'internal',
+        prefix: 'tbd',
+        paths: ['shortcuts/', 'guidelines/', 'templates/'],
+      };
+      const result = DocsSourceSchema.safeParse(source);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.paths).toHaveLength(3);
+      }
+    });
+  });
+
+  describe('valid repo sources', () => {
+    it('accepts minimal repo source', () => {
+      const source = {
+        type: 'repo',
+        prefix: 'spec',
+        url: 'github.com/jlevy/speculate',
+        paths: ['shortcuts/'],
+      };
+      const result = DocsSourceSchema.safeParse(source);
+      expect(result.success).toBe(true);
+    });
+
+    it('accepts repo source with ref', () => {
+      const source = {
+        type: 'repo',
+        prefix: 'spec',
+        url: 'github.com/jlevy/speculate',
+        ref: 'main',
+        paths: ['shortcuts/', 'guidelines/', 'templates/', 'references/'],
+      };
+      const result = DocsSourceSchema.safeParse(source);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.ref).toBe('main');
+        expect(result.data.paths).toHaveLength(4);
+      }
+    });
+
+    it('accepts repo source with SSH URL', () => {
+      const source = {
+        type: 'repo',
+        prefix: 'myorg',
+        url: 'git@github.com:myorg/coding-standards.git',
+        paths: ['guidelines/'],
+      };
+      const result = DocsSourceSchema.safeParse(source);
+      expect(result.success).toBe(true);
+    });
+
+    it('accepts repo source with HTTPS URL', () => {
+      const source = {
+        type: 'repo',
+        prefix: 'myorg',
+        url: 'https://github.com/myorg/coding-standards',
+        paths: ['guidelines/'],
+      };
+      const result = DocsSourceSchema.safeParse(source);
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe('prefix validation', () => {
+    it('accepts lowercase alphanumeric prefixes', () => {
+      expect(
+        DocsSourceSchema.safeParse({ type: 'internal', prefix: 'a', paths: ['x/'] }).success,
+      ).toBe(true);
+      expect(
+        DocsSourceSchema.safeParse({ type: 'internal', prefix: 'sys', paths: ['x/'] }).success,
+      ).toBe(true);
+      expect(
+        DocsSourceSchema.safeParse({ type: 'internal', prefix: 'my-org', paths: ['x/'] }).success,
+      ).toBe(true);
+      expect(
+        DocsSourceSchema.safeParse({ type: 'internal', prefix: 'abc123', paths: ['x/'] }).success,
+      ).toBe(true);
+    });
+
+    it('rejects empty prefix', () => {
+      const result = DocsSourceSchema.safeParse({ type: 'internal', prefix: '', paths: ['x/'] });
+      expect(result.success).toBe(false);
+    });
+
+    it('rejects prefix longer than 16 chars', () => {
+      const result = DocsSourceSchema.safeParse({
+        type: 'internal',
+        prefix: 'a'.repeat(17),
+        paths: ['x/'],
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it('rejects uppercase prefix', () => {
+      const result = DocsSourceSchema.safeParse({ type: 'internal', prefix: 'SYS', paths: ['x/'] });
+      expect(result.success).toBe(false);
+    });
+
+    it('rejects prefix with invalid characters', () => {
+      expect(
+        DocsSourceSchema.safeParse({ type: 'internal', prefix: 'my_org', paths: ['x/'] }).success,
+      ).toBe(false);
+      expect(
+        DocsSourceSchema.safeParse({ type: 'internal', prefix: 'my.org', paths: ['x/'] }).success,
+      ).toBe(false);
+      expect(
+        DocsSourceSchema.safeParse({ type: 'internal', prefix: 'my org', paths: ['x/'] }).success,
+      ).toBe(false);
+    });
+  });
+
+  describe('required fields', () => {
+    it('rejects missing type', () => {
+      const result = DocsSourceSchema.safeParse({ prefix: 'sys', paths: ['x/'] });
+      expect(result.success).toBe(false);
+    });
+
+    it('rejects missing prefix', () => {
+      const result = DocsSourceSchema.safeParse({ type: 'internal', paths: ['x/'] });
+      expect(result.success).toBe(false);
+    });
+
+    it('rejects missing paths', () => {
+      const result = DocsSourceSchema.safeParse({ type: 'internal', prefix: 'sys' });
+      expect(result.success).toBe(false);
+    });
+
+    it('rejects invalid type', () => {
+      const result = DocsSourceSchema.safeParse({ type: 'local', prefix: 'sys', paths: ['x/'] });
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe('optional fields default correctly', () => {
+    it('hidden defaults to undefined when not specified', () => {
+      const result = DocsSourceSchema.safeParse({
+        type: 'internal',
+        prefix: 'sys',
+        paths: ['shortcuts/'],
+      });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.hidden).toBeUndefined();
+      }
+    });
+
+    it('url and ref default to undefined for internal', () => {
+      const result = DocsSourceSchema.safeParse({
+        type: 'internal',
+        prefix: 'sys',
+        paths: ['shortcuts/'],
+      });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.url).toBeUndefined();
+        expect(result.data.ref).toBeUndefined();
+      }
+    });
+  });
+});
+
+describe('DocsCacheSchema with sources', () => {
+  it('accepts docs_cache with sources array', () => {
+    const result = DocsCacheSchema.safeParse({
+      sources: [
+        { type: 'internal', prefix: 'sys', hidden: true, paths: ['shortcuts/'] },
+        { type: 'repo', prefix: 'spec', url: 'github.com/jlevy/speculate', paths: ['shortcuts/'] },
+      ],
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.sources).toHaveLength(2);
+    }
+  });
+
+  it('accepts docs_cache with both sources and files', () => {
+    const result = DocsCacheSchema.safeParse({
+      sources: [{ type: 'internal', prefix: 'tbd', paths: ['shortcuts/'] }],
+      files: {
+        'guidelines/custom.md': 'https://example.com/custom.md',
+      },
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.sources).toHaveLength(1);
+      expect(result.data.files).toBeDefined();
+    }
+  });
+
+  it('accepts docs_cache without sources (backward compat)', () => {
+    const result = DocsCacheSchema.safeParse({
+      files: {
+        'tbd/shortcuts/code-review.md': 'internal:tbd/shortcuts/code-review.md',
+      },
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.sources).toBeUndefined();
+    }
   });
 });

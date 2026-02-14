@@ -9,14 +9,14 @@ import { Command } from 'commander';
 
 import { DocCommandHandler, type DocCommandOptions } from '../lib/doc-command-handler.js';
 import { CLIError } from '../lib/errors.js';
-import { DEFAULT_TEMPLATE_PATHS } from '../../lib/paths.js';
+import { getDefaultDocPaths } from '../../lib/paths.js';
 
 class TemplateHandler extends DocCommandHandler {
   constructor(command: Command) {
     super(command, {
       typeName: 'template',
       typeNamePlural: 'templates',
-      paths: DEFAULT_TEMPLATE_PATHS,
+      paths: getDefaultDocPaths('template'),
       docType: 'template',
     });
   }

@@ -185,19 +185,48 @@ export const GitRemoteName = z
 /**
  * Doc cache configuration - maps destination paths to source locations.
  *
- * Keys are destination paths relative to .tbd/docs/ (e.g., "shortcuts/standard/code-review-and-commit.md")
+ * Keys are destination paths relative to .tbd/docs/ (e.g., "tbd/shortcuts/code-review-and-commit.md")
  * Values are source locations:
- * - internal: prefix for bundled docs (e.g., "internal:shortcuts/standard/code-review-and-commit.md")
+ * - internal: prefix for bundled docs (e.g., "internal:tbd/shortcuts/code-review-and-commit.md")
  * - Full URL for external docs (e.g., "https://raw.githubusercontent.com/org/repo/main/file.md")
  *
  * Example:
  * ```yaml
  * doc_cache:
- *   shortcuts/standard/code-review-and-commit.md: internal:shortcuts/standard/code-review-and-commit.md
- *   shortcuts/custom/my-shortcut.md: https://raw.githubusercontent.com/org/repo/main/shortcuts/my-shortcut.md
+ *   tbd/shortcuts/code-review-and-commit.md: internal:tbd/shortcuts/code-review-and-commit.md
+ *   guidelines/custom.md: https://example.com/custom.md
  * ```
  */
 export const DocCacheConfigSchema = z.record(z.string(), z.string());
+
+/**
+ * A documentation source: internal (bundled) or external (git repo).
+ *
+ * Sources are listed in precedence order in docs_cache.sources[].
+ * See: docs/project/specs/active/plan-2026-02-02-external-docs-repos.md
+ */
+export const DocsSourceSchema = z
+  .object({
+    type: z.enum(['internal', 'repo']),
+    /** Namespace prefix for this source (1-16 lowercase alphanumeric + dash). */
+    prefix: z
+      .string()
+      .min(1)
+      .max(16)
+      .regex(/^[a-z0-9-]+$/),
+    /** Repository URL (required for type: repo). */
+    url: z.string().optional(),
+    /** Git ref to checkout (defaults to 'main' for repos). */
+    ref: z.string().optional(),
+    /** Doc type directories to include from this source. */
+    paths: z.array(z.string()),
+    /** Exclude from --list output. */
+    hidden: z.boolean().optional(),
+  })
+  .refine((data) => data.type !== 'repo' || (data.url && data.url.length > 0), {
+    message: 'url is required for repo sources',
+    path: ['url'],
+  });
 
 /**
  * Documentation cache configuration (consolidated structure).
@@ -207,20 +236,23 @@ export const DocCacheConfigSchema = z.record(z.string(), z.string());
  */
 export const DocsCacheSchema = z.object({
   /**
+   * Ordered list of doc sources (internal bundles and external repos).
+   * Earlier sources take precedence on name collisions for unqualified lookups.
+   */
+  sources: z.array(DocsSourceSchema).optional(),
+  /**
    * Files to sync: maps destination paths to source locations.
    * Keys are destination paths relative to .tbd/docs/
    * Values are source locations:
-   * - internal: prefix for bundled docs (e.g., "internal:shortcuts/standard/code-review-and-commit.md")
+   * - internal: prefix for bundled docs (e.g., "internal:tbd/shortcuts/code-review-and-commit.md")
    * - Full URL for external docs (e.g., "https://raw.githubusercontent.com/org/repo/main/file.md")
    */
   files: z.record(z.string(), z.string()).optional(),
   /**
-   * Search paths for doc lookup (like shell $PATH).
-   * Earlier paths take precedence when names conflict.
+   * @deprecated Replaced by source ordering in f04. Kept for backward compatibility
+   * with f03 configs. In f04+, source order determines lookup precedence.
    */
-  lookup_path: z
-    .array(z.string())
-    .default(['.tbd/docs/shortcuts/system', '.tbd/docs/shortcuts/standard']),
+  lookup_path: z.array(z.string()).optional(),
 });
 
 /**

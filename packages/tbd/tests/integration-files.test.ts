@@ -5,7 +5,7 @@
  * Note: SKILL.md is NOT pre-built in dist/docs.
  * It is dynamically generated at setup/install time by combining:
  * - Header (from dist/docs/install/claude-header.md)
- * - Base skill content (from dist/docs/shortcuts/system/skill-baseline.md)
+ * - Base skill content (from dist/docs/sys/shortcuts/skill-baseline.md)
  * - Shortcut directory (generated from available shortcuts)
  */
 
@@ -19,7 +19,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 // Source files are in dist/docs after build
 const docsDir = join(__dirname, '..', 'dist', 'docs');
 const installDir = join(docsDir, 'install');
-const shortcutsSystemDir = join(docsDir, 'shortcuts', 'system');
+const shortcutsSystemDir = join(docsDir, 'sys', 'shortcuts');
 
 describe('integration file formats', () => {
   describe('claude-header.md (source for SKILL.md)', () => {

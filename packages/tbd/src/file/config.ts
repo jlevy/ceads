@@ -167,14 +167,13 @@ export async function writeConfig(baseDir: string, config: Config): Promise<void
   let content = yaml;
   if (config.docs_cache && Object.keys(config.docs_cache).length > 0) {
     const docsCacheComment = `# Documentation cache configuration.
-# files: Maps destination paths (relative to .tbd/docs/) to source locations.
-#   Sources can be:
-#   - internal: prefix for bundled docs (e.g., "internal:shortcuts/standard/code-review-and-commit.md")
-#   - Full URL for external docs (e.g., "https://raw.githubusercontent.com/org/repo/main/file.md")
-# lookup_path: Search paths for doc lookup (like shell $PATH). Earlier paths take precedence.
+# sources: Ordered list of doc sources. Earlier sources take precedence.
+#   Types: internal (bundled docs), repo (external git repos)
+# files: Optional overrides mapping dest paths to source locations.
 #
 # To sync docs: tbd sync --docs
-# To check status: tbd sync --status
+# To add a source: tbd source add <url> --prefix <prefix>
+# To list sources: tbd source list
 #
 # Auto-sync: Docs are automatically synced when stale (default: every 24 hours).
 # Configure with settings.doc_auto_sync_hours (0 = disabled).

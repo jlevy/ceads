@@ -29,12 +29,10 @@ const root = join(__dirname, '..');
 const repoRoot = join(root, '..', '..');
 
 // Source documentation directory (packages/tbd/docs/)
+// Prefix-based layout: sys/ for system shortcuts, tbd/ for standard docs
 const DOCS_DIR = join(root, 'docs');
 const INSTALL_DIR = join(DOCS_DIR, 'install');
-const SHORTCUTS_DIR = join(DOCS_DIR, 'shortcuts');
-const SHORTCUTS_SYSTEM_DIR = join(SHORTCUTS_DIR, 'system');
-const GUIDELINES_DIR = join(DOCS_DIR, 'guidelines');
-const TEMPLATES_DIR = join(DOCS_DIR, 'templates');
+const SYS_SHORTCUTS_DIR = join(DOCS_DIR, 'sys', 'shortcuts');
 
 /**
  * Packaged documentation files (in packages/tbd/docs/).
@@ -96,29 +94,20 @@ if (phase === 'prebuild') {
   // Note: The full skill file with shortcuts is dynamically generated at setup time.
   // This is a minimal version without shortcuts for prime --full output.
   const claudeHeader = readFileSync(join(INSTALL_DIR, 'claude-header.md'), 'utf-8');
-  const skillContent = readFileSync(join(SHORTCUTS_SYSTEM_DIR, 'skill-baseline.md'), 'utf-8');
+  const skillContent = readFileSync(join(SYS_SHORTCUTS_DIR, 'skill-baseline.md'), 'utf-8');
   await writeFile(join(distDocs, 'SKILL.md'), claudeHeader + skillContent);
 
-  // Copy skill-brief.md from shortcuts/system to dist/docs
+  // Copy skill-brief.md from sys/shortcuts to dist/docs
   // (needed by `tbd skill --brief` command)
-  await atomicCopy(join(SHORTCUTS_SYSTEM_DIR, 'skill-brief.md'), join(distDocs, 'skill-brief.md'));
+  await atomicCopy(join(SYS_SHORTCUTS_DIR, 'skill-brief.md'), join(distDocs, 'skill-brief.md'));
 
   // Copy README.md to dist/docs
   await atomicCopy(join(root, 'README.md'), join(distDocs, 'README.md'));
 
-  // Copy shortcuts directories to dist/docs for bundled CLI
+  // Copy prefix-based doc directories to dist/docs for bundled CLI
   // These are used by `tbd setup` to copy built-in docs to user's project
-  await copyDir(SHORTCUTS_DIR, join(distDocs, 'shortcuts'));
-
-  // Copy guidelines directory to dist/docs (top-level, not under shortcuts)
-  if (existsSync(GUIDELINES_DIR)) {
-    await copyDir(GUIDELINES_DIR, join(distDocs, 'guidelines'));
-  }
-
-  // Copy templates directory to dist/docs (top-level, not under shortcuts)
-  if (existsSync(TEMPLATES_DIR)) {
-    await copyDir(TEMPLATES_DIR, join(distDocs, 'templates'));
-  }
+  await copyDir(join(DOCS_DIR, 'sys'), join(distDocs, 'sys'));
+  await copyDir(join(DOCS_DIR, 'tbd'), join(distDocs, 'tbd'));
 
   // Copy install directory to dist/docs (headers for composing skill files)
   await copyDir(INSTALL_DIR, join(distDocs, 'install'));
